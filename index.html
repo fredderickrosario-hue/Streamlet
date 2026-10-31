@@ -70,7 +70,7 @@ select{background:var(--panel);color:var(--text);border:1px solid #2a2d38;border
 #toast{position:fixed;left:50%;bottom:90px;transform:translateX(-50%);background:#2a2d38;padding:10px 16px;border-radius:10px;z-index:50;font-size:14px;max-width:88vw;opacity:0;pointer-events:none;transition:opacity .2s}
 #toast.on{opacity:1}
 .spin{color:var(--mut);padding:10px 14px;font-size:13px}
-body.launch header,body.launch nav,body.launch main>section:not(#launcher):not(#profiles){display:none}
+body.launch header,body.launch nav,body.launch main>section:not(#launcher):not(#profiles):not(#login){display:none}
 #launcher{padding:calc(34px + env(safe-area-inset-top)) 16px 40px;max-width:560px;margin:0 auto}
 #launcher h1{font-size:28px;margin:0}
 #launcher .sub{color:var(--mut);margin:2px 0 18px}
@@ -145,6 +145,14 @@ select.chip{padding-right:10px;text-overflow:ellipsis}
 .pg i{display:block;height:100%;background:var(--acc)}
 .rm{position:absolute;top:5px;right:5px;width:24px;height:24px;border-radius:50%;border:0;background:#000b;color:#fff;font-size:12px;line-height:1}
 .upn{position:absolute;left:6px;top:6px;background:var(--acc);color:var(--btnt);font-size:10px;font-weight:800;border-radius:4px;padding:1px 6px}
+#login{padding:calc(48px + env(safe-area-inset-top)) 22px 40px;max-width:420px;margin:0 auto;text-align:center}
+#login h1{font-size:34px;margin:0 0 4px}
+#login .sub{color:var(--mut);margin:0 0 22px}
+#login .f{width:100%;margin:5px 0}
+.gbtn{width:100%;background:#fff;color:#1f1f1f;border:0;border-radius:var(--rb);padding:12px;font-weight:650;display:flex;align-items:center;justify-content:center;gap:10px}
+.or{color:var(--mut);font-size:12px;margin:14px 0 6px}
+.lrow{display:flex;gap:10px;margin-top:8px}
+.lrow .btn{flex:1}
 </style>
 </head>
 <body>
@@ -153,6 +161,7 @@ select.chip{padding-right:10px;text-overflow:ellipsis}
   <input id="q" type="search" placeholder="Search installed addons…" enterkeyhint="search">
 </header>
 <main>
+  <section id="login" hidden></section>
   <section id="profiles" hidden></section>
   <section id="launcher" hidden></section>
   <section id="home"><div id="tabsBar" hidden></div><div id="rows"></div></section>
@@ -166,6 +175,8 @@ select.chip{padding-right:10px;text-overflow:ellipsis}
       </form>
       <div class="msg" id="addMsg"></div>
       <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn ghost sm" id="osBtn" type="button">+ OpenSubtitles (subtitles)</button><button class="btn ghost sm" id="demoBtn" type="button">Try the built-in demo addon</button></div>
+      <h2 style="margin:22px 0 6px;font-size:17px">Account</h2>
+      <div class="addon" id="acctCard"></div>
       <h2 style="margin:22px 0 6px;font-size:17px">Player</h2>
       <div class="addon">
         <div class="lbl" style="margin-top:0">Profile</div>
@@ -246,7 +257,7 @@ function demoRoute(path){
 /* ---------- addon store ---------- */
 let addons = [];
 try { addons = JSON.parse(localStorage.getItem('streamlet.addons') || '[]'); } catch {}
-const save = () => { try { localStorage.setItem('streamlet.addons', JSON.stringify(addons)); } catch {} };
+const save = () => { try { localStorage.setItem('streamlet.addons', JSON.stringify(addons)); } catch {} stamp('addonsT'); };
 
 async function getJSON(url){
   if (url.startsWith('demo://sample/')) return demoRoute(url.slice('demo://sample/'.length));
@@ -304,9 +315,10 @@ function catInfo(cat){
 }
 
 /* ---------- navigation: Android back button + exit prompt ---------- */
-let navSuppress = false, pageKey = '', launcherDirty = false, exiting = false;
+let navSuppress = false, pageKey = '', launcherDirty = false, exiting = false, replaceNext = false;
 const layersOpen = [];                 // overlays currently open, bottom to top: detail, player, panel | editor
-const pageNow = () => !$('#profiles').hidden ? {k:'profiles'}
+const pageNow = () => !$('#login').hidden ? {k:'login'}
+  : !$('#profiles').hidden ? {k:'profiles'}
   : document.body.classList.contains('launch') ? {k:'launcher'}
   : !$('#addons').hidden ? {k:'addons'}
   : {k:'space', id:cur && cur.id, tab:view.tab, genre:view.genre};
@@ -314,7 +326,9 @@ function pushPage(){
   if (navSuppress) return;
   const p = pageNow(), k = JSON.stringify(p);
   if (k === pageKey) return;
-  pageKey = k; history.pushState({page:p, layers:[...layersOpen]}, '');
+  pageKey = k;
+  if (replaceNext) { replaceNext = false; history.replaceState({page:p, layers:[...layersOpen]}, ''); return; }
+  history.pushState({page:p, layers:[...layersOpen]}, '');
 }
 function pushLayer(name){
   if (navSuppress) return;
@@ -335,7 +349,8 @@ const LAYER_CLOSERS = {
 };
 function rememberSpace(id){ pset('last', id); }
 function applyPage(p){
-  if (p.k === 'profiles') showProfiles();
+  if (p.k === 'login') showLogin();
+  else if (p.k === 'profiles') showProfiles();
   else if (p.k === 'launcher') showLauncher();
   else if (p.k === 'addons') showTab('addons');
   else if (p.k === 'space') {
@@ -368,7 +383,7 @@ $('#exGo').onclick = () => {
 /* ---------- views ---------- */
 function showTab(name){
   if (!cur && name==='home') return showLauncher();
-  document.body.classList.remove('launch'); $('#launcher').hidden = true; $('#profiles').hidden = true;
+  document.body.classList.remove('launch'); $('#launcher').hidden = true; $('#profiles').hidden = true; $('#login').hidden = true;
   $('#home').hidden = name!=='home'; $('#addons').hidden = name!=='addons';
   $('#tabHome').classList.toggle('on', name==='home'); $('#tabAddons').classList.toggle('on', name==='addons');
   $('#spaceBtn').replaceChildren(cur ? cur.emoji+' '+cur.name : 'Spaces', h('i',null,'⇄'));
@@ -424,7 +439,7 @@ const DEFAULT_SPACES = [
 let spaces = null;
 try { spaces = JSON.parse(localStorage.getItem('streamlet.spaces2') || 'null'); } catch {}
 if (!Array.isArray(spaces) || !spaces.length) spaces = JSON.parse(JSON.stringify(DEFAULT_SPACES));
-const saveSpaces = () => { try { localStorage.setItem('streamlet.spaces2', JSON.stringify(spaces)); } catch {} };
+const saveSpaces = () => { try { localStorage.setItem('streamlet.spaces2', JSON.stringify(spaces)); } catch {} stamp('spacesT'); };
 let cur = null; // the space you're currently in
 const spaceAddons = () => (cur && cur.catalogs.length) ? addons.filter(a => cur.catalogs.includes(a.manifest.id)) : addons;
 
@@ -436,7 +451,7 @@ function showLauncher(){
   cur = null; applyTheme('violet');
   document.body.classList.add('launch'); document.body.style.overflow = '';
   $('#detail').hidden = true; $('#player').hidden = true; $('#spaceEd').hidden = true;
-  $('#profiles').hidden = true; const L = $('#launcher'); L.hidden = false;
+  $('#profiles').hidden = true; $('#login').hidden = true; const L = $('#launcher'); L.hidden = false;
   L.replaceChildren(
     h('div', {class:'pill'}, h('h1', null, 'Stream', h('span',{style:'color:var(--acc)'},'let')),
       h('button', {class:'spaceBtn', type:'button', onclick:() => showProfiles()}, profile ? profile.emoji + ' ' + profile.name : 'Profile', h('i', null, '⇄'))),
@@ -451,7 +466,7 @@ function showLauncher(){
     }),
     h('div', {class:'lnks'},
       h('button', {class:'lnk', onclick:()=>editSpace(null)}, '+ New space'),
-      h('button', {class:'lnk', onclick:()=>{ document.body.classList.remove('launch'); $('#launcher').hidden = true; $('#profiles').hidden = true; showTab('addons'); }}, 'Addons & settings')));
+      h('button', {class:'lnk', onclick:()=>{ document.body.classList.remove('launch'); $('#launcher').hidden = true; $('#profiles').hidden = true; $('#login').hidden = true; showTab('addons'); }}, 'Addons & settings')));
   window.scrollTo(0,0);
   pushPage();
 }
@@ -503,7 +518,7 @@ let manageProfiles = false;
 function showProfiles(){
   cur = null; applyTheme('violet');
   document.body.classList.add('launch'); document.body.style.overflow = '';
-  $('#launcher').hidden = true; $('#detail').hidden = true; $('#player').hidden = true; $('#spaceEd').hidden = true; $('#profEd').hidden = true;
+  $('#launcher').hidden = true; $('#login').hidden = true; $('#detail').hidden = true; $('#player').hidden = true; $('#spaceEd').hidden = true; $('#profEd').hidden = true;
   manageProfiles = false; renderProfiles();
   window.scrollTo(0,0); pushPage();
 }
@@ -537,7 +552,7 @@ function editProfile(id){
   del.onclick = () => {
     if (profiles.length < 2) { toast('Keep at least one profile.'); return; }
     if (!armed) { armed = true; del.textContent = 'Tap again to delete'; return; }
-    profiles = profiles.filter(x => x.id !== pr.id); lsSet('streamlet.profiles', profiles);
+    profiles = profiles.filter(x => x.id !== pr.id); saveProfiles(); cloudDeleteProfile(pr.id);
     try { Object.keys(localStorage).filter(k => k.startsWith(`streamlet.p.${pr.id}.`)).forEach(k => localStorage.removeItem(k)); } catch {}
     if (profile && profile.id === pr.id) profile = null;
     launcherDirty = true; close();
@@ -554,7 +569,7 @@ function editProfile(id){
           pr.name = name.value.trim(); pr.emoji = emoji.value.trim() || '🙂';
           const i = profiles.findIndex(x => x.id === pr.id); if (i >= 0) profiles[i] = pr; else profiles.push(pr);
           if (profile && profile.id === pr.id) profile = pr;
-          lsSet('streamlet.profiles', profiles); launcherDirty = true; close();
+          saveProfiles(); launcherDirty = true; close();
         }}, 'Save'),
         isNew ? null : del)));
 }
@@ -686,6 +701,7 @@ async function renderHome(query = $('#q').value.trim()){
 }
 
 function renderAddons(){
+  fillAccountUI();
   const list = $('#list'); list.replaceChildren();
   if (!addons.length) list.append(h('p', {style:'color:var(--mut)'}, 'Nothing yet.'));
   for (const a of addons) {
@@ -742,10 +758,12 @@ let profiles = [], profile = null;
 let settings = {subLang:'off', audioLang:'any'};
 const lsGet = (k, d) => { try { const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch { return d; } };
 const lsSet = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} };
-const pk = k => `streamlet.p.${profile.id}.${k}`;
-const pget = (k, d) => lsGet(pk(k), d);
-const pset = (k, v) => lsSet(pk(k), v);
-const saveSettings = () => pset('settings', settings);
+const plsGet = (id, k, d) => lsGet(`streamlet.p.${id}.${k}`, d);
+const plsSet = (id, k, v) => lsSet(`streamlet.p.${id}.${k}`, v);
+const pget = (k, d) => plsGet(profile.id, k, d);
+const pset = (k, v) => plsSet(profile.id, k, v);
+const saveSettings = () => { pset('settings', settings); pset('settingsT', Date.now()); scheduleSync(); };
+const saveProfiles = () => { lsSet('streamlet.profiles', profiles); stamp('profilesT'); };
 
 function initProfiles(){
   profiles = lsGet('streamlet.profiles', null);
@@ -784,8 +802,16 @@ function selectProfile(p){
 /* watch history ("continue watching"). One entry per title; newest first.
    Entries carry a timestamp (t) so a future sync service can merge by latest. */
 const histGet = () => pget('history', []);
-function histPut(e){ pset('history', [e, ...histGet().filter(x => x.k !== e.k && x.itemId !== e.itemId)].slice(0, 60)); }
-function histRemove(k){ pset('history', histGet().filter(x => x.k !== k)); }
+function histPut(e){
+  e.t = Math.max(e.t || Date.now(), (pget('removed', {})[e.itemId] || 0) + 1);
+  pset('history', [e, ...histGet().filter(x => x.k !== e.k && x.itemId !== e.itemId)].slice(0, 60)); scheduleSync();
+}
+function histRemove(k){
+  const gone = histGet().find(x => x.k === k);
+  pset('history', histGet().filter(x => x.k !== k));
+  if (gone) { const r = pget('removed', {}); r[gone.itemId] = Date.now(); pset('removed', Object.fromEntries(Object.entries(r).sort((a,b) => b[1] - a[1]).slice(0, 100))); }
+  scheduleSync();
+}
 const allHist = () => !!(cur && (cur.allHistory ?? (THEMES[cur.theme] || {}).allhist));
 const histForSpace = () => histGet().filter(e => allHist() || e.space === (cur && cur.id));
 const fmtTime = t => { t = Math.max(0, Math.round(t)); const h_ = Math.floor(t/3600), m = Math.floor(t/60)%60, sec = t%60; return (h_ ? h_+':'+String(m).padStart(2,'0') : m) + ':' + String(sec).padStart(2,'0'); };
@@ -1046,11 +1072,235 @@ async function stopPlayer(){
 }
 $('#closePlayer').onclick = () => popLayer('player');
 
+/* ---------- accounts + cloud sync (Firebase Auth + Firestore) ---------- */
+const FB_CONFIG = {
+  apiKey: "AIzaSyB1Ail6UMc7ou1S67kIJl7OPOEzzm_gyZM",
+  authDomain: "streamlet-9439d.firebaseapp.com",
+  projectId: "streamlet-9439d",
+  storageBucket: "streamlet-9439d.firebasestorage.app",
+  messagingSenderId: "838065755328",
+  appId: "1:838065755328:web:ffd0becf3ab0314bb04925"
+};
+const FB_VER = '10.14.1';
+let FB = null, auth = null, db = null, user = null, syncState = 'local', lastSync = 0, syncT = null, firstAuth = true, listening = false, booted = false;
+const withTimeout = (p, ms) => Promise.race([p, new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), ms))]);
+const ek = k => encodeURIComponent(k).replace(/\./g, '%2E');
+const clean = o => JSON.parse(JSON.stringify(o));
+const metaGet = () => lsGet('streamlet.meta', {});
+function stamp(k){ const m = metaGet(); m[k] = Date.now(); lsSet('streamlet.meta', m); scheduleSync(); }
+function scheduleSync(){
+  if (!user || !db) return;
+  clearTimeout(syncT); syncState = 'syncing';
+  syncT = setTimeout(() => pushAll().catch(() => { syncState = 'error'; fillAccountUI(); }), 1500);
+}
+
+async function loadFirebase(){
+  const base = `https://www.gstatic.com/firebasejs/${FB_VER}/`;
+  const [app, au, fs] = await Promise.all([import(base + 'firebase-app.js'), import(base + 'firebase-auth.js'), import(base + 'firebase-firestore.js')]);
+  return {app, au, fs};
+}
+
+async function applyRemoteAddons(urls){
+  const have = Object.fromEntries(addons.map(a => [a.url, a])), out = [];
+  await Promise.all(urls.map(async (u, i) => {
+    if (have[u]) { out[i] = have[u]; return; }
+    try {
+      const {url, base} = parseAddonUrl(u), manifest = await getJSON(url);
+      if (manifest && manifest.id && Array.isArray(manifest.resources)) { manifest.types = manifest.types || []; out[i] = {url, base, manifest}; }
+    } catch {}
+  }));
+  addons = out.filter(Boolean);
+  try { localStorage.setItem('streamlet.addons', JSON.stringify(addons)); } catch {}
+}
+async function mergeFamily(R){
+  const m = metaGet(); let changed = false; R = R || {};
+  if (R.profiles && (R.profilesT || 0) > (m.profilesT || 0)) { profiles = R.profiles; lsSet('streamlet.profiles', profiles); m.profilesT = R.profilesT; changed = true; if (profile) profile = profiles.find(x => x.id === profile.id) || profile; }
+  if (R.spaces && (R.spacesT || 0) > (m.spacesT || 0)) { spaces = R.spaces; lsSet('streamlet.spaces2', spaces); m.spacesT = R.spacesT; changed = true; if (cur) cur = spaces.find(x => x.id === cur.id) || cur; }
+  if (R.addons) {
+    const rT = R.addonsT || 0, lT = m.addonsT || 0;
+    if (rT > lT || lT === 0) {
+      const localOnly = lT === 0 ? addons.filter(a => !R.addons.includes(a.url)).map(a => a.url) : [];
+      const before = JSON.stringify(addons.map(a => a.url));
+      await applyRemoteAddons([...R.addons, ...localOnly]);
+      m.addonsT = localOnly.length ? Date.now() : rT;
+      if (JSON.stringify(addons.map(a => a.url)) !== before) changed = true;
+    }
+  } else if (addons.length && !m.addonsT) m.addonsT = Date.now();
+  lsSet('streamlet.meta', m);
+  return changed;
+}
+function mergeProfile(id, R){
+  let changed = false;
+  const lT = plsGet(id, 'settingsT', 0), rT = R.settingsT || 0;
+  if (R.settings && rT > lT) {
+    plsSet(id, 'settings', R.settings); plsSet(id, 'settingsT', rT); changed = true;
+    if (profile && profile.id === id) { settings = {subLang:'off', audioLang:'any', ...R.settings}; fillSettingsUI(); }
+  }
+  const removed = {...plsGet(id, 'removed', {})};
+  for (const [k, t] of Object.entries(R.removed || {})) { const kk = decodeURIComponent(k); if ((removed[kk] || 0) < t) removed[kk] = t; }
+  const map = {}, local = plsGet(id, 'history', []);
+  for (const e of local) map[e.itemId] = e;
+  for (const e of Object.values(R.entries || {})) if (e && e.itemId && (!map[e.itemId] || (map[e.itemId].t || 0) < (e.t || 0))) map[e.itemId] = e;
+  const out = Object.values(map).filter(e => (e.t || 0) > (removed[e.itemId] || 0)).sort((a, b) => b.t - a.t).slice(0, 60);
+  if (JSON.stringify(out) !== JSON.stringify(local)) { plsSet(id, 'history', out); changed = true; }
+  plsSet(id, 'removed', removed);
+  return changed;
+}
+async function pushAll(){
+  if (!user || !db) return;
+  const {doc, setDoc, deleteField} = FB.fs, m = metaGet(), base = ['users', user.uid], fam = {};
+  if (m.profilesT) { fam.profiles = profiles; fam.profilesT = m.profilesT; }
+  if (m.spacesT) { fam.spaces = spaces; fam.spacesT = m.spacesT; }
+  if (m.addonsT) { fam.addons = addons.map(a => a.url); fam.addonsT = m.addonsT; }
+  if (Object.keys(fam).length) await setDoc(doc(db, ...base, 'sync', 'family'), clean(fam), {merge:true});
+  for (const p of profiles) {
+    const hist = plsGet(p.id, 'history', []), removed = plsGet(p.id, 'removed', {}), sT = plsGet(p.id, 'settingsT', 0);
+    if (!hist.length && !Object.keys(removed).length && !sT) continue;
+    const entries = {}, rem = {};
+    for (const e of hist) entries[ek(e.itemId)] = e;
+    for (const [k, t] of Object.entries(removed)) { rem[ek(k)] = t; if (!entries[ek(k)]) entries[ek(k)] = deleteField(); }
+    const payload = clean({entries:{}, removed:rem});
+    for (const [k, v] of Object.entries(entries)) payload.entries[k] = (v && v._methodName) ? v : clean(v);
+    if (sT) { payload.settings = plsGet(p.id, 'settings', {}); payload.settingsT = sT; }
+    await setDoc(doc(db, ...base, 'profiles', p.id), payload, {merge:true});
+  }
+  syncState = 'synced'; lastSync = Date.now(); fillAccountUI();
+}
+async function cloudDeleteProfile(id){
+  if (!user || !db) return;
+  try { await FB.fs.deleteDoc(FB.fs.doc(db, 'users', user.uid, 'profiles', id)); } catch {}
+}
+async function initialSync(){
+  const {doc, getDoc, getDocs, collection} = FB.fs, base = ['users', user.uid];
+  const fam = await getDoc(doc(db, ...base, 'sync', 'family'));
+  await mergeFamily(fam.exists() ? fam.data() : null);
+  const ps = await getDocs(collection(db, ...base, 'profiles'));
+  ps.forEach(d => mergeProfile(d.id, d.data()));
+  await pushAll();
+}
+function refreshUI(){
+  if (!booted || !$('#player').hidden) return;
+  navSuppress = true;
+  try {
+    if (!$('#profiles').hidden) renderProfiles();
+    else if (!$('#launcher').hidden) showLauncher();
+    else if (!$('#home').hidden) renderCW();
+    else if (!$('#addons').hidden) renderAddons();
+  } finally { navSuppress = false; }
+}
+function startListeners(){
+  if (listening || !db || !user) return; listening = true;
+  const {doc, collection, onSnapshot} = FB.fs, base = ['users', user.uid];
+  onSnapshot(doc(db, ...base, 'sync', 'family'), async snap => {
+    if (!snap.exists() || snap.metadata.hasPendingWrites) return;
+    if (await mergeFamily(snap.data())) refreshUI();
+  });
+  onSnapshot(collection(db, ...base, 'profiles'), snap => {
+    if (snap.metadata.hasPendingWrites) return;
+    let ch = false; snap.docChanges().forEach(c => { if (c.type !== 'removed' && mergeProfile(c.doc.id, c.doc.data())) ch = true; });
+    if (ch) refreshUI();
+  });
+}
+
+/* ----- login screen ----- */
+const AUTH_ERRORS = {
+  'auth/invalid-credential':'Wrong email or password.', 'auth/wrong-password':'Wrong email or password.', 'auth/user-not-found':'No account with that email. Tap "Create account".',
+  'auth/email-already-in-use':'That email already has an account. Tap "Sign in".', 'auth/weak-password':'Password needs at least 6 characters.', 'auth/invalid-email':"That email doesn't look right.",
+  'auth/popup-closed-by-user':'Sign-in was cancelled.', 'auth/popup-blocked':'Your browser blocked the Google popup. Use email instead, or allow popups.',
+  'auth/unauthorized-domain':"This site isn't authorised in Firebase yet (Authentication → Settings → Authorized domains).",
+  'auth/operation-not-allowed':"That sign-in method isn't enabled in Firebase yet.", 'auth/network-request-failed':"Can't reach the server. Check your connection.", 'auth/too-many-requests':'Too many tries. Wait a minute.'
+};
+const authMsg = e => AUTH_ERRORS[e && e.code] || ('Sign-in failed' + (e && e.code ? ' (' + e.code + ')' : '') + '.');
+function showLoginSplash(text){
+  document.body.classList.add('launch'); $('#login').hidden = false;
+  $('#login').replaceChildren(h('h1', null, 'Stream', h('span', {style:'color:var(--acc)'}, 'let')), h('p', {class:'sub'}, text));
+}
+function showLogin(){
+  applyTheme('violet'); cur = null; document.body.classList.add('launch'); document.body.style.overflow = '';
+  $('#launcher').hidden = true; $('#profiles').hidden = true; $('#detail').hidden = true; $('#player').hidden = true;
+  const L = $('#login'); L.hidden = false;
+  const email = h('input', {class:'f', type:'email', placeholder:'Email', autocomplete:'email', inputmode:'email', autocapitalize:'off'});
+  const pass = h('input', {class:'f', type:'password', placeholder:'Password', autocomplete:'current-password'});
+  const msg = h('div', {class:'msg err', style:'min-height:22px;margin:8px 0 0'});
+  const busy = async fn => { msg.className = 'msg'; msg.textContent = 'One moment…'; try { await fn(); } catch (e) { msg.className = 'msg err'; msg.textContent = authMsg(e); } };
+  const need = () => { if (!email.value.trim() || !pass.value) throw Object.assign(new Error('x'), {code:'auth/invalid-credential'}); };
+  L.replaceChildren(
+    h('h1', null, 'Stream', h('span', {style:'color:var(--acc)'}, 'let')),
+    h('p', {class:'sub'}, 'Sign in to sync your profiles, addons and progress on every device.'),
+    h('button', {class:'gbtn', type:'button', onclick:() => busy(() => FB.au.signInWithPopup(auth, new FB.au.GoogleAuthProvider()))},
+      h('b', {style:'color:#4285f4;font-size:18px'}, 'G'), 'Continue with Google'),
+    h('div', {class:'or'}, 'or use email'),
+    email, pass,
+    h('div', {class:'lrow'},
+      h('button', {class:'btn', type:'button', onclick:() => busy(() => { need(); return FB.au.signInWithEmailAndPassword(auth, email.value.trim(), pass.value); })}, 'Sign in'),
+      h('button', {class:'btn ghost', type:'button', onclick:() => busy(() => { need(); return FB.au.createUserWithEmailAndPassword(auth, email.value.trim(), pass.value); })}, 'Create account')),
+    msg,
+    h('div', {class:'lnks', style:'justify-content:center'},
+      h('button', {class:'lnk', type:'button', onclick:() => busy(async () => {
+        if (!email.value.trim()) throw Object.assign(new Error('x'), {code:'auth/invalid-email'});
+        await FB.au.sendPasswordResetEmail(auth, email.value.trim()); msg.className = 'msg ok'; msg.textContent = 'Password reset email sent.';
+      })}, 'Forgot password?'),
+      h('button', {class:'lnk', type:'button', onclick:() => { try { localStorage.setItem('streamlet.skipLogin', '1'); } catch {} replaceNext = true; initProfiles(); bootApp(); }}, 'Continue without an account')));
+  window.scrollTo(0,0); pushPage();
+}
+
+/* ----- account card (Addons tab) ----- */
+function fillAccountUI(){
+  const c = $('#acctCard'); if (!c) return;
+  const status = {local:'Not synced', syncing:'Syncing…', synced:'Synced' + (lastSync ? ' · ' + new Date(lastSync).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}) : ''), error:"Sync problem. Will retry."}[syncState] || '';
+  if (!FB) { c.replaceChildren(h('p', {style:'margin:0'}, "Cloud sync isn't available right now (offline?). The app still works on this device.")); return; }
+  if (!user) {
+    c.replaceChildren(h('p', {style:'margin:0 0 10px'}, 'Not signed in. Your data only lives on this device.'),
+      h('button', {class:'btn sm', type:'button', onclick:() => showLogin()}, 'Sign in to sync'));
+    return;
+  }
+  let armed = false;
+  const out = h('button', {class:'btn ghost sm', type:'button'}, 'Sign out');
+  out.onclick = async () => {
+    if (!armed) { armed = true; out.textContent = 'Tap again (clears this device)'; return; }
+    try { await FB.au.signOut(auth); } catch {}
+    try { Object.keys(localStorage).filter(k => k.startsWith('streamlet.')).forEach(k => localStorage.removeItem(k)); } catch {}
+    location.reload();
+  };
+  c.replaceChildren(h('div', {style:'font-weight:650'}, user.email || user.displayName || 'Signed in'), h('p', {style:'margin:2px 0 10px'}, status),
+    h('div', {style:'display:flex;gap:8px;flex-wrap:wrap'},
+      h('button', {class:'btn ghost sm', type:'button', onclick:async () => { syncState = 'syncing'; fillAccountUI(); try { await initialSync(); refreshUI(); } catch { syncState = 'error'; fillAccountUI(); } }}, 'Sync now'), out));
+}
+
+/* ----- startup ----- */
+function bootApp(){
+  booted = true;
+  const lastP = profiles.find(x => x.id === lsGet('streamlet.profile.last', null)) || profiles[0];
+  if (profiles.length > 1 && localStorage.getItem('streamlet.profile.ask') !== '0') showProfiles(); else selectProfile(lastP);
+}
+async function onUser(u){
+  const first = firstAuth; firstAuth = false; user = u;
+  if (u) {
+    syncState = 'syncing';
+    try { await withTimeout(initialSync(), 20000); } catch { syncState = 'error'; }
+    startListeners();
+    if (first) { initProfiles(); bootApp(); }
+    else { replaceNext = true; initProfiles(); bootApp(); }
+  } else if (first) {
+    if (localStorage.getItem('streamlet.skipLogin') === '1') bootApp(); else showLogin();
+  } else { fillAccountUI(); }
+}
+async function startAuth(){
+  showLoginSplash('Loading…');
+  try { FB = await withTimeout(loadFirebase(), 8000); }
+  catch { FB = null; syncState = 'local'; $('#login').hidden = true; bootApp(); return; }
+  try {
+    const app = FB.app.initializeApp(FB_CONFIG);
+    auth = FB.au.getAuth(app);
+    try { db = FB.fs.initializeFirestore(app, {localCache: FB.fs.persistentLocalCache()}); } catch { db = FB.fs.getFirestore(app); }
+    FB.au.onAuthStateChanged(auth, onUser);
+  } catch { FB = null; $('#login').hidden = true; bootApp(); }
+}
+
 /* ---------- boot ---------- */
 history.replaceState({guard:true}, '');
 initProfiles();
-const lastProfile = profiles.find(x => x.id === lsGet('streamlet.profile.last', null)) || profiles[0];
-if (profiles.length > 1 && localStorage.getItem('streamlet.profile.ask') !== '0') showProfiles(); else selectProfile(lastProfile);
+startAuth();
 if ('serviceWorker' in navigator && /^https?:/.test(location.protocol)) navigator.serviceWorker.register('sw.js').catch(()=>{});
 </script>
 </body>
