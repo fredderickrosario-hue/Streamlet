@@ -117,6 +117,12 @@ body.launch header,body.launch nav,body.launch main>section:not(#launcher){displ
 .lc{font-size:10px;font-weight:800;letter-spacing:.5px;background:var(--acc);color:var(--btnt);border-radius:4px;padding:1px 5px;margin-right:4px;display:inline-block}
 video::cue{background:rgba(0,0,0,.72);color:#fff;font-size:1.05em}
 .sel{width:100%;margin:2px 0 8px}
+#tabsBar{display:flex;gap:8px;overflow-x:auto;padding:2px 14px 12px;scrollbar-width:none}
+#tabsBar::-webkit-scrollbar{display:none}
+#tabsBar[hidden]{display:none}
+.chip{flex:0 0 auto;border:0;border-radius:20px;background:var(--panel);color:var(--text);padding:8px 16px;font:inherit;font-weight:600;max-width:60vw}
+.chip.on{background:var(--acc);color:var(--btnt)}
+select.chip{padding-right:10px;text-overflow:ellipsis}
 </style>
 </head>
 <body>
@@ -126,7 +132,7 @@ video::cue{background:rgba(0,0,0,.72);color:#fff;font-size:1.05em}
 </header>
 <main>
   <section id="launcher" hidden></section>
-  <section id="home"><div id="rows"></div></section>
+  <section id="home"><div id="tabsBar" hidden></div><div id="rows"></div></section>
   <section id="addons" hidden>
     <div class="pad">
       <h2 style="margin:8px 0 2px;font-size:17px">Install an addon</h2>
@@ -156,6 +162,7 @@ video::cue{background:rgba(0,0,0,.72);color:#fff;font-size:1.05em}
 <div id="player" class="sheet" hidden>
   <div class="pbar" id="pbar"><button class="x" id="closePlayer">✕</button><span id="ptitle"></span><button class="x" id="ccBtn">CC · Audio</button><button class="x" id="fsBtn">⛶</button></div>
   <video id="vid" controls playsinline></video>
+  <div id="pback" hidden style="position:absolute;inset:0;z-index:2"></div>
   <div class="ppanel" id="ppanel" hidden></div>
 </div>
 <div id="toast"></div>
@@ -297,7 +304,7 @@ const THEMES = {
   mint:  {n:'Mint',   acc:'#2fd18b', bg:'#0a1411', panel:'#12201b', panel2:'#1a2e27'},
   /* streaming-style looks (original palettes, no logos) */
   googletv:{n:'Smart TV', acc:'#8ab4f8', bg:'#171a1f', panel:'#252a31', panel2:'#323943',
-    font:"'Google Sans','Product Sans',Roboto,system-ui,sans-serif", r:'22px', rb:'24px', hw:'500', btnt:'#062e6f'},
+    font:"'Google Sans','Product Sans',Roboto,system-ui,sans-serif", r:'12px', rb:'24px', hw:'500', btnt:'#062e6f', tabs:true},
   netflix:{n:'Red Carpet', acc:'#e50914', bg:'#141414', panel:'#1f1f1f', panel2:'#2b2b2b',
     font:"'Helvetica Neue',Helvetica,Arial,Roboto,sans-serif", r:'4px', rb:'4px', hw:'700'},
   disney:{n:'Deep Blue', acc:'#3b8bff', bg:'#040714', panel:'#12183a', panel2:'#1c2556',
@@ -333,7 +340,7 @@ const spaceAddons = () => (cur && cur.catalogs.length) ? addons.filter(a => cur.
 
 function enterSpace(id){
   cur = spaces.find(s => s.id===id); if (!cur) return;
-  applyTheme(cur.theme); $('#q').value = ''; showTab('home');
+  applyTheme(cur.theme); $('#q').value = ''; view = {tab:'home', genre:''}; showTab('home');
 }
 function showLauncher(){
   cur = null; applyTheme('violet');
@@ -364,8 +371,10 @@ function editSpace(id){
   const name = h('input', {class:'f', placeholder:'Name (e.g. Anime)', style:'flex:1'}); name.value = s.name;
   const emoji = h('input', {class:'f', maxlength:'4', style:'width:70px;text-align:center;font-size:22px'}); emoji.value = s.emoji;
   const sw = h('div', {class:'swatches'});
+  const tabsCb = h('input', {type:'checkbox'}); tabsCb.checked = !!(s.tabs ?? (THEMES[s.theme] || {}).tabs);
+  tabsCb.onchange = () => { s.tabs = tabsCb.checked; };
   const paintSw = () => { sw.replaceChildren(...Object.entries(THEMES).map(([k,t]) =>
-    h('button', {type:'button', class:'sw'+(s.theme===k?' on':''), title:t.n, style:`background:${t.acc}`, onclick:()=>{ s.theme=k; applyTheme(k); paintSw(); }}))); };
+    h('button', {type:'button', class:'sw'+(s.theme===k?' on':''), title:t.n, style:`background:${t.acc}`, onclick:()=>{ s.theme=k; applyTheme(k); if (s.tabs === undefined) tabsCb.checked = !!THEMES[k].tabs; paintSw(); }}))); };
   paintSw();
   const withCats = addons.filter(a => (a.manifest.catalogs||[]).length);
   const boxes = withCats.map(a => { const cb = h('input', {type:'checkbox'}); cb.checked = s.catalogs.includes(a.manifest.id); return {a, cb}; });
@@ -381,6 +390,7 @@ function editSpace(id){
     h('h2', {style:'margin:6px 0 10px'}, isNew ? 'New space' : 'Edit space'),
     h('div', {class:'lbl'}, 'Icon & name'), h('div', {style:'display:flex;gap:8px'}, emoji, name),
     h('div', {class:'lbl'}, 'Theme'), sw,
+    h('label', {class:'chk'}, tabsCb, h('span', null, 'Browse tabs (Home, Movies, Shows, New releases, Categories)')),
     h('div', {class:'lbl'}, 'Catalog addons for this space'),
     withCats.length ? h('div', null, boxes.map(({a,cb}) => h('label', {class:'chk'}, cb, h('span',null, a.manifest.name)))) : h('p', {class:'spin', style:'padding:0'}, 'No catalog addons installed yet.'),
     h('p', {class:'spin', style:'padding:0'}, 'Leave all unchecked to use every installed addon. Stream addons are shared by all spaces.'),
@@ -402,9 +412,41 @@ function posterEl(meta){
 }
 
 let homeTok = 0;
-async function renderHome(query=''){
+let view = {tab:'home', genre:''};
+const NEW_RE = /\b(new|latest|recent|release|releases|airing|year)\b/i;
+const TYPE_LABEL = {movie:'Movies', series:'Shows', anime:'Anime', tv:'TV', channel:'Channels'};
+const spaceTabs = () => !!(cur && (cur.tabs ?? (THEMES[cur.theme] || {}).tabs));
+const typeOK = (tab, t) => tab==='home' || tab==='new' || (tab==='movie' ? t==='movie' : ['series','anime','tv'].includes(t));
+function genreExtra(cat){
+  const e = (cat.extra || []).find(x => x.name === 'genre');
+  if (e) return {options:e.options || [], required:!!e.isRequired};
+  if ((cat.extraSupported || []).includes('genre')) return {options:[], required:(cat.extraRequired || []).includes('genre')};
+  return null;
+}
+const sortedOptions = o => (o.length && o.every(x => /^\d{4}$/.test(x))) ? [...o].sort((x,y) => y - x) : o;
+
+function renderTabs(){
+  const bar = $('#tabsBar'); bar.replaceChildren();
+  if (!spaceTabs() || $('#q').value.trim() || !addons.length) { bar.hidden = true; return; }
+  bar.hidden = false;
+  const genres = [];
+  for (const ad of spaceAddons()) for (const cat of (ad.manifest.catalogs || [])) {
+    const ge = genreExtra(cat);
+    if (!ge || !typeOK(view.tab, cat.type) || NEW_RE.test(cat.id)) continue;
+    for (const o of ge.options) if (!/^\d{4}$/.test(o) && !genres.includes(o)) genres.push(o);
+  }
+  genres.sort((x,y) => x.localeCompare(y));
+  const chip = (id, label) => h('button', {class:'chip'+(view.tab===id ? ' on' : ''), onclick:() => { view = {tab:id, genre:''}; renderHome(); }}, label);
+  const sel = h('select', {class:'chip'+(view.genre ? ' on' : ''), 'aria-label':'Categories'},
+    h('option', {value:''}, 'Categories ▾'), ...genres.map(g => h('option', {value:g}, g)));
+  sel.value = view.genre; if (sel.value !== view.genre) sel.value = '';
+  sel.onchange = () => { view.genre = sel.value; renderHome(); };
+  bar.append(chip('home','Home'), chip('movie','Movies'), chip('series','Shows'), chip('new','New releases'), sel);
+}
+
+async function renderHome(query = $('#q').value.trim()){
   const tok = ++homeTok, box = $('#rows');
-  box.replaceChildren();
+  box.replaceChildren(); renderTabs();
   if (!addons.length) {
     box.append(h('div', {class:'empty'},
       h('h2', null, 'No addons installed'),
@@ -412,24 +454,42 @@ async function renderHome(query=''){
       h('button', {class:'btn', onclick:()=>showTab('addons')}, 'Install an addon')));
     return;
   }
-  const heroBox = h('div'); if (!query) box.append(heroBox);
-  let heroDone = false;
-  let shown = 0;
+  const tabs = spaceTabs() && !query;
+  const heroBox = h('div'); if (!query && !(tabs && view.genre)) box.append(heroBox);
+  let heroDone = false, shown = 0;
   const jobs = [];
   for (const a of spaceAddons()) for (const cat of (a.manifest.catalogs||[])) {
-    const info = catInfo(cat);
-    if (query ? !info.search : info.req.length) continue;
+    const info = catInfo(cat), ge = genreExtra(cat);
+    let path, title = cat.name || cat.id;
+    if (query) {
+      if (!info.search) continue;
+      path = `catalog/${cat.type}/${enc(cat.id)}/search=${enc(query)}.json`;
+    } else if (tabs && !typeOK(view.tab, cat.type)) {
+      continue;
+    } else if (tabs && view.genre) {
+      if (!ge || (ge.options.length && !ge.options.includes(view.genre)) || info.req.some(n => n !== 'genre') || NEW_RE.test(cat.id)) continue;
+      path = `catalog/${cat.type}/${enc(cat.id)}/genre=${enc(view.genre)}.json`; title = view.genre;
+    } else if (tabs && view.tab === 'new') {
+      if (!(NEW_RE.test(cat.id) || NEW_RE.test(cat.name || ''))) continue;
+      if (info.req.some(n => n !== 'genre')) continue;
+      if (info.req.includes('genre')) {
+        const o = ge && sortedOptions(ge.options)[0]; if (!o) continue;
+        path = `catalog/${cat.type}/${enc(cat.id)}/genre=${enc(o)}.json`;
+      } else path = `catalog/${cat.type}/${enc(cat.id)}.json`;
+    } else {
+      if (info.req.length) continue;
+      path = `catalog/${cat.type}/${enc(cat.id)}.json`;
+    }
     const strip = h('div', {class:'strip'});
-    const sec = h('div', {class:'row'}, h('h2', null, cat.name || cat.id, ' ', h('small', null, '· '+a.manifest.name)), strip);
+    const sec = h('div', {class:'row'}, h('h2', null, title, ' ', h('small', null, '· ' + [a.manifest.name, TYPE_LABEL[cat.type]].filter(Boolean).join(' · '))), strip);
     const loading = h('div', {class:'spin'}, 'Loading…');
     sec.append(loading); box.append(sec);
-    const path = query ? `catalog/${cat.type}/${enc(cat.id)}/search=${enc(query)}.json` : `catalog/${cat.type}/${enc(cat.id)}.json`;
     jobs.push(getJSON(`${a.base}/${path}`).then(r => {
       if (tok!==homeTok) return;
       const metas = (r.metas||[]);
       if (!metas.length) { sec.remove(); return; }
       shown++; loading.remove();
-      if (!heroDone && !query) {
+      if (!heroDone && !query && heroBox.isConnected) {
         heroDone = true;
         const hm = metas.find(x => x.background) || metas[0], ht = hm.type || cat.type;
         heroBox.replaceChildren(h('div', {class:'hero2'},
@@ -443,8 +503,12 @@ async function renderHome(query=''){
         posterEl(m), h('div', {class:'t'}, m.name), h('div', {class:'s'}, m.releaseInfo || m.year || '')));
     }).catch(e => { if (tok!==homeTok) return; loading.textContent = "Couldn't load: " + e.message; loading.style.color='var(--err)'; }));
   }
-  if (!jobs.length) box.append(h('div', {class:'empty'}, query ? 'None of your addons support search.' : 'Your installed addons have no browsable catalogs.'));
-  else Promise.all(jobs).then(() => { if (tok===homeTok && query && !shown && !box.querySelector('.spin')) box.append(h('div',{class:'empty'},'No results.')); });
+  const none = query ? 'None of your addons support search.'
+    : (tabs && view.genre) ? 'No catalogs offer this category here.'
+    : (tabs && view.tab === 'new') ? 'None of your addons have a "new releases" catalog for this space.'
+    : tabs ? 'No catalogs of this kind in this space.' : 'Your installed addons have no browsable catalogs.';
+  if (!jobs.length) box.append(h('div', {class:'empty'}, none));
+  else Promise.all(jobs).then(() => { if (tok===homeTok && !shown && !box.querySelector('.spin')) box.append(h('div',{class:'empty'}, query ? 'No results.' : none)); });
 }
 
 function renderAddons(){
@@ -601,7 +665,13 @@ function toVtt(txt, off){
   return /^WEBVTT/.test(body) ? body : 'WEBVTT\n\n' + body;
 }
 
-async function applySub(entry){
+function setPanel(open){
+  $('#ppanel').hidden = !open; $('#pback').hidden = !open;
+  if (open) renderPanel(); else showBar();
+}
+$('#pback').onclick = () => setPanel(false);
+async function applySub(entry, keep){
+  if (!keep) setPanel(false);
   const v = $('#vid'), myId = pl.id;
   v.querySelectorAll('track').forEach(t => t.remove());
   for (const t of v.textTracks) t.mode = 'disabled';
@@ -665,16 +735,15 @@ function renderPanel(){
       h('summary', null, `${n} `, h('small', {style:'color:var(--mut)'}, `(${byLang[n].length})`)),
       byLang[n].slice(0, 15).map((x,i) => h('button', {class:'opt'+(pl.cur === x ? ' on' : ''), onclick:() => applySub(x)}, `${n} ${i+1}`, h('small', null, x.addon)))));
     if (pl.cur) subUI.push(h('div', {class:'sync'}, h('span', {style:'color:var(--mut)'}, 'Sync'),
-      h('button', {class:'btn ghost sm', onclick:() => { pl.offset -= .5; applySub(pl.cur); }}, '−0.5s'),
+      h('button', {class:'btn ghost sm', onclick:() => { pl.offset -= .5; applySub(pl.cur, true); }}, '−0.5s'),
       h('b', null, (pl.offset > 0 ? '+' : '') + pl.offset.toFixed(1) + 's'),
-      h('button', {class:'btn ghost sm', onclick:() => { pl.offset += .5; applySub(pl.cur); }}, '+0.5s')));
+      h('button', {class:'btn ghost sm', onclick:() => { pl.offset += .5; applySub(pl.cur, true); }}, '+0.5s')));
   }
   const at = audioTracks();
   const audUI = at.length
-    ? at.map((t,i) => h('button', {class:'opt'+(t.on ? ' on' : ''), onclick:() => { t.pick(); setTimeout(renderPanel, 50); }}, t.label || 'Track '+(i+1), h('small', null, t.lang || '')))
+    ? at.map((t,i) => h('button', {class:'opt'+(t.on ? ' on' : ''), onclick:() => { t.pick(); setPanel(false); }}, t.label || 'Track '+(i+1), h('small', null, t.lang || '')))
     : [h('p', {class:'spin', style:'padding:0'}, "This stream has a single audio track the browser can see. For another language, go back and pick a stream tagged with it (MULTI, FR, ES…), they're sorted first if you set a preferred audio language.")];
-  pn.replaceChildren(h('h3', null, 'Subtitles'), ...subUI, h('h3', null, 'Audio'), ...audUI,
-    h('div', {style:'margin-top:14px'}, h('button', {class:'btn ghost sm', onclick:() => { pn.hidden = true; }}, 'Close')));
+  pn.replaceChildren(h('button', {class:'btn ghost sm', style:'float:right', onclick:() => setPanel(false)}, '✕ Close'), h('h3', null, 'Subtitles'), ...subUI, h('h3', null, 'Audio'), ...audUI);
 }
 
 let barT;
@@ -683,7 +752,7 @@ function showBar(){
   barT = setTimeout(() => { if ($('#ppanel').hidden && !$('#vid').paused) b.classList.add('off'); }, 3200);
 }
 ['touchstart','mousemove','click'].forEach(e => $('#player').addEventListener(e, showBar, {passive:true}));
-$('#ccBtn').onclick = () => { const pn = $('#ppanel'); pn.hidden = !pn.hidden; renderPanel(); };
+$('#ccBtn').onclick = () => setPanel($('#ppanel').hidden);
 $('#fsBtn').onclick = async () => {
   try {
     if (document.fullscreenElement) await document.exitFullscreen();
@@ -696,7 +765,7 @@ async function playStream(s, title, ctx){
   if (s.ytId) { window.open('https://www.youtube.com/watch?v='+enc(s.ytId),'_blank','noopener'); return; }
   if (!s.url) { toast(s.infoHash ? "Torrent stream: needs a debrid service set up in that addon (so it returns direct links), or a backend." : 'This stream type is not supported.'); return; }
   const v = $('#vid'); $('#player').hidden = false; $('#ptitle').textContent = title || '';
-  $('#ppanel').hidden = true; showBar();
+  setPanel(false);
   pl = {id:pl.id + 1, ctx, subs:[], loading:false, nSrc:0, cur:null, offset:0, blob:null};
   v.querySelectorAll('track').forEach(t => t.remove());
   for (const sub of (s.subtitles || [])) pl.subs.push({id:'embedded', url:sub.url, lang:sub.lang || 'eng', addon:'Stream'});
@@ -716,7 +785,7 @@ $('#closePlayer').onclick = async () => {
   const v = $('#vid'); v.pause(); if (hls) { hls.destroy(); hls = null; }
   v.querySelectorAll('track').forEach(t => t.remove()); if (pl.blob) URL.revokeObjectURL(pl.blob);
   pl = {id:pl.id + 1, ctx:null, subs:[], loading:false, nSrc:0, cur:null, offset:0, blob:null};
-  v.removeAttribute('src'); v.load(); $('#player').hidden = true; $('#ppanel').hidden = true;
+  v.removeAttribute('src'); v.load(); $('#player').hidden = true; setPanel(false);
   if (document.fullscreenElement) { try { await document.exitFullscreen(); } catch {} }
 };
 
