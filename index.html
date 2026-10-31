@@ -123,6 +123,12 @@ video::cue{background:rgba(0,0,0,.72);color:#fff;font-size:1.05em}
 .chip{flex:0 0 auto;border:0;border-radius:20px;background:var(--panel);color:var(--text);padding:8px 16px;font:inherit;font-weight:600;max-width:60vw}
 .chip.on{background:var(--acc);color:var(--btnt)}
 select.chip{padding-right:10px;text-overflow:ellipsis}
+.dlg{position:fixed;inset:0;z-index:80;background:#000b;display:flex;align-items:center;justify-content:center;padding:24px}
+.dlg[hidden]{display:none}
+.dlg .box{background:var(--panel);border-radius:var(--r);padding:20px;max-width:340px;width:100%}
+.dlg h3{margin:0 0 6px;font-size:18px}
+.dlg p{margin:0 0 16px;color:var(--mut);font-size:14px}
+.dbtns{display:flex;gap:10px;justify-content:flex-end}
 </style>
 </head>
 <body>
@@ -165,6 +171,7 @@ select.chip{padding-right:10px;text-overflow:ellipsis}
   <div id="pback" hidden style="position:absolute;inset:0;z-index:2"></div>
   <div class="ppanel" id="ppanel" hidden></div>
 </div>
+<div id="exitDlg" class="dlg" hidden><div class="box"><h3>Close Streamlet?</h3><p>You're at the very beginning, so going back again will close the app.</p><div class="dbtns"><button class="btn ghost" id="exStay" type="button">Stay</button><button class="btn" id="exGo" type="button">Close app</button></div></div></div>
 <div id="toast"></div>
 <nav>
   <button id="tabHome" class="on">Discover</button>
@@ -276,6 +283,65 @@ function catInfo(cat){
   };
 }
 
+/* ---------- navigation: Android back button + exit prompt ---------- */
+let navSuppress = false, pageKey = '', launcherDirty = false, exiting = false;
+const layersOpen = [];                 // overlays currently open, bottom to top: detail, player, panel | editor
+const pageNow = () => document.body.classList.contains('launch') ? {k:'launcher'}
+  : !$('#addons').hidden ? {k:'addons'}
+  : {k:'space', id:cur && cur.id, tab:view.tab, genre:view.genre};
+function pushPage(){
+  if (navSuppress) return;
+  const p = pageNow(), k = JSON.stringify(p);
+  if (k === pageKey) return;
+  pageKey = k; history.pushState({page:p, layers:[...layersOpen]}, '');
+}
+function pushLayer(name){
+  if (navSuppress) return;
+  layersOpen.push(name);
+  history.pushState({page:pageNow(), layers:[...layersOpen]}, '');
+}
+function popLayer(name){
+  const i = layersOpen.lastIndexOf(name);
+  if (i < 0) return;
+  history.go(-(layersOpen.length - i));
+}
+const LAYER_CLOSERS = {
+  panel:  () => { $('#ppanel').hidden = true; $('#pback').hidden = true; showBar(); },
+  player: () => stopPlayer(),
+  detail: () => { $('#detail').hidden = true; document.body.style.overflow = ''; },
+  editor: () => { $('#spaceEd').hidden = true; applyTheme(cur ? cur.theme : 'violet'); }
+};
+function rememberSpace(id){ try { localStorage.setItem('streamlet.last', id); } catch {} }
+function applyPage(p){
+  if (p.k === 'launcher') showLauncher();
+  else if (p.k === 'addons') showTab('addons');
+  else if (p.k === 'space') {
+    const sp = spaces.find(x => x.id === p.id);
+    if (!sp) { showLauncher(); return; }
+    cur = sp; rememberSpace(sp.id); applyTheme(sp.theme); $('#q').value = ''; view = {tab:p.tab || 'home', genre:p.genre || ''}; showTab('home');
+  }
+}
+window.addEventListener('popstate', e => {
+  if (exiting) return;
+  const st = e.state;
+  if (!st || st.guard) { $('#exitDlg').hidden = false; return; }
+  $('#exitDlg').hidden = true;
+  const want = st.layers || [];
+  while (layersOpen.length > want.length) { const l = layersOpen.pop(); if (LAYER_CLOSERS[l]) LAYER_CLOSERS[l](); }
+  const k = JSON.stringify(st.page);
+  navSuppress = true;
+  try {
+    if (k !== pageKey) { pageKey = k; applyPage(st.page); }
+    else if (launcherDirty && st.page.k === 'launcher' && !want.length) showLauncher();
+  } finally { navSuppress = false; }
+  launcherDirty = false;
+});
+$('#exStay').onclick = () => { $('#exitDlg').hidden = true; pageKey = JSON.stringify(pageNow()); history.pushState({page:pageNow(), layers:[]}, ''); };
+$('#exGo').onclick = () => {
+  try { const A = window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.App; if (A && A.exitApp) { A.exitApp(); return; } } catch {}
+  exiting = true; history.back(); setTimeout(() => { try { window.close(); } catch {} }, 150);
+};
+
 /* ---------- views ---------- */
 function showTab(name){
   if (!cur && name==='home') return showLauncher();
@@ -286,6 +352,7 @@ function showTab(name){
   $('#q').placeholder = cur ? 'Search '+cur.name+'…' : 'Search…';
   if (name==='home') renderHome($('#q').value.trim()); else renderAddons();
   window.scrollTo(0,0);
+  pushPage();
 }
 $('#tabHome').onclick = () => showTab('home');
 $('#tabAddons').onclick = () => showTab('addons');
@@ -340,7 +407,7 @@ const spaceAddons = () => (cur && cur.catalogs.length) ? addons.filter(a => cur.
 
 function enterSpace(id){
   cur = spaces.find(s => s.id===id); if (!cur) return;
-  applyTheme(cur.theme); $('#q').value = ''; view = {tab:'home', genre:''}; showTab('home');
+  rememberSpace(cur.id); applyTheme(cur.theme); $('#q').value = ''; view = {tab:'home', genre:''}; showTab('home');
 }
 function showLauncher(){
   cur = null; applyTheme('violet');
@@ -362,12 +429,13 @@ function showLauncher(){
       h('button', {class:'lnk', onclick:()=>editSpace(null)}, '+ New space'),
       h('button', {class:'lnk', onclick:()=>{ document.body.classList.remove('launch'); $('#launcher').hidden = true; showTab('addons'); }}, 'Addons & settings')));
   window.scrollTo(0,0);
+  pushPage();
 }
 function editSpace(id){
   const isNew = !id;
   const s = isNew ? {id:'s'+Date.now().toString(36), name:'', emoji:'📺', theme:'violet', catalogs:[]} : JSON.parse(JSON.stringify(spaces.find(x=>x.id===id)));
-  const ed = $('#spaceEd'); ed.hidden = false; ed.scrollTop = 0; applyTheme(s.theme);
-  const close = () => { ed.hidden = true; applyTheme(cur ? cur.theme : 'violet'); };
+  const ed = $('#spaceEd'); ed.hidden = false; ed.scrollTop = 0; applyTheme(s.theme); pushLayer('editor');
+  const close = () => popLayer('editor');
   const name = h('input', {class:'f', placeholder:'Name (e.g. Anime)', style:'flex:1'}); name.value = s.name;
   const emoji = h('input', {class:'f', maxlength:'4', style:'width:70px;text-align:center;font-size:22px'}); emoji.value = s.emoji;
   const sw = h('div', {class:'swatches'});
@@ -383,7 +451,7 @@ function editSpace(id){
   del.onclick = () => {
     if (spaces.length < 2) { toast('Keep at least one space.'); return; }
     if (!armed) { armed = true; del.textContent = 'Tap again to delete'; return; }
-    spaces = spaces.filter(x => x.id !== s.id); saveSpaces(); close(); showLauncher();
+    spaces = spaces.filter(x => x.id !== s.id); saveSpaces(); launcherDirty = true; close();
   };
   ed.replaceChildren(
     h('div', {class:'bar', style:'padding-left:0;padding-right:0'}, h('button', {class:'btn ghost sm', onclick:close}, '← Cancel')),
@@ -400,7 +468,7 @@ function editSpace(id){
         s.name = name.value.trim(); s.emoji = emoji.value.trim() || '📺';
         s.catalogs = boxes.filter(x => x.cb.checked).map(x => x.a.manifest.id);
         const i = spaces.findIndex(x => x.id===s.id); if (i>=0) spaces[i] = s; else spaces.push(s);
-        saveSpaces(); close(); showLauncher();
+        saveSpaces(); launcherDirty = true; close();
       }}, 'Save'),
       isNew ? null : del));
 }
@@ -436,11 +504,11 @@ function renderTabs(){
     for (const o of ge.options) if (!/^\d{4}$/.test(o) && !genres.includes(o)) genres.push(o);
   }
   genres.sort((x,y) => x.localeCompare(y));
-  const chip = (id, label) => h('button', {class:'chip'+(view.tab===id ? ' on' : ''), onclick:() => { view = {tab:id, genre:''}; renderHome(); }}, label);
+  const chip = (id, label) => h('button', {class:'chip'+(view.tab===id ? ' on' : ''), onclick:() => { view = {tab:id, genre:''}; pushPage(); renderHome(); }}, label);
   const sel = h('select', {class:'chip'+(view.genre ? ' on' : ''), 'aria-label':'Categories'},
     h('option', {value:''}, 'Categories ▾'), ...genres.map(g => h('option', {value:g}, g)));
   sel.value = view.genre; if (sel.value !== view.genre) sel.value = '';
-  sel.onchange = () => { view.genre = sel.value; renderHome(); };
+  sel.onchange = () => { view.genre = sel.value; pushPage(); renderHome(); };
   bar.append(chip('home','Home'), chip('movie','Movies'), chip('series','Shows'), chip('new','New releases'), sel);
 }
 
@@ -585,10 +653,10 @@ const streamLangs = s => { const t = [s.name, s.title, s.description].filter(Boo
 
 /* ---------- detail + streams ---------- */
 async function openDetail(addon, type, item){
-  const d = $('#detail'); d.hidden = false; d.scrollTop = 0; document.body.style.overflow='hidden';
+  const d = $('#detail'); d.hidden = false; d.scrollTop = 0; document.body.style.overflow='hidden'; pushLayer('detail');
   let meta = item;
   const body = h('div');
-  const close = () => { d.hidden = true; document.body.style.overflow=''; };
+  const close = () => popLayer('detail');
   d.replaceChildren(h('div',{class:'bar'}, h('button',{class:'btn ghost sm',onclick:close},'← Back')), body);
   const paint = () => {
     body.replaceChildren(
@@ -666,8 +734,8 @@ function toVtt(txt, off){
 }
 
 function setPanel(open){
-  $('#ppanel').hidden = !open; $('#pback').hidden = !open;
-  if (open) renderPanel(); else showBar();
+  if (open) { if (!$('#ppanel').hidden) return; $('#ppanel').hidden = false; $('#pback').hidden = false; pushLayer('panel'); renderPanel(); }
+  else popLayer('panel');
 }
 $('#pback').onclick = () => setPanel(false);
 async function applySub(entry, keep){
@@ -764,7 +832,7 @@ async function playStream(s, title, ctx){
   if (s.externalUrl) { window.open(s.externalUrl,'_blank','noopener'); return; }
   if (s.ytId) { window.open('https://www.youtube.com/watch?v='+enc(s.ytId),'_blank','noopener'); return; }
   if (!s.url) { toast(s.infoHash ? "Torrent stream: needs a debrid service set up in that addon (so it returns direct links), or a backend." : 'This stream type is not supported.'); return; }
-  const v = $('#vid'); $('#player').hidden = false; $('#ptitle').textContent = title || '';
+  const v = $('#vid'); $('#player').hidden = false; $('#ptitle').textContent = title || ''; pushLayer('player');
   setPanel(false);
   pl = {id:pl.id + 1, ctx, subs:[], loading:false, nSrc:0, cur:null, offset:0, blob:null};
   v.querySelectorAll('track').forEach(t => t.remove());
@@ -781,16 +849,19 @@ async function playStream(s, title, ctx){
   if (ctx) loadSubs(); else renderPanel();
 }
 $('#vid').addEventListener('error', () => toast("Couldn't play that stream."));
-$('#closePlayer').onclick = async () => {
+async function stopPlayer(){
   const v = $('#vid'); v.pause(); if (hls) { hls.destroy(); hls = null; }
   v.querySelectorAll('track').forEach(t => t.remove()); if (pl.blob) URL.revokeObjectURL(pl.blob);
   pl = {id:pl.id + 1, ctx:null, subs:[], loading:false, nSrc:0, cur:null, offset:0, blob:null};
-  v.removeAttribute('src'); v.load(); $('#player').hidden = true; setPanel(false);
+  v.removeAttribute('src'); v.load(); $('#player').hidden = true; $('#ppanel').hidden = true; $('#pback').hidden = true;
   if (document.fullscreenElement) { try { await document.exitFullscreen(); } catch {} }
-};
+}
+$('#closePlayer').onclick = () => popLayer('player');
 
 /* ---------- boot ---------- */
-showLauncher();
+history.replaceState({guard:true}, '');
+let lastSpace = null; try { lastSpace = localStorage.getItem('streamlet.last'); } catch {}
+if (lastSpace && spaces.some(x => x.id === lastSpace)) enterSpace(lastSpace); else showLauncher();
 if ('serviceWorker' in navigator && /^https?:/.test(location.protocol)) navigator.serviceWorker.register('sw.js').catch(()=>{});
 </script>
 </body>
