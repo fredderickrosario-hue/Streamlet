@@ -66,7 +66,7 @@ nav button.on{color:var(--acc)}
 select{background:var(--panel);color:var(--text);border:1px solid #2a2d38;border-radius:8px;padding:7px 10px;font:inherit;margin-bottom:6px}
 #player{background:#000;z-index:30;overflow:hidden}
 #player video{width:100%;height:100%;background:#000}
-#player .x{position:absolute;top:calc(10px + env(safe-area-inset-top));left:10px;z-index:2;background:#000a;border:0;border-radius:20px;padding:8px 14px;color:#fff}
+#player .x{background:#000a;border:0;border-radius:20px;padding:8px 14px;color:#fff;white-space:nowrap}
 #toast{position:fixed;left:50%;bottom:90px;transform:translateX(-50%);background:#2a2d38;padding:10px 16px;border-radius:10px;z-index:50;font-size:14px;max-width:88vw;opacity:0;pointer-events:none;transition:opacity .2s}
 #toast.on{opacity:1}
 .spin{color:var(--mut);padding:10px 14px;font-size:13px}
@@ -100,6 +100,23 @@ body.launch header,body.launch nav,body.launch main>section:not(#launcher){displ
 .hb{border:0;border-radius:var(--rb);padding:10px 20px;font-weight:700}
 .hb.p{background:var(--btn);color:var(--btnt)}
 .hb.s{background:#ffffff2e;color:#fff;backdrop-filter:blur(6px)}
+.pbar{position:absolute;top:0;left:0;right:0;z-index:3;display:flex;align-items:center;gap:8px;padding:calc(10px + env(safe-area-inset-top)) 10px 18px;background:linear-gradient(#000c,transparent);transition:opacity .25s}
+.pbar.off{opacity:0;pointer-events:none}
+.pbar span{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:600;text-shadow:0 1px 6px #000}
+.ppanel{position:absolute;left:0;right:0;bottom:0;z-index:4;max-height:68%;overflow-y:auto;background:var(--panel);border-radius:18px 18px 0 0;padding:14px 16px calc(18px + env(safe-area-inset-bottom));box-shadow:0 -8px 30px #000a}
+.ppanel[hidden]{display:none}
+.ppanel h3{margin:14px 0 6px;font-size:13px;color:var(--mut);text-transform:uppercase;letter-spacing:.8px}
+.ppanel h3:first-child{margin-top:0}
+.opt{display:flex;justify-content:space-between;gap:8px;width:100%;text-align:left;background:var(--panel2);border:0;border-radius:10px;padding:10px 12px;margin:5px 0}
+.opt.on{outline:2px solid var(--acc)}
+.opt small{color:var(--mut)}
+.ppanel details{margin:6px 0}
+.ppanel summary{padding:8px 2px;font-weight:600;cursor:pointer}
+.sync{display:flex;align-items:center;gap:10px;margin:8px 0}
+.sync b{min-width:64px;text-align:center}
+.lc{font-size:10px;font-weight:800;letter-spacing:.5px;background:var(--acc);color:var(--btnt);border-radius:4px;padding:1px 5px;margin-right:4px;display:inline-block}
+video::cue{background:rgba(0,0,0,.72);color:#fff;font-size:1.05em}
+.sel{width:100%;margin:2px 0 8px}
 </style>
 </head>
 <body>
@@ -119,7 +136,15 @@ body.launch header,body.launch nav,body.launch main>section:not(#launcher){displ
         <button class="btn" type="submit">Install</button>
       </form>
       <div class="msg" id="addMsg"></div>
-      <button class="btn ghost sm" id="demoBtn" type="button">Try the built-in demo addon</button>
+      <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn ghost sm" id="osBtn" type="button">+ OpenSubtitles (subtitles)</button><button class="btn ghost sm" id="demoBtn" type="button">Try the built-in demo addon</button></div>
+      <h2 style="margin:22px 0 6px;font-size:17px">Player</h2>
+      <div class="addon">
+        <div class="lbl" style="margin-top:0">Subtitles, auto-select language</div>
+        <select id="setSub" class="sel"></select>
+        <div class="lbl">Preferred audio language</div>
+        <select id="setAud" class="sel"></select>
+        <p>Subtitles come from any installed subtitle addon (like OpenSubtitles). Audio language switching works on streams that carry several audio tracks (HLS); for single-file streams, pick a stream tagged with your language, which is sorted to the top.</p>
+      </div>
       <h2 style="margin:22px 0 0;font-size:17px">Installed</h2>
       <div id="list"></div>
     </div>
@@ -128,7 +153,11 @@ body.launch header,body.launch nav,body.launch main>section:not(#launcher){displ
 
 <div id="detail" class="sheet" hidden></div>
 <div id="spaceEd" class="sheet" hidden></div>
-<div id="player" class="sheet" hidden><button class="x" id="closePlayer">✕ Close</button><video id="vid" controls playsinline></video></div>
+<div id="player" class="sheet" hidden>
+  <div class="pbar" id="pbar"><button class="x" id="closePlayer">✕</button><span id="ptitle"></span><button class="x" id="ccBtn">CC · Audio</button><button class="x" id="fsBtn">⛶</button></div>
+  <video id="vid" controls playsinline></video>
+  <div class="ppanel" id="ppanel" hidden></div>
+</div>
 <div id="toast"></div>
 <nav>
   <button id="tabHome" class="on">Discover</button>
@@ -442,12 +471,53 @@ $('#addForm').addEventListener('submit', async ev => {
     renderAddons();
   } catch(e) { msg.className='msg err'; msg.textContent = e.message; }
 });
+$('#osBtn').onclick = async () => {
+  const msg = $('#addMsg'); msg.className = 'msg'; msg.textContent = 'Installing…';
+  try { const m = await installAddon(OS_URL); msg.className = 'msg ok'; msg.textContent = `Installed ${m.name}.`; renderAddons(); }
+  catch(e) { msg.className = 'msg err'; msg.textContent = e.message; }
+};
 $('#demoBtn').onclick = async () => {
   const msg = $('#addMsg');
   try { const m = await installAddon('demo'); msg.className='msg ok'; msg.textContent=`Installed ${m.name}. Head to Discover.`; renderAddons(); }
   catch(e){ msg.className='msg err'; msg.textContent=e.message; }
 };
 let qT; $('#q').addEventListener('input', () => { clearTimeout(qT); qT = setTimeout(()=>{ if ($('#home').hidden) showTab('home'); else renderHome($('#q').value.trim()); }, 350); });
+
+
+/* ---------- languages + settings ---------- */
+const LANGS = [
+  {n:'English', c:['eng','en']}, {n:'French', c:['fre','fra','fr']}, {n:'Spanish', c:['spa','es']}, {n:'Spanish (Latin America)', c:['spl']},
+  {n:'German', c:['ger','deu','de']}, {n:'Italian', c:['ita','it']}, {n:'Portuguese', c:['por','pt']}, {n:'Portuguese (Brazil)', c:['pob','ptbr','pt-br']},
+  {n:'Japanese', c:['jpn','ja']}, {n:'Korean', c:['kor','ko']}, {n:'Russian', c:['rus','ru']}, {n:'Chinese', c:['chi','zho','zh']},
+  {n:'Hindi', c:['hin','hi']}, {n:'Arabic', c:['ara','ar']}, {n:'Dutch', c:['dut','nld','nl']}, {n:'Turkish', c:['tur','tr']},
+  {n:'Polish', c:['pol','pl']}, {n:'Swedish', c:['swe','sv']}, {n:'Greek', c:['ell','gre','el']}
+];
+const langOf = code => LANGS.find(l => l.c.includes(String(code||'').toLowerCase()));
+const langName = code => (langOf(code) || {n:String(code||'Unknown').toUpperCase()}).n;
+const sameLang = (a, b) => { const x = langOf(a), y = langOf(b); return x && y ? x === y : String(a).toLowerCase() === String(b).toLowerCase(); };
+const code2 = l => (langOf(l) || {c:[]}).c.find(x => x.length === 2);
+
+let settings = {subLang:'off', audioLang:'any'};
+try { Object.assign(settings, JSON.parse(localStorage.getItem('streamlet.settings') || '{}')); } catch {}
+const saveSettings = () => { try { localStorage.setItem('streamlet.settings', JSON.stringify(settings)); } catch {} };
+(function initSettingsUI(){
+  const fill = (sel, first, key) => {
+    sel.replaceChildren(h('option', {value:first[0]}, first[1]), ...LANGS.map(l => h('option', {value:l.c[0]}, l.n)));
+    sel.value = settings[key]; if (sel.value !== settings[key]) sel.value = first[0];
+    sel.onchange = () => { settings[key] = sel.value; saveSettings(); };
+  };
+  fill($('#setSub'), ['off','Off (choose manually)'], 'subLang');
+  fill($('#setAud'), ['any','Any'], 'audioLang');
+})();
+
+// language hints found in stream names/titles (Torrentio-style flags, "MULTI", "VOSTFR", ...)
+const LANG_HINTS = [
+  ['en', /\b(eng(lish)?)\b|🇬🇧|🇺🇸/i], ['fr', /\b(fr(ench)?|vf[fq]?|truefrench|vostfr)\b|🇫🇷/i], ['es', /\b(spa(nish)?|esp|latino|castellano)\b|🇪🇸|🇲🇽/i],
+  ['de', /\b(ger(man)?|deutsch)\b|🇩🇪/i], ['it', /\b(ita(lian)?)\b|🇮🇹/i], ['pt', /\b(por(tuguese)?|dublado)\b|🇵🇹|🇧🇷/i],
+  ['ja', /\b(jap(anese)?|jpn)\b|🇯🇵/i], ['ko', /\b(kor(ean)?)\b|🇰🇷/i], ['ru', /\b(rus(sian)?)\b|🇷🇺/i], ['zh', /\b(chi(nese)?|mandarin)\b|🇨🇳/i],
+  ['hi', /\b(hindi)\b|🇮🇳/i], ['multi', /\b(multi|dual)\b/i]
+];
+const streamLangs = s => { const t = [s.name, s.title, s.description].filter(Boolean).join(' '); return LANG_HINTS.filter(([,re]) => re.test(t)).map(([k]) => k); };
 
 /* ---------- detail + streams ---------- */
 async function openDetail(addon, type, item){
@@ -491,40 +561,163 @@ async function loadStreams(type, id, box, title){
     const grp = h('div'); const lab = h('div',{class:'src'}, a.manifest.name+' …'); grp.append(lab); box.append(grp);
     try {
       const r = await getJSON(`${a.base}/stream/${type}/${enc(id)}.json`);
-      const ss = r.streams || [];
+      let ss = r.streams || [];
+      if (settings.audioLang !== 'any') {
+        const pc = code2(settings.audioLang);
+        const score = x => { const l = streamLangs(x); return l.includes(pc) ? 0 : l.includes('multi') ? 1 : 2; };
+        ss = ss.map((x,i) => [x,i]).sort((a,b) => score(a[0]) - score(b[0]) || a[1] - b[1]).map(x => x[0]);
+      }
       lab.textContent = a.manifest.name; found += ss.length;
       if (!ss.length) lab.textContent += ' — nothing found';
       for (const s of ss) {
         const playable = !!(s.url || s.externalUrl || s.ytId);
-        grp.append(h('button',{class:'stream'+(playable?'':' dis'), onclick:()=>playStream(s, s.title||title)},
-          h('div',{class:'n'}, [s.name, s.title || s.description].filter(Boolean).join('\n') || 'Stream'),
+        grp.append(h('button',{class:'stream'+(playable?'':' dis'), onclick:()=>playStream(s, title, {type, id})},
+          h('div',{class:'n'}, [s.name, s.title || s.description].filter(Boolean).join('\n') || 'Stream',
+            streamLangs(s).length ? h('div', {style:'margin-top:4px'}, streamLangs(s).map(l => h('span', {class:'lc'}, l.toUpperCase()))) : null),
           h('span',{class:'go'}, playable ? '▶' : '✕')));
       }
     } catch(e) { lab.textContent = a.manifest.name+' — failed: '+e.message; lab.style.color='var(--err)'; }
   }));
 }
 
-/* ---------- player ---------- */
-let hls;
-async function playStream(s){
+/* ---------- player (subtitles + audio) ---------- */
+let hls = null;
+let pl = {id:0, ctx:null, subs:[], loading:false, nSrc:0, cur:null, offset:0, blob:null};
+const OS_URL = 'https://opensubtitles-v3.strem.io/manifest.json';
+
+async function getText(url){
+  const r = await fetch(url); if (!r.ok) throw new Error('HTTP '+r.status);
+  const buf = await r.arrayBuffer();
+  try { return new TextDecoder('utf-8', {fatal:true}).decode(buf); }
+  catch { return new TextDecoder('windows-1252').decode(buf); }
+}
+function toVtt(txt, off){
+  txt = txt.replace(/^﻿/, '').replace(/\r/g, '').replace(/\{\\an?\d\}/g, '');
+  const fmt = ms => { ms = Math.max(0, Math.round(ms)); const p = (n,l=2) => String(n).padStart(l,'0');
+    return `${p(Math.floor(ms/3600000))}:${p(Math.floor(ms/60000)%60)}:${p(Math.floor(ms/1000)%60)}.${p(ms%1000,3)}`; };
+  const parse = t => { const m = t.match(/(\d+):(\d+):(\d+)[,.](\d{1,3})/); return ((+m[1]*60 + +m[2])*60 + +m[3])*1000 + +m[4].padEnd(3,'0'); };
+  const body = txt.replace(/(\d{1,2}:\d{2}:\d{2}[,.]\d{1,3})\s*-->\s*(\d{1,2}:\d{2}:\d{2}[,.]\d{1,3})/g,
+    (_, x, y) => `${fmt(parse(x) + off*1000)} --> ${fmt(parse(y) + off*1000)}`);
+  return /^WEBVTT/.test(body) ? body : 'WEBVTT\n\n' + body;
+}
+
+async function applySub(entry){
+  const v = $('#vid'), myId = pl.id;
+  v.querySelectorAll('track').forEach(t => t.remove());
+  for (const t of v.textTracks) t.mode = 'disabled';
+  if (pl.blob) { URL.revokeObjectURL(pl.blob); pl.blob = null; }
+  pl.cur = entry; renderPanel();
+  if (!entry) return;
+  try {
+    if (!entry.raw) entry.raw = await getText(entry.url);
+    if (pl.id !== myId) return;
+    pl.blob = URL.createObjectURL(new Blob([toVtt(entry.raw, pl.offset)], {type:'text/vtt'}));
+    const tr = h('track', {kind:'subtitles', label:langName(entry.lang), src:pl.blob, default:''});
+    v.append(tr); tr.track.mode = 'showing';
+  } catch(e) { toast("Couldn't load that subtitle: " + e.message); pl.cur = null; renderPanel(); }
+}
+
+async function loadSubs(){
+  const ctx = pl.ctx, myId = pl.id; if (!ctx) return;
+  const srcs = addons.filter(a => supports(a, 'subtitles', ctx.type, ctx.id));
+  pl.nSrc = srcs.length; pl.loading = srcs.length > 0; renderPanel();
+  await Promise.all(srcs.map(async a => {
+    try {
+      const r = await getJSON(`${a.base}/subtitles/${ctx.type}/${enc(ctx.id)}.json`);
+      if (pl.id !== myId) return;
+      for (const x of (r.subtitles || [])) if (x.url) pl.subs.push({...x, addon:a.manifest.name});
+    } catch {}
+  }));
+  if (pl.id !== myId) return;
+  pl.loading = false;
+  if (settings.subLang !== 'off') { const m = pl.subs.find(x => sameLang(x.lang, settings.subLang)); if (m) { await applySub(m); return; } }
+  renderPanel();
+}
+
+function audioTracks(){
+  const v = $('#vid');
+  if (hls && hls.audioTracks && hls.audioTracks.length > 1)
+    return hls.audioTracks.map((t,i) => ({label:t.name || langName(t.lang), lang:t.lang, on:hls.audioTrack === i, pick:() => { hls.audioTrack = i; }}));
+  if (v.audioTracks && v.audioTracks.length > 1)
+    return [...v.audioTracks].map((t,i) => ({label:t.label || langName(t.language), lang:t.language, on:t.enabled, pick:() => { [...v.audioTracks].forEach((x,j) => x.enabled = j === i); }}));
+  return [];
+}
+function autoAudio(){
+  if (settings.audioLang === 'any') return;
+  const t = audioTracks(), i = t.findIndex(x => x.lang && sameLang(x.lang, settings.audioLang));
+  if (i >= 0 && !t[i].on) { t[i].pick(); renderPanel(); }
+}
+
+function renderPanel(){
+  const pn = $('#ppanel'); if (pn.hidden) return;
+  const byLang = {};
+  for (const x of pl.subs) (byLang[langName(x.lang)] ||= []).push(x);
+  const pref = settings.subLang !== 'off' ? langName(settings.subLang) : null;
+  const names = Object.keys(byLang).sort((a,b) => (b===pref) - (a===pref) || a.localeCompare(b));
+  const subUI = [];
+  if (!pl.nSrc) subUI.push(h('p', {class:'spin', style:'padding:0'}, 'No subtitle addon supports this title.'),
+    h('button', {class:'btn sm', onclick:async () => { try { await installAddon(OS_URL); toast('OpenSubtitles installed'); loadSubs(); } catch(e) { toast(e.message); } }}, '+ Install OpenSubtitles'));
+  else {
+    subUI.push(h('button', {class:'opt'+(pl.cur ? '' : ' on'), onclick:() => applySub(null)}, 'Off'));
+    if (pl.loading) subUI.push(h('p', {class:'spin', style:'padding:4px 0'}, 'Searching subtitles…'));
+    else if (!pl.subs.length) subUI.push(h('p', {class:'spin', style:'padding:4px 0'}, 'No subtitles found for this title.'));
+    for (const n of names) subUI.push(h('details', {open: n===pref ? '' : null},
+      h('summary', null, `${n} `, h('small', {style:'color:var(--mut)'}, `(${byLang[n].length})`)),
+      byLang[n].slice(0, 15).map((x,i) => h('button', {class:'opt'+(pl.cur === x ? ' on' : ''), onclick:() => applySub(x)}, `${n} ${i+1}`, h('small', null, x.addon)))));
+    if (pl.cur) subUI.push(h('div', {class:'sync'}, h('span', {style:'color:var(--mut)'}, 'Sync'),
+      h('button', {class:'btn ghost sm', onclick:() => { pl.offset -= .5; applySub(pl.cur); }}, '−0.5s'),
+      h('b', null, (pl.offset > 0 ? '+' : '') + pl.offset.toFixed(1) + 's'),
+      h('button', {class:'btn ghost sm', onclick:() => { pl.offset += .5; applySub(pl.cur); }}, '+0.5s')));
+  }
+  const at = audioTracks();
+  const audUI = at.length
+    ? at.map((t,i) => h('button', {class:'opt'+(t.on ? ' on' : ''), onclick:() => { t.pick(); setTimeout(renderPanel, 50); }}, t.label || 'Track '+(i+1), h('small', null, t.lang || '')))
+    : [h('p', {class:'spin', style:'padding:0'}, "This stream has a single audio track the browser can see. For another language, go back and pick a stream tagged with it (MULTI, FR, ES…), they're sorted first if you set a preferred audio language.")];
+  pn.replaceChildren(h('h3', null, 'Subtitles'), ...subUI, h('h3', null, 'Audio'), ...audUI,
+    h('div', {style:'margin-top:14px'}, h('button', {class:'btn ghost sm', onclick:() => { pn.hidden = true; }}, 'Close')));
+}
+
+let barT;
+function showBar(){
+  const b = $('#pbar'); b.classList.remove('off'); clearTimeout(barT);
+  barT = setTimeout(() => { if ($('#ppanel').hidden && !$('#vid').paused) b.classList.add('off'); }, 3200);
+}
+['touchstart','mousemove','click'].forEach(e => $('#player').addEventListener(e, showBar, {passive:true}));
+$('#ccBtn').onclick = () => { const pn = $('#ppanel'); pn.hidden = !pn.hidden; renderPanel(); };
+$('#fsBtn').onclick = async () => {
+  try {
+    if (document.fullscreenElement) await document.exitFullscreen();
+    else { await $('#player').requestFullscreen(); try { await screen.orientation.lock('landscape'); } catch {} }
+  } catch { toast('Fullscreen not available here.'); }
+};
+
+async function playStream(s, title, ctx){
   if (s.externalUrl) { window.open(s.externalUrl,'_blank','noopener'); return; }
   if (s.ytId) { window.open('https://www.youtube.com/watch?v='+enc(s.ytId),'_blank','noopener'); return; }
   if (!s.url) { toast(s.infoHash ? "Torrent stream: needs a debrid service set up in that addon (so it returns direct links), or a backend." : 'This stream type is not supported.'); return; }
-  const v = $('#vid'); $('#player').hidden = false;
-  v.querySelectorAll('track').forEach(t=>t.remove());
-  for (const sub of (s.subtitles||[])) v.append(h('track',{kind:'subtitles', src:sub.url, srclang:sub.lang||'en', label:sub.lang||'Subtitles'}));
+  const v = $('#vid'); $('#player').hidden = false; $('#ptitle').textContent = title || '';
+  $('#ppanel').hidden = true; showBar();
+  pl = {id:pl.id + 1, ctx, subs:[], loading:false, nSrc:0, cur:null, offset:0, blob:null};
+  v.querySelectorAll('track').forEach(t => t.remove());
+  for (const sub of (s.subtitles || [])) pl.subs.push({id:'embedded', url:sub.url, lang:sub.lang || 'eng', addon:'Stream'});
   if (/\.m3u8(\?|$)/i.test(s.url) && !v.canPlayType('application/vnd.apple.mpegurl')) {
     try {
-      if (!window.Hls) await new Promise((res,rej)=>document.head.append(h('script',{src:'https://cdn.jsdelivr.net/npm/hls.js@1',onload:res,onerror:rej})));
+      if (!window.Hls) await new Promise((res,rej) => document.head.append(h('script', {src:'https://cdn.jsdelivr.net/npm/hls.js@1', onload:res, onerror:rej})));
       hls = new Hls(); hls.loadSource(s.url); hls.attachMedia(v);
+      hls.on(Hls.Events.MANIFEST_PARSED, autoAudio);
+      hls.on(Hls.Events.AUDIO_TRACKS_UPDATED, () => { autoAudio(); renderPanel(); });
     } catch { toast("Couldn't load the HLS player."); }
-  } else v.src = s.url;
-  v.play().catch(()=>{});
+  } else { v.src = s.url; v.addEventListener('loadedmetadata', autoAudio, {once:true}); }
+  v.play().catch(() => {});
+  if (ctx) loadSubs(); else renderPanel();
 }
 $('#vid').addEventListener('error', () => toast("Couldn't play that stream."));
-$('#closePlayer').onclick = () => {
+$('#closePlayer').onclick = async () => {
   const v = $('#vid'); v.pause(); if (hls) { hls.destroy(); hls = null; }
-  v.removeAttribute('src'); v.load(); $('#player').hidden = true;
+  v.querySelectorAll('track').forEach(t => t.remove()); if (pl.blob) URL.revokeObjectURL(pl.blob);
+  pl = {id:pl.id + 1, ctx:null, subs:[], loading:false, nSrc:0, cur:null, offset:0, blob:null};
+  v.removeAttribute('src'); v.load(); $('#player').hidden = true; $('#ppanel').hidden = true;
+  if (document.fullscreenElement) { try { await document.exitFullscreen(); } catch {} }
 };
 
 /* ---------- boot ---------- */
