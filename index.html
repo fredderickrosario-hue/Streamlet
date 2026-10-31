@@ -70,7 +70,7 @@ select{background:var(--panel);color:var(--text);border:1px solid #2a2d38;border
 #toast{position:fixed;left:50%;bottom:90px;transform:translateX(-50%);background:#2a2d38;padding:10px 16px;border-radius:10px;z-index:50;font-size:14px;max-width:88vw;opacity:0;pointer-events:none;transition:opacity .2s}
 #toast.on{opacity:1}
 .spin{color:var(--mut);padding:10px 14px;font-size:13px}
-body.launch header,body.launch nav,body.launch main>section:not(#launcher){display:none}
+body.launch header,body.launch nav,body.launch main>section:not(#launcher):not(#profiles){display:none}
 #launcher{padding:calc(34px + env(safe-area-inset-top)) 16px 40px;max-width:560px;margin:0 auto}
 #launcher h1{font-size:28px;margin:0}
 #launcher .sub{color:var(--mut);margin:2px 0 18px}
@@ -129,6 +129,22 @@ select.chip{padding-right:10px;text-overflow:ellipsis}
 .dlg h3{margin:0 0 6px;font-size:18px}
 .dlg p{margin:0 0 16px;color:var(--mut);font-size:14px}
 .dbtns{display:flex;gap:10px;justify-content:flex-end}
+#profiles{padding:calc(40px + env(safe-area-inset-top)) 16px 40px;max-width:600px;margin:0 auto;text-align:center}
+#profiles h1{font-size:28px;margin:0 0 26px}
+.pgrid{display:flex;flex-wrap:wrap;gap:22px 18px;justify-content:center}
+.ptile{background:none;border:0;width:96px;color:var(--text)}
+.pav{position:relative;width:88px;height:88px;border-radius:50%;margin:0 auto 8px;display:flex;align-items:center;justify-content:center;font-size:42px;box-shadow:0 6px 18px #0007}
+.pav.add{background:var(--panel2);color:var(--mut);font-size:40px}
+.pav .pe{position:absolute;right:-2px;bottom:-2px;width:28px;height:28px;border-radius:50%;background:#000c;font-size:14px;display:flex;align-items:center;justify-content:center}
+.emojis{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0}
+.emojis button{background:var(--panel2);border:0;border-radius:10px;font-size:24px;width:44px;height:44px}
+.pill{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.card.cwc{position:relative}
+.card.cwc>button.cwb{background:none;border:0;padding:0;text-align:left;color:inherit;display:flex;flex-direction:column;width:100%}
+.pg{position:absolute;left:0;right:0;bottom:0;height:4px;background:#0009}
+.pg i{display:block;height:100%;background:var(--acc)}
+.rm{position:absolute;top:5px;right:5px;width:24px;height:24px;border-radius:50%;border:0;background:#000b;color:#fff;font-size:12px;line-height:1}
+.upn{position:absolute;left:6px;top:6px;background:var(--acc);color:var(--btnt);font-size:10px;font-weight:800;border-radius:4px;padding:1px 6px}
 </style>
 </head>
 <body>
@@ -137,6 +153,7 @@ select.chip{padding-right:10px;text-overflow:ellipsis}
   <input id="q" type="search" placeholder="Search installed addons…" enterkeyhint="search">
 </header>
 <main>
+  <section id="profiles" hidden></section>
   <section id="launcher" hidden></section>
   <section id="home"><div id="tabsBar" hidden></div><div id="rows"></div></section>
   <section id="addons" hidden>
@@ -151,7 +168,9 @@ select.chip{padding-right:10px;text-overflow:ellipsis}
       <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn ghost sm" id="osBtn" type="button">+ OpenSubtitles (subtitles)</button><button class="btn ghost sm" id="demoBtn" type="button">Try the built-in demo addon</button></div>
       <h2 style="margin:22px 0 6px;font-size:17px">Player</h2>
       <div class="addon">
-        <div class="lbl" style="margin-top:0">Subtitles, auto-select language</div>
+        <div class="lbl" style="margin-top:0">Profile</div>
+        <div id="profRow" style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px"></div>
+        <div class="lbl">Subtitles, auto-select language</div>
         <select id="setSub" class="sel"></select>
         <div class="lbl">Preferred audio language</div>
         <select id="setAud" class="sel"></select>
@@ -165,6 +184,7 @@ select.chip{padding-right:10px;text-overflow:ellipsis}
 
 <div id="detail" class="sheet" hidden></div>
 <div id="spaceEd" class="sheet" hidden></div>
+<div id="profEd" class="sheet" hidden></div>
 <div id="player" class="sheet" hidden>
   <div class="pbar" id="pbar"><button class="x" id="closePlayer">✕</button><span id="ptitle"></span><button class="x" id="ccBtn">CC · Audio</button><button class="x" id="fsBtn">⛶</button></div>
   <video id="vid" controls playsinline></video>
@@ -286,7 +306,8 @@ function catInfo(cat){
 /* ---------- navigation: Android back button + exit prompt ---------- */
 let navSuppress = false, pageKey = '', launcherDirty = false, exiting = false;
 const layersOpen = [];                 // overlays currently open, bottom to top: detail, player, panel | editor
-const pageNow = () => document.body.classList.contains('launch') ? {k:'launcher'}
+const pageNow = () => !$('#profiles').hidden ? {k:'profiles'}
+  : document.body.classList.contains('launch') ? {k:'launcher'}
   : !$('#addons').hidden ? {k:'addons'}
   : {k:'space', id:cur && cur.id, tab:view.tab, genre:view.genre};
 function pushPage(){
@@ -308,12 +329,14 @@ function popLayer(name){
 const LAYER_CLOSERS = {
   panel:  () => { $('#ppanel').hidden = true; $('#pback').hidden = true; showBar(); },
   player: () => stopPlayer(),
-  detail: () => { $('#detail').hidden = true; document.body.style.overflow = ''; },
-  editor: () => { $('#spaceEd').hidden = true; applyTheme(cur ? cur.theme : 'violet'); }
+  detail: () => { $('#detail').hidden = true; document.body.style.overflow = ''; if (!$('#home').hidden) renderCW(); },
+  editor: () => { $('#spaceEd').hidden = true; applyTheme(cur ? cur.theme : 'violet'); },
+  pedit:  () => { $('#profEd').hidden = true; }
 };
-function rememberSpace(id){ try { localStorage.setItem('streamlet.last', id); } catch {} }
+function rememberSpace(id){ pset('last', id); }
 function applyPage(p){
-  if (p.k === 'launcher') showLauncher();
+  if (p.k === 'profiles') showProfiles();
+  else if (p.k === 'launcher') showLauncher();
   else if (p.k === 'addons') showTab('addons');
   else if (p.k === 'space') {
     const sp = spaces.find(x => x.id === p.id);
@@ -332,7 +355,7 @@ window.addEventListener('popstate', e => {
   navSuppress = true;
   try {
     if (k !== pageKey) { pageKey = k; applyPage(st.page); }
-    else if (launcherDirty && st.page.k === 'launcher' && !want.length) showLauncher();
+    else if (launcherDirty && !want.length && (st.page.k === 'launcher' || st.page.k === 'profiles')) applyPage(st.page);
   } finally { navSuppress = false; }
   launcherDirty = false;
 });
@@ -345,7 +368,7 @@ $('#exGo').onclick = () => {
 /* ---------- views ---------- */
 function showTab(name){
   if (!cur && name==='home') return showLauncher();
-  document.body.classList.remove('launch'); $('#launcher').hidden = true;
+  document.body.classList.remove('launch'); $('#launcher').hidden = true; $('#profiles').hidden = true;
   $('#home').hidden = name!=='home'; $('#addons').hidden = name!=='addons';
   $('#tabHome').classList.toggle('on', name==='home'); $('#tabAddons').classList.toggle('on', name==='addons');
   $('#spaceBtn').replaceChildren(cur ? cur.emoji+' '+cur.name : 'Spaces', h('i',null,'⇄'));
@@ -371,7 +394,7 @@ const THEMES = {
   mint:  {n:'Mint',   acc:'#2fd18b', bg:'#0a1411', panel:'#12201b', panel2:'#1a2e27'},
   /* streaming-style looks (original palettes, no logos) */
   googletv:{n:'Smart TV', acc:'#8ab4f8', bg:'#171a1f', panel:'#252a31', panel2:'#323943',
-    font:"'Google Sans','Product Sans',Roboto,system-ui,sans-serif", r:'12px', rb:'24px', hw:'500', btnt:'#062e6f', tabs:true},
+    font:"'Google Sans','Product Sans',Roboto,system-ui,sans-serif", r:'12px', rb:'24px', hw:'500', btnt:'#062e6f', tabs:true, allhist:true},
   netflix:{n:'Red Carpet', acc:'#e50914', bg:'#141414', panel:'#1f1f1f', panel2:'#2b2b2b',
     font:"'Helvetica Neue',Helvetica,Arial,Roboto,sans-serif", r:'4px', rb:'4px', hw:'700'},
   disney:{n:'Deep Blue', acc:'#3b8bff', bg:'#040714', panel:'#12183a', panel2:'#1c2556',
@@ -413,9 +436,10 @@ function showLauncher(){
   cur = null; applyTheme('violet');
   document.body.classList.add('launch'); document.body.style.overflow = '';
   $('#detail').hidden = true; $('#player').hidden = true; $('#spaceEd').hidden = true;
-  const L = $('#launcher'); L.hidden = false;
+  $('#profiles').hidden = true; const L = $('#launcher'); L.hidden = false;
   L.replaceChildren(
-    h('h1', null, 'Stream', h('span',{style:'color:var(--acc)'},'let')),
+    h('div', {class:'pill'}, h('h1', null, 'Stream', h('span',{style:'color:var(--acc)'},'let')),
+      h('button', {class:'spaceBtn', type:'button', onclick:() => showProfiles()}, profile ? profile.emoji + ' ' + profile.name : 'Profile', h('i', null, '⇄'))),
     h('p', {class:'sub'}, addons.length ? 'What are we watching?' : 'Install an addon first (Addons & settings below), then pick a space.'),
     ...spaces.map(s => {
       const t = THEMES[s.theme] || THEMES.violet;
@@ -427,7 +451,7 @@ function showLauncher(){
     }),
     h('div', {class:'lnks'},
       h('button', {class:'lnk', onclick:()=>editSpace(null)}, '+ New space'),
-      h('button', {class:'lnk', onclick:()=>{ document.body.classList.remove('launch'); $('#launcher').hidden = true; showTab('addons'); }}, 'Addons & settings')));
+      h('button', {class:'lnk', onclick:()=>{ document.body.classList.remove('launch'); $('#launcher').hidden = true; $('#profiles').hidden = true; showTab('addons'); }}, 'Addons & settings')));
   window.scrollTo(0,0);
   pushPage();
 }
@@ -473,10 +497,91 @@ function editSpace(id){
       isNew ? null : del));
 }
 
+
+/* ---------- profile picker ---------- */
+let manageProfiles = false;
+function showProfiles(){
+  cur = null; applyTheme('violet');
+  document.body.classList.add('launch'); document.body.style.overflow = '';
+  $('#launcher').hidden = true; $('#detail').hidden = true; $('#player').hidden = true; $('#spaceEd').hidden = true; $('#profEd').hidden = true;
+  manageProfiles = false; renderProfiles();
+  window.scrollTo(0,0); pushPage();
+}
+function renderProfiles(){
+  const P = $('#profiles'); P.hidden = false;
+  const ask = h('input', {type:'checkbox'}); ask.checked = localStorage.getItem('streamlet.profile.ask') !== '0';
+  ask.onchange = () => { try { localStorage.setItem('streamlet.profile.ask', ask.checked ? '1' : '0'); } catch {} };
+  P.replaceChildren(
+    h('h1', null, manageProfiles ? 'Manage profiles' : "Who's watching?"),
+    h('div', {class:'pgrid'},
+      ...profiles.map(pr => h('button', {class:'ptile', type:'button', onclick:() => manageProfiles ? editProfile(pr.id) : selectProfile(pr)},
+        h('div', {class:'pav', style:`background:${pr.color}`}, pr.emoji, manageProfiles ? h('span', {class:'pe'}, '✎') : null), h('div', null, pr.name))),
+      profiles.length < 8 ? h('button', {class:'ptile', type:'button', onclick:() => editProfile(null)}, h('div', {class:'pav add'}, '+'), h('div', null, 'Add profile')) : null),
+    h('div', {class:'lnks', style:'justify-content:center;margin-top:22px'},
+      h('button', {class:'lnk', type:'button', onclick:() => { manageProfiles = !manageProfiles; renderProfiles(); }}, manageProfiles ? 'Done' : 'Manage profiles')),
+    manageProfiles && profiles.length > 1 ? h('label', {class:'chk', style:'justify-content:center'}, ask, h('span', null, "Ask who's watching when the app opens")) : null);
+}
+function editProfile(id){
+  const isNew = !id;
+  const pr = isNew ? {id:'p'+Date.now().toString(36), name:'', emoji:PROFILE_EMOJIS[profiles.length % PROFILE_EMOJIS.length], color:PROFILE_COLORS[profiles.length % PROFILE_COLORS.length]}
+                   : JSON.parse(JSON.stringify(profiles.find(x => x.id === id)));
+  const ed = $('#profEd'); ed.hidden = false; ed.scrollTop = 0; pushLayer('pedit');
+  const close = () => popLayer('pedit');
+  const name = h('input', {class:'f', placeholder:'Name', maxlength:'16', style:'flex:1'}); name.value = pr.name;
+  const emoji = h('input', {class:'f', maxlength:'4', style:'width:70px;text-align:center;font-size:22px'}); emoji.value = pr.emoji;
+  const emojis = h('div', {class:'emojis'}, PROFILE_EMOJIS.map(e => h('button', {type:'button', onclick:() => { emoji.value = e; }}, e)));
+  const sw = h('div', {class:'swatches'});
+  const paint = () => sw.replaceChildren(...PROFILE_COLORS.map(c => h('button', {type:'button', class:'sw'+(pr.color === c ? ' on' : ''), style:`background:${c}`, onclick:() => { pr.color = c; paint(); }})));
+  paint();
+  const del = h('button', {class:'btn ghost', type:'button'}, 'Delete profile'); let armed = false;
+  del.onclick = () => {
+    if (profiles.length < 2) { toast('Keep at least one profile.'); return; }
+    if (!armed) { armed = true; del.textContent = 'Tap again to delete'; return; }
+    profiles = profiles.filter(x => x.id !== pr.id); lsSet('streamlet.profiles', profiles);
+    try { Object.keys(localStorage).filter(k => k.startsWith(`streamlet.p.${pr.id}.`)).forEach(k => localStorage.removeItem(k)); } catch {}
+    if (profile && profile.id === pr.id) profile = null;
+    launcherDirty = true; close();
+  };
+  ed.replaceChildren(
+    h('div', {class:'bar', style:'padding-left:0;padding-right:0'}, h('button', {class:'btn ghost sm', onclick:close}, '← Cancel')),
+    h('div', {style:'padding:0 16px'},
+      h('h2', {style:'margin:6px 0 10px'}, isNew ? 'New profile' : 'Edit profile'),
+      h('div', {class:'lbl'}, 'Icon & name'), h('div', {style:'display:flex;gap:8px'}, emoji, name), emojis,
+      h('div', {class:'lbl'}, 'Colour'), sw,
+      h('div', {style:'display:flex;gap:10px;margin-top:18px'},
+        h('button', {class:'btn', type:'button', onclick:() => {
+          if (!name.value.trim()) { toast('Give it a name.'); return; }
+          pr.name = name.value.trim(); pr.emoji = emoji.value.trim() || '🙂';
+          const i = profiles.findIndex(x => x.id === pr.id); if (i >= 0) profiles[i] = pr; else profiles.push(pr);
+          if (profile && profile.id === pr.id) profile = pr;
+          lsSet('streamlet.profiles', profiles); launcherDirty = true; close();
+        }}, 'Save'),
+        isNew ? null : del)));
+}
+
 function posterEl(meta){
   const p = h('div', {class:'poster'}, (meta.name||'?').trim().charAt(0).toUpperCase());
   if (meta.poster) p.append(h('img', {src:meta.poster, loading:'lazy', alt:'', onerror:e=>e.target.remove()}));
   return p;
+}
+
+function renderCW(){
+  const box = $('#cwBox'); if (!box) return;
+  box.replaceChildren();
+  const query = $('#q').value.trim();
+  if (query || !cur || (spaceTabs() && (view.tab !== 'home' || view.genre))) return;
+  const hist = histForSpace(); if (!hist.length) return;
+  const strip = h('div', {class:'strip'});
+  for (const e of hist) {
+    const pct = e.dur ? Math.min(100, Math.round(e.pos / e.dur * 100)) : 0;
+    const label = (e.ep ? `S${e.ep.season ?? 1}:E${e.ep.episode ?? '?'}` : '') + (e.upnext ? ' · Up next' : (e.dur ? (e.ep ? ' · ' : '') + Math.max(1, Math.round((e.dur - e.pos) / 60)) + 'm left' : ''));
+    const po = posterEl({name:e.name, poster:e.poster});
+    if (e.upnext) po.append(h('span', {class:'upn'}, 'UP NEXT')); else po.append(h('div', {class:'pg'}, h('i', {style:`width:${pct}%`})));
+    strip.append(h('div', {class:'card cwc'},
+      h('button', {class:'cwb', type:'button', onclick:() => openResume(e)}, po, h('div', {class:'t'}, e.name), h('div', {class:'s'}, label)),
+      h('button', {class:'rm', type:'button', 'aria-label':'Remove', onclick:ev => { ev.stopPropagation(); histRemove(e.k); renderCW(); }}, '✕')));
+  }
+  box.append(h('div', {class:'row'}, h('h2', null, 'Continue watching'), strip));
 }
 
 let homeTok = 0;
@@ -524,6 +629,7 @@ async function renderHome(query = $('#q').value.trim()){
   }
   const tabs = spaceTabs() && !query;
   const heroBox = h('div'); if (!query && !(tabs && view.genre)) box.append(heroBox);
+  box.append(h('div', {id:'cwBox'})); renderCW();
   let heroDone = false, shown = 0;
   const jobs = [];
   for (const a of spaceAddons()) for (const cat of (a.manifest.catalogs||[])) {
@@ -629,10 +735,31 @@ const langName = code => (langOf(code) || {n:String(code||'Unknown').toUpperCase
 const sameLang = (a, b) => { const x = langOf(a), y = langOf(b); return x && y ? x === y : String(a).toLowerCase() === String(b).toLowerCase(); };
 const code2 = l => (langOf(l) || {c:[]}).c.find(x => x.length === 2);
 
+/* ---------- profiles (per-profile settings, history, last space) ---------- */
+const PROFILE_COLORS = ['#7c5cff','#ff5c93','#25b9ff','#2fd18b','#ffb020','#ec1d24','#f47521','#8ab4f8'];
+const PROFILE_EMOJIS = ['😎','🦊','🐼','🐯','🦄','🐸','🚀','👑','🎮','🍕'];
+let profiles = [], profile = null;
 let settings = {subLang:'off', audioLang:'any'};
-try { Object.assign(settings, JSON.parse(localStorage.getItem('streamlet.settings') || '{}')); } catch {}
-const saveSettings = () => { try { localStorage.setItem('streamlet.settings', JSON.stringify(settings)); } catch {} };
-(function initSettingsUI(){
+const lsGet = (k, d) => { try { const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch { return d; } };
+const lsSet = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} };
+const pk = k => `streamlet.p.${profile.id}.${k}`;
+const pget = (k, d) => lsGet(pk(k), d);
+const pset = (k, v) => lsSet(pk(k), v);
+const saveSettings = () => pset('settings', settings);
+
+function initProfiles(){
+  profiles = lsGet('streamlet.profiles', null);
+  if (!Array.isArray(profiles) || !profiles.length) {
+    profiles = [{id:'p1', name:'Me', emoji:'😎', color:PROFILE_COLORS[0]}];
+    lsSet('streamlet.profiles', profiles);
+    // carry over anything saved before profiles existed
+    try {
+      const old = localStorage.getItem('streamlet.settings'); if (old) localStorage.setItem('streamlet.p.p1.settings', old);
+      const last = localStorage.getItem('streamlet.last'); if (last) localStorage.setItem('streamlet.p.p1.last', JSON.stringify(last));
+    } catch {}
+  }
+}
+function fillSettingsUI(){
   const fill = (sel, first, key) => {
     sel.replaceChildren(h('option', {value:first[0]}, first[1]), ...LANGS.map(l => h('option', {value:l.c[0]}, l.n)));
     sel.value = settings[key]; if (sel.value !== settings[key]) sel.value = first[0];
@@ -640,7 +767,28 @@ const saveSettings = () => { try { localStorage.setItem('streamlet.settings', JS
   };
   fill($('#setSub'), ['off','Off (choose manually)'], 'subLang');
   fill($('#setAud'), ['any','Any'], 'audioLang');
-})();
+  $('#profRow').replaceChildren(h('span', {style:'font-weight:650'}, profile ? profile.emoji + ' ' + profile.name : ''),
+    h('button', {class:'btn ghost sm', type:'button', onclick:() => showProfiles()}, 'Switch / manage'));
+}
+function loadProfileData(){
+  settings = {subLang:'off', audioLang:'any', ...pget('settings', {})};
+  fillSettingsUI();
+}
+function selectProfile(p){
+  profile = p; lsSet('streamlet.profile.last', p.id);
+  loadProfileData();
+  const last = pget('last', null);
+  if (last && spaces.some(x => x.id === last)) enterSpace(last); else showLauncher();
+}
+
+/* watch history ("continue watching"). One entry per title; newest first.
+   Entries carry a timestamp (t) so a future sync service can merge by latest. */
+const histGet = () => pget('history', []);
+function histPut(e){ pset('history', [e, ...histGet().filter(x => x.k !== e.k && x.itemId !== e.itemId)].slice(0, 60)); }
+function histRemove(k){ pset('history', histGet().filter(x => x.k !== k)); }
+const allHist = () => !!(cur && (cur.allHistory ?? (THEMES[cur.theme] || {}).allhist));
+const histForSpace = () => histGet().filter(e => allHist() || e.space === (cur && cur.id));
+const fmtTime = t => { t = Math.max(0, Math.round(t)); const h_ = Math.floor(t/3600), m = Math.floor(t/60)%60, sec = t%60; return (h_ ? h_+':'+String(m).padStart(2,'0') : m) + ':' + String(sec).padStart(2,'0'); };
 
 // language hints found in stream names/titles (Torrentio-style flags, "MULTI", "VOSTFR", ...)
 const LANG_HINTS = [
@@ -652,7 +800,12 @@ const LANG_HINTS = [
 const streamLangs = s => { const t = [s.name, s.title, s.description].filter(Boolean).join(' '); return LANG_HINTS.filter(([,re]) => re.test(t)).map(([k]) => k); };
 
 /* ---------- detail + streams ---------- */
-async function openDetail(addon, type, item){
+function openResume(e){
+  const a = addons.find(x => x.manifest.id === e.addonId) || spaceAddons()[0] || addons[0];
+  if (!a) return;
+  openDetail(a, e.itemType, {id:e.itemId, type:e.itemType, name:e.name, poster:e.poster, background:e.background}, {resume:e});
+}
+async function openDetail(addon, type, item, opts = {}){
   const d = $('#detail'); d.hidden = false; d.scrollTop = 0; document.body.style.overflow='hidden'; pushLayer('detail');
   let meta = item;
   const body = h('div');
@@ -667,24 +820,36 @@ async function openDetail(addon, type, item){
   const ma = supports(addon,'meta',type,item.id) ? addon : addons.find(x => supports(x,'meta',type,item.id));
   if (ma) { try { const r = await getJSON(`${ma.base}/meta/${type}/${enc(item.id)}.json`); meta = {...item, ...r.meta}; paint(); } catch {} }
   const sec = h('div',{class:'sec'}); body.append(sec);
+  const info = {item:{id:meta.id, type, name:meta.name, poster:meta.poster, background:meta.background}, addonId:addon.manifest.id};
+  const rs = opts.resume;
+  if (rs && rs.stream && rs.stream.url && !rs.upnext)
+    sec.append(h('button', {class:'btn', style:'width:100%;margin-bottom:6px', onclick:() => playStream(rs.stream, rs.name, {type:rs.type, id:rs.id, info, ep:rs.ep, next:rs.next})},
+      '▶ Resume ' + fmtTime(rs.pos) + (rs.ep ? ` · S${rs.ep.season ?? 1}:E${rs.ep.episode ?? '?'}` : '')));
   if (type==='series' && Array.isArray(meta.videos) && meta.videos.length) {
     const seasons = [...new Set(meta.videos.map(v=>v.season??1))].sort((a,b)=>a-b);
     const sel = h('select',null, seasons.map(s=>h('option',{value:s}, s===0?'Specials':'Season '+s)));
     const eps = h('div'), streams = h('div');
+    const sorted = [...meta.videos].sort((x,y) => ((x.season??1) - (y.season??1)) || ((x.episode??0) - (y.episode??0)));
+    const pick = v => {
+      const i = sorted.indexOf(v), nx = sorted[i + 1];
+      loadStreams(type, v.id, streams, meta.name, {info, ep:{season:v.season ?? 1, episode:v.episode, title:v.title || v.name},
+        next: nx ? {id:nx.id, season:nx.season ?? 1, episode:nx.episode, title:nx.title || nx.name} : null});
+    };
     const showSeason = () => {
       eps.replaceChildren();
       for (const v of meta.videos.filter(v=>(v.season??1)==sel.value))
-        eps.append(h('button',{class:'stream',onclick:()=>loadStreams(type,v.id,streams,v.title||v.name||meta.name)}, h('div',{class:'n'}, (v.episode!=null?v.episode+'. ':'')+(v.title||v.name||'Episode')), h('span',{class:'go'},'›')));
+        eps.append(h('button',{class:'stream',onclick:()=>pick(v)}, h('div',{class:'n'}, (v.episode!=null?v.episode+'. ':'')+(v.title||v.name||'Episode')), h('span',{class:'go'},'›')));
     };
     sel.onchange = showSeason; showSeason();
     sec.append(h('h3',null,'Episodes'), sel, eps, streams);
+    if (rs) { const rv = meta.videos.find(v => v.id === rs.id); if (rv) { sel.value = String(rv.season ?? 1); showSeason(); pick(rv); } }
   } else {
     const streams = h('div'); sec.append(streams);
-    loadStreams(type, meta.id, streams, meta.name);
+    loadStreams(type, meta.id, streams, meta.name, {info});
   }
 }
 
-async function loadStreams(type, id, box, title){
+async function loadStreams(type, id, box, title, base = {}){
   box.replaceChildren(h('h3',{style:'margin:14px 0 4px;font-size:14px;color:var(--mut);text-transform:uppercase;letter-spacing:.8px'},'Streams'));
   const srcs = addons.filter(a => supports(a,'stream',type,id));
   if (!srcs.length) { box.append(h('p',{class:'spin'},'None of your installed addons provide streams for this title. Install one on the Addons tab.')); return; }
@@ -703,7 +868,7 @@ async function loadStreams(type, id, box, title){
       if (!ss.length) lab.textContent += ' — nothing found';
       for (const s of ss) {
         const playable = !!(s.url || s.externalUrl || s.ytId);
-        grp.append(h('button',{class:'stream'+(playable?'':' dis'), onclick:()=>playStream(s, title, {type, id})},
+        grp.append(h('button',{class:'stream'+(playable?'':' dis'), onclick:()=>playStream(s, title, {type, id, ...base})},
           h('div',{class:'n'}, [s.name, s.title || s.description].filter(Boolean).join('\n') || 'Stream',
             streamLangs(s).length ? h('div', {style:'margin-top:4px'}, streamLangs(s).map(l => h('span', {class:'lc'}, l.toUpperCase()))) : null),
           h('span',{class:'go'}, playable ? '▶' : '✕')));
@@ -834,7 +999,10 @@ async function playStream(s, title, ctx){
   if (!s.url) { toast(s.infoHash ? "Torrent stream: needs a debrid service set up in that addon (so it returns direct links), or a backend." : 'This stream type is not supported.'); return; }
   const v = $('#vid'); $('#player').hidden = false; $('#ptitle').textContent = title || ''; pushLayer('player');
   setPanel(false);
-  pl = {id:pl.id + 1, ctx, subs:[], loading:false, nSrc:0, cur:null, offset:0, blob:null};
+  pl = {id:pl.id + 1, ctx, subs:[], loading:false, nSrc:0, cur:null, offset:0, blob:null, stream:{url:s.url, name:s.name, title:s.title}};
+  lastSave = 0;
+  const saved = ctx && histGet().find(x => x.k === `${ctx.type}|${ctx.id}`);
+  if (saved && !saved.upnext && saved.pos > 20) v.addEventListener('loadedmetadata', () => { if (!v.duration || saved.pos < v.duration - 30) { v.currentTime = saved.pos; toast('Resumed at ' + fmtTime(saved.pos)); } }, {once:true});
   v.querySelectorAll('track').forEach(t => t.remove());
   for (const sub of (s.subtitles || [])) pl.subs.push({id:'embedded', url:sub.url, lang:sub.lang || 'eng', addon:'Stream'});
   if (/\.m3u8(\?|$)/i.test(s.url) && !v.canPlayType('application/vnd.apple.mpegurl')) {
@@ -849,7 +1017,27 @@ async function playStream(s, title, ctx){
   if (ctx) loadSubs(); else renderPanel();
 }
 $('#vid').addEventListener('error', () => toast("Couldn't play that stream."));
+let lastSave = 0;
+function saveProgress(){
+  const c = pl.ctx; if (!c || !c.info || !profile) return;
+  const v = $('#vid'), dur = v.duration, pos = v.currentTime;
+  if (!isFinite(dur) || dur < 60 || pos < 15) return;
+  const it = c.info.item, key = `${c.type}|${c.id}`;
+  if (pos / dur >= 0.92) {                       // finished: drop it, queue the next episode
+    histRemove(key);
+    if (c.next) histPut({k:`${c.type}|${c.next.id}`, type:c.type, id:c.next.id, itemId:it.id, itemType:it.type, name:it.name, poster:it.poster, background:it.background,
+      addonId:c.info.addonId, ep:{season:c.next.season, episode:c.next.episode, title:c.next.title}, pos:0, dur:0, t:Date.now(), space:cur && cur.id, upnext:true});
+    return;
+  }
+  histPut({k:key, type:c.type, id:c.id, itemId:it.id, itemType:it.type, name:it.name, poster:it.poster, background:it.background, addonId:c.info.addonId,
+    ep:c.ep || null, next:c.next || null, pos, dur, t:Date.now(), space:cur && cur.id, stream:pl.stream});
+}
+$('#vid').addEventListener('timeupdate', () => { if (Date.now() - lastSave > 10000) { lastSave = Date.now(); saveProgress(); } });
+$('#vid').addEventListener('pause', saveProgress);
+$('#vid').addEventListener('ended', saveProgress);
+document.addEventListener('visibilitychange', () => { if (document.hidden && !$('#player').hidden) saveProgress(); });
 async function stopPlayer(){
+  saveProgress();
   const v = $('#vid'); v.pause(); if (hls) { hls.destroy(); hls = null; }
   v.querySelectorAll('track').forEach(t => t.remove()); if (pl.blob) URL.revokeObjectURL(pl.blob);
   pl = {id:pl.id + 1, ctx:null, subs:[], loading:false, nSrc:0, cur:null, offset:0, blob:null};
@@ -860,8 +1048,9 @@ $('#closePlayer').onclick = () => popLayer('player');
 
 /* ---------- boot ---------- */
 history.replaceState({guard:true}, '');
-let lastSpace = null; try { lastSpace = localStorage.getItem('streamlet.last'); } catch {}
-if (lastSpace && spaces.some(x => x.id === lastSpace)) enterSpace(lastSpace); else showLauncher();
+initProfiles();
+const lastProfile = profiles.find(x => x.id === lsGet('streamlet.profile.last', null)) || profiles[0];
+if (profiles.length > 1 && localStorage.getItem('streamlet.profile.ask') !== '0') showProfiles(); else selectProfile(lastProfile);
 if ('serviceWorker' in navigator && /^https?:/.test(location.protocol)) navigator.serviceWorker.register('sw.js').catch(()=>{});
 </script>
 </body>
