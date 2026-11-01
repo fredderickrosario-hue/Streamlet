@@ -52,6 +52,9 @@ import androidx.media3.ui.PlayerView;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
+import java.io.InputStream;
+import java.net.HttpURLConnection;
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
@@ -70,6 +73,8 @@ public class PlayerActivity extends Activity {
     private TextView errNextLabel;
     private View errNextBtn;
     private boolean errOn = false;
+    private String streamUrl = "", streamTitle = "";
+    private static final String UA = "Mozilla/5.0 (Linux; Android 12; TV) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Safari/537.36";
     private int countdown = 0;
     private final Runnable tick = new Runnable() { @Override public void run() {
         if (!errOn) return;
@@ -129,6 +134,7 @@ public class PlayerActivity extends Activity {
         Intent in = getIntent();
         String url = in.getStringExtra("url");
         String title = in.getStringExtra("title");
+        streamUrl = url == null ? "" : url; streamTitle = title == null ? "" : title;
         long startMs = in.getLongExtra("startMs", 0L);
         String audioLang = in.getStringExtra("audioLang");
         String subLang = in.getStringExtra("subLang");
@@ -428,9 +434,10 @@ public class PlayerActivity extends Activity {
         LinearLayout nextB = pill(R.drawable.ic_p_play, "Try next source (6)", v -> failAndLeave(true), hold);
         errNextLabel = hold[0]; errNextBtn = nextB;
         LinearLayout backB = pill(R.drawable.ic_p_back, "Back to sources", v -> failAndLeave(false), null);
-        btns.addView(nextB); btns.addView(backB);
+        LinearLayout otherB = pill(R.drawable.ic_p_speed, "Open in another app", v -> openElsewhere(), null);
+        btns.addView(nextB); btns.addView(otherB); btns.addView(backB);
         card.addView(et); card.addView(errMsg); card.addView(errCode); card.addView(btns);
-        errLayer.addView(card, new FrameLayout.LayoutParams(dp(560), -2, Gravity.CENTER));
+        errLayer.addView(card, new FrameLayout.LayoutParams(dp(720), -2, Gravity.CENTER));
         root.addView(errLayer, new FrameLayout.LayoutParams(-1, -1));
 
         root.setOnClickListener(v -> { if (controlsOn) hideControls(); else showControls(playBtn); });
@@ -724,6 +731,55 @@ public class PlayerActivity extends Activity {
         if (errNextBtn != null) errNextBtn.requestFocus();
         handler.removeCallbacks(tick);
         handler.postDelayed(tick, 1000);
+        final String base = code;
+        new Thread(() -> {                                           // ask the server what it actually sends, so we can tell why the file won't parse
+            final String info = probe(streamUrl);
+            runOnUiThread(() -> { if (errCode != null) errCode.setText(base + "\n" + info); });
+        }).start();
+    }
+
+    private void openElsewhere() {
+        handler.removeCallbacks(tick);
+        if (errNextLabel != null) errNextLabel.setText("Try next source");
+        try {
+            Intent i = new Intent(Intent.ACTION_VIEW);
+            i.setDataAndType(Uri.parse(streamUrl), "video/*");
+            i.putExtra("title", streamTitle);
+            startActivity(Intent.createChooser(i, "Open with"));
+        } catch (Exception e) {
+            Toast.makeText(this, "No other video app found.", Toast.LENGTH_LONG).show();
+        }
+    }
+
+    private String probe(String u) {
+        try {
+            String cur = u; HttpURLConnection c = null;
+            for (int hop = 0; hop < 6; hop++) {
+                c = (HttpURLConnection) new URL(cur).openConnection();
+                c.setInstanceFollowRedirects(false);
+                c.setConnectTimeout(8000); c.setReadTimeout(8000);
+                c.setRequestProperty("User-Agent", UA);
+                c.setRequestProperty("Range", "bytes=0-31");
+                int rc = c.getResponseCode();
+                if (rc / 100 == 3) { String loc = c.getHeaderField("Location"); if (loc == null) break; cur = new URL(new URL(cur), loc).toString(); c.disconnect(); continue; }
+                break;
+            }
+            int rc = c.getResponseCode();
+            String ct = c.getContentType(), cr = c.getHeaderField("Content-Range");
+            long total = -1;
+            if (cr != null && cr.contains("/")) { try { total = Long.parseLong(cr.substring(cr.indexOf('/') + 1).trim()); } catch (Exception ignored) { } }
+            if (total < 0) total = c.getContentLengthLong();
+            byte[] b = new byte[24]; int n = 0;
+            try (InputStream in = rc >= 400 ? c.getErrorStream() : c.getInputStream()) { if (in != null) n = Math.max(0, in.read(b)); } catch (Exception ignored) { }
+            String kind = "unknown data";
+            if (n >= 4 && (b[0] & 0xFF) == 0x1A && (b[1] & 0xFF) == 0x45 && (b[2] & 0xFF) == 0xDF && (b[3] & 0xFF) == 0xA3) kind = "MKV file";
+            else if (n >= 8 && b[4] == 'f' && b[5] == 't' && b[6] == 'y' && b[7] == 'p') kind = "MP4 file";
+            else if (n >= 1 && (b[0] == '<' || b[0] == '{')) kind = "text: " + new String(b, 0, n).replaceAll("[^\\x20-\\x7E]", "").trim();
+            String size = total > 0 ? String.format(Locale.US, "%.1f GB", total / 1073741824.0) : "size ?";
+            return "Server: HTTP " + rc + (rc == 206 ? " (ranges ok)" : rc == 200 ? " (no ranges)" : "") + " \u00b7 " + (ct == null ? "no type" : ct) + " \u00b7 " + kind + " \u00b7 " + size + " \u00b7 " + new URL(cur).getHost();
+        } catch (Exception e) {
+            return "Server check failed: " + e.getClass().getSimpleName();
+        }
     }
 
     private void failAndLeave(boolean next) {
