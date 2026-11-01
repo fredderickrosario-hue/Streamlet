@@ -614,7 +614,11 @@ body.tv .dtop{padding-left:120px}
 /* ---- v6: entry page, calmer and minimal ---- */
 .sinfo{display:none}
 body.tv .sinfo{display:block;font-size:13px;color:var(--mut)}
-body.tv .stxt,body.tv .scard .lc,body.tv .dright .resbtn,body.tv .dright .dsec>h4{display:none}
+body.tv .stxt,body.tv .scard .slall,body.tv .dright .resbtn,body.tv .dright .dsec>h4{display:none}
+.slangs{display:none}
+body.tv .slangs{display:flex;flex-wrap:wrap;gap:6px;margin-top:7px}
+body.tv .slangs .lc{font-size:11px;padding:2px 8px;border-radius:6px;background:rgba(255,255,255,.1);border:0;color:#d8dbe6;margin:0;font-weight:700;letter-spacing:.4px}
+body.tv .slangs .lc.more{background:none;color:var(--mut)}
 body.tv .dtop>.ibtn ~ .ibtn{display:none}
 body.tv .dhero{filter:brightness(.72) saturate(.85)}
 body.tv .dgrad{background:linear-gradient(to right,color-mix(in srgb,var(--bg) 94%,transparent) 0,color-mix(in srgb,var(--bg) 62%,transparent) 42%,color-mix(in srgb,var(--bg) 70%,transparent) 72%,color-mix(in srgb,var(--bg) 90%,transparent) 100%),linear-gradient(to top,color-mix(in srgb,var(--bg) 80%,transparent),transparent 50%)}
@@ -2092,7 +2096,8 @@ function streamCard(st, title, ctx){
   return h('button', {class:'scard' + (playable ? '' : ' dis'), type:'button', onclick:() => playStream(st, title, ctx)},
     h('span', {class:'splay'}, playable ? '▶' : '✕'),
     h('div', {class:'sbody'}, h('b', {class:'sname'}, String(st.name || 'Stream').replace(/\n+/g, ' · ')), h('div', {class:'sinfo'}, streamSummary(st)), h('div', {class:'stxt'}, st.title || st.description || ''),
-      langs.length ? h('div', {style:'margin-top:6px'}, langs.map(l => h('span', {class:'lc'}, l.toUpperCase()))) : null));
+      langs.length ? h('div', {class:'slall', style:'margin-top:6px'}, langs.map(l => h('span', {class:'lc'}, l.toUpperCase()))) : null,
+      langs.length ? h('div', {class:'slangs'}, langs.slice(0, 6).map(l => h('span', {class:'lc'}, l.toUpperCase())), langs.length > 6 ? h('span', {class:'lc more'}, '+' + (langs.length - 6)) : null) : null));
 }
 async function loadStreams(type, id, box, title, base = {}){
   const chipsEl = h('div', {class:'sfilter'}), listEl = h('div', {class:'slist'});
