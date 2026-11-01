@@ -208,19 +208,133 @@ body.tv .ppanel{max-width:760px;left:auto;right:0;top:0;bottom:0;max-height:none
 .rrow{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
 .addon .top>.btn{flex:0 0 auto}
 textarea.f{resize:vertical}
+
+/* ================= v2: gradient backgrounds + liquid glass ================= */
+:root{--blur:20px;--acc2:#ff5cc8;--panel-s:#181a21;
+  --grad:radial-gradient(1100px 720px at 6% -10%,color-mix(in srgb,var(--acc) 58%,transparent),transparent 64%),
+         radial-gradient(900px 640px at 108% 6%,color-mix(in srgb,var(--acc2) 46%,transparent),transparent 60%),
+         radial-gradient(1000px 820px at 48% 118%,color-mix(in srgb,var(--acc) 36%,transparent),transparent 64%)}
+html{background:var(--bg)}
+body{background:transparent;position:relative;min-height:100vh}
+body::before{content:'';position:fixed;inset:-18%;z-index:-1;background:var(--grad);animation:drift 38s ease-in-out infinite alternate;will-change:transform;pointer-events:none}
+@keyframes drift{from{transform:translate3d(-2.5%,-1.5%,0) scale(1)}to{transform:translate3d(2.5%,2%,0) scale(1.1)}}
+body.noanim::before,body.tv::before{animation:none}
+@media (prefers-reduced-motion:reduce){body::before{animation:none}}
+body.noglass{--blur:0px}
+.sheet{background:var(--grad),var(--bg)}
+option{background:#1b1d25;color:#fff}
+header{background:color-mix(in srgb,var(--bg) 45%,transparent);backdrop-filter:blur(var(--blur)) saturate(160%);-webkit-backdrop-filter:blur(var(--blur)) saturate(160%);border-bottom:1px solid rgba(255,255,255,.06)}
+#pageTitle{flex:1;margin:0 0 0 4px;font-size:20px;font-weight:750;letter-spacing:.2px}
+#pageTitle[hidden]{display:none}
+#q[hidden]{display:none}
+.spaceBtn,#q,.chip,.f,.add input,select.sel{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.13);backdrop-filter:blur(var(--blur));-webkit-backdrop-filter:blur(var(--blur))}
+.spaceBtn{border-radius:22px;padding:9px 14px}
+#q{border-radius:16px;padding:10px 14px}
+.chip{border-radius:22px}
+.chip.on{background:linear-gradient(135deg,var(--acc),var(--acc2));border-color:transparent;box-shadow:0 6px 18px color-mix(in srgb,var(--acc) 35%,transparent)}
+main{padding-bottom:calc(112px + env(safe-area-inset-bottom))}
+.btn{background:linear-gradient(135deg,var(--btn),color-mix(in srgb,var(--acc2) 78%,var(--btn)));box-shadow:0 8px 20px color-mix(in srgb,var(--acc) 30%,transparent),inset 0 1px 0 rgba(255,255,255,.3)}
+.btn.ghost{background:rgba(255,255,255,.09);border:1px solid rgba(255,255,255,.10);box-shadow:inset 0 1px 0 rgba(255,255,255,.12);color:var(--text)}
+.hb.p{background:linear-gradient(135deg,var(--btn),color-mix(in srgb,var(--acc2) 78%,var(--btn)));box-shadow:0 8px 22px color-mix(in srgb,var(--acc) 40%,transparent)}
+.hb.s{background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.22)}
+.addon,.rcard,.dlg .box,.ppanel{background:var(--panel);border:1px solid rgba(255,255,255,.09);box-shadow:0 10px 28px rgba(0,0,0,.24),inset 0 1px 0 rgba(255,255,255,.10);backdrop-filter:blur(var(--blur)) saturate(150%);-webkit-backdrop-filter:blur(var(--blur)) saturate(150%)}
+.addon,.rcard{border-radius:20px}
+.stream,.opt{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.09);border-radius:14px}
+.poster{box-shadow:0 10px 24px rgba(0,0,0,.38)}
+.hero2{box-shadow:0 18px 46px rgba(0,0,0,.4),inset 0 0 0 1px rgba(255,255,255,.08)}
+.space{box-shadow:0 14px 34px rgba(0,0,0,.34),inset 0 1px 0 rgba(255,255,255,.28)}
+.pagehead{padding:10px 18px 4px}.pagehead h1{margin:0;font-size:30px;font-weight:780;letter-spacing:.2px}.pagehead p{margin:2px 0 0;color:var(--mut)}
+.sh{margin:22px 0 8px;font-size:15px;color:var(--mut);text-transform:uppercase;letter-spacing:.9px;font-weight:700}
+.row2{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:10px 0}
+.row2 input{width:22px;height:22px;accent-color:var(--acc)}
+#wlTabs{display:flex;gap:8px;padding:6px 16px 12px}
+.wgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(112px,1fr));gap:18px 12px;padding:4px 16px}
+.wgrid .card{flex:none;width:100%;align-self:auto}
+.wgrid .poster{width:100%;height:auto;aspect-ratio:2/3}
+.card.wlc{position:relative}
+.card.wlc>button.wlb{background:none;border:0;padding:0;text-align:left;color:inherit;display:flex;flex-direction:column;width:100%}
+.wlb:focus-visible{outline:none;box-shadow:none}
+.wlb:focus-visible .poster{outline:3px solid #fff;outline-offset:2px;box-shadow:0 0 0 7px color-mix(in srgb,var(--acc) 75%,transparent);transform:scale(1.05)}
+.mecard{display:flex;align-items:center;gap:18px;padding:20px}
+.mepav{width:88px;height:88px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:44px;box-shadow:0 10px 26px rgba(0,0,0,.4),inset 0 2px 0 rgba(255,255,255,.35);flex:0 0 auto}
+.mestats{display:flex;gap:10px;margin:14px 0}
+.mestats .addon{flex:1;text-align:center;padding:14px 8px}.mestats b{display:block;font-size:26px}.mestats span{color:var(--mut);font-size:12px}
+.mebtns{display:flex;gap:10px;flex-wrap:wrap}
+.pchips{display:flex;gap:8px;flex-wrap:wrap;margin-top:6px}
+/* ---- liquid glass navigation ---- */
+nav{left:50%;right:auto;bottom:calc(12px + env(safe-area-inset-bottom));transform:translateX(-50%);width:min(94vw,540px);padding:6px;gap:2px;border-radius:32px;overflow:hidden;isolation:isolate;
+  background:linear-gradient(135deg,rgba(255,255,255,.22),rgba(255,255,255,.07) 55%,rgba(255,255,255,.13));
+  border:1px solid rgba(255,255,255,.24);
+  box-shadow:0 16px 44px rgba(0,0,0,.42),inset 0 1.5px 0 rgba(255,255,255,.5),inset 0 -1px 0 rgba(255,255,255,.08),inset 0 0 24px rgba(255,255,255,.06);
+  backdrop-filter:blur(var(--blur)) saturate(210%) brightness(1.05);-webkit-backdrop-filter:blur(var(--blur)) saturate(210%) brightness(1.05)}
+nav::before{content:'';position:absolute;inset:0;border-radius:inherit;pointer-events:none;z-index:0;background:radial-gradient(130% 90% at 18% -25%,rgba(255,255,255,.38),transparent 56%);opacity:.75}
+.navpill{position:absolute;z-index:0;top:6px;left:0;height:calc(100% - 12px);width:var(--pw,64px);border-radius:26px;transform:translateX(var(--px,6px));
+  background:linear-gradient(135deg,color-mix(in srgb,var(--acc) 62%,rgba(255,255,255,.1)),color-mix(in srgb,var(--acc2) 48%,rgba(255,255,255,.05)));
+  box-shadow:inset 0 1.5px 0 rgba(255,255,255,.55),inset 0 -2px 6px rgba(0,0,0,.14),0 8px 22px color-mix(in srgb,var(--acc) 50%,transparent);
+  transition:transform .55s cubic-bezier(.3,1.4,.45,1),width .5s cubic-bezier(.3,1.4,.45,1)}
+nav button{position:relative;z-index:1;flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;padding:9px 2px 8px;border:0;background:none;border-radius:24px;color:rgba(255,255,255,.7);font-size:10.5px;font-weight:650;transition:color .2s}
+nav button svg{width:24px;height:24px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;transition:transform .35s cubic-bezier(.3,1.5,.5,1)}
+nav button.on{color:#fff}
+nav button.on svg{transform:translateY(-1px) scale(1.1)}
+nav button:focus-visible{outline:2px solid #fff;outline-offset:-3px;box-shadow:none}
+body.tv #tabHome::before,body.tv #tabAddons::before,body.tv #tabSpaces::before{content:none}
+body.tv nav{left:18px;top:50%;bottom:auto;right:auto;transform:translateY(-50%);width:96px;flex-direction:column;border-radius:38px;padding:10px 8px;gap:4px}
+body.tv .navpill{left:8px;right:8px;top:0;width:auto;height:var(--ph,72px);transform:translateY(var(--py,10px));border-radius:30px}
+body.tv nav button{flex:0 0 auto;padding:12px 2px 10px;font-size:11.5px;border-radius:28px}
+body.tv nav button svg{width:28px;height:28px}
+body.tv header{padding-left:146px}
+body.tv main{padding-left:132px;padding-bottom:40px}
+body.tv.launch main{padding-left:0}
+body.tv .wgrid{grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:24px 18px}
 </style>
 </head>
 <body>
 <header>
   <button class="spaceBtn" id="spaceBtn" type="button"></button>
   <input id="q" type="search" placeholder="Search installed addons…" enterkeyhint="search">
+  <h1 id="pageTitle" hidden></h1>
 </header>
 <main>
   <section id="login" hidden></section>
   <section id="profiles" hidden></section>
   <section id="launcher" hidden></section>
   <section id="home"><div id="tabsBar" hidden></div><div id="rows"></div></section>
+  <section id="watch" hidden>
+    <div class="pagehead"><h1>Watchlist</h1><p id="wlCount"></p></div>
+    <div id="wlTabs"></div>
+    <div id="wlGrid" class="wgrid"></div>
+  </section>
+  <section id="settings" hidden>
+    <div class="pagehead"><h1>Settings</h1></div>
+    <div class="pad">
+      <h2 class="sh">Profile</h2>
+      <div class="addon"><div id="profRow" style="display:flex;align-items:center;justify-content:space-between;gap:10px"></div></div>
+      <h2 class="sh">Account</h2>
+      <div class="addon" id="acctCard"></div>
+      <h2 class="sh">Player</h2>
+      <div class="addon">
+        <div class="lbl" style="margin-top:0">Subtitles, auto-select language</div>
+        <select id="setSub" class="sel"></select>
+        <div class="lbl">Preferred audio language</div>
+        <select id="setAud" class="sel"></select>
+        <p>Subtitles come from any installed subtitle addon (like OpenSubtitles). Audio language switching works on streams that carry several audio tracks (HLS); for single-file streams, pick a stream tagged with your language, which is sorted to the top.</p>
+      </div>
+      <h2 class="sh">Appearance <small style="color:var(--mut);font-weight:400">(this device)</small></h2>
+      <div class="addon">
+        <label class="row2"><span>Animated gradient background</span><input type="checkbox" id="setAnim"></label>
+        <label class="row2"><span>Glass blur effects</span><input type="checkbox" id="setGlass"></label>
+        <p>Turn blur off if the app feels slow on an older TV.</p>
+      </div>
+      <h2 class="sh">About</h2>
+      <div class="addon">
+        <p id="verLine" style="margin:0 0 10px"></p>
+        <button class="btn ghost sm" id="updBtn" type="button">Check for updates (reload)</button>
+      </div>
+    </div>
+  </section>
+  <section id="me" hidden></section>
   <section id="addons" hidden>
+    <div class="pagehead"><h1>Addons</h1></div>
     <div class="pad">
       <h2 style="margin:8px 0 2px;font-size:17px">Install an addon</h2>
       <p style="color:var(--mut);margin:0 0 6px;font-size:13px">Streamlet has no content of its own. Paste an addon's manifest URL (https://…/manifest.json or stremio://…). Stream addons are shared by every space; catalog addons are assigned per space (✎ on the front menu).</p>
@@ -232,18 +346,6 @@ textarea.f{resize:vertical}
       <p style="color:var(--mut);font-size:12px;margin:-4px 0 8px">Installing the same addon again with a different link (different settings) adds it as a second copy, like "Torrentio #2". Tap <b>Settings</b> on an addon to rename it or edit its link.</p>
       <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn ghost sm" id="osBtn" type="button">+ OpenSubtitles (subtitles)</button><button class="btn ghost sm" id="demoBtn" type="button">Try the built-in demo addon</button></div>
       <details id="repoBox" style="margin-top:18px"><summary style="font-size:17px;font-weight:650;cursor:pointer;padding:4px 0">Addon repository</summary><div id="repoBody" style="margin-top:10px"></div></details>
-      <h2 style="margin:22px 0 6px;font-size:17px">Account</h2>
-      <div class="addon" id="acctCard"></div>
-      <h2 style="margin:22px 0 6px;font-size:17px">Player</h2>
-      <div class="addon">
-        <div class="lbl" style="margin-top:0">Profile</div>
-        <div id="profRow" style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px"></div>
-        <div class="lbl">Subtitles, auto-select language</div>
-        <select id="setSub" class="sel"></select>
-        <div class="lbl">Preferred audio language</div>
-        <select id="setAud" class="sel"></select>
-        <p>Subtitles come from any installed subtitle addon (like OpenSubtitles). Audio language switching works on streams that carry several audio tracks (HLS); for single-file streams, pick a stream tagged with your language, which is sorted to the top.</p>
-      </div>
       <h2 style="margin:22px 0 0;font-size:17px">Installed</h2>
       <div id="list"></div>
     </div>
@@ -266,10 +368,13 @@ textarea.f{resize:vertical}
 </div>
 <div id="exitDlg" class="dlg" hidden><div class="box"><h3>Close Streamlet?</h3><p>You're at the very beginning, so going back again will close the app.</p><div class="dbtns"><button class="btn ghost" id="exStay" type="button">Stay</button><button class="btn" id="exGo" type="button">Close app</button></div></div></div>
 <div id="toast"></div>
-<nav>
-  <button id="tabHome" class="on">Discover</button>
-  <button id="tabAddons">Addons</button>
-  <button id="tabSpaces">Spaces</button>
+<nav id="nav">
+  <i class="navpill" id="navPill"></i>
+  <button id="tabHome" type="button"><svg viewBox="0 0 24 24"><path d="M3 11.5 12 4l9 7.5"/><path d="M5 10.2V20h5v-5.2h4V20h5v-9.8"/></svg><span>Home</span></button>
+  <button id="tabWatch" type="button"><svg viewBox="0 0 24 24"><path d="M6.5 3.5h11v17l-5.5-4.2-5.5 4.2z"/></svg><span>Watchlist</span></button>
+  <button id="tabAddons" type="button"><svg viewBox="0 0 24 24"><path d="M10 4.2a2 2 0 1 1 4 0V6.5h4v4h-2.3a2 2 0 1 0 0 4H18v4h-4v-2.3a2 2 0 1 0-4 0V18.5H6v-4h2.3a2 2 0 1 0 0-4H6v-4h4z"/></svg><span>Addons</span></button>
+  <button id="tabSettings" type="button"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.9.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.9 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.9l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.9.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.9-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.9V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg><span>Settings</span></button>
+  <button id="tabMe" type="button"><svg viewBox="0 0 24 24"><circle cx="12" cy="8.6" r="3.7"/><path d="M4.6 20c.8-4 4-6 7.4-6s6.6 2 7.4 6"/></svg><span>Profile</span></button>
 </nav>
 
 <script>
@@ -422,6 +527,9 @@ const pageNow = () => !$('#login').hidden ? {k:'login'}
   : !$('#profiles').hidden ? {k:'profiles'}
   : document.body.classList.contains('launch') ? {k:'launcher'}
   : !$('#addons').hidden ? {k:'addons'}
+  : !$('#watch').hidden ? {k:'watch'}
+  : !$('#settings').hidden ? {k:'settings'}
+  : !$('#me').hidden ? {k:'me'}
   : {k:'space', id:cur && cur.id, tab:view.tab, genre:view.genre};
 function pushPage(){
   if (navSuppress) return;
@@ -446,7 +554,7 @@ const LAYER_CLOSERS = {
   player: () => stopPlayer(),
   detail: () => { $('#detail').hidden = true; document.body.style.overflow = ''; if (!$('#home').hidden) renderCW(); },
   editor: () => { $('#spaceEd').hidden = true; applyTheme(cur ? cur.theme : 'violet'); },
-  pedit:  () => { $('#profEd').hidden = true; },
+  pedit:  () => { $('#profEd').hidden = true; if (!$('#me').hidden) renderMe(); },
   aedit:  () => { $('#addonEd').hidden = true; if (!$('#addons').hidden) renderAddons(); }
 };
 function rememberSpace(id){ pset('last', id); }
@@ -454,7 +562,7 @@ function applyPage(p){
   if (p.k === 'login') showLogin();
   else if (p.k === 'profiles') showProfiles();
   else if (p.k === 'launcher') showLauncher();
-  else if (p.k === 'addons') showTab('addons');
+  else if (['addons', 'watch', 'settings', 'me'].includes(p.k)) showTab(p.k);
   else if (p.k === 'space') {
     const sp = spaces.find(x => x.id === p.id);
     if (!sp) { showLauncher(); return; }
@@ -484,20 +592,33 @@ $('#exGo').onclick = () => {
 };
 
 /* ---------- views ---------- */
+const TAB_SECTIONS = {home:'#home', watch:'#watch', addons:'#addons', settings:'#settings', me:'#me'};
+const TAB_BUTTONS = {home:'#tabHome', watch:'#tabWatch', addons:'#tabAddons', settings:'#tabSettings', me:'#tabMe'};
+const TAB_TITLES = {watch:'Watchlist', addons:'Addons', settings:'Settings', me:'Profile'};
+function movePill(){
+  const nav = $('#nav'), pill = $('#navPill'), b = nav.querySelector('button.on');
+  if (!b || !nav.offsetWidth) return;
+  if (document.body.classList.contains('tv')) { pill.style.setProperty('--py', b.offsetTop + 'px'); pill.style.setProperty('--ph', b.offsetHeight + 'px'); }
+  else { pill.style.setProperty('--px', b.offsetLeft + 'px'); pill.style.setProperty('--pw', b.offsetWidth + 'px'); }
+}
+addEventListener('resize', () => setTimeout(movePill, 50));
 function showTab(name){
-  if (!cur && name==='home') return showLauncher();
+  if (!cur && name === 'home') return showLauncher();
   document.body.classList.remove('launch'); $('#launcher').hidden = true; $('#profiles').hidden = true; $('#login').hidden = true;
-  $('#home').hidden = name!=='home'; $('#addons').hidden = name!=='addons';
-  $('#tabHome').classList.toggle('on', name==='home'); $('#tabAddons').classList.toggle('on', name==='addons');
+  for (const [k, sel] of Object.entries(TAB_SECTIONS)) { $(sel).hidden = k !== name; $(TAB_BUTTONS[k]).classList.toggle('on', k === name); }
   $('#spaceBtn').replaceChildren(cur ? cur.emoji+' '+cur.name : 'Spaces', h('i',null,'⇄'));
+  $('#q').hidden = name !== 'home'; $('#pageTitle').hidden = true;
   $('#q').placeholder = cur ? 'Search '+cur.name+'…' : 'Search…';
-  if (name==='home') renderHome($('#q').value.trim()); else renderAddons();
+  if (name === 'home') renderHome($('#q').value.trim());
+  else if (name === 'watch') renderWatch();
+  else if (name === 'addons') renderAddons();
+  else if (name === 'settings') renderSettings();
+  else if (name === 'me') renderMe();
   window.scrollTo(0,0);
+  movePill(); requestAnimationFrame(movePill);
   pushPage();
 }
-$('#tabHome').onclick = () => showTab('home');
-$('#tabAddons').onclick = () => showTab('addons');
-$('#tabSpaces').onclick = () => showLauncher();
+for (const [k, sel] of Object.entries(TAB_BUTTONS)) $(sel).onclick = () => showTab(k);
 $('#spaceBtn').onclick = () => showLauncher();
 
 
@@ -523,11 +644,14 @@ const THEMES = {
     font:"sans-serif-condensed,'Roboto Condensed','Arial Narrow',Impact,sans-serif", r:'0px', rb:'0px', hw:'800', up:true, ls:'.09em',
     clip:'polygon(0 0,100% 0,100% calc(100% - 16px),calc(100% - 16px) 100%,0 100%)'}
 };
+Object.entries({violet:'#ff5cc8', sakura:'#ffb36b', sky:'#7c5cff', sun:'#ff5c5c', gold:'#b06b2a', mint:'#25b9ff', googletv:'#c58af9', netflix:'#8a1c24', disney:'#8b5cff', anime:'#ff4f7a', marvel:'#f7b500'})
+  .forEach(([k, v]) => { if (THEMES[k]) THEMES[k].acc2 = v; });
 const THEME_DEFAULTS = {font:"system-ui,-apple-system,Segoe UI,Roboto,sans-serif", r:'10px', rb:'10px', up:false, ls:'0', hw:'650', clip:'none', pb:'none', btnt:'#fff'};
 function applyTheme(key){
   const t = {...THEME_DEFAULTS, ...(THEMES[key] || THEMES.violet)}, r = document.documentElement.style;
   const set = (k,v) => r.setProperty(k,v);
-  set('--acc',t.acc); set('--bg',t.bg); set('--panel',t.panel); set('--panel2',t.panel2);
+  set('--acc',t.acc); set('--acc2',t.acc2 || t.acc); set('--bg',t.bg); set('--panel-s',t.panel);
+  set('--panel','color-mix(in srgb,' + t.panel + ' 62%,transparent)'); set('--panel2','color-mix(in srgb,' + t.panel2 + ' 72%,transparent)');
   set('--font',t.font); set('--r',t.r); set('--rb',t.rb); set('--tt',t.up?'uppercase':'none'); set('--ls',t.ls); set('--hw',t.hw);
   set('--clip',t.clip); set('--pb',t.pb); set('--btn',t.btn||t.acc); set('--btnt',t.btnt);
   const m = document.querySelector('meta[name=theme-color]'); if (m) m.content = t.bg;
@@ -622,6 +746,84 @@ function editSpace(id){
       isNew ? null : del));
 }
 
+
+
+/* ---------- watchlist ---------- */
+const wlGet = () => pget('watchlist', []);
+const wlHas = id => wlGet().some(x => x.itemId === id);
+function wlAdd(e){
+  e.t = Math.max(Date.now(), (pget('wlRemoved', {})[e.itemId] || 0) + 1);
+  pset('watchlist', [e, ...wlGet().filter(x => x.itemId !== e.itemId)]); scheduleSync();
+}
+function wlRemove(itemId){
+  pset('watchlist', wlGet().filter(x => x.itemId !== itemId));
+  const r = pget('wlRemoved', {}); r[itemId] = Date.now();
+  pset('wlRemoved', Object.fromEntries(Object.entries(r).sort((a, b) => b[1] - a[1]).slice(0, 200))); scheduleSync();
+}
+function wlButton(addon, type, meta){
+  const b = h('button', {class:'btn ghost sm', type:'button', style:'margin-top:4px'});
+  const paint = () => { b.textContent = wlHas(meta.id) ? '✓ In watchlist' : '＋ Watchlist'; };
+  b.onclick = () => {
+    if (wlHas(meta.id)) { wlRemove(meta.id); toast('Removed from watchlist'); }
+    else { wlAdd({itemId:meta.id, type, name:meta.name, poster:meta.poster, background:meta.background, addonId:addon.uid}); toast('Added to watchlist'); }
+    paint();
+  };
+  paint(); return b;
+}
+let wlFilter = 'all';
+function openWL(e){
+  const a = addons.find(x => x.uid === e.addonId) || addons[0];
+  if (a) openDetail(a, e.type, {id:e.itemId, type:e.type, name:e.name, poster:e.poster, background:e.background});
+}
+function renderWatch(){
+  const all = wlGet(), list = all.filter(e => wlFilter === 'all' || (wlFilter === 'movie' ? e.type === 'movie' : e.type !== 'movie'));
+  $('#wlCount').textContent = all.length ? `${all.length} saved` : '';
+  const chip = (id, label) => h('button', {class:'chip' + (wlFilter === id ? ' on' : ''), type:'button', onclick:() => { wlFilter = id; renderWatch(); }}, label);
+  $('#wlTabs').replaceChildren(...(all.length ? [chip('all', 'All'), chip('movie', 'Movies'), chip('series', 'Shows')] : []));
+  const grid = $('#wlGrid');
+  if (!all.length) { grid.replaceChildren(h('div', {class:'empty', style:'grid-column:1/-1'}, h('h2', null, 'Your watchlist is empty'), h('p', null, 'Open any title and tap "＋ Watchlist" to save it for later.'))); return; }
+  grid.replaceChildren(...list.map(e => h('div', {class:'card wlc'},
+    h('button', {class:'wlb', type:'button', 'data-id':e.itemId, onclick:() => openWL(e)}, posterEl(e), h('div', {class:'t'}, e.name), h('div', {class:'s'}, TYPE_LABEL[e.type] || e.type)),
+    h('button', {class:'rm', type:'button', tabindex:'-1', 'aria-label':'Remove', onclick:ev => { ev.stopPropagation(); wlRemove(e.itemId); renderWatch(); }}, '✕'))));
+}
+function removeWL(el){ wlRemove(el.dataset.id); renderWatch(); toast('Removed from watchlist'); }
+
+/* ---------- profile + settings pages ---------- */
+function renderMe(){
+  const box = $('#me'); if (!profile) return;
+  const hs = histGet().length, ws = wlGet().length;
+  box.replaceChildren(
+    h('div', {class:'pagehead'}, h('h1', null, 'Profile')),
+    h('div', {class:'pad'},
+      h('div', {class:'addon mecard'}, h('div', {class:'mepav', style:`background:${profile.color}`}, profile.emoji),
+        h('div', null, h('h2', {style:'margin:0;font-size:24px'}, profile.name), h('p', {style:'margin:4px 0 0;color:var(--mut)'}, user ? (user.email || 'Signed in') : 'This device only'))),
+      h('div', {class:'mestats'}, h('div', {class:'addon'}, h('b', null, String(hs)), h('span', null, 'In progress')), h('div', {class:'addon'}, h('b', null, String(ws)), h('span', null, 'In watchlist'))),
+      h('div', {class:'mebtns'},
+        h('button', {class:'btn', type:'button', onclick:() => showProfiles()}, 'Switch profile'),
+        h('button', {class:'btn ghost', type:'button', onclick:() => editProfile(profile.id)}, 'Edit profile')),
+      profiles.length > 1 ? h('div', null, h('div', {class:'lbl'}, 'Switch quickly'),
+        h('div', {class:'pchips'}, profiles.filter(x => x.id !== profile.id).map(x => h('button', {class:'chip', type:'button', onclick:() => selectProfile(x)}, x.emoji + ' ' + x.name)))) : null,
+      h('div', {class:'mebtns', style:'margin-top:18px'}, h('button', {class:'btn ghost sm', type:'button', onclick:() => { manageProfiles = true; showProfiles(); manageProfiles = true; renderProfiles(); }}, 'Manage profiles'))));
+}
+const APP_BUILD = '2.0';
+function renderSettings(){
+  fillAccountUI(); fillSettingsUI();
+  const u = lsGet('streamlet.ui', {}), tv = document.body.classList.contains('tv');
+  const anim = $('#setAnim'), glass = $('#setGlass');
+  anim.checked = u.anim !== false; glass.checked = u.glass === undefined ? !tv : u.glass !== false;
+  anim.onchange = () => { lsSet('streamlet.ui', {...lsGet('streamlet.ui', {}), anim:anim.checked}); applyUI(); };
+  glass.onchange = () => { lsSet('streamlet.ui', {...lsGet('streamlet.ui', {}), glass:glass.checked}); applyUI(); };
+  $('#verLine').textContent = `Streamlet · version ${APP_BUILD}` + (nativePlayer() ? ' · Android app' : '');
+}
+function applyUI(){
+  const u = lsGet('streamlet.ui', {}), tv = document.body.classList.contains('tv');
+  document.body.classList.toggle('noanim', u.anim === false);
+  document.body.classList.toggle('noglass', u.glass === undefined ? tv : u.glass === false);
+}
+$('#updBtn').onclick = async () => {
+  try { for (const r of await navigator.serviceWorker.getRegistrations()) await r.unregister(); for (const k of await caches.keys()) await caches.delete(k); } catch {}
+  location.reload();
+};
 
 /* ---------- profile picker ---------- */
 let manageProfiles = false;
@@ -815,7 +1017,6 @@ async function renderHome(query = $('#q').value.trim()){
 
 const maskUrl = u => String(u).replace(/((?:real|all)?debrid(?:link)?|premiumize|torbox|offcloud|easydebrid|putio|apikey|api_key|token|key|password)=([^|/&?]+)/gi, '$1=••••••');
 function renderAddons(){
-  fillAccountUI();
   const list = $('#list'); list.replaceChildren();
   if (!addons.length) list.append(h('p', {style:'color:var(--mut)'}, 'Nothing yet.'));
   for (const a of addons) {
@@ -1063,7 +1264,7 @@ async function openDetail(addon, type, item, opts = {}){
   d.replaceChildren(h('div',{class:'bar'}, h('button',{class:'btn ghost sm',onclick:close},'← Back')), body);
   const paint = () => {
     body.replaceChildren(
-      h('div',{class:'hero'}, posterEl(meta), h('div',null, h('h2',null,meta.name), h('div',{class:'meta'}, [type, meta.releaseInfo||meta.year, meta.runtime].filter(Boolean).join(' · ')))),
+      h('div',{class:'hero'}, posterEl(meta), h('div',null, h('h2',null,meta.name), h('div',{class:'meta'}, [type, meta.releaseInfo||meta.year, meta.runtime].filter(Boolean).join(' · ')), profile ? wlButton(addon, type, meta) : null)),
       meta.description ? h('div',{class:'desc'}, meta.description) : null);
   };
   paint();
@@ -1440,6 +1641,14 @@ function mergeProfile(id, R){
   const out = Object.values(map).filter(e => (e.t || 0) > (removed[e.itemId] || 0)).sort((a, b) => b.t - a.t).slice(0, 60);
   if (JSON.stringify(out) !== JSON.stringify(local)) { plsSet(id, 'history', out); changed = true; }
   plsSet(id, 'removed', removed);
+  const wrem = {...plsGet(id, 'wlRemoved', {})};
+  for (const [k, t] of Object.entries(R.wremoved || {})) { const kk = decodeURIComponent(k); if ((wrem[kk] || 0) < t) wrem[kk] = t; }
+  const wmap = {}, wlocal = plsGet(id, 'watchlist', []);
+  for (const e of wlocal) wmap[e.itemId] = e;
+  for (const e of Object.values(R.watch || {})) if (e && e.itemId && (!wmap[e.itemId] || (wmap[e.itemId].t || 0) < (e.t || 0))) wmap[e.itemId] = e;
+  const wout = Object.values(wmap).filter(e => (e.t || 0) > (wrem[e.itemId] || 0)).sort((a, b) => b.t - a.t);
+  if (JSON.stringify(wout) !== JSON.stringify(wlocal)) { plsSet(id, 'watchlist', wout); changed = true; }
+  plsSet(id, 'wlRemoved', wrem);
   return changed;
 }
 async function pushAll(){
@@ -1452,12 +1661,18 @@ async function pushAll(){
   if (Object.keys(fam).length) await setDoc(doc(db, ...base, 'sync', 'family'), clean(fam), {merge:true});
   for (const p of profiles) {
     const hist = plsGet(p.id, 'history', []), removed = plsGet(p.id, 'removed', {}), sT = plsGet(p.id, 'settingsT', 0);
-    if (!hist.length && !Object.keys(removed).length && !sT) continue;
+    const wl = plsGet(p.id, 'watchlist', []), wlrem = plsGet(p.id, 'wlRemoved', {});
+    if (!hist.length && !Object.keys(removed).length && !sT && !wl.length && !Object.keys(wlrem).length) continue;
     const entries = {}, rem = {};
     for (const e of hist) entries[ek(e.itemId)] = e;
     for (const [k, t] of Object.entries(removed)) { rem[ek(k)] = t; if (!entries[ek(k)]) entries[ek(k)] = deleteField(); }
     const payload = clean({entries:{}, removed:rem});
     for (const [k, v] of Object.entries(entries)) payload.entries[k] = (v && v._methodName) ? v : clean(v);
+    const wentries = {}, wremP = {};
+    for (const e of wl) wentries[ek(e.itemId)] = e;
+    for (const [k, t] of Object.entries(wlrem)) { wremP[ek(k)] = t; if (!wentries[ek(k)]) wentries[ek(k)] = deleteField(); }
+    payload.watch = {}; payload.wremoved = clean(wremP);
+    for (const [k, v] of Object.entries(wentries)) payload.watch[k] = (v && v._methodName) ? v : clean(v);
     if (sT) { payload.settings = plsGet(p.id, 'settings', {}); payload.settingsT = sT; }
     await setDoc(doc(db, ...base, 'profiles', p.id), payload, {merge:true});
   }
@@ -1484,6 +1699,9 @@ function refreshUI(){
     else if (!$('#launcher').hidden) showLauncher();
     else if (!$('#home').hidden) renderCW();
     else if (!$('#addons').hidden) renderAddons();
+    else if (!$('#watch').hidden) renderWatch();
+    else if (!$('#settings').hidden) renderSettings();
+    else if (!$('#me').hidden) renderMe();
   } finally { navSuppress = false; }
 }
 function startListeners(){
@@ -1606,6 +1824,7 @@ function syncTV(){
   const tv = isTVDevice(); document.body.classList.toggle('tv', tv);
   document.documentElement.style.zoom = tv ? String(Math.max(1, Math.min(2, innerWidth / 1280))) : '';
   if (tv) remoteMode = true;
+  try { applyUI(); movePill(); } catch {}
   const v = $('#vid'); if (v && !$('#player').hidden) { v.controls = !tv; $('#pctl').hidden = !tv; }
 }
 mqTV.addEventListener('change', syncTV); addEventListener('resize', syncTV); syncTV();
@@ -1711,6 +1930,7 @@ document.addEventListener('keydown', e => {
     e.preventDefault(); history.back(); return;
   }
   if (act === 'info' && el && el.classList.contains('cwb')) { e.preventDefault(); removeCW(el); return; }
+  if ((act === 'info' || (e.key === 'Enter' && e.repeat)) && el && el.classList.contains('wlb')) { e.preventDefault(); removeWL(el); return; }
   if (e.key === 'Enter' && e.repeat && el && el.classList.contains('cwb')) { e.preventDefault(); removeCW(el); return; }
   if (e.key === 'Backspace' && !typing) { e.preventDefault(); history.back(); return; }
   if (/^Arrow(Up|Down|Left|Right)$/.test(e.key)) {
