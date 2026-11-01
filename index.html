@@ -600,7 +600,7 @@ body.tv .dbody{position:relative;z-index:2;max-width:none;margin:0;padding:calc(
 body.tv .dbody>*{grid-column:1}
 body.tv .dbody>.dright{grid-column:2;grid-row:1 / span 12;position:sticky;top:calc(var(--vh,1vh) * 8);max-height:calc(var(--vh,1vh) * 86);overflow-y:auto;margin:0;padding:18px 18px 8px;border-radius:24px;background:rgba(12,12,22,.66);backdrop-filter:blur(var(--blur));-webkit-backdrop-filter:blur(var(--blur));border:1px solid rgba(255,255,255,.1);scrollbar-width:none}
 body.tv .dbody>.dright::-webkit-scrollbar{display:none}
-body.tv .dbody>.dphone{display:none}
+body.tv .dphone{display:none}
 body.tv .dbt{display:block;margin-bottom:6px}
 body.tv .dbt-logo{display:block;width:auto;height:auto;max-width:min(100%,440px);max-height:calc(var(--vh,1vh) * 14);object-fit:contain;object-position:left bottom;filter:drop-shadow(0 4px 18px rgba(0,0,0,.8))}
 body.tv .dbt-title{margin:0;font-size:clamp(32px,3.8vw,56px);line-height:1.04;font-weight:900;letter-spacing:-.5px;text-shadow:0 4px 24px rgba(0,0,0,.7)}
@@ -723,6 +723,11 @@ body.tv .lfoot .chip{padding:10px 24px;font-size:15px}
 body.tv .sedwrap{max-width:1040px;padding:0 48px 48px}
 body.tv .sedgrid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:0 48px;align-items:start}
 body.tv .sedh{font-size:32px}
+
+/* entry page: info column sits at the bottom of the screen */
+body.tv .dbody{height:calc(var(--vh,1vh) * 100);box-sizing:border-box;padding:calc(var(--vh,1vh) * 8) 64px calc(var(--vh,1vh) * 8) 120px;align-items:stretch}
+body.tv .dleft{display:flex;flex-direction:column;justify-content:flex-end;min-width:0;grid-column:1}
+body.tv .dbody>.dright{position:relative;top:auto;grid-row:1;align-self:start;max-height:calc(var(--vh,1vh) * 84)}
 </style>
 </head>
 <body>
@@ -1478,32 +1483,43 @@ async function pickProfileFx(pr, tile){
   if (pfx) return;
   if (!av || !av.animate || document.body.classList.contains('noanim')) { selectProfile(pr); return; }
   pfx = true;
-  const {k, W, H} = pfxProbe(), r0 = av.getBoundingClientRect(), size = r0.width / k;
-  const f = h('div', {class:'pflight', style:`left:${r0.left / k}px;top:${r0.top / k}px;width:${size}px;height:${size}px`}, avatarEl(pr, size));
+  const r0 = av.getBoundingClientRect();
+  const f = h('div', {class:'pflight'}, avatarEl(pr, 100));
   const cover = h('div', {class:'pcover'});
   const P = $('#profiles');
-  let navEl = null;
+  let hideEl = null;
   try {
-    document.body.append(cover, f); av.style.visibility = 'hidden';
+    document.body.append(cover, f);
+    // calibrate: how many screen px does 1 CSS px / 1 px of translate cover here?
+    f.style.cssText = 'left:0;top:0;width:100px;height:100px;transform:none';
+    const a0 = f.getBoundingClientRect(), kw = a0.width / 100 || 1;
+    f.style.width = f.style.height = (r0.width / kw) + 'px';
+    f.firstChild.style.width = f.firstChild.style.height = '100%';
+    const b0 = f.getBoundingClientRect(); f.style.transform = 'translate(100px,100px)';
+    const b1 = f.getBoundingClientRect(); f.style.transform = 'none';
+    const kt = (b1.left - b0.left) / 100 || kw;
+    const T = (x, y, sc) => `translate(${(x - b0.left) / kt}px,${(y - b0.top) / kt}px) scale(${sc})`;
+    const vp = cover.getBoundingClientRect(), W = vp.width, H = vp.height;
+    const S1 = 1.4, start = T(r0.left, r0.top, 1), mid = T(W / 2 - r0.width * S1 / 2, H / 2 - r0.height * S1 / 2, S1);
+    f.style.transform = start; av.style.visibility = 'hidden';
     P.style.transition = 'opacity .3s'; P.style.opacity = '0';
     cover.animate([{opacity:0}, {opacity:1}], {duration:320, fill:'forwards', easing:'ease'});
-    const S1 = 1.4, tx = (W / 2 - r0.width * S1 / 2 - r0.left) / k, ty = (H / 2 - r0.height * S1 / 2 - r0.top) / k;
-    const mid = `translate(${tx}px,${ty}px) scale(${S1})`;
-    await animDone(f.animate([{transform:'translate(0,0) scale(1)'}, {transform:mid}], {duration:420, easing:'cubic-bezier(.2,.8,.2,1)', fill:'forwards'}));
+    await animDone(f.animate([{transform:start}, {transform:mid}], {duration:420, easing:'cubic-bezier(.2,.8,.2,1)', fill:'forwards'}));
     await new Promise(r => setTimeout(r, 500));                      // hold in the middle
     selectProfile(pr); P.style.opacity = ''; P.style.transition = '';
-    await nextFrames(3); await new Promise(r => setTimeout(r, 60));
-    const tgt = document.querySelector('#tabMe .navav .av'), tr = tgt && tgt.getBoundingClientRect();
-    if (!tgt || tr.width < 2 || document.body.classList.contains('launch')) {
+    await nextFrames(3); await new Promise(r => setTimeout(r, 80));
+    const tgt = document.querySelector('#tabMe .navav .av') || document.querySelector('.lhead .spaceBtn .av');
+    const tr = tgt && tgt.getBoundingClientRect();
+    if (!tgt || tr.width < 2) {
       cover.animate([{opacity:1}, {opacity:0}], {duration:500, fill:'forwards'}); await animDone(f.animate([{opacity:1}, {opacity:0}], {duration:500, fill:'forwards'}));
     } else {
-      navEl = tgt.closest('.navav'); navEl.style.visibility = 'hidden';
-      const end = `translate(${(tr.left - r0.left) / k}px,${(tr.top - r0.top) / k}px) scale(${tr.width / r0.width})`;
+      hideEl = tgt.closest('.navav') || tgt; hideEl.style.visibility = 'hidden';
+      const end = T(tr.left, tr.top, tr.width / r0.width);
       cover.animate([{opacity:1}, {opacity:0}], {duration:700, fill:'forwards', easing:'ease'});
       await animDone(f.animate([{transform:mid}, {transform:end}], {duration:700, easing:'cubic-bezier(.5,0,.2,1)', fill:'forwards'}));
     }
   } catch { try { selectProfile(pr); } catch {} }
-  finally { if (navEl) navEl.style.visibility = ''; f.remove(); cover.remove(); P.style.opacity = ''; P.style.transition = ''; pfx = false; }
+  finally { if (hideEl) hideEl.style.visibility = ''; f.remove(); cover.remove(); P.style.opacity = ''; P.style.transition = ''; pfx = false; }
 }
 function renderProfiles(){
   const P = $('#profiles'); P.hidden = false;
@@ -2156,10 +2172,11 @@ function openEpisode(addon, type, meta, v, sorted){
     etop,
     h('div', {class:'dwrap'}, heroBlock(meta, v.thumbnail || meta.background || meta.poster),
       h('div', {class:'dbody'},
-        titleBlock(meta),
-        metaRow([v.runtime || meta.runtime, when || meta.year || meta.releaseInfo], meta.imdbRating),
-        h('h2', {class:'ept'}, `${code} – ${title}`),
-        (v.overview || v.description) ? h('p', {class:'ddesc'}, v.overview || v.description) : null,
+        h('div', {class:'dleft'},
+          titleBlock(meta),
+          metaRow([v.runtime || meta.runtime, when || meta.year || meta.releaseInfo], meta.imdbRating),
+          h('h2', {class:'ept'}, `${code} – ${title}`),
+          (v.overview || v.description) ? h('p', {class:'ddesc'}, v.overview || v.description) : null),
         h('div', {class:'dsec dright'}, h('div', {class:'dptitle'}, 'Sources'), resumeButton(saved, base), streamsBox))));
   bindScroll(ed, etop);
   loadStreams(type, v.id, streamsBox, meta.name, base);
@@ -2180,13 +2197,13 @@ async function openDetail(addon, type, item, opts = {}){
     const genres = listOf(meta, 'genres', 'genres').length ? listOf(meta, 'genres', 'genres') : listOf(meta, 'genre', 'genres');
     const ph = el => { if (el) el.classList.add('dphone'); return el; };
     const acts = h('div', {class:'dacts2'});
-    const body = h('div', {class:'dbody'},
+    const body = h('div', {class:'dbody'}, h('div', {class:'dleft'},
       titleBlock(meta),
       metaRow([meta.runtime, meta.year || meta.releaseInfo], meta.imdbRating, [ico.seen]),
       meta.description ? h('p', {class:'ddesc'}, meta.description) : null,
       acts, infoPanel(meta, genres),
       ph(genres.length ? h('div', {class:'dgen'}, genres.map(g => h('span', {class:'pillx'}, g))) : null),
-      ph(chipsSection('Cast', listOf(meta, 'cast', 'cast'))), ph(chipsSection('Director', listOf(meta, 'director', 'director'))), ph(chipsSection('Writer', listOf(meta, 'writer', 'writer'))));
+      ph(chipsSection('Cast', listOf(meta, 'cast', 'cast'))), ph(chipsSection('Director', listOf(meta, 'director', 'director'))), ph(chipsSection('Writer', listOf(meta, 'writer', 'writer')))));
     if (withStreams && sorted.length) {                                    // ---- series: seasons + episodes
       const seasons = [...new Set(sorted.map(v => v.season ?? 1))];
       if (curSeason === null || !seasons.includes(curSeason)) curSeason = seasons.find(x => x >= 1) ?? seasons[0];
@@ -2941,7 +2958,7 @@ function moveFocus(dir, rep){
     const more = list.some(e => e !== best && (dir === 'up' ? e.getBoundingClientRect().bottom < br.top + 2 : e.getBoundingClientRect().top > br.bottom - 2));
     if (!more) edge = dir === 'up' ? 'top' : 'bottom';
   }
-  revealEl(best, dir, rep, tv, edge);
+  if (!inNav) revealEl(best, dir, rep, tv, edge);
 }
 /* keep strips aligned to the card grid, scroll one card at a time, short eased animation */
 let scrollAnim = 0;
