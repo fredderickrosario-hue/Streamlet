@@ -542,21 +542,7 @@ body.tv .gtile{height:52px;min-width:130px;font-size:15px}
 #intro[hidden]{display:none}
 #intro.out{opacity:0;pointer-events:none}
 .ilogo{width:min(46vmin,360px);height:auto;overflow:visible}
-.iglow{opacity:0;filter:blur(60px)}
-#intro.go .iglow{animation:iglow 2.4s ease-out .2s forwards}
-.iring{stroke-dasharray:1;stroke-dashoffset:1}
-#intro.go .iring{animation:idraw 1.2s cubic-bezier(.6,.1,.2,1) .15s forwards}
-.iplay{transform-box:fill-box;transform-origin:center;opacity:0;transform:scale(.3)}
-#intro.go .iplay{animation:ipop .6s cubic-bezier(.3,1.6,.5,1) .85s forwards}
-.iplug{opacity:0;transform:translate(170px,-150px) rotate(24deg)}
-#intro.go .iplug{animation:iplug .7s cubic-bezier(.3,1.4,.5,1) 1.15s forwards}
 .iword{margin-top:3vmin;font-size:clamp(28px,7vmin,64px);font-weight:800;letter-spacing:.5px;color:#fff;display:flex}
-.iword span{opacity:0;transform:translateY(14px)}
-#intro.go .iword span{animation:iletter .5s ease forwards}
-#intro.static .iring{stroke-dashoffset:0}
-#intro.static .iplay,#intro.static .iplug,#intro.static .iword span{opacity:1;transform:none}
-#intro.static .iglow{opacity:.3}
-.iword .acc{color:#8b5cff}
 @keyframes idraw{to{stroke-dashoffset:0}}
 @keyframes ipop{to{opacity:1;transform:scale(1)}}
 @keyframes iplug{to{opacity:1;transform:translate(0,0) rotate(0)}}
@@ -690,7 +676,6 @@ body.tv .dright .chip:focus-visible{outline:2px solid #fff;outline-offset:-2px;b
 .stile.new{justify-content:center;border-style:dashed;background:rgba(255,255,255,.04);box-shadow:none;color:var(--mut)}
 .stile:focus-visible{outline:2px solid #fff;outline-offset:3px;box-shadow:0 14px 34px rgba(0,0,0,.35);transform:scale(1.03)}
 .sedit{position:absolute;top:10px;right:10px;width:34px;height:34px;border-radius:50%;border:0;background:rgba(0,0,0,.35);color:#fff}
-body.tv .sedit{display:none}
 body.tv #launcher{display:flex;flex-direction:column;grid-template-columns:none;max-width:1020px;padding:34px 40px 40px;gap:0}
 body.tv #launcher[hidden]{display:none}
 .sheet .bar{background:transparent}
@@ -736,6 +721,17 @@ body.tv .navbrand img{width:34px;height:34px;display:block}
 body.tv .navbrand span{display:none;font-size:18px;font-weight:800;letter-spacing:-.3px;white-space:nowrap}
 body.tv .navbrand b{color:var(--acc)}
 body.tv nav:focus-within .navbrand span{display:block}
+
+/* v11: editor focus stays inside controls; spaces edit mode */
+body.tv .sheet :focus-visible{outline-offset:-3px}
+.eb:focus-visible,.sw:focus-visible,.sheet .chip:focus-visible{transform:none}
+.nm-row{flex-wrap:wrap;overflow:visible !important}
+.sedit{display:none;position:absolute;top:12px;right:12px;width:38px;height:38px;border-radius:50%;background:rgba(0,0,0,.45);color:#fff;align-items:center;justify-content:center;pointer-events:none}
+#launcher.editing .sedit{display:flex}
+body.tv #launcher.editing .sedit{display:flex}
+.newwrap{display:none}
+#launcher.editing .newwrap{display:block}
+.lfoot{gap:12px}
 </style>
 </head>
 <body>
@@ -743,9 +739,10 @@ body.tv nav:focus-within .navbrand span{display:block}
   <svg viewBox="0 0 1024 1024" class="ilogo" aria-hidden="true">
     <defs>
       <linearGradient id="ig1" gradientUnits="userSpaceOnUse" x1="230" y1="250" x2="790" y2="800"><stop offset="0" stop-color="#9a8cff"/><stop offset=".35" stop-color="#a24bff"/><stop offset=".72" stop-color="#2fb6ff"/><stop offset="1" stop-color="#16e0f2"/></linearGradient>
+      <radialGradient id="iglg"><stop offset="0" stop-color="#7c5cff" stop-opacity=".55"/><stop offset="1" stop-color="#7c5cff" stop-opacity="0"/></radialGradient>
       <linearGradient id="ig2" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff"/><stop offset="1" stop-color="#ddd3ff"/></linearGradient>
     </defs>
-    <circle class="iglow" cx="487" cy="520" r="360" fill="#7c5cff"/>
+    <circle class="iglow" cx="487" cy="520" r="400" fill="url(#iglg)" style="opacity:0"/>
     <path class="iring" pathLength="1" d="M563.1 236.0 A294 294 0 1 0 765.0 424.3" fill="none" stroke="url(#ig1)" stroke-width="66" stroke-linecap="round"/>
     <path class="iplay" d="M446 430Q446 410 466 421L592 494Q610 505 592 516L466 589Q446 600 446 580Z" fill="url(#ig2)" stroke="url(#ig2)" stroke-width="26" stroke-linejoin="round"/>
     <g class="iplug"><g transform="translate(710 338) rotate(-33) scale(.86)">
@@ -1207,20 +1204,25 @@ const streamPool = () => (cur && cur.streams && cur.streams.length) ? addons.fil
 
 function enterSpace(id){
   cur = spaces.find(s => s.id===id); if (!cur) return;
+  spEdit = false;
   rememberSpace(cur.id); applyTheme(cur.theme); $('#q').value = ''; view = {tab:'home', genre:''}; showTab('home');
 }
+let spEdit = false;
+const PENCIL_SVG = () => { const d = document.createElement('span'); d.innerHTML = '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20l1-4L16.5 4.5a2 2 0 0 1 3 0l0 0a2 2 0 0 1 0 3L8 19z"/><path d="M14 7l3 3"/></svg>'; return d.firstChild; };
 function showLauncher(){
   cur = null; applyTheme('violet');
   document.body.classList.add('launch'); document.body.style.overflow = '';
   $('#detail').hidden = true; $('#player').hidden = true; $('#spaceEd').hidden = true;
   $('#profiles').hidden = true; $('#login').hidden = true; const L = $('#launcher'); L.hidden = false;
+  const editBtn = h('button', {class:'chip' + (spEdit ? ' on' : ''), type:'button'}, spEdit ? 'Done' : 'Edit spaces');
+  editBtn.onclick = () => { spEdit = !spEdit; editBtn.textContent = spEdit ? 'Done' : 'Edit spaces'; editBtn.classList.toggle('on', spEdit); L.classList.toggle('editing', spEdit); };
   const tile = sp => {
     const t = THEMES[sp.theme] || THEMES.violet;
     const names = sp.catalogs.length ? sp.catalogs.map(id => { const a = addons.find(x => x.uid === id); return a && an(a); }).filter(Boolean).join(', ') : 'All installed addons';
-    const btn = h('button', {class:'stile', type:'button', style:`--c1:${t.acc};--c2:${t.acc2 || t.acc}`, onclick:() => enterSpace(sp.id)},
+    const btn = h('button', {class:'stile', type:'button', style:`--c1:${t.acc};--c2:${t.acc2 || t.acc}`, onclick:() => { if (spEdit) editSpace(sp.id); else enterSpace(sp.id); }},
       h('span', {class:'sem'}, sp.emoji), h('span', {class:'stx'}, h('span', {class:'snm'}, sp.name), h('span', {class:'sds'}, names || 'Selected addon not installed')));
     attachLong(btn, () => editSpace(sp.id));
-    return h('div', {class:'swrap'}, btn, h('button', {class:'sedit', type:'button', tabindex:'-1', 'aria-label':'Edit ' + sp.name, onclick:() => editSpace(sp.id)}, '✎'));
+    return h('div', {class:'swrap'}, btn, h('span', {class:'sedit', 'aria-hidden':'true'}, PENCIL_SVG()));
   };
   L.replaceChildren(
     h('div', {class:'lhead'}, h('h1', null, 'Stream', h('span', {style:'color:var(--acc)'}, 'let')),
@@ -1229,9 +1231,11 @@ function showLauncher(){
       h('h2', {class:'ltitle'}, addons.length ? 'What are we watching?' : 'Add an addon first'),
       addons.length ? null : h('p', {class:'lsub'}, 'Open Addons & settings, install one, then pick a space.'),
       h('div', {class:'sgrid'}, ...spaces.map(tile),
-        h('div', {class:'swrap'}, h('button', {class:'stile new', type:'button', onclick:() => editSpace(null)}, h('span', {class:'sem'}, '＋'), h('span', {class:'stx'}, h('span', {class:'snm'}, 'New space')))))),
+        h('div', {class:'swrap newwrap'}, h('button', {class:'stile new', type:'button', onclick:() => editSpace(null)}, h('span', {class:'sem'}, '＋'), h('span', {class:'stx'}, h('span', {class:'snm'}, 'New space')))))),
     h('div', {class:'lfoot'},
-      h('button', {class:'chip', type:'button', onclick:() => { document.body.classList.remove('launch'); $('#launcher').hidden = true; $('#profiles').hidden = true; $('#login').hidden = true; showTab('addons'); }}, 'Addons & settings')));
+      h('button', {class:'chip', type:'button', onclick:() => { document.body.classList.remove('launch'); $('#launcher').hidden = true; $('#profiles').hidden = true; $('#login').hidden = true; showTab('addons'); }}, 'Addons & settings'),
+      editBtn));
+  L.classList.toggle('editing', spEdit);
   window.scrollTo(0,0);
   pushPage();
 }
@@ -1284,7 +1288,7 @@ function editSpace(id){
         h('div', {class:'sedcol'}, prev, h('div', {class:'lbl'}, 'Name'), name, quick, h('div', {class:'lbl'}, 'Icon'), eg),
         h('div', {class:'sedcol'},
           h('div', {class:'lbl'}, 'Theme'), sw,
-          h('div', {class:'lbl'}, 'Options'), tgl(tabsCb, 'Browse tabs', 'Home, Movies, Shows, New releases and genre tiles'),
+          h('div', {class:'lbl'}, 'Options'), tgl(tabsCb, 'Browse tabs', 'Home, Movies, Shows and genre tiles'),
           h('div', {class:'lbl'}, 'Catalog addons'),
           withCats.length ? h('div', null, boxes.map(({a, cb}) => tgl(cb, an(a)))) : h('p', {class:'spin', style:'padding:0'}, 'No catalog addons installed yet.'),
           h('p', {class:'spin hint2'}, 'Leave all off to use every installed addon.'),
@@ -2976,7 +2980,7 @@ function moveFocus(dir, rep){
   if (!best) { if (tv && !inNav && dir === 'left') focusNav(); return; }
   best.focus({preventScroll:true});
   let edge = null;
-  if (tv && (dir === 'up' || dir === 'down')) {
+  if (document.body.classList.contains('tv') && (dir === 'up' || dir === 'down')) {
     const br = best.getBoundingClientRect();
     const more = list.some(e => e !== best && (dir === 'up' ? e.getBoundingClientRect().bottom < br.top + 2 : e.getBoundingClientRect().top > br.bottom - 2));
     if (!more) edge = dir === 'up' ? 'top' : 'bottom';
@@ -3000,6 +3004,16 @@ function revealEl(el, dir, rep, tv, edge){
           else if (br.bottom > sr.bottom - m) sc.scrollTop += (br.bottom - (sr.bottom - m)) / k;
         }
         lock.scrollTop = 0; window.scrollTo(0, 0);
+        return;
+      }
+      const sh = el.closest('.sheet');
+      if (sh) {                                                      // editors: keep the focused control clear of the sticky bar and the bottom edge
+        const sr = sh.getBoundingClientRect(), br = el.getBoundingClientRect();
+        const k = sr.height / (sh.clientHeight || sr.height) || 1, mt = 96 * k, mb = 72 * k;
+        if (edge === 'top') sh.scrollTop = 0;
+        else if (edge === 'bottom') sh.scrollTop = 1e7;
+        else if (br.top < sr.top + mt) sh.scrollTop -= (sr.top + mt - br.top) / k;
+        else if (br.bottom > sr.bottom - mb) sh.scrollTop += (br.bottom - (sr.bottom - mb)) / k;
         return;
       }
       el.scrollIntoView({block:'nearest', inline:'nearest', behavior:'auto'}); return;
@@ -3123,25 +3137,35 @@ for (const ev of ['timeupdate', 'play', 'pause', 'loadedmetadata']) $('#vid').ad
 $('#pPlay').onclick = playerToggle; $('#pRew').onclick = () => playerSeek(-10); $('#pFwd').onclick = () => playerSeek(10);
 $('#pseek').addEventListener('click', e => { const v = $('#vid'), r = e.currentTarget.getBoundingClientRect(); if (v.duration) { v.currentTime = v.duration * Math.min(1, Math.max(0, (e.clientX - r.left) / r.width)); showBar(); } });
 
-/* ---------- intro animation ---------- */
+/* ---------- intro animation (driven from JS so it also runs on WebViews that skip SVG CSS animations) ---------- */
 (function(){
   const el = $('#intro');
   if (navigator.webdriver && !/[?&]intro/.test(location.search)) { el.remove(); return; }
-  const w = $('#iword'); [...'Streamlet'].forEach((c, i) => w.append(h('span', {class:i >= 6 ? 'acc' : '', style:`animation-delay:${1.55 + i * .06}s`}, c)));
-  let done = false;
+  const ring = el.querySelector('.iring'), play = el.querySelector('.iplay'), plug = el.querySelector('.iplug'), glow = el.querySelector('.iglow');
+  const w = $('#iword');
+  const letters = [...'Streamlet'].map((c, i) => { const sp = h('span', {class:i >= 6 ? 'acc' : ''}, c); sp.style.cssText = 'display:inline-block;opacity:0;transform:translateY(14px)'; w.append(sp); return sp; });
+  let len = 1800; try { len = ring.getTotalLength(); } catch {}
+  ring.style.strokeDasharray = len; ring.style.strokeDashoffset = len; play.style.opacity = '0'; plug.style.opacity = '0';
+  const clamp = t => Math.max(0, Math.min(1, t)), out = t => 1 - Math.pow(1 - t, 3), back = t => { const c = 1.70158; t -= 1; return 1 + (c + 1) * t * t * t + c * t * t; };
+  const seg = (n, a, d) => clamp((n - a) / d);
+  const TOTAL = 1550 + 8 * 60 + 500 + 900;
+  let done = false, t0 = null;
   const end = () => { if (done) return; done = true; el.classList.add('out'); setTimeout(() => el.remove(), 700); };
-  const last = w.lastElementChild;
-  last.addEventListener('animationend', () => setTimeout(end, 700));   // hold the finished logo for a beat
-  setTimeout(end, 12000);                                             // safety net only
-  const start = () => {
-    el.classList.add('go');
-    setTimeout(() => {                                                // animations switched off on this device? show the finished logo instead
-      let running = true;
-      try { running = document.getAnimations().some(a => a.effect && a.effect.target && el.contains(a.effect.target)); } catch {}
-      if (!running) { el.classList.add('static'); setTimeout(end, 1800); }
-    }, 900);
+  const frame = ts => {
+    if (done) return;
+    if (t0 === null) t0 = ts;
+    const n = ts - t0;
+    ring.style.strokeDashoffset = len * (1 - out(seg(n, 150, 1250)));
+    glow.style.opacity = out(seg(n, 200, 2200));
+    const pp = back(seg(n, 850, 650));
+    play.style.opacity = clamp(seg(n, 850, 300)); play.setAttribute('transform', `translate(520 510) scale(${.3 + .7 * pp}) translate(-520 -510)`);
+    const gp = back(seg(n, 1150, 750));
+    plug.style.opacity = clamp(seg(n, 1150, 300)); plug.setAttribute('transform', `translate(${170 * (1 - gp)} ${-150 * (1 - gp)}) rotate(${24 * (1 - gp)} 710 338)`);
+    letters.forEach((sp, i) => { const q = out(seg(n, 1550 + i * 60, 500)); sp.style.opacity = q; sp.style.transform = `translateY(${14 * (1 - q)}px)`; });
+    if (n < TOTAL) requestAnimationFrame(frame); else end();
   };
-  const ready = () => requestAnimationFrame(() => requestAnimationFrame(() => setTimeout(start, 300)));
+  setTimeout(end, 12000);                                           // safety net only
+  const ready = () => requestAnimationFrame(() => requestAnimationFrame(() => setTimeout(() => requestAnimationFrame(frame), 300)));
   if (document.readyState === 'complete') ready(); else addEventListener('load', ready, {once:true});
 })();
 
