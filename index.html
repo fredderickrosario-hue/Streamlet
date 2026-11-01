@@ -486,6 +486,18 @@ body.tv #profiles .pav.add{font-size:56px}
 body.tv #profiles .pav .av{width:132px !important;height:132px !important;font-size:68px !important}
 body.tv #profiles .pgrid{gap:30px 34px}
 body.launch #profiles:not([hidden]){display:flex;flex-direction:column;justify-content:center;align-items:center;min-height:calc(var(--vh,1vh) * 100);padding-top:0;padding-bottom:0;max-width:none;margin:0}
+
+/* TV nav: no pill, hero bleeds underneath, label appears on focus */
+body.tv nav{background:none !important;border:0 !important;box-shadow:none !important;backdrop-filter:none !important;-webkit-backdrop-filter:none !important;overflow:visible;max-height:none;left:14px;padding:0;width:56px;gap:4px}
+body.tv nav::before,body.tv .navpill{display:none !important}
+body.tv nav button{width:56px;height:46px;padding:0;justify-content:center;border-radius:16px;color:rgba(255,255,255,.72)}
+body.tv nav button svg{filter:drop-shadow(0 1px 6px rgba(0,0,0,.85))}
+body.tv nav button.on{color:#fff}
+body.tv nav button:focus-visible{outline:none;background:rgba(255,255,255,.2);box-shadow:0 0 0 2px #fff inset}
+body.tv nav button:focus-visible span,body.tv nav button:hover span{display:block;position:absolute;left:calc(100% + 10px);top:50%;transform:translateY(-50%);white-space:nowrap;background:rgba(14,14,22,.92);border:1px solid rgba(255,255,255,.14);padding:7px 14px;border-radius:12px;font-size:15px;font-weight:700;color:#fff;box-shadow:0 8px 22px rgba(0,0,0,.45);pointer-events:none}
+body.tv .tvhero{margin-left:-104px}
+body.tv .tvhero .tin{left:132px}
+body.tv .tvhero .tbg{left:0;-webkit-mask-image:linear-gradient(to right,rgba(0,0,0,.34) 0,rgba(0,0,0,.2) 24%,#000 62%);mask-image:linear-gradient(to right,rgba(0,0,0,.34) 0,rgba(0,0,0,.2) 24%,#000 62%)}
 </style>
 </head>
 <body>
