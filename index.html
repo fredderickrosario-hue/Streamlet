@@ -610,6 +610,40 @@ body.tv .dptitle{display:block;margin:0 0 12px;font-size:18px;font-weight:800}
 body.tv .dright .eplist .ep,body.tv .dright .scard{scroll-margin:70px 0}
 body.tv .dright .ethumb{flex:0 0 130px}
 body.tv .dtop{padding-left:120px}
+
+/* ---- v6: entry page, calmer and minimal ---- */
+.sinfo{display:none}
+body.tv .sinfo{display:block;font-size:13px;color:var(--mut)}
+body.tv .stxt,body.tv .scard .lc,body.tv .dright .resbtn,body.tv .dright .dsec>h4{display:none}
+body.tv .dtop>.ibtn ~ .ibtn{display:none}
+body.tv .dhero{filter:brightness(.72) saturate(.85)}
+body.tv .dgrad{background:linear-gradient(to right,color-mix(in srgb,var(--bg) 94%,transparent) 0,color-mix(in srgb,var(--bg) 62%,transparent) 42%,color-mix(in srgb,var(--bg) 70%,transparent) 72%,color-mix(in srgb,var(--bg) 90%,transparent) 100%),linear-gradient(to top,color-mix(in srgb,var(--bg) 80%,transparent),transparent 50%)}
+body.tv .dbody{padding:calc(var(--vh,1vh) * 14) 64px 48px 120px;grid-template-columns:minmax(0,1fr) min(470px,40%);column-gap:60px}
+body.tv .dbt-logo{max-width:min(100%,300px);max-height:calc(var(--vh,1vh) * 9)}
+body.tv .dbt-title{font-size:clamp(28px,3vw,44px);font-weight:800;letter-spacing:-.3px}
+body.tv .dmeta{margin:16px 0 10px;font-size:14px;color:#c9ccd8;font-weight:600;gap:8px}
+body.tv .ddesc{max-width:500px;font-size:15px;line-height:1.6;color:#c4c7d3;text-shadow:none;-webkit-line-clamp:3}
+body.tv .dacts2{display:flex;align-items:center;gap:12px;margin:24px 0 4px}
+body.tv .dacts2 .hb.p{background:#fff;color:#0d0d14;box-shadow:none;padding:12px 32px;font-size:16px;border-radius:999px}
+body.tv .dacts2 .ibtn{width:46px;height:46px;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);backdrop-filter:none}
+body.tv .dinfo{display:block;max-width:500px;margin-top:30px;padding:0;background:none;border:0;border-radius:0;backdrop-filter:none;-webkit-backdrop-filter:none}
+body.tv .di{display:flex;gap:18px;margin:0 0 10px}
+body.tv .dil{flex:0 0 74px;margin:0;padding-top:2px;font-size:11px}
+body.tv .di span:last-child{font-size:14px;color:#d6d9e4;line-height:1.45}
+body.tv .dbody>.dright{background:none;border:0;border-radius:0;padding:0 8px 0 0;backdrop-filter:none;-webkit-backdrop-filter:none}
+body.tv .dptitle{margin:0 0 14px;font-size:12px;font-weight:700;letter-spacing:1.4px;text-transform:uppercase;color:var(--mut)}
+body.tv .dright .sfilter,body.tv .dright .srow{padding:0 0 14px;gap:8px}
+body.tv .dright .chip{padding:7px 16px;font-size:13px;background:transparent;border:1px solid rgba(255,255,255,.2);color:#c6c9d5;box-shadow:none}
+body.tv .dright .chip.on{background:#fff;border-color:#fff;color:#0d0d14}
+body.tv .dright .chip b{opacity:.55}
+body.tv .dright .scard,body.tv .dright .ep{background:none;border:0;border-bottom:1px solid rgba(255,255,255,.08);box-shadow:none;border-radius:0;margin:0;padding:14px 10px;gap:14px;align-items:center;backdrop-filter:none}
+body.tv .dright .scard:focus-visible,body.tv .dright .ep:focus-visible{background:rgba(255,255,255,.1);border-radius:14px;outline:2px solid rgba(255,255,255,.85);outline-offset:-2px;border-bottom-color:transparent}
+body.tv .dright .splay{flex:0 0 32px;height:32px;font-size:11px;background:rgba(255,255,255,.14);color:#fff}
+body.tv .dright .sname{font-size:16px;margin:0 0 3px}
+body.tv .dright .ethumb{flex:0 0 118px;border-radius:10px}
+body.tv .dright .etitle{font-size:15px}
+body.tv .dright .edate{font-size:12px;color:var(--mut)}
+body.tv .dright .eover{font-size:13px;color:#a9adbb;-webkit-line-clamp:2}
 </style>
 </head>
 <body>
@@ -1882,16 +1916,16 @@ function titleBlock(meta){
     : h('h1', {class:'dbt-title'}, meta.name));
 }
 function infoPanel(meta, genres){
-  const rows = [['Category', genres], ['Director', listOf(meta, 'director', 'director')], ['Writer', listOf(meta, 'writer', 'writer')], ['Stars', listOf(meta, 'cast', 'cast').slice(0, 6)]].filter(r => r[1].length);
+  const rows = [['Genres', genres], ['Director', listOf(meta, 'director', 'director')], ['Stars', listOf(meta, 'cast', 'cast').slice(0, 5)]].filter(r => r[1].length);
   if (!rows.length) return null;
   return h('div', {class:'dinfo'}, rows.map(([k, v]) => h('div', {class:'di'}, h('span', {class:'dil'}, k), h('span', null, v.join(', ')))));
 }
-function pillToggle(src, onText, offText){
+function mirrorBtn(src, path, label){
   if (!src) return null;
-  const b = h('button', {class:'hb s', type:'button'});
-  const paint = () => { b.textContent = src.classList.contains('on') ? onText : offText; };
-  b.onclick = () => { src.click(); paint(); };
-  paint(); return b;
+  const b = iconBtn(path, label, null, src.classList.contains('fill') ? 'fill' : '');
+  const sync = () => { b.classList.toggle('on', src.classList.contains('on')); b.title = src.title || label; };
+  b.onclick = () => { src.click(); sync(); };
+  sync(); return b;
 }
 function metaRow(parts, rating, right){
   const row = h('div', {class:'dmeta'});
@@ -2021,8 +2055,8 @@ async function openDetail(addon, type, item, opts = {}){
     const rs0 = histGet().find(x => x.itemId === meta.id && !x.upnext);
     acts.append(h('button', {class:'hb p', type:'button', onclick:() => {
       if (sorted.length) { const rv = rs0 && sorted.find(v => v.id === rs0.id); openEpisode(addon, type, meta, rv || sorted.find(v => (v.season ?? 1) >= 1) || sorted[0], sorted); }
-      else { const t = d.querySelector('.dright .resbtn, .dright .scard:not(.dis)'); if (t) t.focus({preventScroll:false}); else toast('Loading sources…'); }
-    }}, rs0 ? '▶  Resume' : '▶  Play'), pillToggle(ico.wl, '✓  In watchlist', '＋  Watchlist'), pillToggle(ico.seen, '✓  Watched', 'Mark watched'));
+      else { const rb = d.querySelector('.dright .resbtn'); if (rb) { rb.click(); return; } const t = d.querySelector('.dright .scard:not(.dis)'); if (t) t.focus(); else toast('Loading sources…'); }
+    }}, rs0 ? '▶  Resume' : '▶  Play'), mirrorBtn(ico.wl, IC.mark, 'Watchlist'), mirrorBtn(ico.seen, IC.seen, 'Watched'));
     d.replaceChildren(top, h('div', {class:'dwrap'}, heroBlock(meta), body));
     d.scrollTop = keep; bindScroll(d, top);
     return {sorted};
@@ -2047,11 +2081,17 @@ function noStreamsMsg(type, cands){
   });
   return `No stream addon accepts this title (${type}, id ${cands.map(c => '"' + c + '"').join(' / ')}). Stream addons: ${parts.join('; ')}.` + pendTxt;
 }
+function streamSummary(st){
+  const t = String(st.title || st.description || '');
+  const size = (/💾\s*([\d.,]+\s*[KMGT]i?B)/i.exec(t) || [])[1], seeds = (/👤\s*(\d+)/.exec(t) || [])[1], src = (/⚙️?\s*([^\n]+)/.exec(t) || [])[1];
+  const parts = [size, seeds ? seeds + ' seeds' : null, src && src.trim()].filter(Boolean);
+  return parts.length ? parts.join('  ·  ') : t.split('\n')[0].slice(0, 90);
+}
 function streamCard(st, title, ctx){
   const playable = !!(st.url || st.externalUrl || st.ytId), langs = streamLangs(st);
   return h('button', {class:'scard' + (playable ? '' : ' dis'), type:'button', onclick:() => playStream(st, title, ctx)},
     h('span', {class:'splay'}, playable ? '▶' : '✕'),
-    h('div', {class:'sbody'}, h('b', {class:'sname'}, st.name || 'Stream'), h('div', {class:'stxt'}, st.title || st.description || ''),
+    h('div', {class:'sbody'}, h('b', {class:'sname'}, String(st.name || 'Stream').replace(/\n+/g, ' · ')), h('div', {class:'sinfo'}, streamSummary(st)), h('div', {class:'stxt'}, st.title || st.description || ''),
       langs.length ? h('div', {style:'margin-top:6px'}, langs.map(l => h('span', {class:'lc'}, l.toUpperCase()))) : null));
 }
 async function loadStreams(type, id, box, title, base = {}){
