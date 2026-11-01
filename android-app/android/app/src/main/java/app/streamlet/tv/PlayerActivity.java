@@ -50,6 +50,7 @@ import androidx.media3.datasource.DefaultDataSource;
 import androidx.media3.datasource.DefaultHttpDataSource;
 import androidx.media3.exoplayer.DefaultRenderersFactory;
 import androidx.media3.exoplayer.ExoPlayer;
+import androidx.media3.exoplayer.trackselection.DefaultTrackSelector;
 import androidx.media3.exoplayer.mediacodec.MediaCodecInfo;
 import androidx.media3.exoplayer.mediacodec.MediaCodecSelector;
 import androidx.media3.exoplayer.mediacodec.MediaCodecUtil;
@@ -116,6 +117,7 @@ public class PlayerActivity extends Activity {
     private TextView posTx, durTx, titleTx, flashTx;
     private View spinner;
     private int accent = 0xFF8B5CFF;
+    private DefaultTrackSelector tsel;
     private boolean optHw = true, optFps = true, optTunnel = false;
     private LinearLayout presetBox;
     private final List<Combo> presets = new ArrayList<>();
@@ -213,7 +215,6 @@ public class PlayerActivity extends Activity {
         if (!subs.isEmpty()) item.setSubtitleConfigurations(subs);
 
         TrackSelectionParameters.Builder tp = player.getTrackSelectionParameters().buildUpon();
-        if (optTunnel) tp.setTunnelingEnabled(true);
         if (audioLang != null && !audioLang.isEmpty()) tp.setPreferredAudioLanguage(audioLang);
         if (subLang != null && !subLang.isEmpty()) {
             tp.setPreferredTextLanguage(subLang);
@@ -223,6 +224,7 @@ public class PlayerActivity extends Activity {
         }
         trackParams = tp.build();
         player.setTrackSelectionParameters(trackParams);
+        if (optTunnel && tsel != null) tsel.setParameters(tsel.buildUponParameters().setTunnelingEnabled(true));
 
         playerListener = new Player.Listener() {
             @Override
@@ -288,7 +290,9 @@ public class PlayerActivity extends Activity {
                 return l;
             }
         });
+        tsel = new DefaultTrackSelector(this);
         ExoPlayer p = new ExoPlayer.Builder(this, rf)
+                .setTrackSelector(tsel)
                 .setMediaSourceFactory(new DefaultMediaSourceFactory(new DefaultDataSource.Factory(this, http), ex))
                 .build();
         p.setVideoChangeFrameRateStrategy(optFps ? C.VIDEO_CHANGE_FRAME_RATE_STRATEGY_ONLY_IF_SEAMLESS : C.VIDEO_CHANGE_FRAME_RATE_STRATEGY_OFF);
