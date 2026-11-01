@@ -2364,12 +2364,12 @@ async function startAuth(){
 }
 
 /* ---------- TV / remote control ---------- */
-const mqTV = matchMedia('(min-width:1000px) and (orientation:landscape)');
+const mqTV = matchMedia('(min-width:1000px) and (orientation:landscape), (min-width:560px) and (max-height:620px) and (orientation:landscape)');
 let remoteMode = false, forceTV = false;
 const isTVDevice = () => forceTV || mqTV.matches || /Tizen|SMART-?TV|Web0S|AFTT|BRAVIA|Android TV|CrKey|GoogleTV/i.test(navigator.userAgent) || new URLSearchParams(location.search).has('tv');
 function syncTV(){
   const tv = isTVDevice(), was = document.body.classList.contains('tv'); document.body.classList.toggle('tv', tv);
-  const z = tv ? Math.max(1, Math.min(2, innerWidth / 1280)) : 1;
+  const z = !tv ? 1 : innerWidth >= 1280 ? Math.min(2, innerWidth / 1280) : Math.max(0.62, innerWidth / 1100);
   document.documentElement.style.zoom = tv ? String(z) : '';
   document.documentElement.style.setProperty('--vh', (innerHeight / z / 100) + 'px');
   if (tv !== was) { try { if (cur && !$('#home').hidden && !document.body.classList.contains('launch')) renderHome(); } catch {} }
