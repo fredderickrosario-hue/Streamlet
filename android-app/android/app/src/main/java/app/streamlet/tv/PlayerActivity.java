@@ -118,6 +118,19 @@ public class PlayerActivity extends Activity {
     private View spinner;
     private int accent = 0xFF8B5CFF;
     private DefaultTrackSelector tsel;
+    private String nextTitle = "";
+    private boolean isEpisode = false, nextOn = false, skipDone = false, overDone = false, delayInit = false;
+    private long startMsIn = 0;
+    private TextView overChip, skipChip, nextCount;
+    private FrameLayout nextLayer;
+    private int nextSecs = 0;
+    private final Runnable nextTick = new Runnable() { @Override public void run() {
+        if (!nextOn) return;
+        nextSecs--;
+        if (nextSecs <= 0) { ExoPlayerPlugin.autoNext = true; finishWith(true); return; }
+        if (nextCount != null) nextCount.setText("Starting in " + nextSecs + " s");
+        handler.postDelayed(this, 1000);
+    } };
     private boolean optHw = true, optFps = true, optTunnel = false;
     private LinearLayout presetBox;
     private final List<Combo> presets = new ArrayList<>();
@@ -176,6 +189,10 @@ public class PlayerActivity extends Activity {
         streamUrl = url == null ? "" : url; streamTitle = title == null ? "" : title;
         String st = in.getStringExtra("subtitle"); streamSubtitle = st == null ? "" : st;
         long startMs = in.getLongExtra("startMs", 0L);
+        String nt = in.getStringExtra("nextTitle"); nextTitle = nt == null ? "" : nt;
+        isEpisode = in.getBooleanExtra("episode", false);
+        subDelayMs = in.getLongExtra("subDelay", 0L);
+        startMsIn = in.getLongExtra("startMs", 0L);
         String ac = in.getStringExtra("accent");
         try { if (ac != null && !ac.isEmpty()) accent = Color.parseColor(ac); } catch (Exception ignored) { }
         optHw = in.getBooleanExtra("hw", true); optFps = in.getBooleanExtra("fps", true); optTunnel = in.getBooleanExtra("tunnel", false);
@@ -229,13 +246,14 @@ public class PlayerActivity extends Activity {
         playerListener = new Player.Listener() {
             @Override
             public void onPlaybackStateChanged(int state) {
-                if (state == Player.STATE_ENDED) finishWith(true);
+                if (state == Player.STATE_ENDED) onEnded();
                 spinner.setVisibility(state == Player.STATE_BUFFERING ? View.VISIBLE : View.GONE);
                 refreshProgress();
             }
 
             @Override
             public void onTracksChanged(Tracks tracks) {
+                if (!delayInit) { delayInit = true; if (subDelayMs != 0 && !subCfgs.isEmpty()) handler.post(() -> applyDelay()); }
                 if (pendingSubLabel != null) {
                     List<TrackRef> tx = tracksOf(C.TRACK_TYPE_TEXT);
                     for (TrackRef t : tx) {
@@ -583,9 +601,15 @@ public class PlayerActivity extends Activity {
         presetBox.setOrientation(LinearLayout.HORIZONTAL);
         presetBox.setGravity(Gravity.CENTER_VERTICAL);
         ctl.addView(presetBox);
+        overChip = chip("Start over", false, v -> { if (player != null) player.seekTo(0); overDone = true; overChip.setVisibility(View.GONE); flash("From the beginning"); presetBox.requestFocus(); });
+        overChip.setVisibility(startMsIn > 20000 ? View.VISIBLE : View.GONE);
+        skipChip = chip("Skip intro", false, v -> { seekBy(85000); skipDone = true; skipChip.setVisibility(View.GONE); });
+        skipChip.setVisibility(isEpisode ? View.VISIBLE : View.GONE);
         final TextView other = chip("Other\u2026", false, null);
         other.setOnClickListener(v -> openOther(other));
         ctl.addView(other);
+        ctl.addView(overChip);
+        ctl.addView(skipChip);
         final FrameLayout gear = circleBtn(R.drawable.ic_p_gear, 44, 24, null, false, null);
         gear.setOnClickListener(v -> openOptions(gear));
         LinearLayout.LayoutParams gp = new LinearLayout.LayoutParams(dp(44), dp(44));
@@ -638,6 +662,9 @@ public class PlayerActivity extends Activity {
         card.addView(et); card.addView(errMsg); card.addView(errCode); card.addView(btns);
         errLayer.addView(card, new FrameLayout.LayoutParams(dp(720), -2, Gravity.CENTER));
         root.addView(errLayer, new FrameLayout.LayoutParams(-1, -1));
+        nextLayer = new FrameLayout(this);
+        nextLayer.setVisibility(View.GONE);
+        root.addView(nextLayer, new FrameLayout.LayoutParams(-1, -1));
 
         root.setOnClickListener(v -> { if (controlsOn) hideControls(); else showControls(playBtn); });
     }
@@ -676,6 +703,9 @@ public class PlayerActivity extends Activity {
         seek.setProgress((int) Math.min(Math.max(0, player.getCurrentPosition()), seek.getMax()));
         seek.setSecondaryProgress((int) Math.min(Math.max(0, player.getBufferedPosition()), seek.getMax()));
         posTx.setText(fmt(player.getCurrentPosition()));
+        long cp = player.getCurrentPosition();
+        if (overChip != null && !overDone && cp > startMsIn + 90000) { overDone = true; overChip.setVisibility(View.GONE); }
+        if (skipChip != null && !skipDone && cp > 300000) { skipDone = true; skipChip.setVisibility(View.GONE); }
     }
 
     private void flash(String t) {
@@ -1208,6 +1238,7 @@ public class PlayerActivity extends Activity {
         handler.removeCallbacks(tick);
         snapshot();
         reported = true;
+        ExoPlayerPlugin.subDelay = subDelayMs;
         ExoPlayerPlugin.failed(lastPos, lastDur, next, errCode != null ? String.valueOf(errCode.getText()) : "");
         finish();
     }
@@ -1216,8 +1247,43 @@ public class PlayerActivity extends Activity {
         if (reported) return;
         snapshot();
         reported = true;
+        ExoPlayerPlugin.subDelay = subDelayMs;
         ExoPlayerPlugin.finished(ended && lastDur > 0 ? lastDur : lastPos, lastDur, ended);
         finish();
+    }
+
+    /** the video ended: offer the next episode (starts by itself in a few seconds) or just leave */
+    private void onEnded() {
+        if (nextTitle.isEmpty() || nextLayer == null) { finishWith(true); return; }
+        if (nextOn) return;
+        nextOn = true;
+        nextSecs = 8;
+        controls.setVisibility(View.GONE);
+        controlsOn = false;
+        handler.removeCallbacks(hideRun);
+        nextLayer.removeAllViews();
+        nextLayer.setVisibility(View.VISIBLE);
+        LinearLayout card = new LinearLayout(this);
+        card.setOrientation(LinearLayout.VERTICAL);
+        card.setPadding(dp(30), dp(24), dp(30), dp(24));
+        GradientDrawable cb = new GradientDrawable(GradientDrawable.Orientation.TL_BR, new int[]{0xF2161622, 0xF20B0B12});
+        cb.setCornerRadius(dp(26));
+        card.setBackground(cb);
+        TextView h1 = text("Next episode", 14, true); h1.setAlpha(.6f);
+        TextView h2 = text(nextTitle, 22, true); h2.setEllipsize(TextUtils.TruncateAt.END);
+        nextCount = text("Starting in " + nextSecs + " s", 14, false); nextCount.setAlpha(.7f);
+        nextCount.setPadding(0, dp(6), 0, dp(16));
+        LinearLayout row = new LinearLayout(this);
+        row.setOrientation(LinearLayout.HORIZONTAL);
+        TextView go = chip("Play now", true, v -> { ExoPlayerPlugin.autoNext = true; finishWith(true); });
+        TextView no = chip("Not now", false, v -> finishWith(true));
+        row.addView(go); row.addView(no);
+        card.addView(h1); card.addView(h2); card.addView(nextCount); card.addView(row);
+        FrameLayout.LayoutParams lp = new FrameLayout.LayoutParams(dp(460), -2, Gravity.BOTTOM | Gravity.END);
+        lp.rightMargin = dp(48); lp.bottomMargin = dp(48);
+        nextLayer.addView(card, lp);
+        go.requestFocus();
+        handler.postDelayed(nextTick, 1000);
     }
 
     private void hideSystemUi() {
@@ -1244,6 +1310,11 @@ public class PlayerActivity extends Activity {
         if (errOn) {                                                 // failed-source dialog: Back leaves, everything else moves between its two buttons
             if (keyCode == KeyEvent.KEYCODE_BACK) { failAndLeave(false); return true; }
             handler.removeCallbacks(tick); if (errNextLabel != null) errNextLabel.setText("Try next source");
+            return super.onKeyDown(keyCode, event);
+        }
+        if (nextOn) {                                                // next-episode card: Back leaves, other keys move between its buttons
+            if (keyCode == KeyEvent.KEYCODE_BACK) { finishWith(true); return true; }
+            handler.removeCallbacks(nextTick); if (nextCount != null) nextCount.setText("Paused");
             return super.onKeyDown(keyCode, event);
         }
         if (keyCode == KeyEvent.KEYCODE_BACK) {

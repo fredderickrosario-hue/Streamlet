@@ -33,6 +33,8 @@ import com.getcapacitor.annotation.CapacitorPlugin;
 public class ExoPlayerPlugin extends Plugin {
     static ExoPlayerPlugin instance;
     static PluginCall pending;
+    static long subDelay = Long.MIN_VALUE;   // set by the player when it knows the subtitle delay
+    static boolean autoNext = false;
 
     @Override
     public void load() {
@@ -136,6 +138,10 @@ public class ExoPlayerPlugin extends Plugin {
         i.putExtra("hw", call.getBoolean("hw", true));
         i.putExtra("fps", call.getBoolean("fps", true));
         i.putExtra("tunnel", call.getBoolean("tunnel", false));
+        i.putExtra("nextTitle", call.getString("nextTitle", ""));
+        i.putExtra("episode", call.getBoolean("episode", false));
+        Long sd = call.getLong("subDelay", 0L);
+        i.putExtra("subDelay", sd == null ? 0L : sd);
 
         call.setKeepAlive(true);
         pending = call;
@@ -157,6 +163,8 @@ public class ExoPlayerPlugin extends Plugin {
         o.put("duration", duration);
         o.put("ended", false);
         o.put("failed", true);
+        if (subDelay != Long.MIN_VALUE) o.put("subDelay", subDelay);
+        subDelay = Long.MIN_VALUE; autoNext = false;
         o.put("next", next);
         o.put("error", code);
         pending.resolve(o);
@@ -169,6 +177,9 @@ public class ExoPlayerPlugin extends Plugin {
         o.put("position", position);
         o.put("duration", duration);
         o.put("ended", ended);
+        if (subDelay != Long.MIN_VALUE) o.put("subDelay", subDelay);
+        o.put("autoNext", autoNext);
+        subDelay = Long.MIN_VALUE; autoNext = false;
         pending.resolve(o);
         pending = null;
     }
