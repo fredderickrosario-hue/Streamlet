@@ -541,6 +541,12 @@ body.tv .gtile{height:52px;min-width:130px;font-size:15px}
 #intro{position:fixed;inset:0;z-index:9999;background:radial-gradient(circle at 50% 42%,#241a45,#0a0a12 70%);display:flex;flex-direction:column;align-items:center;justify-content:center;transition:opacity .6s ease}
 #intro[hidden]{display:none}
 #intro.out{opacity:0;pointer-events:none}
+.ilogo,.iword{opacity:0}
+nav button.upd>svg{animation:updspin 9s linear infinite;transform-origin:50% 50%}
+nav button.upd{position:relative}
+nav button.upd::after{content:'';position:absolute;top:6px;right:calc(50% - 20px);width:9px;height:9px;border-radius:50%;background:var(--acc);box-shadow:0 0 0 2px #0e0f13,0 0 8px var(--acc)}
+body.tv nav button.upd::after{top:8px;left:34px;right:auto}
+@keyframes updspin{to{transform:rotate(360deg)}}
 .ilogo{width:min(46vmin,360px);height:auto;overflow:visible}
 .iword{margin-top:3vmin;font-size:clamp(28px,7vmin,64px);font-weight:800;letter-spacing:.5px;color:#fff;display:flex}
 @keyframes idraw{to{stroke-dashoffset:0}}
@@ -749,12 +755,14 @@ body.tv{min-height:calc(var(--vh,1vh) * 100)}   /* 100vh is too tall once the TV
       <linearGradient id="ig2" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff"/><stop offset="1" stop-color="#ddd3ff"/></linearGradient>
     </defs>
     <circle class="iglow" cx="487" cy="520" r="400" fill="url(#iglg)" style="opacity:0"/>
+    <g class="ispin">
     <path class="iring" pathLength="1" d="M563.1 236.0 A294 294 0 1 0 765.0 424.3" fill="none" stroke="url(#ig1)" stroke-width="66" stroke-linecap="round"/>
     <path class="iplay" d="M446 430Q446 410 466 421L592 494Q610 505 592 516L466 589Q446 600 446 580Z" fill="url(#ig2)" stroke="url(#ig2)" stroke-width="26" stroke-linejoin="round"/>
     <g class="iplug"><g transform="translate(710 338) rotate(-33) scale(.86)">
       <rect x="-74" y="-148" width="38" height="104" rx="19" fill="url(#ig2)"/><rect x="36" y="-148" width="38" height="104" rx="19" fill="url(#ig2)"/>
       <path d="M-100 -66H100Q124 -66 124 -42V12Q124 74 62 82L38 120H-38L-62 82Q-124 74 -124 12V-42Q-124 -66 -100 -66Z" fill="url(#ig2)"/>
     </g></g>
+    </g>
   </svg>
   <div class="iword" id="iword"></div>
 </div>
@@ -804,8 +812,12 @@ body.tv{min-height:calc(var(--vh,1vh) * 100)}   /* 100vh is too tall once the TV
       <h2 class="sh">About</h2>
       <div class="addon">
         <p id="verLine" style="margin:0 0 10px"></p>
-        <div id="apkRow" hidden><button class="btn ghost" id="apkBtn" type="button">Check for updates</button><p class="hint" id="apkMsg" style="margin-top:8px"></p></div>
-        <button class="btn ghost sm" id="updBtn" type="button">Check for updates (reload)</button>
+        <div id="apkRow" hidden>
+          <button class="btn ghost" id="apkBtn" type="button">Check for updates</button>
+          <button class="btn" id="apkInstall" type="button" hidden style="margin-left:8px">Install update</button>
+          <p class="hint" id="apkMsg" style="margin-top:8px"></p>
+        </div>
+        <div style="margin-top:10px"><button class="btn ghost sm" id="updBtn" type="button">Restart</button> <button class="btn ghost sm" id="closeBtn" type="button" style="margin-left:8px">Close app</button></div>
       </div>
     </div>
   </section>
@@ -1484,6 +1496,10 @@ function applyUI(){
   document.body.classList.toggle('noanim', u.anim === false);
   document.body.classList.toggle('noglass', u.glass === undefined ? tv : u.glass === false);
 }
+$('#closeBtn').onclick = async () => {
+  try { const A = window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.App; if (A && A.exitApp) { await A.exitApp(); return; } } catch {}
+  window.close(); toast('You can close this tab.');
+};
 $('#updBtn').onclick = async () => {
   try { for (const r of await navigator.serviceWorker.getRegistrations()) await r.unregister(); for (const k of await caches.keys()) await caches.delete(k); } catch {}
   location.reload();
@@ -2508,7 +2524,7 @@ async function checkUpdate(){
   return (updInfo = {cur, latest, newer: latest > cur});
 }
 async function runUpdate(){
-  const N = nativePlayer(), msg = $('#apkMsg'), btn = $('#apkBtn');
+  const N = nativePlayer(), msg = $('#apkMsg'), btn = $('#apkInstall');
   btn.disabled = true; msg.textContent = 'Downloading…';
   const hd = await N.addListener('updateProgress', e => { if (e.percent >= 0) msg.textContent = `Downloading… ${e.percent}%`; });
   try { await N.installApk({url:UPD_APK}); msg.textContent = 'Tap Install in the window that opened.'; }
@@ -2521,10 +2537,12 @@ async function runUpdate(){
   btn.disabled = false;
 }
 function showUpdState(){
-  const msg = $('#apkMsg'), btn = $('#apkBtn');
+  const msg = $('#apkMsg'), inst = $('#apkInstall');
   if (!updInfo) return;
-  if (updInfo.newer) { btn.textContent = `Update to build ${updInfo.latest}`; btn.className = 'btn'; btn.onclick = runUpdate; msg.textContent = `Installed: build ${updInfo.cur}. A newer version is available.`; }
-  else { btn.textContent = 'Check for updates'; btn.className = 'btn ghost'; btn.onclick = manualCheck; msg.textContent = `You're up to date (build ${updInfo.cur}).`; }
+  $('#tabSettings').classList.toggle('upd', !!updInfo.newer);
+  inst.hidden = !updInfo.newer;
+  if (updInfo.newer) { inst.textContent = `Install build ${updInfo.latest}`; inst.onclick = runUpdate; msg.textContent = `Installed: build ${updInfo.cur}. Build ${updInfo.latest} is available.`; }
+  else msg.textContent = `You're up to date (build ${updInfo.cur}).`;
 }
 async function manualCheck(){
   const msg = $('#apkMsg'); msg.textContent = 'Checking…';
@@ -3158,7 +3176,7 @@ $('#pseek').addEventListener('click', e => { const v = $('#vid'), r = e.currentT
 (function(){
   const el = $('#intro');
   if (navigator.webdriver && !/[?&]intro/.test(location.search)) { el.remove(); return; }
-  const ring = el.querySelector('.iring'), play = el.querySelector('.iplay'), plug = el.querySelector('.iplug'), glow = el.querySelector('.iglow');
+  const spin = el.querySelector('.ispin'), ring = el.querySelector('.iring'), play = el.querySelector('.iplay'), plug = el.querySelector('.iplug'), glow = el.querySelector('.iglow');
   const w = $('#iword');
   const letters = [...'Streamlet'].map((c, i) => { const sp = h('span', {class:i >= 6 ? 'acc' : ''}, c); w.append(sp); return sp; });
   w.style.opacity = '0';
@@ -3166,23 +3184,31 @@ $('#pseek').addEventListener('click', e => { const v = $('#vid'), r = e.currentT
   ring.style.strokeDasharray = len; ring.style.strokeDashoffset = len; play.style.opacity = '0'; plug.style.opacity = '0'; glow.style.opacity = '0';
   const clamp = t => Math.max(0, Math.min(1, t)), out = t => 1 - Math.pow(1 - t, 3), back = t => { const c = 1.70158; t -= 1; return 1 + (c + 1) * t * t * t + c * t * t; };
   const seg = (n, a, d) => clamp((n - a) / d);
-  const PLAY_END = 5200;                                            // everything has finished and the logo has been held for a moment
+  const PLAY_END = 4600;                                            // everything has finished and the logo has been held for a moment
   const appShown = () => !$('#profiles').hidden || !$('#launcher').hidden || !$('#login').hidden || document.body.classList.contains('onhome');
   let done = false, n = 0, last = null;
   const end = () => { if (done) return; done = true; el.classList.add('out'); setTimeout(() => el.remove(), 800); };
+  const render = n => {
+    const sp = out(seg(n, 250, 1500));                              // swirl: starts small, blurred and spinning, then settles into the ring
+    glow.style.opacity = out(seg(n, 300, 1800));
+    plug.style.opacity = out(seg(n, 250, 500));
+    const gp = Math.max(.001, out(seg(n, 250, 1500))); ring.style.strokeDasharray = gp + ' 2'; ring.style.strokeDashoffset = 2 * gp + 1;   // pathLength is 1: the cord grows out of the plug
+    spin.setAttribute('transform', `rotate(${260 * (1 - sp)} 487 520) translate(487 520) scale(${.45 + .55 * sp}) translate(-487 -520)`);
+    ring.style.filter = sp < 1 ? `blur(${14 * Math.pow(1 - sp, 1.5)}px)` : 'none';
+    const pp = back(seg(n, 1750, 650));
+    play.style.opacity = clamp(seg(n, 1750, 250)); play.setAttribute('transform', `translate(520 510) scale(${.3 + .7 * pp}) translate(-520 -510)`);
+    const q = seg(n, 2500, 750), ang = 9 * Math.sin(q * Math.PI * 5) * (1 - q);   // small shake once everything is connected
+    plug.setAttribute('transform', `rotate(${ang} 765 424)`);
+    const k = out(seg(n, 2800, 900)); w.style.opacity = k; w.style.letterSpacing = (16 * (1 - k) + .5) + 'px'; w.style.filter = k < 1 ? `blur(${6 * (1 - k)}px)` : 'none';
+  };
+  render(0); el.querySelector('.ilogo').style.opacity = '1'; w.style.opacity = '0';   // set the first frame before anything is shown
+  window.__introSet = x => { done = true; render(x); };
   const frame = ts => {
     if (done) return;
     if (last === null) last = ts;
     n += Math.min(ts - last, 50);                                   // a slow start only slows the animation down; it never skips it
     last = ts;
-    glow.style.opacity = out(seg(n, 500, 2200));
-    plug.style.opacity = out(seg(n, 450, 450));
-    ring.style.strokeDashoffset = len * (1 - out(seg(n, 650, 1300)));
-    const pp = back(seg(n, 2000, 650));
-    play.style.opacity = clamp(seg(n, 2000, 250)); play.setAttribute('transform', `translate(520 510) scale(${.3 + .7 * pp}) translate(-520 -510)`);
-    const q = seg(n, 2750, 750), ang = 9 * Math.sin(q * Math.PI * 5) * (1 - q);   // small shake once everything is connected
-    plug.setAttribute('transform', `rotate(${ang} 765 424)`);
-    const k = out(seg(n, 3000, 900)); w.style.opacity = k; w.style.letterSpacing = (16 * (1 - k) + .5) + 'px'; w.style.filter = k < 1 ? `blur(${6 * (1 - k)}px)` : 'none';
+    render(n);
     if (n >= PLAY_END && appShown()) { end(); return; }
     requestAnimationFrame(frame);
   };
