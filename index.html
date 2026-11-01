@@ -803,7 +803,7 @@ body.tv{min-height:calc(var(--vh,1vh) * 100)}   /* 100vh is too tall once the TV
       </div>
       <h2 class="sh">Sound &amp; playback <small style="color:var(--mut);font-weight:400">(this device)</small></h2>
       <div class="addon">
-        <label class="row2"><span>Sound effects</span><input type="checkbox" id="setSnd"></label>
+        <label class="row2"><span>Navigation sounds</span><input type="checkbox" id="setSnd"></label>
         <div id="setPlay" hidden>
           <label class="row2"><span>Hardware video decoding</span><input type="checkbox" id="setHw"></label>
           <label class="row2"><span>Match video frame rate</span><input type="checkbox" id="setFps"></label>
@@ -3112,35 +3112,54 @@ document.addEventListener('keyup', e => {
 }, true);
 /* ---------- sound effects (tiny synthesized sounds, no files) ---------- */
 const sfx = (() => {
-  let ctx = null, last = 0;
+  let ctx = null, bus = null, last = 0;
   const on = () => lsGet('streamlet.ui', {}).sound !== false;
-  const ensure = () => { try { ctx = ctx || new (window.AudioContext || window.webkitAudioContext)(); if (ctx.state === 'suspended') ctx.resume(); } catch {} return ctx; };
-  const tone = (f0, f1, dur, vol, type = 'sine', t0 = 0) => {
+  const ensure = () => {
+    try {
+      if (!ctx) {
+        ctx = new (window.AudioContext || window.webkitAudioContext)();
+        const lp = ctx.createBiquadFilter(), master = ctx.createGain(), dl = ctx.createDelay(.5), fb = ctx.createGain(), dlp = ctx.createBiquadFilter();
+        lp.type = 'lowpass'; lp.frequency.value = 1900; lp.Q.value = .4; master.gain.value = .9;
+        dl.delayTime.value = .13; fb.gain.value = .26; dlp.type = 'lowpass'; dlp.frequency.value = 1200;   // a soft, warm tail
+        lp.connect(master); lp.connect(dl); dl.connect(dlp); dlp.connect(fb); fb.connect(dl); dlp.connect(master); master.connect(ctx.destination);
+        bus = lp;
+      }
+      if (ctx.state === 'suspended') ctx.resume();
+    } catch {}
+    return ctx;
+  };
+  // a soft rounded note: a sine plus a quiet octave, slow-ish attack, gentle decay
+  const note = (f, dur, vol, t0 = 0) => {
     const c = ensure(); if (!c) return;
-    const t = c.currentTime + t0, o = c.createOscillator(), g = c.createGain();
-    o.type = type; o.frequency.setValueAtTime(f0, t); if (f1 !== f0) o.frequency.exponentialRampToValueAtTime(f1, t + dur);
-    g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(vol, t + 0.008); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
-    o.connect(g); g.connect(c.destination); o.start(t); o.stop(t + dur + 0.03);
+    const t = c.currentTime + t0, g = c.createGain();
+    g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(vol, t + .014); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    g.connect(bus);
+    for (const [m, v] of [[1, 1], [2, .22]]) {
+      const o = c.createOscillator(), og = c.createGain();
+      o.type = 'sine'; o.frequency.setValueAtTime(f * m, t); o.frequency.exponentialRampToValueAtTime(f * m * .985, t + dur);
+      og.gain.value = v; o.connect(og); og.connect(g); o.start(t); o.stop(t + dur + .05);
+    }
   };
   const whoosh = (t0, dur, vol) => {
     const c = ensure(); if (!c) return;
     const t = c.currentTime + t0, n = Math.floor(c.sampleRate * dur), buf = c.createBuffer(1, n, c.sampleRate), d = buf.getChannelData(0);
     for (let i = 0; i < n; i++) d[i] = Math.random() * 2 - 1;
     const src = c.createBufferSource(), f = c.createBiquadFilter(), g = c.createGain();
-    src.buffer = buf; f.type = 'bandpass'; f.Q.value = 1.3;
-    f.frequency.setValueAtTime(260, t); f.frequency.exponentialRampToValueAtTime(2600, t + dur);
+    src.buffer = buf; f.type = 'bandpass'; f.Q.value = .9;
+    f.frequency.setValueAtTime(200, t); f.frequency.exponentialRampToValueAtTime(1500, t + dur);
     g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(vol, t + dur * .6); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
-    src.connect(f); f.connect(g); g.connect(c.destination); src.start(t);
+    src.connect(f); f.connect(g); g.connect(bus); src.start(t);
   };
   return {
-    tick(){ if (!on()) return; const n = performance.now(); if (n - last < 45) return; last = n; tone(1500, 1100, .05, .03); },
-    select(){ if (!on()) return; tone(620, 940, .09, .045, 'triangle'); },
-    back(){ if (!on()) return; tone(520, 320, .1, .04); },
-    boot(){ if (!on()) return;
+    tick(){ if (!on()) return; const n = performance.now(); if (n - last < 55) return; last = n; note(392, .11, .028); },
+    select(){ if (!on()) return; note(330, .16, .045); note(494, .2, .04, .055); },
+    back(){ if (!on()) return; note(294, .17, .04); note(220, .2, .03, .06); },
+    boot(){                                                           // not tied to the sound-effects switch
+      ensure();
       whoosh(.25, 1.55, .05);
-      tone(520, 1040, .16, .045, 'triangle', 2.0);                  // the play pops in
-      tone(190, 90, .1, .06, 'sine', 2.55); tone(1900, 1300, .03, .025, 'sine', 2.55);   // the plug clicks home
-      tone(880, 880, .9, .035, 'sine', 2.85); tone(1318.5, 1318.5, .9, .026, 'sine', 2.95); tone(1760, 1760, .8, .016, 'sine', 3.05); }
+      note(392, .35, .05, 2.0);                                       // the play appears
+      note(165, .3, .07, 2.55);                                       // the plug settles
+      note(523.25, 1.1, .04, 2.85); note(659.25, 1.1, .03, 2.95); note(784, 1.0, .022, 3.05); }
   };
 })();
 document.addEventListener('keydown', e => {
