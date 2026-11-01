@@ -732,6 +732,9 @@ body.tv #launcher.editing .sedit{display:flex}
 .newwrap{display:none}
 #launcher.editing .newwrap{display:block}
 .lfoot{gap:12px}
+body.launch main,body.tv.launch main{padding:0}
+body.tv #launcher{min-height:calc(var(--vh,1vh) * 100);box-sizing:border-box;padding-top:calc(var(--vh,1vh) * 4);padding-bottom:calc(var(--vh,1vh) * 3)}
+body.tv{min-height:calc(var(--vh,1vh) * 100)}   /* 100vh is too tall once the TV zoom is applied */
 </style>
 </head>
 <body>
