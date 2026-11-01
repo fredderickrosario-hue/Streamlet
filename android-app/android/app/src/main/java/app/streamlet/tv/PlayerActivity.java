@@ -232,6 +232,43 @@ public class PlayerActivity extends Activity {
         return sl;
     }
 
+    private Drawable fillBg(int normal, int focused, float radiusDp, boolean oval) {
+        StateListDrawable sl = new StateListDrawable();
+        GradientDrawable f = shape(oval, focused, 0, 0, radiusDp);
+        sl.addState(new int[]{android.R.attr.state_focused}, f);
+        sl.addState(new int[]{android.R.attr.state_pressed}, f);
+        sl.addState(new int[]{}, shape(oval, normal, 0, 0, radiusDp));
+        return sl;
+    }
+
+    private Drawable softBg(boolean oval, float radiusDp) { return fillBg(0x00000000, 0x38FFFFFF, radiusDp, oval); }
+
+    /** icon-only button that grows a label when it has focus */
+    private LinearLayout quick(int iconRes, String label, View.OnClickListener c, TextView[] holder) {
+        final LinearLayout l = new LinearLayout(this);
+        l.setOrientation(LinearLayout.HORIZONTAL);
+        l.setGravity(Gravity.CENTER_VERTICAL);
+        l.setPadding(dp(14), dp(11), dp(14), dp(11));
+        l.setBackground(softBg(false, 26));
+        l.setFocusable(true);
+        l.setClickable(true);
+        l.setOnClickListener(c);
+        final TextView t = text(label, 14, true);
+        t.setVisibility(View.GONE);
+        LinearLayout.LayoutParams tl = new LinearLayout.LayoutParams(-2, -2);
+        tl.rightMargin = dp(10);
+        l.addView(t, tl);
+        ImageView iv = icon(iconRes, 26);
+        iv.setAlpha(.92f);
+        l.addView(iv);
+        l.setOnFocusChangeListener((v, f) -> t.setVisibility(f ? View.VISIBLE : View.GONE));
+        if (holder != null) holder[0] = t;
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(-2, -2);
+        lp.leftMargin = dp(4);
+        l.setLayoutParams(lp);
+        return l;
+    }
+
     private TextView text(String t, float sp, boolean bold) {
         TextView v = new TextView(this);
         v.setText(t);
@@ -252,13 +289,14 @@ public class PlayerActivity extends Activity {
 
     private FrameLayout circleBtn(int iconRes, int sizeDp, int iconDp, String badge, boolean mirror, View.OnClickListener c) {
         FrameLayout b = new FrameLayout(this);
-        b.setBackground(stateBg(true, 0x33FFFFFF, 0x66FFFFFF, 0));
+        b.setBackground(softBg(true, 0));
         b.setFocusable(true);
         b.setClickable(true);
         b.setOnClickListener(c);
         ImageView iv = new ImageView(this);
         iv.setImageResource(iconRes);
         iv.setColorFilter(Color.WHITE);
+        iv.setAlpha(.95f);
         if (mirror) iv.setScaleX(-1f);
         b.addView(iv, new FrameLayout.LayoutParams(dp(iconDp), dp(iconDp), Gravity.CENTER));
         if (badge != null) {
@@ -276,7 +314,7 @@ public class PlayerActivity extends Activity {
         l.setOrientation(LinearLayout.HORIZONTAL);
         l.setGravity(Gravity.CENTER_VERTICAL);
         l.setPadding(dp(16), dp(10), dp(20), dp(10));
-        l.setBackground(stateBg(false, 0x30FFFFFF, 0xFF7C5CFF, 26));
+        l.setBackground(fillBg(0x1FFFFFFF, 0x45FFFFFF, 26, false));
         l.setFocusable(true);
         l.setClickable(true);
         l.setOnClickListener(c);
@@ -297,68 +335,48 @@ public class PlayerActivity extends Activity {
         controls = new FrameLayout(this);
         int pad = dp(36);
 
-        // top bar
+        // top: back arrow + title, nothing else
         LinearLayout top = new LinearLayout(this);
         top.setOrientation(LinearLayout.HORIZONTAL);
         top.setGravity(Gravity.CENTER_VERTICAL);
-        top.setPadding(pad, dp(22), pad, dp(40));
-        top.setBackground(new GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM, new int[]{0xE6000000, 0x00000000}));
+        top.setPadding(dp(40), dp(26), pad, dp(48));
+        top.setBackground(new GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM, new int[]{0xAA000000, 0x00000000}));
         FrameLayout back = circleBtn(R.drawable.ic_p_back, 46, 24, null, false, v -> finishWith(false));
         top.addView(back);
-        titleTx = text(title, 18, true);
+        titleTx = text(title, 17, true);
+        titleTx.setAlpha(.92f);
         titleTx.setEllipsize(TextUtils.TruncateAt.END);
         LinearLayout.LayoutParams tl = new LinearLayout.LayoutParams(0, -2, 1f);
-        tl.leftMargin = dp(16);
+        tl.leftMargin = dp(14);
         top.addView(titleTx, tl);
         controls.addView(top, new FrameLayout.LayoutParams(-1, -2, Gravity.TOP));
 
-        // centre transport
-        LinearLayout mid = new LinearLayout(this);
-        mid.setOrientation(LinearLayout.HORIZONTAL);
-        mid.setGravity(Gravity.CENTER);
-        FrameLayout rew = circleBtn(R.drawable.ic_p_replay, 58, 34, "10", false, v -> seekBy(-10000));
-        FrameLayout ff = circleBtn(R.drawable.ic_p_replay, 58, 34, "10", true, v -> seekBy(10000));
-        FrameLayout play = new FrameLayout(this);
-        play.setBackground(playBg());
-        play.setFocusable(true);
-        play.setClickable(true);
-        play.setOnClickListener(v -> togglePlay());
-        playIcon = new ImageView(this);
-        playIcon.setImageResource(R.drawable.ic_p_pause);
-        playIcon.setColorFilter(Color.WHITE);
-        play.addView(playIcon, new FrameLayout.LayoutParams(dp(40), dp(40), Gravity.CENTER));
-        LinearLayout.LayoutParams pp = new LinearLayout.LayoutParams(dp(78), dp(78));
-        pp.leftMargin = dp(34); pp.rightMargin = dp(34);
-        playBtn = play;
-        mid.addView(rew);
-        mid.addView(play, pp);
-        mid.addView(ff);
-        controls.addView(mid, new FrameLayout.LayoutParams(-2, -2, Gravity.CENTER));
-
-        // bottom: seek + pills
+        // bottom: thin progress line, then one row of controls
         LinearLayout bottom = new LinearLayout(this);
         bottom.setOrientation(LinearLayout.VERTICAL);
-        bottom.setPadding(pad, dp(46), pad, dp(22));
-        bottom.setBackground(new GradientDrawable(GradientDrawable.Orientation.BOTTOM_TOP, new int[]{0xEE000000, 0x00000000}));
+        bottom.setPadding(dp(56), dp(70), dp(56), dp(22));
+        bottom.setBackground(new GradientDrawable(GradientDrawable.Orientation.BOTTOM_TOP, new int[]{0xEE000000, 0xAA000000, 0x00000000}));
 
         LinearLayout row = new LinearLayout(this);
         row.setOrientation(LinearLayout.HORIZONTAL);
         row.setGravity(Gravity.CENTER_VERTICAL);
-        posTx = text("0:00", 14, true);
-        durTx = text("0:00", 14, true);
-        posTx.setAlpha(.9f); durTx.setAlpha(.7f);
+        posTx = text("0:00", 13, true);
+        durTx = text("", 13, true);
+        posTx.setAlpha(.9f); durTx.setAlpha(.65f);
         seek = new SeekBar(this);
         seek.setPadding(0, 0, 0, 0);
         seek.setMax(1);
         seek.setKeyProgressIncrement(10000);
         seek.setProgressDrawable(seekDrawable());
-        GradientDrawable thumb = shape(true, Color.WHITE, 0, 0, 0);
-        thumb.setSize(dp(18), dp(18));
+        final GradientDrawable thumb = shape(true, Color.WHITE, 0, 0, 0);
+        thumb.setSize(dp(16), dp(16));
+        thumb.setAlpha(0);
         seek.setThumb(thumb);
         seek.setThumbOffset(0);
         seek.setSplitTrack(false);
-        seek.setBackground(stateBg(false, 0x00000000, 0x22FFFFFF, 12));
+        seek.setBackground(null);
         seek.setFocusable(true);
+        seek.setOnFocusChangeListener((v, f) -> { thumb.setAlpha(f ? 255 : 0); seek.invalidate(); });
         seek.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             @Override public void onProgressChanged(SeekBar sb, int p, boolean fromUser) {
                 if (!fromUser) return;
@@ -371,34 +389,52 @@ public class PlayerActivity extends Activity {
             @Override public void onStartTrackingTouch(SeekBar sb) { seekPending = true; handler.removeCallbacks(hideRun); }
             @Override public void onStopTrackingTouch(SeekBar sb) { handler.removeCallbacks(seekRun); seekRun.run(); scheduleHide(); }
         });
-        LinearLayout.LayoutParams sl = new LinearLayout.LayoutParams(0, dp(40), 1f);
-        sl.leftMargin = dp(14); sl.rightMargin = dp(14);
+        LinearLayout.LayoutParams sl = new LinearLayout.LayoutParams(0, dp(30), 1f);
+        sl.leftMargin = dp(16); sl.rightMargin = dp(16);
         row.addView(posTx);
         row.addView(seek, sl);
         row.addView(durTx);
         bottom.addView(row, new LinearLayout.LayoutParams(-1, -2));
 
-        LinearLayout pills = new LinearLayout(this);
-        pills.setOrientation(LinearLayout.HORIZONTAL);
-        pills.setPadding(0, dp(8), 0, 0);
-        final LinearLayout pSub = pill(R.drawable.ic_p_cc, "Subtitles", null, null);
-        final LinearLayout pAud = pill(R.drawable.ic_p_audio, "Audio", null, null);
+        LinearLayout ctl = new LinearLayout(this);
+        ctl.setOrientation(LinearLayout.HORIZONTAL);
+        ctl.setGravity(Gravity.CENTER_VERTICAL);
+        ctl.setPadding(0, dp(8), 0, 0);
+        FrameLayout rew = circleBtn(R.drawable.ic_p_replay, 50, 28, "10", false, v -> seekBy(-10000));
+        FrameLayout ff = circleBtn(R.drawable.ic_p_replay, 50, 28, "10", true, v -> seekBy(10000));
+        FrameLayout play = new FrameLayout(this);
+        play.setBackground(softBg(true, 0));
+        play.setFocusable(true);
+        play.setClickable(true);
+        play.setOnClickListener(v -> togglePlay());
+        playIcon = new ImageView(this);
+        playIcon.setImageResource(R.drawable.ic_p_pause);
+        playIcon.setColorFilter(Color.WHITE);
+        play.addView(playIcon, new FrameLayout.LayoutParams(dp(34), dp(34), Gravity.CENTER));
+        LinearLayout.LayoutParams pp = new LinearLayout.LayoutParams(dp(60), dp(60));
+        pp.leftMargin = dp(8); pp.rightMargin = dp(8);
+        playBtn = play;
+        ctl.addView(rew); ctl.addView(play, pp); ctl.addView(ff);
+        View spacer = new View(this);
+        ctl.addView(spacer, new LinearLayout.LayoutParams(0, 1, 1f));
+        final LinearLayout qSub = quick(R.drawable.ic_p_cc, "Subtitles", null, null);
+        final LinearLayout qAud = quick(R.drawable.ic_p_audio, "Audio", null, null);
         TextView[] h = new TextView[1];
-        final LinearLayout pSpd = pill(R.drawable.ic_p_speed, "1.0\u00d7", null, h);
+        final LinearLayout qSpd = quick(R.drawable.ic_p_speed, "Speed \u00b7 1\u00d7", null, h);
         speedTx = h[0];
-        final LinearLayout pSize = pill(R.drawable.ic_p_size, "Subtitle size", null, null);
-        pSub.setOnClickListener(v -> openTrackMenu(pSub, "Subtitles", C.TRACK_TYPE_TEXT));
-        pAud.setOnClickListener(v -> openTrackMenu(pAud, "Audio", C.TRACK_TYPE_AUDIO));
-        pSpd.setOnClickListener(v -> openSpeedMenu(pSpd));
-        pSize.setOnClickListener(v -> openSizeMenu(pSize));
-        pills.addView(pSub); pills.addView(pAud); pills.addView(pSpd); pills.addView(pSize);
-        bottom.addView(pills, new LinearLayout.LayoutParams(-2, -2));
+        final LinearLayout qSize = quick(R.drawable.ic_p_size, "Subtitle size", null, null);
+        qSub.setOnClickListener(v -> openTrackMenu(qSub, "Subtitles", C.TRACK_TYPE_TEXT));
+        qAud.setOnClickListener(v -> openTrackMenu(qAud, "Audio", C.TRACK_TYPE_AUDIO));
+        qSpd.setOnClickListener(v -> openSpeedMenu(qSpd));
+        qSize.setOnClickListener(v -> openSizeMenu(qSize));
+        ctl.addView(qSub); ctl.addView(qAud); ctl.addView(qSpd); ctl.addView(qSize);
+        bottom.addView(ctl, new LinearLayout.LayoutParams(-1, -2));
         controls.addView(bottom, new FrameLayout.LayoutParams(-1, -2, Gravity.BOTTOM));
         root.addView(controls, new FrameLayout.LayoutParams(-1, -1));
 
         // buffering spinner + quick seek flash
         spinner = new ProgressBar(this);
-        spinner.setIndeterminateTintList(ColorStateList.valueOf(CYAN));
+        spinner.setIndeterminateTintList(ColorStateList.valueOf(Color.WHITE));
         root.addView(spinner, new FrameLayout.LayoutParams(dp(54), dp(54), Gravity.CENTER));
         flashTx = text("", 22, true);
         flashTx.setPadding(dp(22), dp(12), dp(22), dp(12));
@@ -443,29 +479,15 @@ public class PlayerActivity extends Activity {
         root.setOnClickListener(v -> { if (controlsOn) hideControls(); else showControls(playBtn); });
     }
 
-    private Drawable playBg() {
-        StateListDrawable sl = new StateListDrawable();
-        GradientDrawable f = new GradientDrawable(GradientDrawable.Orientation.TL_BR, new int[]{ACC1, ACC2});
-        f.setShape(GradientDrawable.OVAL);
-        f.setStroke(dp(3.5f), Color.WHITE);
-        GradientDrawable n = new GradientDrawable(GradientDrawable.Orientation.TL_BR, new int[]{ACC1, ACC2});
-        n.setShape(GradientDrawable.OVAL);
-        sl.addState(new int[]{android.R.attr.state_focused}, f);
-        sl.addState(new int[]{android.R.attr.state_pressed}, f);
-        sl.addState(new int[]{}, n);
-        return sl;
-    }
-
     private Drawable seekDrawable() {
-        GradientDrawable bg = shape(false, 0x40FFFFFF, 0, 0, 3);
-        GradientDrawable buf = shape(false, 0x55FFFFFF, 0, 0, 3);
-        GradientDrawable fg = new GradientDrawable(GradientDrawable.Orientation.LEFT_RIGHT, new int[]{ACC1, CYAN});
-        fg.setCornerRadius(dp(3));
+        GradientDrawable bg = shape(false, 0x38FFFFFF, 0, 0, 2);
+        GradientDrawable buf = shape(false, 0x4DFFFFFF, 0, 0, 2);
+        GradientDrawable fg = shape(false, 0xFFFFFFFF, 0, 0, 2);
         LayerDrawable ld = new LayerDrawable(new Drawable[]{bg, new ClipDrawable(buf, Gravity.START, ClipDrawable.HORIZONTAL), new ClipDrawable(fg, Gravity.START, ClipDrawable.HORIZONTAL)});
         ld.setId(0, android.R.id.background);
         ld.setId(1, android.R.id.secondaryProgress);
         ld.setId(2, android.R.id.progress);
-        for (int i = 0; i < 3; i++) ld.setLayerInset(i, 0, dp(17), 0, dp(17));
+        for (int i = 0; i < 3; i++) ld.setLayerInset(i, 0, dp(13), 0, dp(13));
         return ld;
     }
 
@@ -489,7 +511,7 @@ public class PlayerActivity extends Activity {
         long d = player.getDuration();
         if (d != C.TIME_UNSET && d > 0) {
             seek.setMax((int) Math.min(d, Integer.MAX_VALUE));
-            durTx.setText(fmt(d));
+            durTx.setText("\u2212" + fmt(d - Math.max(0, player.getCurrentPosition())));
         }
         seek.setProgress((int) Math.min(Math.max(0, player.getCurrentPosition()), seek.getMax()));
         seek.setSecondaryProgress((int) Math.min(Math.max(0, player.getBufferedPosition()), seek.getMax()));
@@ -558,9 +580,8 @@ public class PlayerActivity extends Activity {
         LinearLayout panel = new LinearLayout(this);
         panel.setOrientation(LinearLayout.VERTICAL);
         panel.setPadding(dp(14), dp(18), dp(14), dp(14));
-        panel.setBackground(new GradientDrawable(GradientDrawable.Orientation.TL_BR, new int[]{0xF2201A38, 0xF20E0E18}));
+        panel.setBackground(new GradientDrawable(GradientDrawable.Orientation.TL_BR, new int[]{0xF2161622, 0xF20B0B12}));
         ((GradientDrawable) panel.getBackground()).setCornerRadius(dp(26));
-        ((GradientDrawable) panel.getBackground()).setStroke(dp(1), 0x33FFFFFF);
         panel.setClickable(true);
         TextView ttl = text(title, 20, true);
         ttl.setPadding(dp(10), 0, 0, dp(12));
@@ -577,7 +598,7 @@ public class PlayerActivity extends Activity {
             r.setOrientation(LinearLayout.HORIZONTAL);
             r.setGravity(Gravity.CENTER_VERTICAL);
             r.setPadding(dp(16), dp(13), dp(16), dp(13));
-            r.setBackground(stateBg(false, i == selected ? 0x26FFFFFF : 0x00000000, 0xFF7C5CFF, 16));
+            r.setBackground(fillBg(i == selected ? 0x16FFFFFF : 0x00000000, 0x33FFFFFF, 16, false));
             r.setFocusable(true);
             r.setClickable(true);
             TextView l = text(labels.get(i), 16, i == selected);
@@ -673,7 +694,7 @@ public class PlayerActivity extends Activity {
         openMenu(opener, "Playback speed", labels, sel, idx -> {
             speed = SPEEDS[idx];
             player.setPlaybackSpeed(speed);
-            speedTx.setText(String.format(Locale.US, "%.2f", speed).replaceAll("0+$", "").replaceAll("\\.$", ".0") + "\u00d7");
+            speedTx.setText("Speed \u00b7 " + String.format(Locale.US, "%.2f", speed).replaceAll("0+$", "").replaceAll("\\.$", "") + "\u00d7");
         });
     }
 
