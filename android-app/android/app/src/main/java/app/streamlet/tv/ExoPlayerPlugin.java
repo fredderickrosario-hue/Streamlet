@@ -145,6 +145,19 @@ public class ExoPlayerPlugin extends Plugin {
         instance.notifyListeners("progress", o);
     }
 
+    static void failed(long position, long duration, boolean next, String code) {
+        if (pending == null) return;
+        JSObject o = new JSObject();
+        o.put("position", position);
+        o.put("duration", duration);
+        o.put("ended", false);
+        o.put("failed", true);
+        o.put("next", next);
+        o.put("error", code);
+        pending.resolve(o);
+        pending = null;
+    }
+
     static void finished(long position, long duration, boolean ended) {
         if (pending == null) return;
         JSObject o = new JSObject();

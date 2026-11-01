@@ -43,7 +43,10 @@ import androidx.media3.common.MimeTypes;
 import androidx.media3.common.PlaybackException;
 import androidx.media3.common.Player;
 import androidx.media3.common.TrackSelectionParameters;
+import androidx.media3.datasource.DefaultDataSource;
+import androidx.media3.datasource.DefaultHttpDataSource;
 import androidx.media3.exoplayer.ExoPlayer;
+import androidx.media3.exoplayer.source.DefaultMediaSourceFactory;
 import androidx.media3.ui.PlayerView;
 
 import org.json.JSONArray;
@@ -60,6 +63,21 @@ public class PlayerActivity extends Activity {
     private final Handler handler = new Handler(Looper.getMainLooper());
     private boolean reported = false;
     private long lastPos = 0, lastDur = 0;
+
+    // ---- failed source dialog
+    private FrameLayout errLayer;
+    private TextView errMsg, errCode;
+    private TextView errNextLabel;
+    private View errNextBtn;
+    private boolean errOn = false;
+    private int countdown = 0;
+    private final Runnable tick = new Runnable() { @Override public void run() {
+        if (!errOn) return;
+        countdown--;
+        if (countdown <= 0) { failAndLeave(true); return; }
+        if (errNextLabel != null) errNextLabel.setText("Try next source (" + countdown + ")");
+        handler.postDelayed(this, 1000);
+    } };
 
     // ---- Streamlet control layer
     private static final int ACC1 = 0xFF8B5CFF, ACC2 = 0xFFEC4899, CYAN = 0xFF22D3EE;
@@ -115,7 +133,14 @@ public class PlayerActivity extends Activity {
         String audioLang = in.getStringExtra("audioLang");
         String subLang = in.getStringExtra("subLang");
 
-        player = new ExoPlayer.Builder(this).build();
+        DefaultHttpDataSource.Factory http = new DefaultHttpDataSource.Factory()
+                .setUserAgent("Mozilla/5.0 (Linux; Android 12; TV) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Safari/537.36")
+                .setAllowCrossProtocolRedirects(true)
+                .setConnectTimeoutMs(15000)
+                .setReadTimeoutMs(25000);
+        player = new ExoPlayer.Builder(this)
+                .setMediaSourceFactory(new DefaultMediaSourceFactory(new DefaultDataSource.Factory(this, http)))
+                .build();
         view.setPlayer(player);
         buildControls(title == null ? "" : title);
 
@@ -168,7 +193,7 @@ public class PlayerActivity extends Activity {
 
             @Override
             public void onPlayerError(PlaybackException error) {
-                Toast.makeText(PlayerActivity.this, "Can't play this stream: " + error.getErrorCodeName(), Toast.LENGTH_LONG).show();
+                showError(friendly(error), error.getErrorCodeName());
             }
         });
 
@@ -380,6 +405,33 @@ public class PlayerActivity extends Activity {
         menuLayer = new FrameLayout(this);
         menuLayer.setVisibility(View.GONE);
         root.addView(menuLayer, new FrameLayout.LayoutParams(-1, -1));
+
+        errLayer = new FrameLayout(this);
+        errLayer.setVisibility(View.GONE);
+        errLayer.setBackgroundColor(0xE6000000);
+        errLayer.setClickable(true);
+        LinearLayout card = new LinearLayout(this);
+        card.setOrientation(LinearLayout.VERTICAL);
+        card.setPadding(dp(34), dp(30), dp(34), dp(28));
+        GradientDrawable cbg = new GradientDrawable(GradientDrawable.Orientation.TL_BR, new int[]{0xFF241C3F, 0xFF0F0F18});
+        cbg.setCornerRadius(dp(26)); cbg.setStroke(dp(1), 0x33FFFFFF);
+        card.setBackground(cbg);
+        TextView et = text("This source can't be played", 22, true);
+        errMsg = text("", 16, false);
+        errMsg.setSingleLine(false); errMsg.setAlpha(.85f);
+        errMsg.setPadding(0, dp(10), 0, 0);
+        errCode = text("", 12, false);
+        errCode.setAlpha(.5f); errCode.setPadding(0, dp(8), 0, dp(22));
+        LinearLayout btns = new LinearLayout(this);
+        btns.setOrientation(LinearLayout.HORIZONTAL);
+        TextView[] hold = new TextView[1];
+        LinearLayout nextB = pill(R.drawable.ic_p_play, "Try next source (6)", v -> failAndLeave(true), hold);
+        errNextLabel = hold[0]; errNextBtn = nextB;
+        LinearLayout backB = pill(R.drawable.ic_p_back, "Back to sources", v -> failAndLeave(false), null);
+        btns.addView(nextB); btns.addView(backB);
+        card.addView(et); card.addView(errMsg); card.addView(errCode); card.addView(btns);
+        errLayer.addView(card, new FrameLayout.LayoutParams(dp(560), -2, Gravity.CENTER));
+        root.addView(errLayer, new FrameLayout.LayoutParams(-1, -1));
 
         root.setOnClickListener(v -> { if (controlsOn) hideControls(); else showControls(playBtn); });
     }
@@ -635,6 +687,54 @@ public class PlayerActivity extends Activity {
         lastDur = d == C.TIME_UNSET ? 0L : Math.max(0L, d);
     }
 
+    private String friendly(PlaybackException e) {
+        switch (e.errorCode) {
+            case PlaybackException.ERROR_CODE_PARSING_CONTAINER_MALFORMED:
+            case PlaybackException.ERROR_CODE_PARSING_CONTAINER_UNSUPPORTED:
+            case PlaybackException.ERROR_CODE_PARSING_MANIFEST_MALFORMED:
+            case PlaybackException.ERROR_CODE_PARSING_MANIFEST_UNSUPPORTED:
+                return "The file looks damaged, or it's in a format this player can't read.";
+            case PlaybackException.ERROR_CODE_IO_NETWORK_CONNECTION_FAILED:
+            case PlaybackException.ERROR_CODE_IO_NETWORK_CONNECTION_TIMEOUT:
+                return "Couldn't reach this source. It may be offline or slow.";
+            case PlaybackException.ERROR_CODE_IO_BAD_HTTP_STATUS:
+                return "The source refused the request (it may have expired).";
+            case PlaybackException.ERROR_CODE_DECODER_INIT_FAILED:
+            case PlaybackException.ERROR_CODE_DECODING_FAILED:
+            case PlaybackException.ERROR_CODE_DECODING_FORMAT_EXCEEDS_CAPABILITIES:
+            case PlaybackException.ERROR_CODE_DECODING_FORMAT_UNSUPPORTED:
+                return "This TV can't decode this video. A 1080p source usually works.";
+            default:
+                return "Something went wrong while loading this source.";
+        }
+    }
+
+    private void showError(String msg, String code) {
+        if (errOn || reported) return;
+        errOn = true;
+        if (player != null) player.pause();
+        hideControls();
+        menuLayer.setVisibility(View.GONE); menuOn = false;
+        spinner.setVisibility(View.GONE);
+        errMsg.setText(msg);
+        errCode.setText(code);
+        errLayer.setVisibility(View.VISIBLE);
+        countdown = 6;
+        if (errNextLabel != null) errNextLabel.setText("Try next source (6)");
+        if (errNextBtn != null) errNextBtn.requestFocus();
+        handler.removeCallbacks(tick);
+        handler.postDelayed(tick, 1000);
+    }
+
+    private void failAndLeave(boolean next) {
+        if (reported) return;
+        handler.removeCallbacks(tick);
+        snapshot();
+        reported = true;
+        ExoPlayerPlugin.failed(lastPos, lastDur, next, errCode != null ? String.valueOf(errCode.getText()) : "");
+        finish();
+    }
+
     private void finishWith(boolean ended) {
         if (reported) return;
         snapshot();
@@ -664,6 +764,11 @@ public class PlayerActivity extends Activity {
 
     @Override
     public boolean onKeyDown(int keyCode, KeyEvent event) {
+        if (errOn) {                                                 // failed-source dialog: Back leaves, everything else moves between its two buttons
+            if (keyCode == KeyEvent.KEYCODE_BACK) { failAndLeave(false); return true; }
+            handler.removeCallbacks(tick); if (errNextLabel != null) errNextLabel.setText("Try next source");
+            return super.onKeyDown(keyCode, event);
+        }
         if (keyCode == KeyEvent.KEYCODE_BACK) {
             if (menuOn) { closeMenu(); return true; }
             if (controlsOn) { hideControls(); return true; }

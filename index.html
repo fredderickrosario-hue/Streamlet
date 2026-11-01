@@ -735,6 +735,9 @@ body.tv #launcher.editing .sedit{display:flex}
 body.launch main,body.tv.launch main{padding:0}
 body.tv #launcher{min-height:calc(var(--vh,1vh) * 100);box-sizing:border-box;padding-top:calc(var(--vh,1vh) * 4);padding-bottom:calc(var(--vh,1vh) * 3)}
 body.tv{min-height:calc(var(--vh,1vh) * 100)}   /* 100vh is too tall once the TV zoom is applied */
+
+.scard.bad .sname::after{content:'  ·  failed earlier';font-size:12px;font-weight:600;color:#ff8f8f}
+.scard.bad{opacity:.7}
 </style>
 </head>
 <body>
@@ -2292,13 +2295,16 @@ function streamSummary(st){
   const parts = [size, seeds ? seeds + ' seeds' : null, src && src.trim()].filter(Boolean);
   return parts.length ? parts.join('  ·  ') : t.split('\n')[0].slice(0, 90);
 }
+const badStreams = new WeakSet(), streamEls = new WeakMap();
 function streamCard(st, title, ctx){
   const playable = !!(st.url || st.externalUrl || st.ytId), langs = streamLangs(st);
-  return h('button', {class:'scard' + (playable ? '' : ' dis'), type:'button', onclick:() => playStream(st, title, ctx)},
+  const card = h('button', {class:'scard' + (playable ? '' : ' dis') + (badStreams.has(st) ? ' bad' : ''), type:'button', onclick:() => playStream(st, title, ctx)},
     h('span', {class:'splay'}, playable ? '▶' : '✕'),
     h('div', {class:'sbody'}, h('b', {class:'sname'}, String(st.name || 'Stream').replace(/\n+/g, ' · ')), h('div', {class:'sinfo'}, streamSummary(st)), h('div', {class:'stxt'}, st.title || st.description || ''),
       langs.length ? h('div', {class:'slall', style:'margin-top:6px'}, langs.map(l => h('span', {class:'lc'}, l.toUpperCase()))) : null,
       langs.length ? h('div', {class:'slangs'}, langs.slice(0, 6).map(l => h('span', {class:'lc'}, l.toUpperCase())), langs.length > 6 ? h('span', {class:'lc more'}, '+' + (langs.length - 6)) : null) : null));
+  streamEls.set(st, card);
+  return card;
 }
 async function loadStreams(type, id, box, title, base = {}){
   const chipsEl = h('div', {class:'sfilter'}), listEl = h('div', {class:'slist'});
@@ -2314,10 +2320,11 @@ async function loadStreams(type, id, box, title, base = {}){
     chipsEl.replaceChildren(chip('all', 'All', loading ? '…' : String(total)),
       ...groups.map((g, i) => chip(String(i), an(g.a), g.ss ? String(g.ss.length) : (g.err ? '!' : '…'))));
     listEl.replaceChildren();
+    const flat = []; groups.forEach((g, i) => { if ((filter === 'all' || filter === String(i)) && !g.err && g.ss) flat.push(...g.ss); });
     groups.forEach((g, i) => {
       if (filter !== 'all' && filter !== String(i)) return;
       if (g.err) listEl.append(h('p', {class:'msg err'}, an(g.a) + ': ' + g.err));
-      else if (g.ss) for (const st of g.ss) listEl.append(streamCard(st, title, {type, id, ...base}));
+      else if (g.ss) for (const st of g.ss) listEl.append(streamCard(st, title, {type, id, ...base, _list:flat}));
     });
     if (loading && !listEl.children.length) listEl.append(h('p', {class:'spin'}, 'Searching…'));
     else if (!loading && !total && !listEl.querySelector('.msg')) listEl.append(h('p', {class:'spin'}, 'No streams found.'));
@@ -2564,7 +2571,13 @@ async function playNative(s, title, ctx){
   const handle = await N.addListener('progress', e => recordProgress(ctx, stream, e.position / 1000, e.duration / 1000));
   try {
     const r = await N.play({url:s.url, title:title || '', startMs, subtitles:picked, audioLang:code2(settings.audioLang) || null, subLang:pref ? (code2(pref) || pref) : null});
-    if (r && r.duration) recordProgress(ctx, stream, r.position / 1000, r.duration / 1000);
+    if (r && r.failed) {
+      badStreams.add(s); const el = streamEls.get(s); if (el) el.classList.add('bad');
+      const list = (ctx && ctx._list) || [], i = list.indexOf(s);
+      const nx = r.next && i >= 0 ? list.slice(i + 1).find(x => x && x.url && !badStreams.has(x)) : null;
+      if (nx) { toast('Trying the next source…'); return playNative(nx, title, ctx); }
+      toast(r.next ? 'No other sources to try.' : 'That source failed. Pick another one.');
+    } else if (r && r.duration) recordProgress(ctx, stream, r.position / 1000, r.duration / 1000);
   } catch (e) { toast("Couldn't start the native player: " + ((e && e.message) || e)); }
   finally { try { handle.remove(); } catch {} if (!$('#home').hidden) renderCW(); }
 }
