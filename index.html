@@ -3010,6 +3010,14 @@ function revealEl(el, dir, rep, tv, edge){
     if (document.body.classList.contains('tv')) {
       const lock = el.closest('#detail,#episode');
       if (lock) {                                                    // entry pages never scroll themselves; only their list does
+        const hs = el.closest('.srow,.sfilter');                       // season / filter chips scroll sideways inside their own row
+        if (hs) {
+          const sr = hs.getBoundingClientRect(), br = el.getBoundingClientRect(), k = sr.width / (hs.offsetWidth || sr.width) || 1, m = 28 * k;
+          if (el === hs.firstElementChild) hs.scrollLeft = 0;
+          else if (el === hs.lastElementChild) hs.scrollLeft = 1e7;
+          else if (br.right > sr.right - m) hs.scrollLeft += (br.right - (sr.right - m)) / k;
+          else if (br.left < sr.left + m) hs.scrollLeft -= (sr.left + m - br.left) / k;
+        }
         const sc = el.closest('.eplist,.slist');
         if (sc) {
           const item = el.closest('.eplist > *, .slist > *') || el, sr = sc.getBoundingClientRect(), br = item.getBoundingClientRect();
