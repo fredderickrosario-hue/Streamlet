@@ -460,6 +460,7 @@ nav button.on svg{fill:var(--acc);stroke:var(--acc);transform:none}
       <h2 class="sh">About</h2>
       <div class="addon">
         <p id="verLine" style="margin:0 0 10px"></p>
+        <div id="apkRow" hidden><button class="btn ghost" id="apkBtn" type="button">Check for updates</button><p class="hint" id="apkMsg" style="margin-top:8px"></p></div>
         <button class="btn ghost sm" id="updBtn" type="button">Check for updates (reload)</button>
       </div>
     </div>
@@ -1899,6 +1900,49 @@ async function playStream(s, title, ctx){
 }
 $('#vid').addEventListener('error', () => toast("Couldn't play that stream."));
 let lastSave = 0;
+
+/* ---------- in-app updates (Android app only): compares the installed build with the "apk-latest" release ---------- */
+const UPD_REPO = 'fredderickrosario-hue/Streamlet';
+const UPD_APK = `https://github.com/${UPD_REPO}/releases/download/apk-latest/Streamlet.apk`;
+let updInfo = null;
+async function checkUpdate(){
+  const N = nativePlayer(); if (!N || !N.appVersion) return null;
+  const cur = (await N.appVersion()).code;
+  const r = await fetch(`https://api.github.com/repos/${UPD_REPO}/releases/tags/apk-latest`, {headers:{Accept:'application/vnd.github+json'}});
+  if (!r.ok) throw new Error('Could not reach GitHub.');
+  const j = await r.json(), m = /Build #(\d+)/.exec(j.body || '');
+  const latest = m ? +m[1] : 0;
+  return (updInfo = {cur, latest, newer: latest > cur});
+}
+async function runUpdate(){
+  const N = nativePlayer(), msg = $('#apkMsg'), btn = $('#apkBtn');
+  btn.disabled = true; msg.textContent = 'Downloading…';
+  const hd = await N.addListener('updateProgress', e => { if (e.percent >= 0) msg.textContent = `Downloading… ${e.percent}%`; });
+  try { await N.installApk({url:UPD_APK}); msg.textContent = 'Tap Install in the window that opened.'; }
+  catch (e) {
+    msg.textContent = String(e.message || e) === 'permission'
+      ? 'Allow Streamlet to install apps in the settings screen that just opened, come back and tap again.'
+      : "Couldn't download the update (" + (e.message || e) + ').';
+  }
+  try { hd.remove(); } catch {}
+  btn.disabled = false;
+}
+function showUpdState(){
+  const msg = $('#apkMsg'), btn = $('#apkBtn');
+  if (!updInfo) return;
+  if (updInfo.newer) { btn.textContent = `Update to build ${updInfo.latest}`; btn.className = 'btn'; btn.onclick = runUpdate; msg.textContent = `Installed: build ${updInfo.cur}. A newer version is available.`; }
+  else { btn.textContent = 'Check for updates'; btn.className = 'btn ghost'; btn.onclick = manualCheck; msg.textContent = `You're up to date (build ${updInfo.cur}).`; }
+}
+async function manualCheck(){
+  const msg = $('#apkMsg'); msg.textContent = 'Checking…';
+  try { await checkUpdate(); showUpdState(); } catch (e) { msg.textContent = e.message || "Couldn't check."; }
+}
+function initUpdates(){
+  const N = nativePlayer(); if (!N || !N.appVersion) return;
+  $('#apkRow').hidden = false; $('#apkBtn').onclick = manualCheck;
+  checkUpdate().then(i => { if (!i) return; showUpdState(); if (i.newer) toast('A new version of Streamlet is available. See Settings.'); }).catch(() => {});
+}
+setTimeout(initUpdates, 1500);
 
 /* ---------- native ExoPlayer (Android / Android TV app only) ---------- */
 const nativePlayer = () => {
