@@ -472,7 +472,6 @@ body.tv{--tvl:104px}
 body.tv nav{width:64px;left:16px;padding:8px 6px;gap:1px;max-height:calc(var(--vh,1vh) * 94);overflow-y:auto;scrollbar-width:none}
 body.tv nav::-webkit-scrollbar{display:none}
 body.tv nav button{padding:10px 0;border-radius:18px}
-body.tv nav button span{display:none}
 body.tv nav button svg{width:26px;height:26px}
 body.tv main{padding-left:104px}
 body.tv.launch main{padding-left:0}
@@ -503,14 +502,14 @@ body.tv header{display:none}
 body.tv main{padding-top:26px}
 body.tv.onhome main{padding-top:0}
 /* nav: full-height transparent rail that expands with labels when focused */
-body.tv nav{top:0 !important;bottom:0 !important;left:0 !important;transform:none !important;width:84px;height:auto;max-height:none;padding:0 0 0 14px;justify-content:center;gap:4px;border-radius:0 !important;transition:width .22s ease,background .22s ease;overflow:hidden}
+body.tv nav{top:0 !important;bottom:0 !important;left:0 !important;transform:none !important;width:112px;background:linear-gradient(to right,rgba(8,8,14,.78) 0,rgba(8,8,14,.5) 55%,transparent) !important;height:auto;max-height:none;padding:0 0 0 14px;justify-content:center;gap:4px;border-radius:0 !important;transition:width .22s ease,background .22s ease;overflow:hidden}
 body.tv nav:focus-within{width:250px;background:linear-gradient(to right,rgba(8,8,14,.96) 0,rgba(8,8,14,.86) 72%,rgba(8,8,14,0) 100%) !important}
 body.tv nav button{width:56px;flex:0 0 auto;display:flex;flex-direction:row;align-items:center;justify-content:center;gap:16px}
 body.tv nav:focus-within button{width:216px;justify-content:flex-start;padding:0 0 0 15px}
-body.tv nav button span:not(.navav){display:none}
+body.tv nav button > span:not(.navav){display:none}
 body.tv nav:focus-within button span:not(.navav){display:block;position:static;transform:none;background:none;border:0;box-shadow:none;padding:0;font-size:16px;font-weight:650;color:inherit;white-space:nowrap;pointer-events:none}
 body.tv nav button:focus-visible{background:rgba(255,255,255,.16);box-shadow:none;outline:none}
-body.tv nav button:focus-visible span,body.tv nav button:hover span{position:static}
+
 .navav{display:inline-flex;border-radius:50%;line-height:0;flex:0 0 auto}
 .navav .av{width:26px !important;height:26px !important}
 nav button.on .navav{box-shadow:0 0 0 2px #fff}
@@ -556,6 +555,33 @@ body.tv .gtile{height:52px;min-width:130px;font-size:15px}
 @keyframes iglow{0%{opacity:0}60%{opacity:.55}100%{opacity:.3}}
 @keyframes iletter{to{opacity:1;transform:none}}
 @media (prefers-reduced-motion:reduce){#intro *{animation-duration:.01s !important;animation-delay:0s !important}}
+
+/* ---- v5 polish ---- */
+body.tv .cwc .rm,body.tv .wlc .rm{display:none}
+/* genre tiles: calm glass pills */
+.gtile{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);box-shadow:none;min-width:116px;height:44px;font-size:13px;letter-spacing:.6px}
+.gtile.on{background:linear-gradient(135deg,var(--acc),var(--acc2));border-color:transparent;color:var(--btnt)}
+.gstrip{padding-top:10px;padding-bottom:18px}
+body.tv .gstrip{padding:14px 28px 22px}
+body.tv .gtile{height:46px;min-width:124px;font-size:14px}
+.gtile:focus-visible{transform:scale(1.04)}
+body.tv .card,body.tv .cwb,body.tv .strip{scroll-margin:16px 0 36px}
+/* hero title block: tidy logo, readable text, scrim behind it */
+.tvhero::after{content:'';position:absolute;inset:0;background:linear-gradient(to right,color-mix(in srgb,var(--bg) 88%,transparent) 0,color-mix(in srgb,var(--bg) 55%,transparent) 36%,transparent 62%);pointer-events:none;z-index:1}
+body:not(.tv) .tvhero::after{display:none}
+body.tv .tvhero .tin{width:min(44%,520px)}
+body.tv .tvhero .tlogo{width:auto;height:auto;max-width:min(100%,400px);max-height:calc(var(--vh,1vh) * 12)}
+body.tv .tvhero .ttitle{font-size:clamp(30px,3.6vw,52px)}
+body.tv .tvhero .tmeta{margin:14px 0 8px;font-size:14px;gap:6px 12px}
+body.tv .tvhero .tmeta span:not(.timdb):not(:first-child)::before{content:'·';margin-right:12px;color:var(--mut)}
+body.tv .tvhero .tdesc{max-width:480px;font-size:15px;-webkit-line-clamp:3}
+body.tv .tvhero .tbg img{transition:opacity .5s ease}
+/* detail page: logo/title bottom-left instead of a huge centred banner */
+body.tv .dlogo{left:max(28px,calc(50% - 532px));transform:none;bottom:26px;width:auto;height:auto;max-width:min(46%,420px);max-height:calc(var(--vh,1vh) * 11)}
+body.tv .dtitle{left:max(28px,calc(50% - 532px));right:auto;text-align:left;font-size:clamp(30px,3.4vw,48px);max-width:60%;bottom:24px}
+body.tv .dgrad{background:linear-gradient(to bottom,rgba(0,0,0,.35),transparent 30%,color-mix(in srgb,var(--bg) 60%,transparent) 70%,var(--bg) 100%),linear-gradient(to right,color-mix(in srgb,var(--bg) 70%,transparent),transparent 55%)}
+/* strips bleed under the (transparent) nav so cards slide off the screen edge, not a hard cut */
+body.tv #rows .strip,body.tv #rows .gstrip{margin-left:-104px;padding-left:132px;scroll-padding-left:132px}
 </style>
 </head>
 <body>
@@ -1375,7 +1401,7 @@ document.addEventListener('focusin', e => {
   if (!document.body.classList.contains('tv')) return;
   const c = e.target.closest && e.target.closest('button.card');
   if (!c || !c._hero || !c._hero.m || c._hero.m === (tvHeroCtx || {}).m) return;
-  clearTimeout(tvHeroT); tvHeroT = setTimeout(() => setTvHero(c._hero), 280);
+  clearTimeout(tvHeroT); tvHeroT = setTimeout(() => setTvHero(c._hero), 170);
 });
 addEventListener('scroll', () => document.body.classList.toggle('scr', scrollY > 30), {passive:true});
 
@@ -2643,6 +2669,7 @@ function moveFocus(dir, rep){
       if (dir === 'right' ? !(cx > ax + 1 && r.right > a.right) : !(cx < ax - 1 && r.left < a.left)) continue;
       prim = dir === 'right' ? Math.max(0, r.left - a.right) : Math.max(0, a.left - r.right);
       gap = Math.max(0, Math.max(a.top, r.top) - Math.min(a.bottom, r.bottom)); off = Math.abs(cy - ay);
+      if (tv && gap > 2) continue;                       // never jump to another row sideways
     } else {
       if (dir === 'down' ? !(cy > ay + 1 && r.bottom > a.bottom) : !(cy < ay - 1 && r.top < a.top)) continue;
       prim = dir === 'down' ? Math.max(0, r.top - a.bottom) : Math.max(0, a.top - r.bottom);
@@ -2653,12 +2680,30 @@ function moveFocus(dir, rep){
   }
   if (!best) { if (tv && !inNav && dir === 'left') focusNav(); return; }
   best.focus({preventScroll:true});
-  const beh = rep ? 'auto' : 'smooth';
-  if (tv) {
-    if (dir === 'left' || dir === 'right') best.scrollIntoView({block:'nearest', inline:'nearest', behavior:beh});
-    else if (best.closest('.tvhero')) window.scrollTo({top:0, behavior:beh});
-    else best.scrollIntoView({block:'nearest', inline:'nearest', behavior:beh});
-  } else best.scrollIntoView({block: dir === 'up' || dir === 'down' ? 'center' : 'nearest', inline: dir === 'left' || dir === 'right' ? 'center' : 'nearest', behavior:beh});
+  revealEl(best, dir, rep, tv);
+}
+/* keep strips aligned to the card grid, scroll one card at a time, short eased animation */
+let scrollAnim = 0;
+function revealEl(el, dir, rep, tv){
+  if (!tv) { el.scrollIntoView({block: dir === 'up' || dir === 'down' ? 'center' : 'nearest', inline: dir === 'left' || dir === 'right' ? 'center' : 'nearest', behavior: rep ? 'auto' : 'smooth'}); return; }
+  const strip = el.closest('.strip'), y0 = scrollY, x0 = strip ? strip.scrollLeft : 0;
+  if (strip) {
+    const item = el.closest('.strip > *') || el, sr = strip.getBoundingClientRect(), br = item.getBoundingClientRect();
+    const k = sr.width / (strip.offsetWidth || sr.width) || 1, pad = (parseFloat(getComputedStyle(strip).paddingLeft) || 0) * k;
+    const sib = item.nextElementSibling || item.previousElementSibling;
+    const pitch = sib ? Math.abs(sib.getBoundingClientRect().left - br.left) : br.width + 14 * k;
+    const over = br.right - (sr.right - pad), under = (sr.left + pad) - br.left;
+    if (over > 1) strip.scrollLeft = x0 + Math.ceil(over / pitch) * pitch / k;
+    else if (under > 1) strip.scrollLeft = Math.max(0, x0 - Math.ceil(under / pitch) * pitch / k);
+  }
+  if (el.closest('.tvhero')) window.scrollTo(0, 0); else (strip || el).scrollIntoView({block:'nearest', inline:'nearest'});
+  const y1 = scrollY, x1 = strip ? strip.scrollLeft : 0;
+  if (rep || (y0 === y1 && x0 === x1)) return;
+  window.scrollTo(0, y0); if (strip) strip.scrollLeft = x0;
+  cancelAnimationFrame(scrollAnim);
+  const t0 = performance.now(), D = 140;
+  const step = t => { const kk = Math.min(1, (t - t0) / D), e = 1 - Math.pow(1 - kk, 3); window.scrollTo(0, y0 + (y1 - y0) * e); if (strip) strip.scrollLeft = x0 + (x1 - x0) * e; if (kk < 1) scrollAnim = requestAnimationFrame(step); };
+  scrollAnim = requestAnimationFrame(step);
 }
 function firstFocus(root, list){
   list = list || focusables(root);
@@ -2711,6 +2756,13 @@ function playerKey(e, act){
 }
 function removeCW(el){ const c = el.closest('.cwc'); if (!c) return; const idx = [...c.parentNode.children].indexOf(c); const k = histForSpace()[idx]; if (k) { histRemove(k.k); renderCW(); toast('Removed from Continue watching'); } }
 
+let okHold = null;
+document.addEventListener('keyup', e => {
+  if (!okHold || !(e.key === 'Enter' || e.keyCode === 23)) return;
+  const hd = okHold; okHold = null; clearTimeout(hd.t);
+  e.preventDefault(); e.stopImmediatePropagation();
+  if (!hd.fired && hd.el.isConnected) hd.el.click();
+}, true);
 document.addEventListener('keydown', e => {
   if (e.ctrlKey || e.metaKey || e.altKey) return;
   const act = keyAct(e), el = document.activeElement;
@@ -2722,7 +2774,12 @@ document.addEventListener('keydown', e => {
     if (typing) { if (e.key === 'Escape') el.blur(); return; }
     e.preventDefault(); history.back(); return;
   }
-  if (el && el._entry && (act === 'info' || (e.key === 'Enter' && e.repeat))) { e.preventDefault(); openMenu(el._entry, el._ctx); return; }
+  if (el && el._entry && act === 'info') { e.preventDefault(); openMenu(el._entry, el._ctx); return; }
+  if (el && el._entry && (e.key === 'Enter' || e.keyCode === 23)) {
+    e.preventDefault();
+    if (!e.repeat && !okHold) okHold = {el, fired:false, t:setTimeout(() => { if (okHold) { okHold.fired = true; openMenu(el._entry, el._ctx); } }, 480)};
+    return;
+  }
   if (!typing && !$('#search').hidden && document.body.classList.contains('tv')) {
     if (e.key === 'Backspace') { e.preventDefault(); sBack(); return; }
     if (/^[a-z0-9 ]$/i.test(e.key)) { e.preventDefault(); sType(e.key.toLowerCase()); return; }
