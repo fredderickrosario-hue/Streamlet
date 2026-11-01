@@ -199,7 +199,6 @@ body.tv #launcher[hidden]{display:none}
 body.tv #launcher>.pill,body.tv #launcher>.sub,body.tv #launcher>.lnks{grid-column:1/-1}
 body.tv #fsBtn{display:none}
 body.tv .spaceRow .space{margin:0;height:100%}
-body.tv #detail>div:not(.bar){max-width:1100px;margin-left:auto;margin-right:auto}
 body.tv .ppanel{max-width:760px;left:auto;right:0;top:0;bottom:0;max-height:none;border-radius:18px 0 0 18px}
 .abtns{display:flex;flex-direction:column;gap:6px;flex:0 0 auto}
 .rcard{background:var(--panel);border-radius:12px;padding:12px;margin:8px 0}
@@ -314,6 +313,63 @@ body.tv .menu .box{border-radius:24px;max-width:460px;margin:0 auto}
 .dacts{display:flex;gap:10px;flex-wrap:wrap;padding:14px 14px 0}
 .dacts .btn{flex:1 1 150px}
 .dacts .btn.on{background:linear-gradient(135deg,color-mix(in srgb,var(--acc) 38%,transparent),color-mix(in srgb,var(--acc2) 28%,transparent));border-color:color-mix(in srgb,var(--acc) 55%,transparent)}
+
+/* ---- title / episode pages ---- */
+#detail,#episode{padding:0}
+.dwrap{min-height:100%;padding-bottom:60px}
+.dtop{position:fixed;top:0;left:0;right:0;z-index:6;display:flex;align-items:center;gap:8px;padding:calc(12px + env(safe-area-inset-top)) 14px 0;pointer-events:none}
+.dtop>*{pointer-events:auto}
+.ibtn{width:44px;height:44px;border-radius:50%;border:0;display:inline-flex;align-items:center;justify-content:center;background:rgba(10,10,14,.5);color:#fff;backdrop-filter:blur(var(--blur));-webkit-backdrop-filter:blur(var(--blur))}
+.ibtn svg{width:23px;height:23px;stroke:currentColor;fill:none;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+.ibtn.on{color:var(--acc)}
+.ibtn.on svg.fill,.ibtn.on.fill svg{fill:currentColor}
+.ipill{display:flex;gap:2px;padding:3px;border-radius:28px;background:rgba(10,10,14,.5);backdrop-filter:blur(var(--blur));-webkit-backdrop-filter:blur(var(--blur))}
+.ipill .ibtn{background:none;backdrop-filter:none;-webkit-backdrop-filter:none}
+.dhero{position:relative;height:clamp(300px,52vh,470px);background:var(--panel2) center 18%/cover no-repeat}
+.dgrad{position:absolute;inset:0;background:linear-gradient(to bottom,rgba(0,0,0,.35),transparent 32%,color-mix(in srgb,var(--bg) 70%,transparent) 78%,var(--bg) 100%)}
+.dlogo{position:absolute;left:50%;bottom:22px;transform:translateX(-50%);max-width:72%;max-height:96px;object-fit:contain;filter:drop-shadow(0 4px 16px rgba(0,0,0,.8))}
+.dtitle{position:absolute;left:18px;right:18px;bottom:20px;margin:0;font-size:32px;line-height:1.1;font-weight:800;text-shadow:0 3px 18px rgba(0,0,0,.8);text-align:center}
+.dbody{padding:6px 18px}
+.dmeta{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:6px 0 12px;font-size:17px;font-weight:650}
+.dmeta .dot{color:var(--mut)}
+.dmeta .sp{flex:1}
+.imdb{background:#f5c518;color:#000;font-weight:900;font-size:12px;border-radius:5px;padding:2px 6px;letter-spacing:.2px}
+.ddesc{margin:0 0 14px;color:#d3d6e0;font-size:15px;line-height:1.55}
+.dgen{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 6px}
+.pillx{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.08);border-radius:22px;padding:9px 16px;font-size:15px;white-space:nowrap}
+.dsec{margin:20px 0 8px}
+.dsec h4{margin:0 0 8px;font-size:13px;color:var(--mut);text-transform:uppercase;letter-spacing:.9px;font-weight:700}
+.cchips{display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;padding-bottom:4px}
+.cchips::-webkit-scrollbar{display:none}
+.srow{display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;padding:2px 0 12px}
+.srow::-webkit-scrollbar{display:none}
+.ep{display:flex;gap:14px;width:100%;text-align:left;background:none;border:0;padding:10px 0;color:inherit;align-items:flex-start}
+.ethumb{position:relative;flex:0 0 38%;aspect-ratio:16/9;border-radius:12px;overflow:hidden;background:linear-gradient(135deg,var(--panel2),color-mix(in srgb,var(--acc) 30%,var(--panel2)))}
+.ethumb img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.enum{position:absolute;right:0;bottom:0;min-width:34px;padding:6px 10px;text-align:center;font-weight:800;font-size:17px;border-radius:12px 0 0 0;background:rgba(10,10,14,.82)}
+.epg{position:absolute;left:0;right:0;bottom:0;height:4px;background:#0009}
+.epg i{display:block;height:100%;background:var(--acc)}
+.einfo{flex:1;min-width:0}
+.etop{display:flex;gap:8px;justify-content:space-between;align-items:baseline}
+.etitle{font-size:17px;line-height:1.25;overflow-wrap:anywhere}
+.edate{font-size:13px;color:var(--mut);white-space:nowrap}
+.eover{margin:5px 0 0;color:var(--mut);font-size:14px;line-height:1.4;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.ep.soon{opacity:.55}
+.ept{margin:6px 0 8px;font-size:22px;line-height:1.2}
+.sfilter{display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;padding:2px 0 12px}
+.sfilter::-webkit-scrollbar{display:none}
+.sfilter .chip b{opacity:.65;font-weight:600;margin-left:6px;font-size:12px}
+.scard{display:flex;gap:14px;width:100%;text-align:left;align-items:flex-start;padding:14px;margin:0 0 10px;border-radius:18px;color:inherit;background:var(--panel);border:1px solid rgba(255,255,255,.08);box-shadow:inset 0 1px 0 rgba(255,255,255,.08)}
+.splay{flex:0 0 40px;height:40px;border-radius:50%;background:#22b35e;color:#fff;display:flex;align-items:center;justify-content:center;font-size:15px;padding-left:2px}
+.scard.dis .splay{background:rgba(255,255,255,.14);padding-left:0}
+.scard.dis{opacity:.6}
+.sbody{flex:1;min-width:0}
+.sname{display:block;font-size:17px;margin-bottom:4px;overflow-wrap:anywhere}
+.stxt{white-space:pre-line;color:var(--mut);font-size:14px;line-height:1.45;overflow-wrap:anywhere}
+.resbtn{width:100%;margin:2px 0 12px}
+body.tv .dbody{max-width:1100px;margin:0 auto}
+body.tv .dhero{height:clamp(320px,56vh,520px)}
+body.tv .dtop{padding-left:150px}
 </style>
 </head>
 <body>
@@ -381,6 +437,7 @@ body.tv .menu .box{border-radius:24px;max-width:460px;margin:0 auto}
 </main>
 
 <div id="detail" class="sheet" hidden></div>
+<div id="episode" class="sheet" hidden></div>
 <div id="spaceEd" class="sheet" hidden></div>
 <div id="profEd" class="sheet" hidden></div>
 <div id="addonEd" class="sheet" hidden></div>
@@ -587,6 +644,7 @@ const LAYER_CLOSERS = {
   editor: () => { $('#spaceEd').hidden = true; applyTheme(cur ? cur.theme : 'violet'); },
   pedit:  () => { $('#profEd').hidden = true; if (!$('#me').hidden) renderMe(); },
   menu:   () => { $('#menu').hidden = true; },
+  episode: () => { $('#episode').hidden = true; },
   aedit:  () => { $('#addonEd').hidden = true; if (!$('#addons').hidden) renderAddons(); }
 };
 function rememberSpace(id){ pset('last', id); }
@@ -1376,50 +1434,148 @@ function openResume(e){
   if (!a) return;
   openDetail(a, e.itemType, {id:e.itemId, type:e.itemType, name:e.name, poster:e.poster, background:e.background}, {resume:e});
 }
+const IC = {
+  back:'<path d="M15 5l-7 7 7 7"/>',
+  share:'<circle cx="18" cy="5.5" r="2.6"/><circle cx="6" cy="12" r="2.6"/><circle cx="18" cy="18.5" r="2.6"/><path d="M8.3 10.8l7.4-4.1M8.3 13.2l7.4 4.1"/>',
+  clap:'<rect x="3.5" y="9.5" width="17" height="10.5" rx="1.6"/><path d="M3.5 9.5l1.6-4.4 14.6 3-.5 1.4M8.4 6.1l1.6 3.4M13.6 7.2l1.6 3.4"/>',
+  mark:'<path d="M6.5 3.5h11v17l-5.5-4.2-5.5 4.2z"/>',
+  seen:'<circle cx="12" cy="12" r="9"/><path d="M8 12.5l2.8 2.8L16 9.5"/>'
+};
+function iconBtn(path, label, onclick, cls = ''){
+  const b = h('button', {class:'ibtn ' + cls, type:'button', 'aria-label':label, title:label, onclick});
+  b.innerHTML = `<svg viewBox="0 0 24 24">${path}</svg>`;
+  return b;
+}
+const fmtDate = d => { try { return new Date(d).toLocaleDateString(undefined, {month:'short', day:'numeric', year:'numeric', timeZone:'UTC'}); } catch { return ''; } };
+function heroBlock(meta, bg){
+  const hero = h('div', {class:'dhero'}, h('div', {class:'dgrad'}));
+  const u = bg || meta.background || meta.poster;
+  if (u) hero.style.backgroundImage = `url("${String(u).replace(/"/g, '%22')}")`;
+  if (meta.logo) hero.append(h('img', {class:'dlogo', src:meta.logo, alt:meta.name || '', onerror:e => e.target.replaceWith(h('h1', {class:'dtitle'}, meta.name))}));
+  else hero.append(h('h1', {class:'dtitle'}, meta.name));
+  return hero;
+}
+function metaRow(parts, rating, right){
+  const row = h('div', {class:'dmeta'});
+  parts.filter(Boolean).forEach((t, i) => { if (i) row.append(h('span', {class:'dot'}, '·')); row.append(h('span', null, t)); });
+  if (rating) row.append(h('span', {class:'imdb'}, 'IMDb'), h('span', null, String(rating)));
+  row.append(h('span', {class:'sp'}), ...(right || []).filter(Boolean));
+  return row;
+}
+const listOf = (meta, key, cat) => {
+  const v = meta[key]; if (Array.isArray(v) && v.length) return v;
+  if (typeof v === 'string' && v) return v.split(/\s*,\s*/);
+  return (meta.links || []).filter(l => (l.category || '').toLowerCase() === cat).map(l => l.name);
+};
+function chipsSection(title, names){
+  if (!names.length) return null;
+  return h('div', {class:'dsec'}, h('h4', null, title), h('div', {class:'cchips'}, names.map(n => h('span', {class:'pillx'}, n))));
+}
+function toggleIcons(addon, type, meta){
+  if (!profile) return {wl:null, seen:null};
+  const e = entryOf(addon, type, meta);
+  const wl = iconBtn(IC.mark, 'Watchlist', null, 'fill'), seen = iconBtn(IC.seen, 'Watched', null);
+  const paint = () => { const w = wlHas(e.itemId), v = watchedHas(e.itemId); wl.classList.toggle('on', w); wl.title = w ? 'Remove from watchlist' : 'Add to watchlist'; seen.classList.toggle('on', v); seen.title = v ? 'Mark as unwatched' : 'Mark as watched'; };
+  wl.onclick = () => { if (wlHas(e.itemId)) { wlRemove(e.itemId); toast('Removed from watchlist'); } else { wlAdd({...e}); toast('Added to watchlist'); } paint(); };
+  seen.onclick = () => { if (watchedHas(e.itemId)) { watchedRemove(e.itemId); toast('Marked as unwatched'); } else { watchedAdd(e); toast('Marked as watched'); } paint(); };
+  paint(); return {wl, seen};
+}
+function trailerOf(meta){
+  const t = (meta.trailerStreams && meta.trailerStreams[0] && meta.trailerStreams[0].ytId) || (meta.trailers && meta.trailers[0] && meta.trailers[0].source);
+  return t || null;
+}
+function shareTitle(meta){
+  const text = `${meta.name}${meta.year || meta.releaseInfo ? ' (' + (meta.year || meta.releaseInfo) + ')' : ''}`;
+  if (navigator.share) navigator.share({title:meta.name, text}).catch(() => {});
+  else { try { navigator.clipboard.writeText(text); toast('Copied the title'); } catch { toast(text); } }
+}
+function episodeBase(addon, type, meta, v, sorted){
+  const i = sorted.indexOf(v), nx = sorted[i + 1];
+  return {info:{item:{id:meta.id, type, name:meta.name, poster:meta.poster, background:meta.background}, addonId:addon.uid},
+    alt: meta.imdb_id ? [`${meta.imdb_id}:${v.season ?? 1}:${v.episode}`] : [],
+    ep:{season:v.season ?? 1, episode:v.episode, title:v.title || v.name},
+    next: nx ? {id:nx.id, season:nx.season ?? 1, episode:nx.episode, title:nx.title || nx.name} : null};
+}
+function resumeButton(rs, base){
+  if (!rs || !rs.stream || !rs.stream.url || rs.upnext) return null;
+  return h('button', {class:'btn resbtn', type:'button', onclick:() => playStream(rs.stream, rs.name, {type:rs.type, id:rs.id, info:base.info, ep:rs.ep, next:rs.next, alt:base.alt})},
+    '▶ Resume ' + fmtTime(rs.pos) + (rs.ep ? ` · S${rs.ep.season ?? 1}:E${rs.ep.episode ?? '?'}` : ''));
+}
+
+/* the page of a single episode: its own backdrop, overview and the streams */
+function openEpisode(addon, type, meta, v, sorted){
+  const ed = $('#episode'); ed.hidden = false; ed.scrollTop = 0; pushLayer('episode');
+  const base = episodeBase(addon, type, meta, v, sorted);
+  const sn = v.season ?? 1, code = `S${String(sn).padStart(2, '0')}E${String(v.episode ?? 0).padStart(2, '0')}`;
+  const title = v.title || v.name || `Episode ${v.episode ?? ''}`;
+  const when = v.released ? fmtDate(v.released) : '';
+  const streamsBox = h('div');
+  const saved = histGet().find(x => x.k === `${type}|${v.id}`);
+  ed.replaceChildren(
+    h('div', {class:'dtop'}, iconBtn(IC.back, 'Back', () => popLayer('episode'))),
+    h('div', {class:'dwrap'}, heroBlock(meta, v.thumbnail || meta.background || meta.poster),
+      h('div', {class:'dbody'},
+        metaRow([v.runtime || meta.runtime, when || meta.year || meta.releaseInfo], meta.imdbRating),
+        h('h2', {class:'ept'}, `${code} – ${title}`),
+        (v.overview || v.description) ? h('p', {class:'ddesc'}, v.overview || v.description) : null,
+        resumeButton(saved, base), streamsBox)));
+  loadStreams(type, v.id, streamsBox, meta.name, base);
+}
+
 async function openDetail(addon, type, item, opts = {}){
-  const d = $('#detail'); d.hidden = false; d.scrollTop = 0; document.body.style.overflow='hidden'; pushLayer('detail');
-  let meta = item;
-  const body = h('div');
+  const d = $('#detail'); d.hidden = false; d.scrollTop = 0; document.body.style.overflow = 'hidden'; pushLayer('detail');
+  let meta = {...item}, curSeason = null;
   const close = () => popLayer('detail');
-  d.replaceChildren(h('div',{class:'bar'}, h('button',{class:'btn ghost sm',onclick:close},'← Back')), body);
-  const paint = () => {
-    body.replaceChildren(
-      h('div',{class:'hero'}, posterEl(meta), h('div',null, h('h2',null,meta.name), h('div',{class:'meta'}, [type, meta.releaseInfo||meta.year, meta.runtime].filter(Boolean).join(' · ')))),
-      meta.description ? h('div',{class:'desc'}, meta.description) : null,
-      profile ? detailActions(addon, type, meta) : null);
+  const build = withStreams => {
+    const keep = d.scrollTop;
+    const vids = type === 'series' && Array.isArray(meta.videos) ? meta.videos.filter(v => v && v.id) : [];
+    const sorted = [...vids].sort((x, y) => ((x.season ?? 1) - (y.season ?? 1)) || ((x.episode ?? 0) - (y.episode ?? 0)));
+    const base = {info:{item:{id:meta.id, type, name:meta.name, poster:meta.poster, background:meta.background}, addonId:addon.uid},
+      alt:[meta.behaviorHints && meta.behaviorHints.defaultVideoId, meta.imdb_id].filter(x => x && x !== meta.id)};
+    const ico = toggleIcons(addon, type, meta), yt = trailerOf(meta);
+    const top = h('div', {class:'dtop'}, iconBtn(IC.back, 'Back', close), h('span', {style:'flex:1'}),
+      h('div', {class:'ipill'}, iconBtn(IC.share, 'Share', () => shareTitle(meta)),
+        yt ? iconBtn(IC.clap, 'Trailer', () => { try { window.open('https://www.youtube.com/watch?v=' + enc(yt), '_blank', 'noopener'); } catch {} }) : null,
+        ico.wl));
+    const genres = listOf(meta, 'genres', 'genres').length ? listOf(meta, 'genres', 'genres') : listOf(meta, 'genre', 'genres');
+    const body = h('div', {class:'dbody'},
+      metaRow([meta.runtime, meta.year || meta.releaseInfo], meta.imdbRating, [ico.seen]),
+      meta.description ? h('p', {class:'ddesc'}, meta.description) : null,
+      genres.length ? h('div', {class:'dgen'}, genres.map(g => h('span', {class:'pillx'}, g))) : null,
+      chipsSection('Cast', listOf(meta, 'cast', 'cast')), chipsSection('Director', listOf(meta, 'director', 'director')), chipsSection('Writer', listOf(meta, 'writer', 'writer')));
+    if (withStreams && sorted.length) {                                    // ---- series: seasons + episodes
+      const seasons = [...new Set(sorted.map(v => v.season ?? 1))];
+      if (curSeason === null || !seasons.includes(curSeason)) curSeason = seasons.find(x => x >= 1) ?? seasons[0];
+      const srow = h('div', {class:'srow'}), list = h('div', {class:'eplist'});
+      const draw = () => {
+        srow.replaceChildren(...seasons.map(sn => h('button', {class:'chip' + (sn === curSeason ? ' on' : ''), type:'button', onclick:() => { curSeason = sn; draw(); }}, sn === 0 ? 'Specials' : 'Season ' + sn)));
+        list.replaceChildren(...sorted.filter(v => (v.season ?? 1) === curSeason).map(v => {
+          const hist = histGet().find(x => x.k === `series|${v.id}`), soon = v.released && new Date(v.released) > new Date();
+          const th = v.thumbnail || meta.background;
+          return h('button', {class:'ep' + (soon ? ' soon' : ''), type:'button', onclick:() => openEpisode(addon, type, meta, v, sorted)},
+            h('div', {class:'ethumb'}, th ? h('img', {src:th, loading:'lazy', alt:'', onerror:e => e.target.remove()}) : null,
+              h('span', {class:'enum'}, String(v.episode ?? '')),
+              hist && hist.dur && !hist.upnext ? h('div', {class:'epg'}, h('i', {style:`width:${Math.min(100, Math.round(hist.pos / hist.dur * 100))}%`})) : null),
+            h('div', {class:'einfo'}, h('div', {class:'etop'}, h('b', {class:'etitle'}, v.title || v.name || `Episode ${v.episode ?? ''}`), h('span', {class:'edate'}, soon ? 'Soon' : (v.released ? fmtDate(v.released) : ''))),
+              (v.overview || v.description) ? h('p', {class:'eover'}, v.overview || v.description) : null));
+        }));
+      };
+      draw(); body.append(h('div', {class:'dsec'}, srow, list));
+    } else if (withStreams) {                                              // ---- movie / single title: streams right here
+      const box = h('div'), saved = histGet().find(x => x.k === `${type}|${meta.id}`);
+      body.append(h('div', {class:'dsec'}, resumeButton(saved, base), box));
+      loadStreams(type, meta.id, box, meta.name, base);
+    }
+    d.replaceChildren(top, h('div', {class:'dwrap'}, heroBlock(meta), body));
+    d.scrollTop = keep;
+    return {sorted};
   };
-  paint();
-  const ma = supports(addon,'meta',type,item.id) ? addon : addons.find(x => supports(x,'meta',type,item.id));
-  if (ma) { try { const r = await getJSON(`${ma.base}/meta/${type}/${enc(item.id)}.json`); meta = {...item, ...r.meta}; paint(); } catch {} }
-  const sec = h('div',{class:'sec'}); body.append(sec);
-  const info = {item:{id:meta.id, type, name:meta.name, poster:meta.poster, background:meta.background}, addonId:addon.uid};
-  const altIds = [meta.behaviorHints && meta.behaviorHints.defaultVideoId, meta.imdb_id].filter(x => x && x !== meta.id);
+  build(false);
+  const ma = supports(addon, 'meta', type, item.id) ? addon : addons.find(x => supports(x, 'meta', type, item.id));
+  if (ma) { try { const r = await getJSON(`${ma.base}/meta/${type}/${enc(item.id)}.json`); meta = {...item, ...r.meta}; } catch {} }
+  const {sorted} = build(true);
   const rs = opts.resume;
-  if (rs && rs.stream && rs.stream.url && !rs.upnext)
-    sec.append(h('button', {class:'btn', style:'width:100%;margin-bottom:6px', onclick:() => playStream(rs.stream, rs.name, {type:rs.type, id:rs.id, info, ep:rs.ep, next:rs.next})},
-      '▶ Resume ' + fmtTime(rs.pos) + (rs.ep ? ` · S${rs.ep.season ?? 1}:E${rs.ep.episode ?? '?'}` : '')));
-  if (type==='series' && Array.isArray(meta.videos) && meta.videos.length) {
-    const seasons = [...new Set(meta.videos.map(v=>v.season??1))].sort((a,b)=>a-b);
-    const sel = h('select',null, seasons.map(s=>h('option',{value:s}, s===0?'Specials':'Season '+s)));
-    const eps = h('div'), streams = h('div');
-    const sorted = [...meta.videos].sort((x,y) => ((x.season??1) - (y.season??1)) || ((x.episode??0) - (y.episode??0)));
-    const pick = v => {
-      const i = sorted.indexOf(v), nx = sorted[i + 1];
-      loadStreams(type, v.id, streams, meta.name, {info, alt: meta.imdb_id ? [`${meta.imdb_id}:${v.season ?? 1}:${v.episode}`] : [], ep:{season:v.season ?? 1, episode:v.episode, title:v.title || v.name},
-        next: nx ? {id:nx.id, season:nx.season ?? 1, episode:nx.episode, title:nx.title || nx.name} : null});
-    };
-    const showSeason = () => {
-      eps.replaceChildren();
-      for (const v of meta.videos.filter(v=>(v.season??1)==sel.value))
-        eps.append(h('button',{class:'stream',onclick:()=>pick(v)}, h('div',{class:'n'}, (v.episode!=null?v.episode+'. ':'')+(v.title||v.name||'Episode')), h('span',{class:'go'},'›')));
-    };
-    sel.onchange = showSeason; showSeason();
-    sec.append(h('h3',null,'Episodes'), sel, eps, streams);
-    if (rs) { const rv = meta.videos.find(v => v.id === rs.id); if (rv) { sel.value = String(rv.season ?? 1); showSeason(); pick(rv); } }
-  } else {
-    const streams = h('div'); sec.append(streams);
-    loadStreams(type, meta.id, streams, meta.name, {info, alt:altIds});
-  }
+  if (rs && type === 'series') { const rv = sorted.find(v => v.id === rs.id); if (rv) openEpisode(addon, type, meta, rv, sorted); }
 }
 
 function noStreamsMsg(type, cands){
@@ -1434,32 +1590,48 @@ function noStreamsMsg(type, cands){
   });
   return `No stream addon accepts this title (${type}, id ${cands.map(c => '"' + c + '"').join(' / ')}). Stream addons: ${parts.join('; ')}.` + pendTxt;
 }
+function streamCard(st, title, ctx){
+  const playable = !!(st.url || st.externalUrl || st.ytId), langs = streamLangs(st);
+  return h('button', {class:'scard' + (playable ? '' : ' dis'), type:'button', onclick:() => playStream(st, title, ctx)},
+    h('span', {class:'splay'}, playable ? '▶' : '✕'),
+    h('div', {class:'sbody'}, h('b', {class:'sname'}, st.name || 'Stream'), h('div', {class:'stxt'}, st.title || st.description || ''),
+      langs.length ? h('div', {style:'margin-top:6px'}, langs.map(l => h('span', {class:'lc'}, l.toUpperCase()))) : null));
+}
 async function loadStreams(type, id, box, title, base = {}){
-  box.replaceChildren(h('h3',{style:'margin:14px 0 4px;font-size:14px;color:var(--mut);text-transform:uppercase;letter-spacing:.8px'},'Streams'));
+  const chipsEl = h('div', {class:'sfilter'}), listEl = h('div', {class:'slist'});
+  box.replaceChildren(h('div', {class:'dsec', style:'margin-top:8px'}, h('h4', null, 'Streams')), chipsEl, listEl);
   const cands = [id, ...(base.alt || [])];
-  const srcs = streamPool().map(a => ({a, sid:cands.find(c => supports(a,'stream',type,c))})).filter(x => x.sid);
-  if (!srcs.length) { box.append(h('p',{class:'spin'}, noStreamsMsg(type, cands))); return; }
-  let found = 0;
-  await Promise.all(srcs.map(async ({a, sid}) => {
-    const grp = h('div'); const lab = h('div',{class:'src'}, an(a)+' …'); grp.append(lab); box.append(grp);
+  const srcs = streamPool().map(a => ({a, sid:cands.find(c => supports(a, 'stream', type, c))})).filter(x => x.sid);
+  if (!srcs.length) { listEl.append(h('p', {class:'spin'}, noStreamsMsg(type, cands))); return; }
+  const groups = srcs.map(x => ({...x, ss:null, err:''}));
+  let filter = 'all';
+  const draw = () => {
+    const total = groups.reduce((n, g) => n + (g.ss ? g.ss.length : 0), 0), loading = groups.some(g => !g.ss && !g.err);
+    const chip = (key, label, count) => h('button', {class:'chip' + (filter === key ? ' on' : ''), type:'button', onclick:() => { filter = key; draw(); }}, label, h('b', null, count));
+    chipsEl.replaceChildren(chip('all', 'All', loading ? '…' : String(total)),
+      ...groups.map((g, i) => chip(String(i), an(g.a), g.ss ? String(g.ss.length) : (g.err ? '!' : '…'))));
+    listEl.replaceChildren();
+    groups.forEach((g, i) => {
+      if (filter !== 'all' && filter !== String(i)) return;
+      if (g.err) listEl.append(h('p', {class:'msg err'}, an(g.a) + ': ' + g.err));
+      else if (g.ss) for (const st of g.ss) listEl.append(streamCard(st, title, {type, id, ...base}));
+    });
+    if (loading && !listEl.children.length) listEl.append(h('p', {class:'spin'}, 'Searching…'));
+    else if (!loading && !total && !listEl.querySelector('.msg')) listEl.append(h('p', {class:'spin'}, 'No streams found.'));
+  };
+  draw();
+  await Promise.all(groups.map(async g => {
     try {
-      const r = await getJSON(`${a.base}/stream/${type}/${enc(sid)}.json`);
+      const r = await getJSON(`${g.a.base}/stream/${type}/${enc(g.sid)}.json`);
       let ss = r.streams || [];
       if (settings.audioLang !== 'any') {
         const pc = code2(settings.audioLang);
         const score = x => { const l = streamLangs(x); return l.includes(pc) ? 0 : l.includes('multi') ? 1 : 2; };
-        ss = ss.map((x,i) => [x,i]).sort((a,b) => score(a[0]) - score(b[0]) || a[1] - b[1]).map(x => x[0]);
+        ss = ss.map((x, i) => [x, i]).sort((a, b) => score(a[0]) - score(b[0]) || a[1] - b[1]).map(x => x[0]);
       }
-      lab.textContent = an(a); found += ss.length;
-      if (!ss.length) lab.textContent += ' — nothing found';
-      for (const s of ss) {
-        const playable = !!(s.url || s.externalUrl || s.ytId);
-        grp.append(h('button',{class:'stream'+(playable?'':' dis'), onclick:()=>playStream(s, title, {type, id, ...base})},
-          h('div',{class:'n'}, [s.name, s.title || s.description].filter(Boolean).join('\n') || 'Stream',
-            streamLangs(s).length ? h('div', {style:'margin-top:4px'}, streamLangs(s).map(l => h('span', {class:'lc'}, l.toUpperCase()))) : null),
-          h('span',{class:'go'}, playable ? '▶' : '✕')));
-      }
-    } catch(e) { lab.textContent = an(a)+' — failed: '+e.message; lab.style.color='var(--err)'; }
+      g.ss = ss;
+    } catch (e) { g.err = e.message || 'failed'; }
+    draw();
   }));
 }
 
@@ -1977,7 +2149,7 @@ try { if (window.tizen && tizen.tvinputdevice) ['MediaPlayPause','MediaPlay','Me
 
 const FOCUSABLE = 'a[href],button:not([disabled]),input:not([type=hidden]):not([disabled]),select:not([disabled]),textarea:not([disabled]),summary,[tabindex]:not([tabindex="-1"])';
 function ctxRoot(){
-  for (const id of ['#exitDlg', '#menu', '#ppanel', '#player', '#addonEd', '#profEd', '#spaceEd', '#detail']) { const e = $(id); if (e && !e.hidden) return e; }
+  for (const id of ['#exitDlg', '#menu', '#ppanel', '#player', '#addonEd', '#profEd', '#spaceEd', '#episode', '#detail']) { const e = $(id); if (e && !e.hidden) return e; }
   return document.body;
 }
 function focusables(root){
@@ -2014,7 +2186,7 @@ function moveFocus(dir){
 function firstFocus(root, list){
   list = list || focusables(root);
   const pick = sel => list.find(el => el.matches(sel));
-  return pick('#pPlay') || pick('.hero2 .hb.p') || pick('.space, .ptile, #exStay, .sec .btn, .stream, .opt, .gbtn') || pick('.card, .cwb') || list[0];
+  return pick('#pPlay') || pick('.hero2 .hb.p') || pick('.resbtn') || pick('.dsec .chip.on') || pick('.ep, .scard') || pick('.space, .ptile, #exStay, .sec .btn, .stream, .opt, .gbtn') || pick('.card, .cwb') || list[0];
 }
 let autoEl = null;
 function ensureFocus(){
