@@ -466,6 +466,26 @@ body.tv .tspace{height:calc(var(--vh,1vh) * 14)}
 .chip.ico.on{background:linear-gradient(135deg,var(--acc),var(--acc2));color:var(--btnt)}
 #tabsBar #q{flex:1;min-width:140px;max-width:560px;height:42px;padding:0 16px}
 #tabsBar{align-items:center}
+
+/* ---- landscape / TV side nav: search, spaces and the browse tabs live here, icon-only ---- */
+body:not(.tv) nav .tvonly,nav .gone{display:none !important}
+body.tv{--tvl:104px}
+body.tv nav{width:64px;left:16px;padding:8px 6px;gap:1px;max-height:calc(var(--vh,1vh) * 94);overflow-y:auto;scrollbar-width:none}
+body.tv nav::-webkit-scrollbar{display:none}
+body.tv nav button{padding:10px 0;border-radius:18px}
+body.tv nav button span{display:none}
+body.tv nav button svg{width:26px;height:26px}
+body.tv main{padding-left:104px}
+body.tv.launch main{padding-left:0}
+body.tv .tvhero .tin{left:28px}
+/* who's watching: centred on screen */
+body.tv #profiles h1{font-size:40px;margin-bottom:36px}
+body.tv #profiles .ptile{width:170px}
+body.tv #profiles .pav{width:132px;height:132px;margin-bottom:12px}
+body.tv #profiles .pav.add{font-size:56px}
+body.tv #profiles .pav .av{width:132px !important;height:132px !important;font-size:68px !important}
+body.tv #profiles .pgrid{gap:30px 34px}
+body.launch #profiles:not([hidden]){display:flex;flex-direction:column;justify-content:center;align-items:center;min-height:calc(var(--vh,1vh) * 100);padding-top:0;padding-bottom:0;max-width:none;margin:0}
 </style>
 </head>
 <body>
@@ -555,7 +575,12 @@ body.tv .tspace{height:calc(var(--vh,1vh) * 14)}
 <div id="toast"></div>
 <nav id="nav">
   <i class="navpill" id="navPill"></i>
+  <button id="nvSearch" class="tvonly" type="button" aria-label="Search"><svg viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.2"/><path d="M15.2 15.2 20.5 20.5"/></svg><span>Search</span></button>
+  <button id="nvSpace" class="tvonly" type="button" aria-label="Spaces"><svg viewBox="0 0 24 24"><rect x="4" y="4" width="6.5" height="6.5" rx="1.6"/><rect x="13.5" y="4" width="6.5" height="6.5" rx="1.6"/><rect x="4" y="13.5" width="6.5" height="6.5" rx="1.6"/><rect x="13.5" y="13.5" width="6.5" height="6.5" rx="1.6"/></svg><span>Spaces</span></button>
   <button id="tabHome" type="button"><svg viewBox="0 0 24 24"><path d="M3 11.5 12 4l9 7.5"/><path d="M5 10.2V20h5v-5.2h4V20h5v-9.8"/></svg><span>Home</span></button>
+  <button id="nvMovies" class="tvonly" type="button" aria-label="Movies"><svg viewBox="0 0 24 24"><rect x="3.5" y="4" width="17" height="16" rx="2.2"/><path d="M8 4v16M16 4v16M3.5 9h4.5M3.5 15h4.5M16 9h4.5M16 15h4.5"/></svg><span>Movies</span></button>
+  <button id="nvShows" class="tvonly" type="button" aria-label="Shows"><svg viewBox="0 0 24 24"><rect x="3" y="6.5" width="18" height="12" rx="2.4"/><path d="M8.5 3 12 6.5 15.5 3M8 21.5h8"/></svg><span>Shows</span></button>
+  <button id="nvNew" class="tvonly" type="button" aria-label="New releases"><svg viewBox="0 0 24 24"><path d="M12 3.2l2.3 5.5 5.9.5-4.5 3.9 1.4 5.8L12 15.9 6.9 18.9l1.4-5.8L3.8 9.2l5.9-.5z"/></svg><span>New releases</span></button>
   <button id="tabWatch" type="button"><svg viewBox="0 0 24 24"><path d="M6.5 3.5h11v17l-5.5-4.2-5.5 4.2z"/></svg><span>Watchlist</span></button>
   <button id="tabAddons" type="button"><svg viewBox="0 0 24 24"><path d="M10 4.2a2 2 0 1 1 4 0V6.5h4v4h-2.3a2 2 0 1 0 0 4H18v4h-4v-2.3a2 2 0 1 0-4 0V18.5H6v-4h2.3a2 2 0 1 0 0-4H6v-4h4z"/></svg><span>Addons</span></button>
   <button id="tabSettings" type="button"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.9.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.9 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.9l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.9.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.9-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.9V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg><span>Settings</span></button>
@@ -804,11 +829,26 @@ function showTab(name){
   else if (name === 'settings') renderSettings();
   else if (name === 'me') renderMe();
   window.scrollTo(0,0);
-  movePill(); requestAnimationFrame(movePill);
+  syncNav(); movePill(); requestAnimationFrame(movePill);
   pushPage();
 }
 for (const [k, sel] of Object.entries(TAB_BUTTONS)) $(sel).onclick = () => showTab(k);
 $('#spaceBtn').onclick = () => showLauncher();
+const isTVui = () => document.body.classList.contains('tv');
+function tvTab(t){ if (!cur) return showLauncher(); srchOn = false; $('#q').value = ''; view = {tab:t, genre:''}; showTab('home'); }
+$('#tabHome').onclick = () => { if (isTVui()) tvTab('home'); else showTab('home'); };
+$('#nvMovies').onclick = () => tvTab('movie'); $('#nvShows').onclick = () => tvTab('series'); $('#nvNew').onclick = () => tvTab('new');
+$('#nvSpace').onclick = () => showLauncher();
+$('#nvSearch').onclick = () => { if (!cur) return showLauncher(); if (srchOn || $('#q').value.trim()) { closeSearch(); return; } if ($('#home').hidden) showTab('home'); srchOn = true; renderTabs(); $('#q').focus(); };
+function syncNav(){
+  try {
+    const home = !$('#home').hidden, st = !!(cur && spaceTabs()), tv = isTVui(), sr = srchOn || !!$('#q').value.trim();
+    const set = (id, on, show = true) => { const b = $(id); b.classList.toggle('on', !!on); b.classList.toggle('gone', !show); };
+    set('#nvMovies', home && st && !sr && view.tab === 'movie', st); set('#nvShows', home && st && !sr && view.tab === 'series', st); set('#nvNew', home && st && !sr && view.tab === 'new', st);
+    set('#nvSearch', home && sr); set('#nvSpace', false);
+    if (tv) $('#tabHome').classList.toggle('on', home && !sr && (!st || view.tab === 'home'));
+  } catch {}
+}
 
 
 /* ---------- spaces (front menu) ---------- */
@@ -1243,7 +1283,8 @@ const SRCH_SVG = '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" st
 const X_SVG = '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>';
 function closeSearch(){ srchOn = false; const had = $('#q').value; $('#q').value = ''; $('#q').blur(); if (had.trim()) renderHome(''); else renderTabs(); }
 function renderTabs(){
-  const bar = $('#tabsBar'), q = $('#q');
+  const bar = $('#tabsBar'), q = $('#q'), tv = isTVui();
+  syncNav();
   const searching = srchOn || !!q.value.trim();
   if (searching && bar.dataset.mode === 's' && bar.contains(q)) return;       // keep focus while typing
   const had = document.activeElement && bar.contains(document.activeElement) && document.activeElement !== q ? (document.activeElement.tagName === 'SELECT' ? 'SELECT' : (document.activeElement.id || document.activeElement.textContent)) : null;
@@ -1253,8 +1294,8 @@ function renderTabs(){
   const sp = h('button', {class:'chip ico', id:'spIcon', type:'button', 'aria-label':'Spaces', onclick:() => showLauncher()}, cur ? cur.emoji : '⇄');
   const sr = h('button', {class:'chip ico' + (searching ? ' on' : ''), id:'srIcon', type:'button', 'aria-label':searching ? 'Close search' : 'Search', onclick:() => { if (searching) closeSearch(); else { srchOn = true; renderTabs(); $('#q').focus(); } }});
   sr.innerHTML = searching ? X_SVG : SRCH_SVG;
-  if (searching) { bar.replaceChildren(sp, sr, q); q.hidden = false; return; }
-  if (!spaceTabs() || !addons.length) { bar.replaceChildren(sp, sr); return; }
+  if (searching) { bar.replaceChildren(...(tv ? [] : [sp, sr]), q); q.hidden = false; return; }
+  if (!spaceTabs() || !addons.length) { bar.replaceChildren(...(tv ? [] : [sp, sr])); bar.hidden = tv; return; }
   const genres = [];
   for (const ad of spaceAddons()) for (const cat of (ad.manifest.catalogs || [])) {
     const ge = genreExtra(cat);
@@ -1267,7 +1308,7 @@ function renderTabs(){
     h('option', {value:''}, 'Categories ▾'), ...genres.map(g => h('option', {value:g}, g)));
   sel.value = view.genre; if (sel.value !== view.genre) sel.value = '';
   sel.onchange = () => { view.genre = sel.value; pushPage(); renderHome(); };
-  bar.replaceChildren(sp, sr, chip('home','Home'), chip('movie','Movies'), chip('series','Shows'), chip('new','New releases'), sel);
+  bar.replaceChildren(...(tv ? [sel] : [sp, sr, chip('home','Home'), chip('movie','Movies'), chip('series','Shows'), chip('new','New releases'), sel]));
   if (had) { const t = [...bar.children].find(c => had === 'SELECT' ? c.tagName === 'SELECT' : (c.id === had || c.textContent === had)); if (t) t.focus({preventScroll:true}); }
 }
 
