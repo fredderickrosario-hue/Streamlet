@@ -46,6 +46,8 @@ import androidx.media3.common.TrackSelectionParameters;
 import androidx.media3.datasource.DefaultDataSource;
 import androidx.media3.datasource.DefaultHttpDataSource;
 import androidx.media3.exoplayer.ExoPlayer;
+import androidx.media3.extractor.DefaultExtractorsFactory;
+import androidx.media3.extractor.mkv.MatroskaExtractor;
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory;
 import androidx.media3.ui.PlayerView;
 
@@ -73,6 +75,10 @@ public class PlayerActivity extends Activity {
     private TextView errNextLabel;
     private View errNextBtn;
     private boolean errOn = false;
+    private MediaItem mediaItem;
+    private TrackSelectionParameters trackParams;
+    private Player.Listener playerListener;
+    private boolean compatTried = false;
     private String streamUrl = "", streamTitle = "";
     private static final String UA = "Mozilla/5.0 (Linux; Android 12; TV) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Safari/537.36";
     private int countdown = 0;
@@ -139,14 +145,7 @@ public class PlayerActivity extends Activity {
         String audioLang = in.getStringExtra("audioLang");
         String subLang = in.getStringExtra("subLang");
 
-        DefaultHttpDataSource.Factory http = new DefaultHttpDataSource.Factory()
-                .setUserAgent("Mozilla/5.0 (Linux; Android 12; TV) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Safari/537.36")
-                .setAllowCrossProtocolRedirects(true)
-                .setConnectTimeoutMs(15000)
-                .setReadTimeoutMs(25000);
-        player = new ExoPlayer.Builder(this)
-                .setMediaSourceFactory(new DefaultMediaSourceFactory(new DefaultDataSource.Factory(this, http)))
-                .build();
+        player = makePlayer(false);
         view.setPlayer(player);
         buildControls(title == null ? "" : title);
 
@@ -181,9 +180,10 @@ public class PlayerActivity extends Activity {
         } else {
             tp.setTrackTypeDisabled(C.TRACK_TYPE_TEXT, true); // subtitles off until chosen from the CC button
         }
-        player.setTrackSelectionParameters(tp.build());
+        trackParams = tp.build();
+        player.setTrackSelectionParameters(trackParams);
 
-        player.addListener(new Player.Listener() {
+        playerListener = new Player.Listener() {
             @Override
             public void onPlaybackStateChanged(int state) {
                 if (state == Player.STATE_ENDED) finishWith(true);
@@ -199,16 +199,48 @@ public class PlayerActivity extends Activity {
 
             @Override
             public void onPlayerError(PlaybackException error) {
+                boolean parse = error.errorCode == PlaybackException.ERROR_CODE_PARSING_CONTAINER_MALFORMED
+                        || error.errorCode == PlaybackException.ERROR_CODE_PARSING_CONTAINER_UNSUPPORTED;
+                if (parse && !compatTried) { compatTried = true; handler.post(() -> retryCompat()); return; }          // some MKVs only play when the player doesn't hunt for the index at the end
                 showError(friendly(error), error.getErrorCodeName());
             }
-        });
+        };
+        player.addListener(playerListener);
 
-        player.setMediaItem(item.build(), Math.max(0L, startMs));
+        mediaItem = item.build();
+        player.setMediaItem(mediaItem, Math.max(0L, startMs));
         player.prepare();
         player.play();
         handler.postDelayed(ticker, 5000);
         handler.post(uiTick);
         showControls(playBtn);
+    }
+
+    private ExoPlayer makePlayer(boolean compat) {
+        DefaultHttpDataSource.Factory http = new DefaultHttpDataSource.Factory()
+                .setUserAgent(UA)
+                .setAllowCrossProtocolRedirects(true)
+                .setConnectTimeoutMs(15000)
+                .setReadTimeoutMs(25000);
+        DefaultExtractorsFactory ex = new DefaultExtractorsFactory();
+        if (compat) ex.setMatroskaExtractorFlags(MatroskaExtractor.FLAG_DISABLE_SEEK_FOR_CUES);
+        return new ExoPlayer.Builder(this)
+                .setMediaSourceFactory(new DefaultMediaSourceFactory(new DefaultDataSource.Factory(this, http), ex))
+                .build();
+    }
+
+    /** Second try for files the strict reader rejects: start from the beginning and skip the seek index. Seeking is limited in this mode. */
+    private void retryCompat() {
+        compatTried = true;
+        try { if (player != null) player.release(); } catch (Exception ignored) { }
+        player = makePlayer(true);
+        view.setPlayer(player);
+        player.setTrackSelectionParameters(trackParams);
+        player.addListener(playerListener);
+        player.setMediaItem(mediaItem, 0L);
+        player.prepare();
+        player.play();
+        flash("Compatibility mode \u00b7 seeking is limited");
     }
 
     /* ======================= Streamlet control layer ======================= */
