@@ -81,11 +81,8 @@ body.launch header,body.launch nav,body.launch main>section:not(#launcher):not(#
 #launcher{padding:calc(34px + env(safe-area-inset-top)) 16px 40px;max-width:560px;margin:0 auto}
 #launcher h1{font-size:28px;margin:0}
 #launcher .sub{color:var(--mut);margin:2px 0 18px}
-.spaceRow{position:relative}
 .space{display:flex;align-items:center;gap:14px;width:100%;text-align:left;border:0;border-radius:18px;padding:20px 18px;margin:10px 0;color:#fff;box-shadow:0 6px 20px #0006}
-.space .em{font-size:36px}
 .space .nm{font-size:20px;font-weight:700}
-.space .ds{font-size:12.5px;opacity:.85}
 .edit{position:absolute;top:18px;right:10px;background:#0005;border:0;border-radius:50%;width:34px;height:34px;color:#fff}
 .lnks{display:flex;gap:18px;flex-wrap:wrap;margin-top:12px}
 .lnk{background:none;border:0;color:var(--mut);text-decoration:underline;padding:8px 0}
@@ -103,7 +100,6 @@ body.launch header,body.launch nav,body.launch main>section:not(#launcher):not(#
 .hero2 .in{position:relative;z-index:1;padding:18px;width:100%}
 .hero2 h2{font-size:27px;line-height:1.1;margin:0 0 6px;text-transform:var(--tt);letter-spacing:var(--ls);font-weight:var(--hw);text-shadow:0 2px 12px #000a}
 .hero2 p{margin:0 0 12px;color:#e2e4ec;font-size:13px;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
-.hbtns{display:flex;gap:10px}
 .hb{border:0;border-radius:var(--rb);padding:10px 20px;font-weight:700}
 .hb.p{background:var(--btn);color:var(--btnt)}
 .hb.s{background:#ffffff2e;color:#fff;backdrop-filter:blur(6px)}
@@ -168,7 +164,6 @@ button.card:focus-visible .poster,.cwb:focus-visible .poster,.ptile:focus-visibl
 .space:focus-visible{outline:2px solid #fff;outline-offset:3px}
 .poster{transition:transform .15s}
 button.card:focus-visible .poster,.cwb:focus-visible .poster{transform:scale(1.04)}
-.tvhint{display:none;color:var(--mut);font-weight:400}
 .pctl{position:absolute;left:0;right:0;bottom:0;z-index:3;padding:46px 5% calc(26px + env(safe-area-inset-bottom));background:linear-gradient(transparent,#000d);transition:opacity .25s}
 .pctl[hidden]{display:none}
 .pctl.off{opacity:0;pointer-events:none}
@@ -177,7 +172,6 @@ button.card:focus-visible .poster,.cwb:focus-visible .poster{transform:scale(1.0
 .prow{display:flex;align-items:center;gap:14px}
 #ptime{margin-left:auto;font-variant-numeric:tabular-nums;text-shadow:0 1px 6px #000}
 /* ---- TV layout: wide landscape screens. Portrait phones keep the mobile layout. ---- */
-body.tv .tvhint{display:inline}
 body.tv nav{top:0;right:auto;width:104px;flex-direction:column;justify-content:center;gap:10px;border-top:0;border-right:1px solid #262933;padding:0 8px}
 body.tv nav button{flex:0 0 auto;padding:16px 4px;border-radius:14px;font-size:13px}
 body.tv #tabHome::before,body.tv #tabAddons::before,body.tv #tabSpaces::before{display:block;font-size:26px;margin-bottom:4px}
@@ -199,9 +193,7 @@ body.tv #launcher{max-width:none;display:grid;grid-template-columns:repeat(auto-
 body.tv #launcher[hidden]{display:none}
 body.tv #launcher>.pill,body.tv #launcher>.sub,body.tv #launcher>.lnks{grid-column:1/-1}
 body.tv #fsBtn{display:none}
-body.tv .spaceRow .space{margin:0;height:100%}
 body.tv .ppanel{max-width:760px;left:auto;right:0;top:0;bottom:0;max-height:none;border-radius:18px 0 0 18px}
-.abtns{display:flex;flex-direction:column;gap:6px;flex:0 0 auto}
 .rcard{background:var(--panel);border-radius:12px;padding:12px;margin:8px 0}
 .rcard h4{margin:0 0 2px;font-size:15px;overflow-wrap:anywhere}
 .rcard p{margin:2px 0 8px;color:var(--mut);font-size:13px;overflow-wrap:anywhere;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
@@ -324,8 +316,6 @@ body.tv .menu .box{border-radius:24px;max-width:460px;margin:0 auto}
 .ibtn svg{width:23px;height:23px;stroke:currentColor;fill:none;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
 .ibtn.on{color:var(--acc)}
 .ibtn.on svg.fill,.ibtn.on.fill svg{fill:currentColor}
-.ipill{display:flex;gap:2px;padding:3px;border-radius:28px;background:rgba(10,10,14,.5);backdrop-filter:blur(var(--blur));-webkit-backdrop-filter:blur(var(--blur))}
-.ipill .ibtn{background:none;backdrop-filter:none;-webkit-backdrop-filter:none}
 .dhero{position:relative;height:clamp(300px,52vh,470px);background:var(--panel2) center 18%/cover no-repeat}
 .dgrad{position:absolute;inset:0;background:linear-gradient(to bottom,rgba(0,0,0,.35),transparent 32%,color-mix(in srgb,var(--bg) 70%,transparent) 78%,var(--bg) 100%)}
 .dlogo{position:absolute;left:50%;bottom:22px;transform:translateX(-50%);max-width:72%;max-height:96px;object-fit:contain;filter:drop-shadow(0 4px 16px rgba(0,0,0,.8))}
@@ -687,7 +677,9 @@ body.tv #launcher[hidden]{display:none}
 .sheet .bar{background:transparent}
 body.tv .lhead h1{font-size:30px}
 body.tv .ltitle{font-size:36px;margin-bottom:26px}
-body.tv .sgrid{grid-template-columns:repeat(3,1fr);gap:22px}
+body.tv .sgrid{grid-template-columns:repeat(3,minmax(0,1fr));gap:22px}
+.swrap{min-width:0}
+.stile .stx{max-width:100%}
 body.tv .stile{flex-direction:column;justify-content:center;text-align:center;gap:12px;height:172px;padding:16px}
 body.tv .stile .sem{font-size:58px}
 body.tv .stile .snm{font-size:22px}
@@ -809,6 +801,16 @@ body.tv{min-height:calc(var(--vh,1vh) * 100)}   /* 100vh is too tall once the TV
         <label class="row2"><span>Glass blur effects</span><input type="checkbox" id="setGlass"></label>
         <p>Turn blur off if the app feels slow on an older TV.</p>
       </div>
+      <h2 class="sh">Sound &amp; playback <small style="color:var(--mut);font-weight:400">(this device)</small></h2>
+      <div class="addon">
+        <label class="row2"><span>Sound effects</span><input type="checkbox" id="setSnd"></label>
+        <div id="setPlay" hidden>
+          <label class="row2"><span>Hardware video decoding</span><input type="checkbox" id="setHw"></label>
+          <label class="row2"><span>Match video frame rate</span><input type="checkbox" id="setFps"></label>
+          <label class="row2"><span>Tunneled playback</span><input type="checkbox" id="setTun"></label>
+          <p>Hardware decoding is smoother and cooler. Turn it off only if video looks green or garbled. Matching the frame rate removes judder when your TV supports it. Tunneling can help 4K and HDR on some TVs, but may break seeking or subtitles.</p>
+        </div>
+      </div>
       <h2 class="sh">About</h2>
       <div class="addon">
         <p id="verLine" style="margin:0 0 10px"></p>
@@ -838,7 +840,7 @@ body.tv{min-height:calc(var(--vh,1vh) * 100)}   /* 100vh is too tall once the TV
     <div class="pad" id="adBrowse" hidden>
       <p class="hint">Popular addons. Tap Install to add one.</p>
       <div id="recList"></div>
-      <details id="repoBox" class="adbox" style="margin-top:18px"><summary>More lists (advanced)</summary><div id="repoBody" style="margin-top:10px"></div></details>
+      <details id="repoBox" class="adbox" style="margin-top:18px"><summary>Find more addons</summary><div id="repoBody" style="margin-top:10px"></div></details>
     </div>
   </section>
 </main>
@@ -1236,7 +1238,8 @@ function showLauncher(){
   editBtn.onclick = () => { spEdit = !spEdit; editBtn.textContent = spEdit ? 'Done' : 'Edit spaces'; editBtn.classList.toggle('on', spEdit); L.classList.toggle('editing', spEdit); };
   const tile = sp => {
     const t = THEMES[sp.theme] || THEMES.violet;
-    const names = sp.catalogs.length ? sp.catalogs.map(id => { const a = addons.find(x => x.uid === id); return a && an(a); }).filter(Boolean).join(', ') : 'All installed addons';
+    const nInst = sp.catalogs.filter(id => addons.find(x => x.uid === id)).length;
+    const names = sp.catalogs.length ? (nInst ? nInst + (nInst === 1 ? ' addon' : ' addons') : '') : 'All addons';
     const btn = h('button', {class:'stile', type:'button', style:`--c1:${t.acc};--c2:${t.acc2 || t.acc}`, onclick:() => { if (spEdit) editSpace(sp.id); else enterSpace(sp.id); }},
       h('span', {class:'sem'}, sp.emoji), h('span', {class:'stx'}, h('span', {class:'snm'}, sp.name), h('span', {class:'sds'}, names || 'Selected addon not installed')));
     attachLong(btn, () => editSpace(sp.id));
@@ -1339,16 +1342,6 @@ function wlRemove(itemId){
   const r = pget('wlRemoved', {}); r[itemId] = Date.now();
   pset('wlRemoved', Object.fromEntries(Object.entries(r).sort((a, b) => b[1] - a[1]).slice(0, 200))); scheduleSync();
 }
-function wlButton(addon, type, meta){
-  const b = h('button', {class:'btn ghost sm', type:'button', style:'margin-top:4px'});
-  const paint = () => { b.textContent = wlHas(meta.id) ? '✓ In watchlist' : '＋ Watchlist'; };
-  b.onclick = () => {
-    if (wlHas(meta.id)) { wlRemove(meta.id); toast('Removed from watchlist'); }
-    else { wlAdd({itemId:meta.id, type, name:meta.name, poster:meta.poster, background:meta.background, addonId:addon.uid}); toast('Added to watchlist'); }
-    paint();
-  };
-  paint(); return b;
-}
 /* ---------- watched ---------- */
 const wdGet = () => pget('watched', []);
 const watchedHas = id => !!profile && wdGet().some(x => x.itemId === id);
@@ -1375,19 +1368,6 @@ function watchedRemove(id){
   scheduleSync(); syncRibbons();
 }
 const entryOf = (addon, type, meta) => ({itemId:meta.id, type, name:meta.name, poster:meta.poster, background:meta.background, addonId:addon.uid});
-function detailActions(addon, type, meta){
-  const e = entryOf(addon, type, meta);
-  const wl = h('button', {class:'btn ghost', type:'button'}), wd = h('button', {class:'btn ghost', type:'button'});
-  const paint = () => {
-    const inWL = wlHas(e.itemId), seen = watchedHas(e.itemId);
-    wl.textContent = inWL ? '✓ In watchlist' : '＋ Add to watchlist'; wl.classList.toggle('on', inWL);
-    wd.textContent = seen ? '↺ Mark as unwatched' : '✓ Mark as watched'; wd.classList.toggle('on', seen);
-  };
-  wl.onclick = () => { if (wlHas(e.itemId)) { wlRemove(e.itemId); toast('Removed from watchlist'); } else { wlAdd({...e}); toast('Added to watchlist'); } paint(); };
-  wd.onclick = () => { if (watchedHas(e.itemId)) { watchedRemove(e.itemId); toast('Marked as unwatched'); } else { watchedAdd(e); toast('Marked as watched'); } paint(); };
-  paint(); return h('div', {class:'dacts'}, wl, wd);
-}
-
 /* ---------- hold menu: Details / watchlist / watched ---------- */
 function afterLayerClosed(name, fn){
   const t0 = Date.now(), iv = setInterval(() => { if (!layersOpen.includes(name) || Date.now() - t0 > 700) { clearInterval(iv); fn(); } }, 30);
@@ -1462,8 +1442,6 @@ function renderWatch(){
     (() => { const b = h('button', {class:'wlb', type:'button', 'data-id':e.itemId, onclick:() => openWL(e)}, posterEl(e), h('div', {class:'t'}, e.name), h('div', {class:'s'}, TYPE_LABEL[e.type] || e.type)); attachHold(b, {...e}, {wl:true}); return b; })(),
     h('button', {class:'rm', type:'button', tabindex:'-1', 'aria-label':'Remove', onclick:ev => { ev.stopPropagation(); wlRemove(e.itemId); renderWatch(); }}, '✕'))));
 }
-function removeWL(el){ wlRemove(el.dataset.id); renderWatch(); toast('Removed from watchlist'); }
-
 /* ---------- profile + settings pages ---------- */
 function renderMe(){
   const box = $('#me'); if (!profile) return;
@@ -1489,6 +1467,13 @@ function renderSettings(){
   anim.checked = u.anim !== false; glass.checked = u.glass === undefined ? !tv : u.glass !== false;
   anim.onchange = () => { lsSet('streamlet.ui', {...lsGet('streamlet.ui', {}), anim:anim.checked}); applyUI(); };
   glass.onchange = () => { lsSet('streamlet.ui', {...lsGet('streamlet.ui', {}), glass:glass.checked}); applyUI(); };
+  const snd = $('#setSnd'); snd.checked = u.sound !== false;
+  snd.onchange = () => { lsSet('streamlet.ui', {...lsGet('streamlet.ui', {}), sound:snd.checked}); if (snd.checked) sfx.select(); };
+  $('#setPlay').hidden = !nativePlayer();
+  for (const [id, k, d] of [['#setHw', 'hw', true], ['#setFps', 'fps', true], ['#setTun', 'tunnel', false]]) {
+    const el = $(id); el.checked = u[k] === undefined ? d : u[k] !== false && !!u[k];
+    el.onchange = () => lsSet('streamlet.ui', {...lsGet('streamlet.ui', {}), [k]:el.checked});
+  }
   $('#verLine').textContent = `Streamlet · version ${APP_BUILD}` + (nativePlayer() ? ' · Android app' : '');
 }
 function applyUI(){
@@ -1515,11 +1500,6 @@ function showProfiles(){
   window.scrollTo(0,0); pushPage();
 }
 let pfx = false;
-function pfxProbe(){
-  const mk = css => { const d = document.createElement('div'); d.style.cssText = 'position:fixed;visibility:hidden;pointer-events:none;' + css; document.body.append(d); const r = d.getBoundingClientRect(); d.remove(); return r; };
-  const a = mk('left:0;top:0;width:100px;height:100px'), v = mk('inset:0');
-  return {k:a.width / 100 || 1, W:v.width, H:v.height};
-}
 const nextFrames = n => new Promise(r => { const f = () => (--n <= 0 ? r() : requestAnimationFrame(f)); requestAnimationFrame(f); });
 const animDone = a => new Promise(r => { a.onfinish = r; a.oncancel = r; });
 async function pickProfileFx(pr, tile){
@@ -1546,10 +1526,10 @@ async function pickProfileFx(pr, tile){
     const vp = cover.getBoundingClientRect(), W = vp.width, H = vp.height;
     const S1 = 1.4, start = T(r0.left, r0.top, 1), mid = T(W / 2 - r0.width * S1 / 2, H / 2 - r0.height * S1 / 2, S1);
     f.style.transform = start; av.style.visibility = 'hidden';
-    P.style.transition = 'opacity .55s'; P.style.opacity = '0';
-    cover.animate([{opacity:0}, {opacity:1}], {duration:600, fill:'forwards', easing:'ease'});
-    await animDone(f.animate([{transform:start}, {transform:mid}], {duration:750, easing:'cubic-bezier(.25,.8,.25,1)', fill:'forwards'}));
-    await new Promise(r => setTimeout(r, 750));                      // hold in the middle
+    P.style.transition = 'opacity .35s'; P.style.opacity = '0';
+    cover.animate([{opacity:0}, {opacity:1}], {duration:380, fill:'forwards', easing:'ease'});
+    await animDone(f.animate([{transform:start}, {transform:mid}], {duration:480, easing:'cubic-bezier(.25,.8,.25,1)', fill:'forwards'}));
+    await new Promise(r => setTimeout(r, 320));                      // hold in the middle
     selectProfile(pr); P.style.opacity = ''; P.style.transition = '';
     await nextFrames(3);
     let tgt = null, tr = null, prevR = null;
@@ -1560,12 +1540,12 @@ async function pickProfileFx(pr, tile){
       if (r && r.width > 2) { if (prevR && Math.abs(r.left - prevR.left) < .5 && Math.abs(r.top - prevR.top) < .5) { tgt = t; tr = r; } prevR = r; }
     }
     if (!tgt) {
-      cover.animate([{opacity:1}, {opacity:0}], {duration:500, fill:'forwards'}); await animDone(f.animate([{opacity:1}, {opacity:0}], {duration:500, fill:'forwards'}));
+      cover.animate([{opacity:1}, {opacity:0}], {duration:350, fill:'forwards'}); await animDone(f.animate([{opacity:1}, {opacity:0}], {duration:350, fill:'forwards'}));
     } else {
       hideEl = tgt.closest('.navav') || tgt; hideEl.style.visibility = 'hidden';
       const end = T(tr.left, tr.top, tr.width / r0.width);
-      cover.animate([{opacity:1}, {opacity:0}], {duration:1200, fill:'forwards', easing:'ease'});
-      await animDone(f.animate([{transform:mid}, {transform:end}], {duration:1200, easing:'cubic-bezier(.45,0,.2,1)', fill:'forwards'}));
+      cover.animate([{opacity:1}, {opacity:0}], {duration:700, fill:'forwards', easing:'ease'});
+      await animDone(f.animate([{transform:mid}, {transform:end}], {duration:700, easing:'cubic-bezier(.45,0,.2,1)', fill:'forwards'}));
     }
   } catch { try { selectProfile(pr); } catch {} }
   finally { if (hideEl) hideEl.style.visibility = ''; f.remove(); cover.remove(); P.style.opacity = ''; P.style.transition = ''; pfx = false; }
@@ -1579,7 +1559,7 @@ function renderProfiles(){
     h('div', {class:'pgrid'},
       ...profiles.map(pr => h('button', {class:'ptile', type:'button', onclick:ev => manageProfiles ? editProfile(pr.id) : pickProfileFx(pr, ev.currentTarget)},
         h('div', {class:'pav'}, avatarEl(pr, 88), manageProfiles ? h('span', {class:'pe'}, '✎') : null), h('div', null, pr.name))),
-      profiles.length < 8 ? h('button', {class:'ptile', type:'button', onclick:() => editProfile(null)}, h('div', {class:'pav add'}, '+'), h('div', null, 'Add profile')) : null),
+      manageProfiles && profiles.length < 8 ? h('button', {class:'ptile', type:'button', onclick:() => editProfile(null)}, h('div', {class:'pav add'}, '+'), h('div', null, 'Add profile')) : null),
     h('div', {class:'lnks', style:'justify-content:center;margin-top:22px'},
       h('button', {class:'lnk', type:'button', onclick:() => { manageProfiles = !manageProfiles; renderProfiles(); }}, manageProfiles ? 'Done' : 'Manage profiles')),
     manageProfiles && profiles.length > 1 ? h('label', {class:'chk', style:'justify-content:center'}, ask, h('span', null, "Ask who's watching when the app opens")) : null);
@@ -1888,7 +1868,12 @@ const hostOf = u => { try { return new URL(u).hostname; } catch { return String(
 let repo = {src:null, q:'', items:null, err:'', show:40, busy:false, loadedFor:''};
 function repoSources(){
   const out = [];
-  for (const a of addons) for (const c of (a.manifest.addonCatalogs || [])) out.push({id:`ac:${a.uid}:${c.type}:${c.id}`, name:`${c.name || c.id} · ${an(a)}`, ac:{a, c}});
+  const seen = new Set();
+  for (const a of addons) for (const c of (a.manifest.addonCatalogs || [])) {
+    const nm = `${c.name || c.id}${c.type && c.type !== 'all' ? ' (' + c.type + ')' : ''} · ${an(a)}`;
+    if (seen.has(nm)) continue; seen.add(nm);
+    out.push({id:`ac:${a.uid}:${c.type}:${c.id}`, name:nm, ac:{a, c}});
+  }
   for (const r of reposGet()) out.push({id:'u:' + r.id, name:r.name, url:r.url, user:true});
   return out;
 }
@@ -1943,16 +1928,16 @@ function renderRepo(){
   const installedUrl = u => { try { const p = parseAddonUrl(u).url; return addons.find(a => a.url === p); } catch { return null; } };
   const cards = items.slice(0, repo.show).map(repoCard);
   box.replaceChildren(
-    h('div', {class:'lbl', style:'margin-top:0'}, 'List'), sel, srcs.length ? q : null,
+    h('p', {class:'spin', style:'padding:0 0 8px'}, 'Pick a list of addons, then tap Install on the ones you want.'), h('div', {class:'lbl', style:'margin-top:0'}, 'Addon list'), sel, srcs.length ? q : null,
     repo.busy ? h('p', {class:'spin', style:'padding:8px 0'}, 'Loading…') : null,
     repo.err ? h('p', {class:'msg err'}, repo.err) : null,
     ...cards,
     items.length > repo.show ? h('button', {class:'btn ghost sm', type:'button', style:'margin:6px 0', onclick:() => { repo.show += 40; renderRepo(); }}, `Show more (${items.length - repo.show} left)`) : null,
     srcs.length && !repo.busy && repo.items && !items.length && !repo.err ? h('p', {class:'spin', style:'padding:8px 0'}, 'Nothing matches.') : null,
-    h('div', {class:'lbl'}, 'Add your own list'),
+    h('div', {class:'lbl'}, 'Add your own list (advanced)'),
     h('div', {class:'rrow'}, nameIn, urlIn, addRepo),
     cursrc.user ? h('button', {class:'lnk', type:'button', onclick:() => { reposSet(reposGet().filter(r => 'u:' + r.id !== cursrc.id)); pickRepo('starter'); }}, 'Remove this list') : null,
-    h('p', {class:'spin', style:'padding:6px 0 0'}, 'Lists can be addon catalogs from addons you have installed, or any JSON file with an "addons" array of {name, description, url}.'));
+    h('p', {class:'spin', style:'padding:6px 0 0'}, 'Advanced: you can add your own list, a link to a JSON file of addons.'));
 }
 $('#repoBox').addEventListener('toggle', () => { if ($('#repoBox').open) { if (repo.items === null && !repo.busy) pickRepo(repo.src || (repoSources()[0] || {}).id); else renderRepo(); } });
 
@@ -2188,11 +2173,6 @@ function bindScroll(sheet, top){
 function trailerOf(meta){
   const t = (meta.trailerStreams && meta.trailerStreams[0] && meta.trailerStreams[0].ytId) || (meta.trailers && meta.trailers[0] && meta.trailers[0].source);
   return t || null;
-}
-function shareTitle(meta){
-  const text = `${meta.name}${meta.year || meta.releaseInfo ? ' (' + (meta.year || meta.releaseInfo) + ')' : ''}`;
-  if (navigator.share) navigator.share({title:meta.name, text}).catch(() => {});
-  else { try { navigator.clipboard.writeText(text); toast('Copied the title'); } catch { toast(text); } }
 }
 function episodeBase(addon, type, meta, v, sorted){
   const i = sorted.indexOf(v), nx = sorted[i + 1];
@@ -2570,6 +2550,7 @@ async function collectSubs(ctx){
   }));
   return out;
 }
+const uiPlay = (k, d) => { const v = lsGet('streamlet.ui', {})[k]; return v === undefined ? d : !!v; };
 async function playNative(s, title, ctx){
   const N = nativePlayer();
   let subs = [];
@@ -2589,7 +2570,7 @@ async function playNative(s, title, ctx){
   const handle = await N.addListener('progress', e => recordProgress(ctx, stream, e.position / 1000, e.duration / 1000));
   try {
     const epLine = ctx && ctx.ep ? `S${ctx.ep.season ?? 1}:E${ctx.ep.episode ?? ''}` + (ctx.ep.title ? ' · ' + ctx.ep.title : '') : '';
-    const r = await N.play({url:s.url, title:title || '', subtitle:epLine, accent:(getComputedStyle(document.documentElement).getPropertyValue('--acc') || '').trim(), startMs, subtitles:picked, audioLang:code2(settings.audioLang) || null, subLang:pref ? (code2(pref) || pref) : null});
+    const r = await N.play({url:s.url, title:title || '', hw:uiPlay('hw', true), fps:uiPlay('fps', true), tunnel:uiPlay('tunnel', false), subtitle:epLine, accent:(getComputedStyle(document.documentElement).getPropertyValue('--acc') || '').trim(), startMs, subtitles:picked, audioLang:code2(settings.audioLang) || null, subLang:pref ? (code2(pref) || pref) : null});
     if (r && r.failed) {
       badStreams.add(s); const el = streamEls.get(s); if (el) el.classList.add('bad');
       const list = (ctx && ctx._list) || [], i = list.indexOf(s);
@@ -3122,8 +3103,6 @@ function playerKey(e, act){
   }
   return false;
 }
-function removeCW(el){ const c = el.closest('.cwc'); if (!c) return; const idx = [...c.parentNode.children].indexOf(c); const k = histForSpace()[idx]; if (k) { histRemove(k.k); renderCW(); toast('Removed from Continue watching'); } }
-
 let okHold = null;
 document.addEventListener('keyup', e => {
   if (!okHold || !(e.key === 'Enter' || e.keyCode === 23)) return;
@@ -3131,11 +3110,46 @@ document.addEventListener('keyup', e => {
   e.preventDefault(); e.stopImmediatePropagation();
   if (!hd.fired && hd.el.isConnected) hd.el.click();
 }, true);
+/* ---------- sound effects (tiny synthesized sounds, no files) ---------- */
+const sfx = (() => {
+  let ctx = null, last = 0;
+  const on = () => lsGet('streamlet.ui', {}).sound !== false;
+  const ensure = () => { try { ctx = ctx || new (window.AudioContext || window.webkitAudioContext)(); if (ctx.state === 'suspended') ctx.resume(); } catch {} return ctx; };
+  const tone = (f0, f1, dur, vol, type = 'sine', t0 = 0) => {
+    const c = ensure(); if (!c) return;
+    const t = c.currentTime + t0, o = c.createOscillator(), g = c.createGain();
+    o.type = type; o.frequency.setValueAtTime(f0, t); if (f1 !== f0) o.frequency.exponentialRampToValueAtTime(f1, t + dur);
+    g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(vol, t + 0.008); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    o.connect(g); g.connect(c.destination); o.start(t); o.stop(t + dur + 0.03);
+  };
+  const whoosh = (t0, dur, vol) => {
+    const c = ensure(); if (!c) return;
+    const t = c.currentTime + t0, n = Math.floor(c.sampleRate * dur), buf = c.createBuffer(1, n, c.sampleRate), d = buf.getChannelData(0);
+    for (let i = 0; i < n; i++) d[i] = Math.random() * 2 - 1;
+    const src = c.createBufferSource(), f = c.createBiquadFilter(), g = c.createGain();
+    src.buffer = buf; f.type = 'bandpass'; f.Q.value = 1.3;
+    f.frequency.setValueAtTime(260, t); f.frequency.exponentialRampToValueAtTime(2600, t + dur);
+    g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(vol, t + dur * .6); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    src.connect(f); f.connect(g); g.connect(c.destination); src.start(t);
+  };
+  return {
+    tick(){ if (!on()) return; const n = performance.now(); if (n - last < 45) return; last = n; tone(1500, 1100, .05, .03); },
+    select(){ if (!on()) return; tone(620, 940, .09, .045, 'triangle'); },
+    back(){ if (!on()) return; tone(520, 320, .1, .04); },
+    boot(){ if (!on()) return;
+      whoosh(.25, 1.55, .05);
+      tone(520, 1040, .16, .045, 'triangle', 2.0);                  // the play pops in
+      tone(190, 90, .1, .06, 'sine', 2.55); tone(1900, 1300, .03, .025, 'sine', 2.55);   // the plug clicks home
+      tone(880, 880, .9, .035, 'sine', 2.85); tone(1318.5, 1318.5, .9, .026, 'sine', 2.95); tone(1760, 1760, .8, .016, 'sine', 3.05); }
+  };
+})();
 document.addEventListener('keydown', e => {
   if (e.ctrlKey || e.metaKey || e.altKey) return;
   const act = keyAct(e), el = document.activeElement;
   const typing = el && ((el.tagName === 'INPUT' && !/^(checkbox|radio|button|range|submit)$/.test(el.type)) || el.tagName === 'TEXTAREA');
   if (!remoteMode && (e.key.startsWith('Arrow') || e.key === 'Enter')) { remoteMode = true; document.body.classList.add('remote'); }
+  if ((e.key === 'Enter' || e.keyCode === 23) && !typing && !e.repeat && remoteMode) sfx.select();
+  if (act === 'back' && !typing && remoteMode) sfx.back();
   if (!$('#exitDlg').hidden && act === 'back') { e.preventDefault(); $('#exStay').click(); return; }
   if (!$('#player').hidden && $('#ppanel').hidden && $('#exitDlg').hidden && playerKey(e, act)) return;
   if (act === 'back') {
@@ -3156,7 +3170,7 @@ document.addEventListener('keydown', e => {
   if (e.key === 'Backspace' && !typing) { e.preventDefault(); history.back(); return; }
   if (/^Arrow(Up|Down|Left|Right)$/.test(e.key)) {
     if (typing && (e.key === 'ArrowLeft' || e.key === 'ArrowRight')) return;
-    e.preventDefault(); moveFocus(e.key.slice(5).toLowerCase(), e.repeat);
+    e.preventDefault(); const before = document.activeElement; moveFocus(e.key.slice(5).toLowerCase(), e.repeat); if (document.activeElement !== before) sfx.tick();
   }
 }, true);
 
@@ -3205,7 +3219,7 @@ $('#pseek').addEventListener('click', e => { const v = $('#vid'), r = e.currentT
   window.__introSet = x => { done = true; render(x); };
   const frame = ts => {
     if (done) return;
-    if (last === null) last = ts;
+    if (last === null) { last = ts; sfx.boot(); }
     n += Math.min(ts - last, 50);                                   // a slow start only slows the animation down; it never skips it
     last = ts;
     render(n);

@@ -113,6 +113,7 @@ public class VlcActivity extends Activity {
 
         ArrayList<String> args = new ArrayList<>();
         args.add("--http-reconnect");
+        args.add(in.getBooleanExtra("hw", true) ? "--avcodec-hw=any" : "--avcodec-hw=none");
         args.add("--network-caching=2500");
         lib = new LibVLC(this, args);
         mp = new MediaPlayer(lib);

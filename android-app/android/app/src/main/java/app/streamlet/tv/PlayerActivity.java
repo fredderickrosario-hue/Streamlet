@@ -3,7 +3,6 @@ package app.streamlet.tv;
 import android.app.Activity;
 import android.content.Intent;
 import android.content.SharedPreferences;
-import android.content.res.ColorStateList;
 import android.animation.ValueAnimator;
 import android.content.Context;
 import android.graphics.Canvas;
@@ -21,13 +20,10 @@ import android.graphics.drawable.StateListDrawable;
 import android.text.TextUtils;
 import android.view.Gravity;
 import android.view.MotionEvent;
-import android.view.ViewGroup;
 import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
-import android.widget.ProgressBar;
 import android.widget.ScrollView;
-import android.widget.SeekBar;
 import android.widget.TextView;
 import androidx.media3.common.Format;
 import androidx.media3.common.Tracks;
@@ -52,7 +48,13 @@ import androidx.media3.common.Player;
 import androidx.media3.common.TrackSelectionParameters;
 import androidx.media3.datasource.DefaultDataSource;
 import androidx.media3.datasource.DefaultHttpDataSource;
+import androidx.media3.exoplayer.DefaultRenderersFactory;
 import androidx.media3.exoplayer.ExoPlayer;
+import androidx.media3.exoplayer.mediacodec.MediaCodecInfo;
+import androidx.media3.exoplayer.mediacodec.MediaCodecSelector;
+import androidx.media3.exoplayer.mediacodec.MediaCodecUtil;
+import java.util.Collections;
+import java.util.Comparator;
 import androidx.media3.extractor.DefaultExtractorsFactory;
 import androidx.media3.extractor.mkv.MatroskaExtractor;
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory;
@@ -94,7 +96,6 @@ public class PlayerActivity extends Activity {
     private MediaItem mediaItem;
     private TrackSelectionParameters trackParams;
     private Player.Listener playerListener;
-    private boolean compatTried = false;
     private String streamSubtitle = "";
     private TextView subTx;
     private String streamUrl = "", streamTitle = "";
@@ -109,12 +110,13 @@ public class PlayerActivity extends Activity {
     } };
 
     // ---- Streamlet control layer
-    private static final int ACC1 = 0xFF8B5CFF, ACC2 = 0xFFEC4899, CYAN = 0xFF22D3EE;
+    private static final int CYAN = 0xFF22D3EE;
     private FrameLayout root, controls, menuLayer;
     private Scrub seek;
-    private TextView posTx, durTx, titleTx, speedTx, flashTx;
+    private TextView posTx, durTx, titleTx, flashTx;
     private View spinner;
     private int accent = 0xFF8B5CFF;
+    private boolean optHw = true, optFps = true, optTunnel = false;
     private LinearLayout presetBox;
     private final List<Combo> presets = new ArrayList<>();
     private String presetSig = "";
@@ -122,7 +124,6 @@ public class PlayerActivity extends Activity {
     private ImageView playIcon;
     private boolean controlsOn = false, menuOn = false, seekPending = false;
     private float speed = 1f;
-    private TextView avTx;
     private static class SubCfg { String url, mime, lang, label; boolean shiftable, vtt; }
     private final List<SubCfg> subCfgs = new ArrayList<>();
     private final Map<String, String> subText = new HashMap<>();
@@ -175,6 +176,7 @@ public class PlayerActivity extends Activity {
         long startMs = in.getLongExtra("startMs", 0L);
         String ac = in.getStringExtra("accent");
         try { if (ac != null && !ac.isEmpty()) accent = Color.parseColor(ac); } catch (Exception ignored) { }
+        optHw = in.getBooleanExtra("hw", true); optFps = in.getBooleanExtra("fps", true); optTunnel = in.getBooleanExtra("tunnel", false);
         String audioLang = in.getStringExtra("audioLang");
         String subLang = in.getStringExtra("subLang");
 
@@ -211,6 +213,7 @@ public class PlayerActivity extends Activity {
         if (!subs.isEmpty()) item.setSubtitleConfigurations(subs);
 
         TrackSelectionParameters.Builder tp = player.getTrackSelectionParameters().buildUpon();
+        if (optTunnel) tp.setTunnelingEnabled(true);
         if (audioLang != null && !audioLang.isEmpty()) tp.setPreferredAudioLanguage(audioLang);
         if (subLang != null && !subLang.isEmpty()) {
             tp.setPreferredTextLanguage(subLang);
@@ -277,9 +280,19 @@ public class PlayerActivity extends Activity {
                 .setReadTimeoutMs(25000);
         DefaultExtractorsFactory ex = new DefaultExtractorsFactory();
         if (compat) ex.setMatroskaExtractorFlags(MatroskaExtractor.FLAG_DISABLE_SEEK_FOR_CUES);
-        return new ExoPlayer.Builder(this)
+        DefaultRenderersFactory rf = new DefaultRenderersFactory(this).setEnableDecoderFallback(true);
+        if (!optHw) rf.setMediaCodecSelector(new MediaCodecSelector() {          // software decoders first
+            @Override public List<MediaCodecInfo> getDecoderInfos(String mime, boolean secure, boolean tunneling) throws MediaCodecUtil.DecoderQueryException {
+                List<MediaCodecInfo> l = new ArrayList<>(MediaCodecUtil.getDecoderInfos(mime, secure, tunneling));
+                Collections.sort(l, new Comparator<MediaCodecInfo>() { @Override public int compare(MediaCodecInfo a, MediaCodecInfo b) { return Boolean.compare(a.hardwareAccelerated, b.hardwareAccelerated); } });
+                return l;
+            }
+        });
+        ExoPlayer p = new ExoPlayer.Builder(this, rf)
                 .setMediaSourceFactory(new DefaultMediaSourceFactory(new DefaultDataSource.Factory(this, http), ex))
                 .build();
+        p.setVideoChangeFrameRateStrategy(optFps ? C.VIDEO_CHANGE_FRAME_RATE_STRATEGY_ONLY_IF_SEAMLESS : C.VIDEO_CHANGE_FRAME_RATE_STRATEGY_OFF);
+        return p;
     }
 
     /** Hand the stream to the backup player (libVLC), keeping the position and the bridge call. */
@@ -294,19 +307,6 @@ public class PlayerActivity extends Activity {
         finish();
     }
 
-    /** Second try for files the strict reader rejects: start from the beginning and skip the seek index. Seeking is limited in this mode. */
-    private void retryCompat() {
-        compatTried = true;
-        try { if (player != null) player.release(); } catch (Exception ignored) { }
-        player = makePlayer(true);
-        view.setPlayer(player);
-        player.setTrackSelectionParameters(trackParams);
-        player.addListener(playerListener);
-        player.setMediaItem(mediaItem, 0L);
-        player.prepare();
-        player.play();
-        flash("Compatibility mode \u00b7 seeking is limited");
-    }
 
     /* ======================= Streamlet control layer ======================= */
     private int dp(float v) { return Math.round(v * getResources().getDisplayMetrics().density); }
@@ -320,14 +320,6 @@ public class PlayerActivity extends Activity {
         return g;
     }
 
-    private Drawable stateBg(boolean oval, int fill, int focusFill, float radiusDp) {
-        StateListDrawable sl = new StateListDrawable();
-        GradientDrawable f = shape(oval, focusFill, 0, 0, radiusDp);
-        sl.addState(new int[]{android.R.attr.state_focused}, f);
-        sl.addState(new int[]{android.R.attr.state_pressed}, f);
-        sl.addState(new int[]{}, shape(oval, fill, 0x22FFFFFF, dp(1), radiusDp));
-        return sl;
-    }
 
     private Drawable fillBg(int normal, int focused, float radiusDp, boolean oval) {
         StateListDrawable sl = new StateListDrawable();
@@ -340,31 +332,6 @@ public class PlayerActivity extends Activity {
 
     private Drawable softBg(boolean oval, float radiusDp) { return fillBg(0x00000000, 0x38FFFFFF, radiusDp, oval); }
 
-    /** icon-only button that grows a label when it has focus */
-    private LinearLayout quick(int iconRes, String label, View.OnClickListener c, TextView[] holder) {
-        final LinearLayout l = new LinearLayout(this);
-        l.setOrientation(LinearLayout.HORIZONTAL);
-        l.setGravity(Gravity.CENTER_VERTICAL);
-        l.setPadding(dp(18), dp(12), dp(22), dp(12));
-        l.setBackground(softBg(false, 28));
-        l.setFocusable(true);
-        l.setClickable(true);
-        l.setOnClickListener(c);
-        ImageView iv = icon(iconRes, 24);
-        iv.setAlpha(.95f);
-        l.addView(iv);
-        final TextView t = text(label, 15, true);
-        t.setAlpha(.92f);
-        LinearLayout.LayoutParams tl = new LinearLayout.LayoutParams(-2, -2);
-        tl.leftMargin = dp(10);
-        l.addView(t, tl);
-        l.setOnFocusChangeListener((v, f) -> v.animate().scaleX(f ? 1.06f : 1f).scaleY(f ? 1.06f : 1f).setDuration(120).start());
-        if (holder != null) holder[0] = t;
-        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(-2, -2);
-        lp.leftMargin = dp(6);
-        l.setLayoutParams(lp);
-        return l;
-    }
 
     private TextView text(String t, float sp, boolean bold) {
         TextView v = new TextView(this);
@@ -671,17 +638,6 @@ public class PlayerActivity extends Activity {
         root.setOnClickListener(v -> { if (controlsOn) hideControls(); else showControls(playBtn); });
     }
 
-    private Drawable seekDrawable() {
-        GradientDrawable bg = shape(false, 0x40FFFFFF, 0, 0, 3);
-        GradientDrawable buf = shape(false, 0x30FFFFFF, 0, 0, 3);
-        GradientDrawable fg = shape(false, accent, 0, 0, 3);
-        LayerDrawable ld = new LayerDrawable(new Drawable[]{bg, new ClipDrawable(buf, Gravity.START, ClipDrawable.HORIZONTAL), new ClipDrawable(fg, Gravity.START, ClipDrawable.HORIZONTAL)});
-        ld.setId(0, android.R.id.background);
-        ld.setId(1, android.R.id.secondaryProgress);
-        ld.setId(2, android.R.id.progress);
-        for (int i = 0; i < 3; i++) ld.setLayerInset(i, 0, dp(15), 0, dp(15));
-        return ld;
-    }
 
     private static final int[] SUB_COLORS = {0xFFFFFFFF, 0xFFFFE066, 0xFF22D3EE};
     private static final String[] SUB_COLOR_NAMES = {"White", "Yellow", "Cyan"};
@@ -765,62 +721,6 @@ public class PlayerActivity extends Activity {
     /* ---- menus ---- */
     private interface Pick { void on(int index); }
 
-    private void openMenu(View opener, String title, List<String> labels, int selected, Pick pick) {
-        menuOpener = opener;
-        menuOn = true;
-        handler.removeCallbacks(hideRun);
-        controls.setVisibility(View.GONE);
-        controlsOn = false;
-        menuLayer.removeAllViews();
-        menuLayer.setVisibility(View.VISIBLE);
-        menuLayer.setBackgroundColor(0x88000000);
-        menuLayer.setClickable(true);
-        menuLayer.setOnClickListener(v -> closeMenu());
-
-        LinearLayout panel = new LinearLayout(this);
-        panel.setOrientation(LinearLayout.VERTICAL);
-        panel.setPadding(dp(14), dp(18), dp(14), dp(14));
-        panel.setBackground(new GradientDrawable(GradientDrawable.Orientation.TL_BR, new int[]{0xF2161622, 0xF20B0B12}));
-        ((GradientDrawable) panel.getBackground()).setCornerRadius(dp(26));
-        panel.setClickable(true);
-        TextView ttl = text(title, 20, true);
-        ttl.setPadding(dp(10), 0, 0, dp(12));
-        panel.addView(ttl);
-        ScrollView sc = new ScrollView(this);
-        LinearLayout list = new LinearLayout(this);
-        list.setOrientation(LinearLayout.VERTICAL);
-        sc.addView(list);
-        panel.addView(sc, new LinearLayout.LayoutParams(-1, 0, 1f));
-        View first = null;
-        for (int i = 0; i < labels.size(); i++) {
-            final int idx = i;
-            LinearLayout r = new LinearLayout(this);
-            r.setOrientation(LinearLayout.HORIZONTAL);
-            r.setGravity(Gravity.CENTER_VERTICAL);
-            r.setPadding(dp(16), dp(13), dp(16), dp(13));
-            r.setBackground(fillBg(i == selected ? 0x16FFFFFF : 0x00000000, 0x33FFFFFF, 16, false));
-            r.setFocusable(true);
-            r.setClickable(true);
-            TextView l = text(labels.get(i), 16, i == selected);
-            l.setEllipsize(TextUtils.TruncateAt.END);
-            r.addView(l, new LinearLayout.LayoutParams(0, -2, 1f));
-            if (i == selected) {
-                TextView ck = text("\u2713", 18, true);
-                ck.setTextColor(CYAN);
-                r.addView(ck);
-            }
-            r.setOnClickListener(v -> { pick.on(idx); closeMenu(); });
-            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(-1, -2);
-            lp.bottomMargin = dp(4);
-            list.addView(r, lp);
-            if (i == selected || first == null) { if (first == null || i == selected) first = r; }
-        }
-        FrameLayout.LayoutParams pl = new FrameLayout.LayoutParams(dp(340), -1, Gravity.END);
-        pl.topMargin = dp(20); pl.bottomMargin = dp(20); pl.rightMargin = dp(24);
-        menuLayer.addView(panel, pl);
-        final View f = first;
-        if (f != null) f.post(f::requestFocus);
-    }
 
     private void closeMenu() {
         if (!menuOn) return;
@@ -861,29 +761,6 @@ public class PlayerActivity extends Activity {
         return out;
     }
 
-    private void openTrackMenu(View opener, String title, int type) {
-        final List<TrackRef> refs = tracksOf(type);
-        final boolean text = type == C.TRACK_TYPE_TEXT;
-        List<String> labels = new ArrayList<>();
-        int selected = -1;
-        if (text) labels.add("Off");
-        for (TrackRef t : refs) labels.add(t.label);
-        for (int i = 0; i < refs.size(); i++) if (refs.get(i).sel) selected = i + (text ? 1 : 0);
-        if (text && selected < 0) selected = 0;
-        if (refs.isEmpty()) { flash(text ? "No subtitles available" : "No other audio tracks"); return; }
-        openMenu(opener, title, labels, selected, idx -> {
-            TrackSelectionParameters.Builder b = player.getTrackSelectionParameters().buildUpon();
-            if (text && idx == 0) {
-                b.setTrackTypeDisabled(C.TRACK_TYPE_TEXT, true);
-                b.clearOverridesOfType(C.TRACK_TYPE_TEXT);
-            } else {
-                TrackRef t = refs.get(idx - (text ? 1 : 0));
-                b.setTrackTypeDisabled(type, false);
-                b.setOverrideForType(new TrackSelectionOverride(t.g.getMediaTrackGroup(), t.idx));
-            }
-            player.setTrackSelectionParameters(b.build());
-        });
-    }
 
     private void applyTrack(int type, List<TrackRef> refs, int idx) {
         final boolean text = type == C.TRACK_TYPE_TEXT;

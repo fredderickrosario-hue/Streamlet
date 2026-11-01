@@ -133,6 +133,9 @@ public class ExoPlayerPlugin extends Plugin {
         i.putExtra("subLang", call.getString("subLang"));
         i.putExtra("subs", subs.toString());
         i.putExtra("accent", call.getString("accent", ""));
+        i.putExtra("hw", call.getBoolean("hw", true));
+        i.putExtra("fps", call.getBoolean("fps", true));
+        i.putExtra("tunnel", call.getBoolean("tunnel", false));
 
         call.setKeepAlive(true);
         pending = call;
