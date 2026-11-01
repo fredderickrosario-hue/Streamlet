@@ -878,6 +878,7 @@ body.tv{min-height:calc(var(--vh,1vh) * 100)}   /* 100vh is too tall once the TV
 </nav>
 
 <script>
+const FLAVOR = 'auto';                                              // build.js sets this to 'tv' or 'phone' for the two apps
 /* ---------- tiny helpers ---------- */
 const $ = s => document.querySelector(s);
 { const rc = Element.prototype.replaceChildren;          // skip null / false / undefined children and flatten arrays
@@ -2492,12 +2493,12 @@ let lastSave = 0;
 
 /* ---------- in-app updates (Android app only): compares the installed build with the "apk-latest" release ---------- */
 const UPD_REPO = 'fredderickrosario-hue/Streamlet';
-const UPD_APK = `https://github.com/${UPD_REPO}/releases/download/apk-latest/Streamlet.apk`;
+const UPD_APK = FLAVOR === 'phone' ? `https://github.com/${UPD_REPO}/releases/download/apk-latest-phone/Streamlet-phone.apk` : `https://github.com/${UPD_REPO}/releases/download/apk-latest/Streamlet.apk`;
 let updInfo = null;
 async function checkUpdate(){
   const N = nativePlayer(); if (!N || !N.appVersion) return null;
   const cur = (await N.appVersion()).code;
-  const r = await fetch(`https://api.github.com/repos/${UPD_REPO}/releases/tags/apk-latest`, {headers:{Accept:'application/vnd.github+json'}});
+  const r = await fetch(`https://api.github.com/repos/${UPD_REPO}/releases/tags/${FLAVOR === 'phone' ? 'apk-latest-phone' : 'apk-latest'}`, {headers:{Accept:'application/vnd.github+json'}});
   if (!r.ok) throw new Error('Could not reach GitHub.');
   const j = await r.json(), m = /Build #(\d+)/.exec(j.body || '');
   const latest = m ? +m[1] : 0;
@@ -2925,7 +2926,7 @@ function navAvatar(){
 /* ---------- TV / remote control ---------- */
 const mqTV = matchMedia('(min-width:1000px) and (orientation:landscape), (min-width:560px) and (max-height:620px) and (orientation:landscape)');
 let remoteMode = false, forceTV = false;
-const isTVDevice = () => forceTV || mqTV.matches || /Tizen|SMART-?TV|Web0S|AFTT|BRAVIA|Android TV|CrKey|GoogleTV/i.test(navigator.userAgent) || new URLSearchParams(location.search).has('tv');
+const isTVDevice = () => FLAVOR === 'tv' ? true : FLAVOR === 'phone' ? false : forceTV || mqTV.matches || /Tizen|SMART-?TV|Web0S|AFTT|BRAVIA|Android TV|CrKey|GoogleTV/i.test(navigator.userAgent) || new URLSearchParams(location.search).has('tv');
 function syncTV(){
   const tv = isTVDevice(), was = document.body.classList.contains('tv'); document.body.classList.toggle('tv', tv);
   const z = !tv ? 1 : innerWidth >= 1280 ? Math.min(2, innerWidth / 1280) : Math.max(0.62, innerWidth / 1100);
@@ -2937,7 +2938,7 @@ function syncTV(){
   const v = $('#vid'); if (v && !$('#player').hidden) { v.controls = !tv; $('#pctl').hidden = !tv; }
 }
 mqTV.addEventListener('change', syncTV); addEventListener('resize', syncTV); syncTV();
-{ const NP = nativePlayer(); if (NP) NP.device().then(d => { forceTV = !!(d && d.isTV); syncTV(); }).catch(() => {}); }
+{ const NP = nativePlayer(); if (NP && FLAVOR === 'auto') NP.device().then(d => { forceTV = !!(d && d.isTV); syncTV(); }).catch(() => {}); }
 try { if (window.tizen && tizen.tvinputdevice) ['MediaPlayPause','MediaPlay','MediaPause','MediaStop','MediaFastForward','MediaRewind','Info','ColorF0Red','ColorF2Yellow'].forEach(k => { try { tizen.tvinputdevice.registerKey(k); } catch {} }); } catch {}
 
 const FOCUSABLE = 'a[href],button:not([disabled]),input:not([type=hidden]):not([disabled]),select:not([disabled]),textarea:not([disabled]),summary,[tabindex]:not([tabindex="-1"])';

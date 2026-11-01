@@ -38,10 +38,6 @@ jobs:
         working-directory: android-app
         run: npm ci
 
-      - name: Sync Capacitor
-        working-directory: android-app
-        run: npx cap sync android
-
       - name: Signing key
         env:
           KS_B64: ${{ secrets.ANDROID_KEYSTORE_B64 }}
@@ -56,26 +52,43 @@ jobs:
           fi
           echo "STREAMLET_KEYSTORE=$RUNNER_TEMP/streamlet.keystore" >> "$GITHUB_ENV"
 
-      - name: Build release APK
-        working-directory: android-app/android
+      - name: Build the TV app
         run: |
-          chmod +x gradlew
-          ./gradlew assembleRelease -Pvc=${{ github.run_number }} --no-daemon
+          cp android-app/capacitor.tv.json android-app/capacitor.config.json
+          (cd android-app && npx cap sync android)
+          (cd android-app/android && chmod +x gradlew && ./gradlew assembleRelease -Pvc=${{ github.run_number }} -Pflavor=tv --no-daemon)
+          cp android-app/android/app/build/outputs/apk/release/app-release.apk Streamlet.apk
 
-      - name: Collect APK
-        run: cp android-app/android/app/build/outputs/apk/release/app-release.apk Streamlet.apk
+      - name: Build the phone app
+        run: |
+          cp android-app/capacitor.phone.json android-app/capacitor.config.json
+          (cd android-app && npx cap sync android)
+          (cd android-app/android && ./gradlew assembleRelease -Pvc=${{ github.run_number }} -Pflavor=phone --no-daemon)
+          cp android-app/android/app/build/outputs/apk/release/app-release.apk Streamlet-phone.apk
 
       - uses: actions/upload-artifact@v4
         with:
-          name: Streamlet-apk
-          path: Streamlet.apk
+          name: Streamlet-apks
+          path: |
+            Streamlet.apk
+            Streamlet-phone.apk
 
-      - name: Publish release "apk-latest"
+      - name: Publish release "apk-latest" (TV)
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           gh release delete apk-latest --cleanup-tag --yes || true
           gh release create apk-latest Streamlet.apk \
             --target "${{ github.sha }}" \
-            --title "Streamlet APK (latest build)" \
-            --notes "Sideload this APK on Android / Android TV. Build #${{ github.run_number }}."
+            --title "Streamlet TV APK (latest build)" \
+            --notes "Sideload this APK on Android TV / Google TV. Build #${{ github.run_number }}."
+
+      - name: Publish release "apk-latest-phone"
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release delete apk-latest-phone --cleanup-tag --yes || true
+          gh release create apk-latest-phone Streamlet-phone.apk \
+            --target "${{ github.sha }}" \
+            --title "Streamlet phone APK (latest build)" \
+            --notes "Sideload this APK on your Android phone. Build #${{ github.run_number }}."

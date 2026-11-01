@@ -1,0 +1,18 @@
+{
+  "appId": "app.streamlet.phone",
+  "appName": "Streamlet",
+  "webDir": "www",
+  "server": {
+    "url": "https://fredderickrosario-hue.github.io/Streamlet/phone/",
+    "cleartext": false,
+    "allowNavigation": [
+      "fredderickrosario-hue.github.io",
+      "*.firebaseapp.com",
+      "*.googleapis.com",
+      "accounts.google.com"
+    ]
+  },
+  "android": {
+    "allowMixedContent": true
+  }
+}

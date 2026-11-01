@@ -4,7 +4,10 @@ android {
     namespace = "app.streamlet.tv"
     compileSdk = rootProject.ext.compileSdkVersion
     defaultConfig {
-        applicationId "app.streamlet.tv"
+        // two apps from one project:  ./gradlew assembleRelease -Pflavor=tv|phone
+        def flav = (project.findProperty("flavor") ?: "tv").toString()
+        applicationId flav == "phone" ? "app.streamlet.phone" : "app.streamlet.tv"
+        manifestPlaceholders = [appLabel: "Streamlet", orient: flav == "phone" ? "unspecified" : "sensorLandscape"]
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode = (project.findProperty("vc") ?: "1").toString().toInteger()
