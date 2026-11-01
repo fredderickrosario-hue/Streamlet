@@ -9,3 +9,14 @@ Addon-powered media app (PWA) with themed "spaces". Streamlet ships with no cont
 ## Two apps (TV and phone)
 
 `index.html` is the shared source. Run `node build.js` after changing it: it writes `tv/index.html` and `phone/index.html` (what the two Android apps load from GitHub Pages) and the plain `index.html` still works as the web app. The workflow builds two APKs: `apk-latest` (TV, `Streamlet.apk`) and `apk-latest-phone` (`Streamlet-phone.apk`).
+
+## Sign in with your phone (TV)
+
+The TV shows a QR code that opens `pair.html` on the phone. The phone signs in (Google or email) and passes the login to the TV through a short-lived, encrypted Firestore document (`pairings/{id}`); the key is only in the QR code. It needs these Firestore rules added once in the Firebase console (keep your existing `users` rules):
+
+```
+match /pairings/{pid} {
+  allow get, create, update, delete: if true;
+  allow list: if false;
+}
+```

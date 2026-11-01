@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="color-scheme" content="dark">
+<title>Sign in to Streamlet on your TV</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;background:radial-gradient(circle at 50% 30%,#241a45,#0a0a12 70%);color:#eceef3;font:16px/1.4 system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
+main{width:100%;max-width:380px;padding:28px 22px;text-align:center}
+h1{margin:0 0 6px;font-size:32px}h1 b{color:#7c5cff}
+p.sub{color:#9aa0b4;margin:0 0 22px}
+input{width:100%;padding:14px 16px;margin:0 0 10px;border-radius:14px;border:1px solid #ffffff22;background:#ffffff10;color:#fff;font-size:16px}
+button{width:100%;padding:14px;border-radius:14px;border:0;font-size:16px;font-weight:700;color:#fff;background:#7c5cff;margin:0 0 10px}
+button.ghost{background:#ffffff14}
+button.g{background:#fff;color:#222}
+.or{color:#7d8296;margin:6px 0 14px;font-size:13px}
+#msg{min-height:24px;margin-top:8px;font-size:14px;color:#ff8f8f}
+#msg.ok{color:#4ad295}
+</style>
+</head>
+<body>
+<main>
+  <h1>Stream<b>let</b></h1>
+  <p class="sub" id="sub">Sign in here to connect your TV.</p>
+  <div id="form">
+    <button class="g" id="g" type="button">Continue with Google</button>
+    <div class="or">or use email</div>
+    <input id="email" type="email" placeholder="Email" autocomplete="email" autocapitalize="off">
+    <input id="pass" type="password" placeholder="Password" autocomplete="current-password">
+    <button id="si" type="button">Sign in</button>
+    <button id="ca" class="ghost" type="button">Create account</button>
+  </div>
+  <div id="msg"></div>
+</main>
+<script type="module">
+import {initializeApp} from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js';
+import {getAuth, GoogleAuthProvider, signInWithPopup, signInWithEmailAndPassword, createUserWithEmailAndPassword} from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js';
+import {getFirestore, doc, setDoc} from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js';
+const app = initializeApp({apiKey:"AIzaSyB1Ail6UMc7ou1S67kIJl7OPOEzzm_gyZM",authDomain:"streamlet-9439d.firebaseapp.com",projectId:"streamlet-9439d",storageBucket:"streamlet-9439d.firebasestorage.app",messagingSenderId:"838065755328",appId:"1:838065755328:web:ffd0becf3ab0314bb04925"});
+const auth = getAuth(app), db = getFirestore(app);
+const $ = s => document.querySelector(s), msg = (t, ok) => { const m = $('#msg'); m.textContent = t; m.className = ok ? 'ok' : ''; };
+const [pid, key] = location.hash.slice(1).split('.');
+const unb64 = s => Uint8Array.from(atob(s.replace(/-/g, '+').replace(/_/g, '/')), c => c.charCodeAt(0));
+const b64 = u => btoa(String.fromCharCode(...u)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+if (!pid || !key) { $('#form').hidden = true; $('#sub').textContent = ''; msg('Open this page by scanning the code on your TV.'); }
+const ERR = {'auth/invalid-credential':'Wrong email or password.','auth/invalid-email':'That email address looks wrong.','auth/email-already-in-use':'That email already has an account. Tap Sign in.','auth/weak-password':'Use a password with at least 6 characters.','auth/popup-closed-by-user':'Sign-in was cancelled.','auth/network-request-failed':"Can't reach the server."};
+async function send(payload){
+  const k = await crypto.subtle.importKey('raw', unb64(key), 'AES-GCM', false, ['encrypt']), iv = crypto.getRandomValues(new Uint8Array(12));
+  const ct = new Uint8Array(await crypto.subtle.encrypt({name:'AES-GCM', iv}, k, new TextEncoder().encode(JSON.stringify(payload))));
+  await setDoc(doc(db, 'pairings', pid), {iv:b64(iv), ct:b64(ct), t:Date.now()});
+  $('#form').hidden = true; $('#sub').textContent = ''; msg('Done! Your TV is signing in. You can close this page.', true);
+}
+const run = fn => async () => { msg('One moment…', true); try { await fn(); } catch (e) { msg(ERR[e && e.code] || ('Something went wrong' + (e && e.code ? ' (' + e.code + ')' : '') + '.')); } };
+$('#g').onclick = run(async () => {
+  const r = await signInWithPopup(auth, new GoogleAuthProvider()), c = GoogleAuthProvider.credentialFromResult(r);
+  await send({g:1, id:c.idToken, at:c.accessToken});
+});
+const creds = () => { const e = $('#email').value.trim(), p = $('#pass').value; if (!e || !p) throw {code:'auth/invalid-credential'}; return [e, p]; };
+$('#si').onclick = run(async () => { const [e, p] = creds(); await signInWithEmailAndPassword(auth, e, p); await send({e, p}); });
+$('#ca').onclick = run(async () => { const [e, p] = creds(); await createUserWithEmailAndPassword(auth, e, p); await send({e, p}); });
+</script>
+</body>
+</html>

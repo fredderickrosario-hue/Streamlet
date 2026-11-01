@@ -510,6 +510,7 @@ body:not(.tv) .tvhero::after{display:none}
 .stile .snm{display:block;font-size:20px;font-weight:800}
 .stile .sds{display:block;margin-top:3px;font-size:12.5px;opacity:.7;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 
+
 #offline{position:fixed;top:0;left:0;right:0;z-index:9000;background:#b3261e;color:#fff;text-align:center;padding:8px;font-size:15px;font-weight:700}
 #offline[hidden]{display:none}
 #idle{position:fixed;inset:0;z-index:9500;background:#000;opacity:0;pointer-events:none;transition:opacity 1.5s}
@@ -2676,10 +2677,11 @@ function showLoginSplash(text){
   document.body.classList.add('launch'); $('#login').hidden = false;
   $('#login').replaceChildren(h('h1', null, 'Stream', h('span', {style:'color:var(--acc)'}, 'let')), h('p', {class:'sub'}, text));
 }
+
 function showLogin(){
   applyTheme('violet'); cur = null; document.body.classList.add('launch'); document.body.style.overflow = '';
   $('#launcher').hidden = true; $('#profiles').hidden = true; $('#detail').hidden = true; $('#player').hidden = true;
-  const L = $('#login'); L.hidden = false;
+  const L = $('#login'); L.hidden = false; L.style.maxWidth = '';
   const email = h('input', {class:'f', type:'email', placeholder:'Email', autocomplete:'email', inputmode:'email', autocapitalize:'off'});
   const pass = h('input', {class:'f', type:'password', placeholder:'Password', autocomplete:'current-password'});
   const msg = h('div', {class:'msg err', style:'min-height:22px;margin:8px 0 0'});
@@ -2688,6 +2690,7 @@ function showLogin(){
   L.replaceChildren(
     h('h1', null, 'Stream', h('span', {style:'color:var(--acc)'}, 'let')),
     h('p', {class:'sub'}, 'Sign in to sync your profiles, addons and progress on every device.'),
+    ...(typeof showPairing === 'function' ? [h('button', {class:'btn', type:'button', style:'width:100%;margin-bottom:14px', onclick:() => showPairing()}, 'Sign in with your phone'), h('div', {class:'or'}, 'or')] : []),
     ...(nativePlayer()
       ? [h('p', {class:'sub', style:'font-size:13px;margin:-8px 0 14px'}, "Google sign-in isn't available inside the app. Tap \"Forgot password?\" with your Google email once to set a password, then sign in below. It's the same account and data.")]
       : [h('button', {class:'gbtn', type:'button', onclick:() => busy(() => FB.au.signInWithPopup(auth, new FB.au.GoogleAuthProvider()))},
