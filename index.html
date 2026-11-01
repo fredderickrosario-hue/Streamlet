@@ -439,7 +439,7 @@ nav button.on svg{fill:var(--acc);stroke:var(--acc);transform:none}
 body.onhome:not(.launch) header{position:fixed;left:0;right:0;background:none;backdrop-filter:none;-webkit-backdrop-filter:none;border-bottom:0;transition:background .25s}
 body.onhome.scr:not(.launch) header{background:color-mix(in srgb,var(--bg) 70%,transparent);backdrop-filter:blur(var(--blur));-webkit-backdrop-filter:blur(var(--blur))}
 body.onhome:not(.launch) #home{position:relative}
-body.onhome:not(.launch) #tabsBar{position:fixed;top:calc(var(--vh,1vh) * 9);left:var(--tvl,132px);right:0;z-index:4;padding:0 0 0 32px;transition:opacity .2s}
+body.onhome:not(.launch) #tabsBar{position:fixed;top:calc(var(--vh,1vh) * 3.5);left:var(--tvl,132px);right:0;z-index:4;padding:0 0 0 32px;transition:opacity .2s}
 body.onhome.scr:not(.launch) #tabsBar{opacity:0;visibility:hidden}
 
 .tvhero::before{content:'';position:absolute;inset:0 0 auto 0;height:150px;background:linear-gradient(to bottom,rgba(0,0,0,.55),transparent);z-index:1;pointer-events:none}
@@ -456,8 +456,16 @@ body:not(.tv) .tvhero .tdesc{display:none}
 body:not(.tv) .tvhero .tbtns{justify-content:center;margin-top:14px;gap:10px}
 body:not(.tv) .tvhero .hb{padding:11px 28px;font-size:16px;border-radius:12px}
 body:not(.tv) #rows .row h2{font-size:16px}
-body:not(.tv).onhome:not(.launch) #tabsBar{padding-left:14px;top:calc(60px + env(safe-area-inset-top));overflow-x:auto}
+body:not(.tv).onhome:not(.launch) #tabsBar{position:absolute;padding-left:14px;top:calc(12px + env(safe-area-inset-top));overflow-x:auto}
 body:not(.tv).onhome:not(.launch) header{padding-left:14px}
+
+body.onhome:not(.launch) header{display:none}
+.tspace{height:calc(70px + env(safe-area-inset-top))}
+body.tv .tspace{height:calc(var(--vh,1vh) * 14)}
+.chip.ico{width:42px;height:42px;padding:0;display:inline-flex;align-items:center;justify-content:center;font-size:20px;border-radius:50%}
+.chip.ico.on{background:linear-gradient(135deg,var(--acc),var(--acc2));color:var(--btnt)}
+#tabsBar #q{flex:1;min-width:140px;max-width:560px;height:42px;padding:0 16px}
+#tabsBar{align-items:center}
 </style>
 </head>
 <body>
@@ -1230,12 +1238,23 @@ function genreExtra(cat){
 }
 const sortedOptions = o => (o.length && o.every(x => /^\d{4}$/.test(x))) ? [...o].sort((x,y) => y - x) : o;
 
+let srchOn = false;
+const SRCH_SVG = '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.5 15.5L21 21"/></svg>';
+const X_SVG = '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>';
+function closeSearch(){ srchOn = false; const had = $('#q').value; $('#q').value = ''; $('#q').blur(); if (had.trim()) renderHome(''); else renderTabs(); }
 function renderTabs(){
-  const bar = $('#tabsBar');
-  const had = document.activeElement && bar.contains(document.activeElement) ? (document.activeElement.tagName === 'SELECT' ? 'SELECT' : document.activeElement.textContent) : null;
-  bar.replaceChildren();
-  if (!spaceTabs() || $('#q').value.trim() || !addons.length) { bar.hidden = true; return; }
+  const bar = $('#tabsBar'), q = $('#q');
+  const searching = srchOn || !!q.value.trim();
+  if (searching && bar.dataset.mode === 's' && bar.contains(q)) return;       // keep focus while typing
+  const had = document.activeElement && bar.contains(document.activeElement) && document.activeElement !== q ? (document.activeElement.tagName === 'SELECT' ? 'SELECT' : (document.activeElement.id || document.activeElement.textContent)) : null;
+  bar.dataset.mode = searching ? 's' : 't';
+  if (!searching && bar.contains(q)) $('header').append(q);
   bar.hidden = false;
+  const sp = h('button', {class:'chip ico', id:'spIcon', type:'button', 'aria-label':'Spaces', onclick:() => showLauncher()}, cur ? cur.emoji : '⇄');
+  const sr = h('button', {class:'chip ico' + (searching ? ' on' : ''), id:'srIcon', type:'button', 'aria-label':searching ? 'Close search' : 'Search', onclick:() => { if (searching) closeSearch(); else { srchOn = true; renderTabs(); $('#q').focus(); } }});
+  sr.innerHTML = searching ? X_SVG : SRCH_SVG;
+  if (searching) { bar.replaceChildren(sp, sr, q); q.hidden = false; return; }
+  if (!spaceTabs() || !addons.length) { bar.replaceChildren(sp, sr); return; }
   const genres = [];
   for (const ad of spaceAddons()) for (const cat of (ad.manifest.catalogs || [])) {
     const ge = genreExtra(cat);
@@ -1248,8 +1267,8 @@ function renderTabs(){
     h('option', {value:''}, 'Categories ▾'), ...genres.map(g => h('option', {value:g}, g)));
   sel.value = view.genre; if (sel.value !== view.genre) sel.value = '';
   sel.onchange = () => { view.genre = sel.value; pushPage(); renderHome(); };
-  bar.append(chip('home','Home'), chip('movie','Movies'), chip('series','Shows'), chip('new','New releases'), sel);
-  if (had) { const t = [...bar.children].find(c => had === 'SELECT' ? c.tagName === 'SELECT' : c.textContent === had); if (t) t.focus({preventScroll:true}); }
+  bar.replaceChildren(sp, sr, chip('home','Home'), chip('movie','Movies'), chip('series','Shows'), chip('new','New releases'), sel);
+  if (had) { const t = [...bar.children].find(c => had === 'SELECT' ? c.tagName === 'SELECT' : (c.id === had || c.textContent === had)); if (t) t.focus({preventScroll:true}); }
 }
 
 async function renderHome(query = $('#q').value.trim()){
@@ -1263,7 +1282,7 @@ async function renderHome(query = $('#q').value.trim()){
     return;
   }
   const tabs = spaceTabs() && !query;
-  const heroBox = h('div'); if (!query && !(tabs && view.genre)) box.append(heroBox);
+  const heroBox = h('div'); if (!query && !(tabs && view.genre)) box.append(heroBox); else box.append(h('div', {class:'tspace'}));
   box.append(h('div', {id:'cwBox'})); renderCW();
   let heroDone = false, shown = 0;
   const jobs = [];
@@ -1471,6 +1490,8 @@ $('#addForm').addEventListener('submit', async ev => {
     renderAddons();
   } catch(e) { msg.className='msg err'; msg.textContent = e.message; }
 });
+$('#q').addEventListener('keydown', e => { if (e.key === 'Escape') { e.preventDefault(); closeSearch(); } });
+$('#q').addEventListener('blur', () => { setTimeout(() => { if (srchOn && !$('#q').value.trim() && document.activeElement !== $('#q') && !$('#tabsBar').contains(document.activeElement)) closeSearch(); }, 200); });
 let qT; $('#q').addEventListener('input', () => { clearTimeout(qT); qT = setTimeout(()=>{ if ($('#home').hidden) showTab('home'); else renderHome($('#q').value.trim()); }, 350); });
 
 
