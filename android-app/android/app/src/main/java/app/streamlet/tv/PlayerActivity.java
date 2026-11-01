@@ -54,7 +54,16 @@ import androidx.media3.ui.PlayerView;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
+import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.FileOutputStream;
 import java.io.InputStream;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.ArrayList;
@@ -102,6 +111,14 @@ public class PlayerActivity extends Activity {
     private ImageView playIcon;
     private boolean controlsOn = false, menuOn = false, seekPending = false;
     private float speed = 1f;
+    private TextView avTx;
+    private static class SubCfg { String url, mime, lang, label; boolean shiftable, vtt; }
+    private final List<SubCfg> subCfgs = new ArrayList<>();
+    private final Map<String, String> subText = new HashMap<>();
+    private long subDelayMs = 0;
+    private boolean delayDirty = false;
+    private String pendingSubLabel = null;
+    private final Runnable delayRun = new Runnable() { @Override public void run() { applyDelay(); } };
     private SharedPreferences prefs;
     private static final float[] SPEEDS = {0.5f, 0.75f, 1f, 1.25f, 1.5f, 2f};
     private static final float[] SUB_SCALES = {0.8f, 1f, 1.3f, 1.7f};
@@ -166,6 +183,11 @@ public class PlayerActivity extends Activity {
                 String mime = lower.contains(".vtt") ? MimeTypes.TEXT_VTT
                         : (lower.contains(".ass") || lower.contains(".ssa")) ? MimeTypes.TEXT_SSA
                         : MimeTypes.APPLICATION_SUBRIP;
+                SubCfg sc = new SubCfg();
+                sc.url = su; sc.mime = mime; sc.lang = o.optString("lang", null); sc.label = o.optString("label", null);
+                sc.vtt = MimeTypes.TEXT_VTT.equals(mime);
+                sc.shiftable = !MimeTypes.TEXT_SSA.equals(mime);
+                subCfgs.add(sc);
                 subs.add(new MediaItem.SubtitleConfiguration.Builder(Uri.parse(su))
                         .setMimeType(mime)
                         .setLanguage(o.optString("lang", null))
@@ -192,6 +214,21 @@ public class PlayerActivity extends Activity {
                 if (state == Player.STATE_ENDED) finishWith(true);
                 spinner.setVisibility(state == Player.STATE_BUFFERING ? View.VISIBLE : View.GONE);
                 refreshProgress();
+            }
+
+            @Override
+            public void onTracksChanged(Tracks tracks) {
+                if (pendingSubLabel != null) {
+                    List<TrackRef> tx = tracksOf(C.TRACK_TYPE_TEXT);
+                    for (TrackRef t : tx) {
+                        if (pendingSubLabel.equals(t.label)) {
+                            pendingSubLabel = null;
+                            if (!t.sel) applyTrack(C.TRACK_TYPE_TEXT, tx, tx.indexOf(t) + 1);
+                            break;
+                        }
+                    }
+                }
+                updateAvLabel();
             }
 
             @Override
@@ -394,7 +431,7 @@ public class PlayerActivity extends Activity {
         top.addView(tcol, tl);
         controls.addView(top, new FrameLayout.LayoutParams(-1, -2, Gravity.TOP));
 
-        // bottom: scrubber, then one row (transport on the left, audio/subtitles + speed on the right)
+        // bottom: [play] elapsed ---- remaining, then one centered row: audio & subtitles + options
         LinearLayout bottom = new LinearLayout(this);
         bottom.setOrientation(LinearLayout.VERTICAL);
         bottom.setPadding(dp(56), dp(110), dp(56), dp(26));
@@ -403,8 +440,20 @@ public class PlayerActivity extends Activity {
         LinearLayout row = new LinearLayout(this);
         row.setOrientation(LinearLayout.HORIZONTAL);
         row.setGravity(Gravity.CENTER_VERTICAL);
-        posTx = text("0:00", 14, true);
-        durTx = text("", 14, true);
+        FrameLayout play = new FrameLayout(this);
+        play.setBackground(fillBg(0xEFFFFFFF, 0xFFFFFFFF, 0, true));
+        play.setFocusable(true);
+        play.setClickable(true);
+        play.setOnClickListener(v -> togglePlay());
+        play.setOnFocusChangeListener((v, f) -> v.animate().scaleX(f ? 1.1f : 1f).scaleY(f ? 1.1f : 1f).setDuration(120).start());
+        playIcon = new ImageView(this);
+        playIcon.setImageResource(R.drawable.ic_p_pause);
+        playIcon.setColorFilter(0xFF12121C);
+        play.addView(playIcon, new FrameLayout.LayoutParams(dp(28), dp(28), Gravity.CENTER));
+        playBtn = play;
+        row.addView(play, new LinearLayout.LayoutParams(dp(52), dp(52)));
+        posTx = text("0:00", 15, true);
+        durTx = text("", 15, true);
         posTx.setAlpha(.95f); durTx.setAlpha(.7f);
         seek = new SeekBar(this);
         seek.setPadding(0, 0, 0, 0);
@@ -418,6 +467,7 @@ public class PlayerActivity extends Activity {
         seek.setSplitTrack(false);
         seek.setBackground(null);
         seek.setFocusable(true);
+        seek.setOnClickListener(v -> togglePlay());
         seek.setOnFocusChangeListener((v, f) -> { seek.setThumb(f ? thumbL : thumbS); seek.setThumbOffset(0); seek.invalidate(); });
         seek.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             @Override public void onProgressChanged(SeekBar sb, int p, boolean fromUser) {
@@ -431,42 +481,28 @@ public class PlayerActivity extends Activity {
             @Override public void onStartTrackingTouch(SeekBar sb) { seekPending = true; handler.removeCallbacks(hideRun); }
             @Override public void onStopTrackingTouch(SeekBar sb) { handler.removeCallbacks(seekRun); seekRun.run(); scheduleHide(); }
         });
+        LinearLayout.LayoutParams pt = new LinearLayout.LayoutParams(-2, -2);
+        pt.leftMargin = dp(20);
         LinearLayout.LayoutParams sl = new LinearLayout.LayoutParams(0, dp(34), 1f);
-        sl.leftMargin = dp(18); sl.rightMargin = dp(18);
-        row.addView(posTx);
+        sl.leftMargin = dp(16); sl.rightMargin = dp(16);
+        row.addView(posTx, pt);
         row.addView(seek, sl);
         row.addView(durTx);
         bottom.addView(row, new LinearLayout.LayoutParams(-1, -2));
 
         LinearLayout ctl = new LinearLayout(this);
         ctl.setOrientation(LinearLayout.HORIZONTAL);
-        ctl.setGravity(Gravity.CENTER_VERTICAL);
-        ctl.setPadding(0, dp(10), 0, 0);
-        FrameLayout play = new FrameLayout(this);
-        play.setBackground(fillBg(0xEFFFFFFF, 0xFFFFFFFF, 0, true));
-        play.setFocusable(true);
-        play.setClickable(true);
-        play.setOnClickListener(v -> togglePlay());
-        play.setOnFocusChangeListener((v, f) -> v.animate().scaleX(f ? 1.1f : 1f).scaleY(f ? 1.1f : 1f).setDuration(120).start());
-        playIcon = new ImageView(this);
-        playIcon.setImageResource(R.drawable.ic_p_pause);
-        playIcon.setColorFilter(0xFF12121C);
-        play.addView(playIcon, new FrameLayout.LayoutParams(dp(34), dp(34), Gravity.CENTER));
-        LinearLayout.LayoutParams pp = new LinearLayout.LayoutParams(dp(66), dp(66));
-        pp.rightMargin = dp(14);
-        playBtn = play;
-        FrameLayout rew = circleBtn(R.drawable.ic_p_replay, 54, 30, "10", false, v -> seekBy(-10000));
-        FrameLayout ff = circleBtn(R.drawable.ic_p_replay, 54, 30, "10", true, v -> seekBy(10000));
-        ctl.addView(play, pp); ctl.addView(rew); ctl.addView(ff);
-        View spacer = new View(this);
-        ctl.addView(spacer, new LinearLayout.LayoutParams(0, 1, 1f));
-        final LinearLayout qAv = quick(R.drawable.ic_p_cc, "Audio & subtitles", null, null);
+        ctl.setGravity(Gravity.CENTER);
+        ctl.setPadding(0, dp(12), 0, 0);
         TextView[] h = new TextView[1];
-        final LinearLayout qSpd = quick(R.drawable.ic_p_speed, "Speed · 1×", null, h);
-        speedTx = h[0];
-        qAv.setOnClickListener(v -> openAVPanel(qAv));
-        qSpd.setOnClickListener(v -> openSpeedMenu(qSpd));
-        ctl.addView(qAv); ctl.addView(qSpd);
+        final LinearLayout qAv = quick(R.drawable.ic_p_cc, "Audio & subtitles", null, h);
+        avTx = h[0];
+        qAv.setOnClickListener(v -> openCombo(qAv));
+        final FrameLayout gear = circleBtn(R.drawable.ic_p_gear, 48, 26, null, false, null);
+        gear.setOnClickListener(v -> openOptions(gear));
+        LinearLayout.LayoutParams gp = new LinearLayout.LayoutParams(dp(48), dp(48));
+        gp.leftMargin = dp(8);
+        ctl.addView(qAv); ctl.addView(gear, gp);
         bottom.addView(ctl, new LinearLayout.LayoutParams(-1, -2));
         controls.addView(bottom, new FrameLayout.LayoutParams(-1, -2, Gravity.BOTTOM));
         root.addView(controls, new FrameLayout.LayoutParams(-1, -1));
@@ -531,12 +567,20 @@ public class PlayerActivity extends Activity {
         return ld;
     }
 
+    private static final int[] SUB_COLORS = {0xFFFFFFFF, 0xFFFFE066, 0xFF22D3EE};
+    private static final String[] SUB_COLOR_NAMES = {"White", "Yellow", "Cyan"};
+    private static final String[] SUB_BG_NAMES = {"None", "Box"};
+    private static final String[] SUB_EDGE_NAMES = {"Outline", "Shadow", "None"};
+
     private void styleSubtitles() {
         SubtitleView sv = view.getSubtitleView();
         if (sv == null) return;
         sv.setApplyEmbeddedStyles(false);
         sv.setApplyEmbeddedFontSizes(false);
-        sv.setStyle(new CaptionStyleCompat(Color.WHITE, Color.TRANSPARENT, Color.TRANSPARENT, CaptionStyleCompat.EDGE_TYPE_OUTLINE, Color.BLACK, Typeface.DEFAULT_BOLD));
+        int edge = prefs.getInt("subEdge", 0);
+        int edgeType = edge == 0 ? CaptionStyleCompat.EDGE_TYPE_OUTLINE : edge == 1 ? CaptionStyleCompat.EDGE_TYPE_DROP_SHADOW : CaptionStyleCompat.EDGE_TYPE_NONE;
+        sv.setStyle(new CaptionStyleCompat(SUB_COLORS[prefs.getInt("subColor", 0)], prefs.getInt("subBg", 0) == 1 ? 0xB3000000 : Color.TRANSPARENT,
+                Color.TRANSPARENT, edgeType, Color.BLACK, Typeface.DEFAULT_BOLD));
         sv.setBottomPaddingFraction(0.09f);
         sv.setFractionalTextSize(SubtitleView.DEFAULT_TEXT_SIZE_FRACTION * SUB_SCALES[prefs.getInt("subSize", 1)]);
     }
@@ -664,6 +708,7 @@ public class PlayerActivity extends Activity {
 
     private void closeMenu() {
         if (!menuOn) return;
+        if (delayDirty) applyDelay();
         menuOn = false;
         menuLayer.removeAllViews();
         menuLayer.setVisibility(View.GONE);
@@ -738,51 +783,79 @@ public class PlayerActivity extends Activity {
         player.setTrackSelectionParameters(b.build());
     }
 
-    private void fillCol(final LinearLayout list, final List<String> labels, final int sel, final Pick pick) {
-        list.removeAllViews();
-        if (labels.isEmpty()) {
-            TextView none = text("Nothing to choose here", 15, false);
-            none.setAlpha(.5f); none.setPadding(dp(16), dp(12), dp(16), dp(12));
-            list.addView(none);
-            return;
-        }
-        for (int i = 0; i < labels.size(); i++) {
-            final int idx = i;
-            LinearLayout r = new LinearLayout(this);
-            r.setOrientation(LinearLayout.HORIZONTAL);
-            r.setGravity(Gravity.CENTER_VERTICAL);
-            r.setPadding(dp(16), dp(13), dp(16), dp(13));
-            r.setBackground(fillBg(i == sel ? 0x16FFFFFF : 0x00000000, 0x38FFFFFF, 14, false));
-            r.setFocusable(true);
-            r.setClickable(true);
-            TextView l = text(labels.get(i), 16, i == sel);
-            l.setEllipsize(TextUtils.TruncateAt.END);
-            r.addView(l, new LinearLayout.LayoutParams(0, -2, 1f));
-            if (i == sel) { TextView ck = text("\u2713", 18, true); ck.setTextColor(CYAN); r.addView(ck); }
-            r.setOnClickListener(v -> { pick.on(idx); fillCol(list, labels, idx, pick); View n = list.getChildAt(idx); if (n != null) n.requestFocus(); });
-            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(-1, -2);
-            lp.bottomMargin = dp(3);
-            list.addView(r, lp);
-        }
+    /* ---- one list with audio + subtitle choices ---- */
+    private static class Combo { int a, t; String label; boolean sel; }
+
+    private String curAudioLabel() {
+        for (TrackRef t : tracksOf(C.TRACK_TYPE_AUDIO)) if (t.sel) return t.label;
+        return null;
     }
 
-    private LinearLayout avColumn(String title, final List<String> labels, int sel, Pick pick) {
-        LinearLayout col = new LinearLayout(this);
-        col.setOrientation(LinearLayout.VERTICAL);
-        TextView h = text(title, 18, true);
-        h.setPadding(dp(14), 0, 0, dp(10));
-        col.addView(h);
-        ScrollView sc = new ScrollView(this);
-        sc.setVerticalScrollBarEnabled(false);
-        LinearLayout list = new LinearLayout(this);
-        list.setOrientation(LinearLayout.VERTICAL);
-        sc.addView(list);
-        col.addView(sc, new LinearLayout.LayoutParams(-1, dp(260)));
-        fillCol(list, labels, sel, pick);
-        return col;
+    private void updateAvLabel() {
+        if (avTx == null || player == null) return;
+        String a = curAudioLabel(), sb = null;
+        for (TrackRef t : tracksOf(C.TRACK_TYPE_TEXT)) if (t.sel) sb = t.label;
+        String txt;
+        if (a == null && sb == null) txt = tracksOf(C.TRACK_TYPE_TEXT).isEmpty() ? "Audio & subtitles" : "Subtitles off";
+        else txt = (a == null ? "" : a) + (sb != null ? (a == null ? "" : " \u00b7 ") + sb + " subs" : "");
+        avTx.setText(txt);
     }
 
-    private void openAVPanel(View opener) {
+    private void openCombo(View opener) {
+        final List<TrackRef> aud = tracksOf(C.TRACK_TYPE_AUDIO), txt = tracksOf(C.TRACK_TYPE_TEXT);
+        int curA = -1, curT = -1;
+        for (int i = 0; i < aud.size(); i++) if (aud.get(i).sel) curA = i;
+        for (int j = 0; j < txt.size(); j++) if (txt.get(j).sel) curT = j;
+        if (aud.isEmpty() && txt.isEmpty()) { flash("No other audio or subtitles in this file"); return; }
+        List<Combo> cs = new ArrayList<>();
+        int nA = Math.max(1, aud.size());
+        for (int k = 0; k < nA; k++) {
+            int a = aud.isEmpty() ? -1 : (curA + k + (curA < 0 ? 0 : 0)) % nA;
+            if (curA < 0) a = aud.isEmpty() ? -1 : k;
+            String al = a < 0 ? "" : aud.get(a).label;
+            Combo off = new Combo();
+            off.a = a; off.t = -1; off.label = a < 0 ? "Subtitles off" : al; off.sel = a == curA && curT < 0;
+            cs.add(off);
+            Set<String> seen = new HashSet<>();
+            int added = 0;
+            for (int j = 0; j < txt.size() && added < 6; j++) {
+                String sl = txt.get(j).label;
+                if (!seen.add(sl)) continue;
+                added++;
+                Combo c = new Combo();
+                c.a = a; c.t = j;
+                if (a < 0) c.label = sl + " subtitles";
+                else if (sl.equalsIgnoreCase(al)) c.label = al + " with subtitles";
+                else c.label = al + " \u00b7 " + sl + " subtitles";
+                c.sel = a == curA && txt.get(j).sel;
+                cs.add(c);
+            }
+        }
+        List<String> labels = new ArrayList<>();
+        int sel = 0;
+        for (int i = 0; i < cs.size(); i++) { labels.add(cs.get(i).label); if (cs.get(i).sel) sel = i; }
+        final List<Combo> fcs = cs;
+        openCenter("Audio & subtitles", labels, sel, opener, idx -> {
+            Combo c = fcs.get(idx);
+            TrackSelectionParameters.Builder b = player.getTrackSelectionParameters().buildUpon();
+            if (c.a >= 0) {
+                b.setTrackTypeDisabled(C.TRACK_TYPE_AUDIO, false);
+                b.setOverrideForType(new TrackSelectionOverride(aud.get(c.a).g.getMediaTrackGroup(), aud.get(c.a).idx));
+            }
+            if (c.t < 0) {
+                b.setTrackTypeDisabled(C.TRACK_TYPE_TEXT, true);
+                b.clearOverridesOfType(C.TRACK_TYPE_TEXT);
+            } else {
+                b.setTrackTypeDisabled(C.TRACK_TYPE_TEXT, false);
+                b.setOverrideForType(new TrackSelectionOverride(txt.get(c.t).g.getMediaTrackGroup(), txt.get(c.t).idx));
+            }
+            player.setTrackSelectionParameters(b.build());
+            handler.postDelayed(this::updateAvLabel, 400);
+        });
+    }
+
+    /** centered popup list */
+    private void openCenter(String title, List<String> labels, int selected, View opener, Pick pick) {
         menuOpener = opener;
         menuOn = true;
         handler.removeCallbacks(hideRun);
@@ -793,86 +866,243 @@ public class PlayerActivity extends Activity {
         menuLayer.setBackgroundColor(0x99000000);
         menuLayer.setClickable(true);
         menuLayer.setOnClickListener(v -> closeMenu());
-
-        final List<TrackRef> aud = tracksOf(C.TRACK_TYPE_AUDIO), txt = tracksOf(C.TRACK_TYPE_TEXT);
-        List<String> al = new ArrayList<>(), tl = new ArrayList<>();
-        int asel = 0, tsel = 0;
-        for (int i = 0; i < aud.size(); i++) { al.add(aud.get(i).label); if (aud.get(i).sel) asel = i; }
-        tl.add("Off");
-        for (int i = 0; i < txt.size(); i++) { tl.add(txt.get(i).label); if (txt.get(i).sel) tsel = i + 1; }
-
         LinearLayout panel = new LinearLayout(this);
         panel.setOrientation(LinearLayout.VERTICAL);
-        panel.setPadding(dp(26), dp(24), dp(26), dp(22));
+        panel.setPadding(dp(16), dp(22), dp(16), dp(16));
         GradientDrawable pbg = new GradientDrawable(GradientDrawable.Orientation.TL_BR, new int[]{0xF2161622, 0xF20B0B12});
         pbg.setCornerRadius(dp(28));
         panel.setBackground(pbg);
         panel.setClickable(true);
-        LinearLayout cols = new LinearLayout(this);
-        cols.setOrientation(LinearLayout.HORIZONTAL);
-        LinearLayout c1 = avColumn("Audio", al, asel, idx -> applyTrack(C.TRACK_TYPE_AUDIO, aud, idx));
-        LinearLayout c2 = avColumn("Subtitles", tl, tsel, idx -> applyTrack(C.TRACK_TYPE_TEXT, txt, idx));
-        LinearLayout.LayoutParams l1 = new LinearLayout.LayoutParams(0, -2, 1f); l1.rightMargin = dp(16);
-        cols.addView(c1, l1); cols.addView(c2, new LinearLayout.LayoutParams(0, -2, 1f));
-        panel.addView(cols);
+        TextView ttl = text(title, 20, true);
+        ttl.setPadding(dp(14), 0, 0, dp(12));
+        panel.addView(ttl);
+        ScrollView sc = new ScrollView(this);
+        sc.setVerticalScrollBarEnabled(false);
+        LinearLayout list = new LinearLayout(this);
+        list.setOrientation(LinearLayout.VERTICAL);
+        sc.addView(list);
+        panel.addView(sc, new LinearLayout.LayoutParams(-1, Math.min(dp(60) + labels.size() * dp(50), dp(330))));
+        View first = null;
+        for (int i = 0; i < labels.size(); i++) {
+            final int idx = i;
+            LinearLayout r = new LinearLayout(this);
+            r.setOrientation(LinearLayout.HORIZONTAL);
+            r.setGravity(Gravity.CENTER_VERTICAL);
+            r.setPadding(dp(18), dp(13), dp(18), dp(13));
+            r.setBackground(fillBg(i == selected ? 0x16FFFFFF : 0x00000000, 0x38FFFFFF, 16, false));
+            r.setFocusable(true);
+            r.setClickable(true);
+            TextView l = text(labels.get(i), 17, i == selected);
+            l.setEllipsize(TextUtils.TruncateAt.END);
+            r.addView(l, new LinearLayout.LayoutParams(0, -2, 1f));
+            if (i == selected) { TextView ck = text("\u2713", 18, true); ck.setTextColor(CYAN); r.addView(ck); }
+            r.setOnClickListener(v -> { pick.on(idx); closeMenu(); });
+            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(-1, -2);
+            lp.bottomMargin = dp(3);
+            list.addView(r, lp);
+            if (first == null || i == selected) first = r;
+        }
+        menuLayer.addView(panel, new FrameLayout.LayoutParams(dp(520), -2, Gravity.CENTER));
+        final View f = first;
+        if (f != null) f.post(f::requestFocus);
+    }
 
-        TextView sh = text("Subtitle size", 16, true);
-        sh.setPadding(dp(14), dp(18), 0, dp(8)); sh.setAlpha(.8f);
-        panel.addView(sh);
-        final LinearLayout sizes = new LinearLayout(this);
-        sizes.setOrientation(LinearLayout.HORIZONTAL);
+    /* ---- option wheel: subtitle sync + style, speed ---- */
+    private View chipRow(String title, final String[] names, int cur0, final Pick pick) {
+        LinearLayout box = new LinearLayout(this);
+        box.setOrientation(LinearLayout.VERTICAL);
+        TextView h = text(title, 15, true);
+        h.setAlpha(.7f); h.setPadding(dp(6), dp(12), 0, dp(8));
+        box.addView(h);
+        final LinearLayout chips = new LinearLayout(this);
+        chips.setOrientation(LinearLayout.HORIZONTAL);
+        final int[] cur = {cur0};
         final Runnable[] paint = new Runnable[1];
         paint[0] = () -> {
-            sizes.removeAllViews();
-            int cur = prefs.getInt("subSize", 1);
-            for (int i = 0; i < SUB_NAMES.length; i++) {
+            chips.removeAllViews();
+            for (int i = 0; i < names.length; i++) {
                 final int idx = i;
-                TextView c = text(SUB_NAMES[i], 15, i == cur);
-                c.setPadding(dp(20), dp(10), dp(20), dp(10));
-                c.setBackground(fillBg(i == cur ? 0x2AFFFFFF : 0x12FFFFFF, 0x48FFFFFF, 22, false));
+                TextView c = text(names[i], 15, i == cur[0]);
+                c.setPadding(dp(18), dp(9), dp(18), dp(9));
+                c.setBackground(fillBg(i == cur[0] ? 0x30FFFFFF : 0x12FFFFFF, 0x4CFFFFFF, 22, false));
                 c.setFocusable(true);
                 c.setClickable(true);
-                c.setOnClickListener(v -> { prefs.edit().putInt("subSize", idx).apply(); styleSubtitles(); paint[0].run(); sizes.getChildAt(idx).requestFocus(); });
+                c.setOnClickListener(v -> { cur[0] = idx; pick.on(idx); paint[0].run(); chips.getChildAt(idx).requestFocus(); });
                 LinearLayout.LayoutParams cp = new LinearLayout.LayoutParams(-2, -2);
-                cp.rightMargin = dp(10);
-                sizes.addView(c, cp);
+                cp.rightMargin = dp(8);
+                chips.addView(c, cp);
             }
         };
         paint[0].run();
-        panel.addView(sizes);
-        menuLayer.addView(panel, new FrameLayout.LayoutParams(dp(860), -2, Gravity.CENTER));
-        // focus the selected audio row (or the subtitle one if there is no audio choice)
-        final ScrollView sc1 = (ScrollView) c1.getChildAt(1), sc2 = (ScrollView) c2.getChildAt(1);
-        final int fa = asel, ft = tsel;
-        panel.post(() -> {
-            LinearLayout la = (LinearLayout) sc1.getChildAt(0), lt = (LinearLayout) sc2.getChildAt(0);
-            View f = la.getChildCount() > fa && !al.isEmpty() ? la.getChildAt(fa) : lt.getChildAt(ft);
-            if (f != null) f.requestFocus();
-        });
+        box.addView(chips);
+        return box;
     }
 
-    private void openSpeedMenu(View opener) {
-        List<String> labels = new ArrayList<>();
-        int sel = 2;
-        for (int i = 0; i < SPEEDS.length; i++) {
-            labels.add(SPEEDS[i] == 1f ? "Normal" : SPEEDS[i] + "\u00d7");
-            if (SPEEDS[i] == speed) sel = i;
+    private String delayText() {
+        return (subDelayMs > 0 ? "+" : "") + String.format(Locale.US, "%.1f", subDelayMs / 1000.0) + " s";
+    }
+
+    private View delayRow() {
+        LinearLayout box = new LinearLayout(this);
+        box.setOrientation(LinearLayout.VERTICAL);
+        TextView h = text("Subtitle sync", 15, true);
+        h.setAlpha(.7f); h.setPadding(dp(6), dp(4), 0, dp(8));
+        box.addView(h);
+        LinearLayout r = new LinearLayout(this);
+        r.setOrientation(LinearLayout.HORIZONTAL);
+        r.setGravity(Gravity.CENTER_VERTICAL);
+        final TextView val = text(delayText(), 17, true);
+        val.setGravity(Gravity.CENTER);
+        final long[] steps = {-500, -100, 100, 500};
+        String[] names = {"\u22120.5", "\u22120.1", "+0.1", "+0.5"};
+        for (int i = 0; i < 4; i++) {
+            if (i == 2) { LinearLayout.LayoutParams vp = new LinearLayout.LayoutParams(dp(90), -2); r.addView(val, vp); }
+            final long st = steps[i];
+            TextView c = text(names[i], 15, true);
+            c.setPadding(dp(16), dp(9), dp(16), dp(9));
+            c.setBackground(fillBg(0x12FFFFFF, 0x4CFFFFFF, 22, false));
+            c.setFocusable(true); c.setClickable(true);
+            c.setOnClickListener(v -> { subDelayMs += st; val.setText(delayText()); markDelay(); });
+            LinearLayout.LayoutParams cp = new LinearLayout.LayoutParams(-2, -2);
+            cp.rightMargin = dp(8);
+            r.addView(c, cp);
         }
-        openMenu(opener, "Playback speed", labels, sel, idx -> {
-            speed = SPEEDS[idx];
-            player.setPlaybackSpeed(speed);
-            speedTx.setText("Speed \u00b7 " + String.format(Locale.US, "%.2f", speed).replaceAll("0+$", "").replaceAll("\\.$", "") + "\u00d7");
-        });
+        TextView rs = text("Reset", 15, true);
+        rs.setPadding(dp(16), dp(9), dp(16), dp(9));
+        rs.setBackground(fillBg(0x12FFFFFF, 0x4CFFFFFF, 22, false));
+        rs.setFocusable(true); rs.setClickable(true);
+        rs.setOnClickListener(v -> { subDelayMs = 0; val.setText(delayText()); markDelay(); });
+        r.addView(rs);
+        box.addView(r);
+        if (subCfgs.isEmpty()) {
+            TextView n = text("Sync works with downloaded subtitles, not ones built into the video", 13, false);
+            n.setAlpha(.5f); n.setPadding(dp(6), dp(8), 0, 0);
+            box.addView(n);
+        }
+        return box;
     }
 
-    private void openSizeMenu(View opener) {
-        List<String> labels = new ArrayList<>();
-        for (String n : SUB_NAMES) labels.add(n);
-        openMenu(opener, "Subtitle size", labels, prefs.getInt("subSize", 1), idx -> {
-            prefs.edit().putInt("subSize", idx).apply();
-            styleSubtitles();
-            flash("Subtitles: " + SUB_NAMES[idx]);
-        });
+    private void markDelay() {
+        delayDirty = true;
+        handler.removeCallbacks(delayRun);
+        handler.postDelayed(delayRun, 1200);
+    }
+
+    private void openOptions(View opener) {
+        menuOpener = opener;
+        menuOn = true;
+        handler.removeCallbacks(hideRun);
+        controls.setVisibility(View.GONE);
+        controlsOn = false;
+        menuLayer.removeAllViews();
+        menuLayer.setVisibility(View.VISIBLE);
+        menuLayer.setBackgroundColor(0x99000000);
+        menuLayer.setClickable(true);
+        menuLayer.setOnClickListener(v -> closeMenu());
+        LinearLayout panel = new LinearLayout(this);
+        panel.setOrientation(LinearLayout.VERTICAL);
+        panel.setPadding(dp(26), dp(22), dp(26), dp(18));
+        GradientDrawable pbg = new GradientDrawable(GradientDrawable.Orientation.TL_BR, new int[]{0xF2161622, 0xF20B0B12});
+        pbg.setCornerRadius(dp(28));
+        panel.setBackground(pbg);
+        panel.setClickable(true);
+        TextView ttl = text("Options", 20, true);
+        ttl.setPadding(dp(6), 0, 0, dp(6));
+        panel.addView(ttl);
+        ScrollView sc = new ScrollView(this);
+        sc.setVerticalScrollBarEnabled(false);
+        LinearLayout col = new LinearLayout(this);
+        col.setOrientation(LinearLayout.VERTICAL);
+        sc.addView(col);
+        col.addView(delayRow());
+        col.addView(chipRow("Subtitle size", SUB_NAMES, prefs.getInt("subSize", 1), i -> { prefs.edit().putInt("subSize", i).apply(); styleSubtitles(); }));
+        col.addView(chipRow("Subtitle color", SUB_COLOR_NAMES, prefs.getInt("subColor", 0), i -> { prefs.edit().putInt("subColor", i).apply(); styleSubtitles(); }));
+        col.addView(chipRow("Background", SUB_BG_NAMES, prefs.getInt("subBg", 0), i -> { prefs.edit().putInt("subBg", i).apply(); styleSubtitles(); }));
+        col.addView(chipRow("Edge", SUB_EDGE_NAMES, prefs.getInt("subEdge", 0), i -> { prefs.edit().putInt("subEdge", i).apply(); styleSubtitles(); }));
+        String[] sp = new String[SPEEDS.length];
+        int si = 2;
+        for (int i = 0; i < SPEEDS.length; i++) { sp[i] = SPEEDS[i] == 1f ? "1\u00d7" : (SPEEDS[i] + "\u00d7"); if (SPEEDS[i] == speed) si = i; }
+        col.addView(chipRow("Playback speed", sp, si, i -> { speed = SPEEDS[i]; player.setPlaybackSpeed(speed); }));
+        panel.addView(sc, new LinearLayout.LayoutParams(-1, dp(360)));
+        menuLayer.addView(panel, new FrameLayout.LayoutParams(dp(720), -2, Gravity.CENTER));
+        panel.post(() -> { View f = ((LinearLayout) ((LinearLayout) col.getChildAt(0)).getChildAt(1)).getChildAt(2); if (f != null) f.requestFocus(); });
+    }
+
+    /* ---- subtitle delay: shift the downloaded subtitle files and reload them ---- */
+    private static final Pattern TS = Pattern.compile("(?:(\\d{1,2}):)?(\\d{2}):(\\d{2})[.,](\\d{3})");
+
+    private static String shiftSub(String text, long delta, boolean vtt) {
+        StringBuilder out = new StringBuilder(text.length() + 64);
+        for (String line : text.split("\r?\n", -1)) {
+            if (line.contains("-->")) {
+                Matcher m = TS.matcher(line);
+                StringBuffer sb = new StringBuffer();
+                while (m.find()) {
+                    long t = ((m.group(1) == null ? 0 : Long.parseLong(m.group(1))) * 3600 + Long.parseLong(m.group(2)) * 60 + Long.parseLong(m.group(3))) * 1000 + Long.parseLong(m.group(4)) + delta;
+                    if (t < 0) t = 0;
+                    long hh = t / 3600000, mm = (t / 60000) % 60, ss = (t / 1000) % 60, ms = t % 1000;
+                    m.appendReplacement(sb, String.format(Locale.US, "%02d:%02d:%02d%s%03d", hh, mm, ss, vtt ? "." : ",", ms));
+                }
+                m.appendTail(sb);
+                out.append(sb);
+            } else out.append(line);
+            out.append('\n');
+        }
+        return out.toString();
+    }
+
+    private String download(String u) throws Exception {
+        HttpURLConnection c = (HttpURLConnection) new URL(u).openConnection();
+        c.setRequestProperty("User-Agent", UA);
+        c.setInstanceFollowRedirects(true);
+        c.setConnectTimeout(12000); c.setReadTimeout(20000);
+        try (InputStream in = c.getInputStream()) {
+            ByteArrayOutputStream bo = new ByteArrayOutputStream();
+            byte[] buf = new byte[8192];
+            int n;
+            while ((n = in.read(buf)) > 0) bo.write(buf, 0, n);
+            String t = bo.toString("UTF-8");
+            if (t.startsWith("\uFEFF")) t = t.substring(1);
+            return t;
+        } finally { c.disconnect(); }
+    }
+
+    private void applyDelay() {
+        delayDirty = false;
+        handler.removeCallbacks(delayRun);
+        if (player == null || subCfgs.isEmpty()) return;
+        final long d = subDelayMs, pos = player.getCurrentPosition();
+        final boolean playing = player.getPlayWhenReady();
+        String sel = null;
+        for (TrackRef t : tracksOf(C.TRACK_TYPE_TEXT)) if (t.sel) sel = t.label;
+        final String keep = sel;
+        flash("Syncing subtitles\u2026");
+        new Thread(() -> {
+            List<MediaItem.SubtitleConfiguration> out = new ArrayList<>();
+            for (int i = 0; i < subCfgs.size(); i++) {
+                SubCfg c = subCfgs.get(i);
+                Uri u = Uri.parse(c.url);
+                if (c.shiftable) {
+                    try {
+                        String txt;
+                        synchronized (subText) { txt = subText.get(c.url); }
+                        if (txt == null) { txt = download(c.url); synchronized (subText) { subText.put(c.url, txt); } }
+                        File f = new File(getCacheDir(), "sub" + i + (c.vtt ? ".vtt" : ".srt"));
+                        try (FileOutputStream fo = new FileOutputStream(f)) { fo.write((d == 0 ? txt : shiftSub(txt, d, c.vtt)).getBytes("UTF-8")); }
+                        u = Uri.fromFile(f);
+                    } catch (Exception ignored) { u = Uri.parse(c.url); }
+                }
+                out.add(new MediaItem.SubtitleConfiguration.Builder(u).setMimeType(c.mime).setLanguage(c.lang).setLabel(c.label).build());
+            }
+            runOnUiThread(() -> {
+                if (player == null) return;
+                mediaItem = mediaItem.buildUpon().setSubtitleConfigurations(out).build();
+                pendingSubLabel = keep;
+                player.setMediaItem(mediaItem, pos);
+                player.prepare();
+                player.setPlayWhenReady(playing);
+            });
+        }).start();
     }
 
     private void snapshot() {
