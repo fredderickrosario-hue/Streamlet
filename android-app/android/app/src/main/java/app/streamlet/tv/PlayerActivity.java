@@ -7,6 +7,7 @@ import android.content.res.ColorStateList;
 import android.animation.ValueAnimator;
 import android.content.Context;
 import android.graphics.Canvas;
+import android.graphics.Rect;
 import android.graphics.Paint;
 import android.graphics.RectF;
 import android.view.animation.LinearInterpolator;
@@ -110,7 +111,7 @@ public class PlayerActivity extends Activity {
     // ---- Streamlet control layer
     private static final int ACC1 = 0xFF8B5CFF, ACC2 = 0xFFEC4899, CYAN = 0xFF22D3EE;
     private FrameLayout root, controls, menuLayer;
-    private SeekBar seek;
+    private Scrub seek;
     private TextView posTx, durTx, titleTx, speedTx, flashTx;
     private View spinner;
     private int accent = 0xFF8B5CFF;
@@ -400,25 +401,83 @@ public class PlayerActivity extends Activity {
     }
 
     private void paintChip(TextView t, boolean sel, boolean focus) {
-        t.setBackground(shape(false, focus ? 0xFFFFFFFF : sel ? 0x33FFFFFF : 0x14FFFFFF, 0, 0, 22));
+        t.setBackground(shape(false, focus ? 0xFFFFFFFF : sel ? 0x33FFFFFF : 0x14FFFFFF, 0, 0, 15));
         t.setTextColor(focus ? 0xFF12121C : Color.WHITE);
         t.setTypeface(sel || focus ? Typeface.DEFAULT_BOLD : Typeface.DEFAULT);
         t.setAlpha(focus || sel ? 1f : .85f);
     }
 
     private TextView chip(String label, boolean sel, View.OnClickListener c) {
-        final TextView t = text(label, 15, true);
-        t.setPadding(dp(20), dp(10), dp(20), dp(10));
+        final TextView t = text(label, 13, true);
+        t.setPadding(dp(15), 0, dp(15), 0);
+        t.setGravity(Gravity.CENTER);
         t.setTag(sel);
         paintChip(t, sel, false);
         t.setFocusable(true);
         t.setClickable(true);
         t.setOnClickListener(c);
-        t.setOnFocusChangeListener((v, f) -> { paintChip(t, Boolean.TRUE.equals(t.getTag()), f); t.animate().scaleX(f ? 1.06f : 1f).scaleY(f ? 1.06f : 1f).setDuration(120).start(); });
-        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(-2, -2);
+        t.setOnFocusChangeListener((v, f) -> { paintChip(t, Boolean.TRUE.equals(t.getTag()), f); t.animate().scaleX(f ? 1.04f : 1f).scaleY(f ? 1.04f : 1f).setDuration(120).start(); });
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(-2, dp(30));
         lp.rightMargin = dp(8);
         t.setLayoutParams(lp);
         return t;
+    }
+
+    private interface ScrubL { void onChange(int p, boolean fromUser); void onStart(); void onStop(); }
+
+    /** our own progress line: grey track, accent for what has been played, a small dot only while focused */
+    private class Scrub extends View {
+        private int max = 1, prog = 0, sec = 0, inc = 10000;
+        private ScrubL l;
+        private final Paint pt = new Paint(Paint.ANTI_ALIAS_FLAG);
+        private final RectF rc = new RectF();
+        Scrub(Context c) { super(c); setFocusable(true); setClickable(true); }
+        void setListener(ScrubL x) { l = x; }
+        void setMax(int m) { max = Math.max(1, m); invalidate(); }
+        int getMax() { return max; }
+        void setProgress(int p) { prog = Math.max(0, Math.min(max, p)); invalidate(); }
+        int getProgress() { return prog; }
+        void setSecondaryProgress(int p) { sec = Math.max(0, Math.min(max, p)); invalidate(); }
+        void setKeyProgressIncrement(int i) { inc = i; }
+        @Override protected void onFocusChanged(boolean g, int d, Rect r) { super.onFocusChanged(g, d, r); invalidate(); }
+        @Override protected void onDraw(Canvas cv) {
+            float pad = dp(7), x0 = pad, x1 = getWidth() - pad, w = x1 - x0, cy = getHeight() / 2f;
+            float h = dp(isFocused() ? 6 : 4), rad = h / 2f;
+            pt.setStyle(Paint.Style.FILL);
+            pt.setColor(0x887C808A);
+            rc.set(x0, cy - h / 2, x1, cy + h / 2);
+            cv.drawRoundRect(rc, rad, rad, pt);
+            if (sec > prog) { pt.setColor(0x66B4B8C2); rc.set(x0, cy - h / 2, x0 + w * sec / max, cy + h / 2); cv.drawRoundRect(rc, rad, rad, pt); }
+            float px = x0 + w * prog / max;
+            pt.setColor(accent);
+            rc.set(x0, cy - h / 2, Math.max(px, x0 + h), cy + h / 2);
+            cv.drawRoundRect(rc, rad, rad, pt);
+            if (isFocused()) { pt.setColor(Color.WHITE); cv.drawCircle(px, cy, dp(6), pt); }
+        }
+        @Override public boolean onKeyDown(int k, KeyEvent e) {
+            if (k == KeyEvent.KEYCODE_DPAD_LEFT || k == KeyEvent.KEYCODE_DPAD_RIGHT) {
+                int step = e.getRepeatCount() > 8 ? inc * 3 : inc;
+                setProgress(prog + (k == KeyEvent.KEYCODE_DPAD_LEFT ? -step : step));
+                if (l != null) { if (e.getRepeatCount() == 0) l.onStart(); l.onChange(prog, true); }
+                return true;
+            }
+            return super.onKeyDown(k, e);
+        }
+        @Override public boolean onKeyUp(int k, KeyEvent e) {
+            if ((k == KeyEvent.KEYCODE_DPAD_LEFT || k == KeyEvent.KEYCODE_DPAD_RIGHT) && l != null) { l.onStop(); return true; }
+            return super.onKeyUp(k, e);
+        }
+        @Override public boolean onTouchEvent(MotionEvent ev) {
+            float pad = dp(7), w = getWidth() - 2 * pad;
+            int a = ev.getActionMasked();
+            if (a == MotionEvent.ACTION_DOWN && l != null) l.onStart();
+            if (a == MotionEvent.ACTION_DOWN || a == MotionEvent.ACTION_MOVE) {
+                setProgress((int) (max * Math.max(0f, Math.min(1f, (ev.getX() - pad) / w))));
+                if (l != null) l.onChange(prog, true);
+            }
+            if ((a == MotionEvent.ACTION_UP || a == MotionEvent.ACTION_CANCEL) && l != null) l.onStop();
+            return true;
+        }
     }
 
     /** buffering indicator: a short arc that grows and shrinks while it circles */
@@ -521,22 +580,11 @@ public class PlayerActivity extends Activity {
         posTx = text("0:00", 15, true);
         durTx = text("", 15, true);
         posTx.setAlpha(.95f); durTx.setAlpha(.7f);
-        seek = new SeekBar(this);
-        seek.setPadding(0, 0, 0, 0);
-        seek.setMax(1);
+        seek = new Scrub(this);
         seek.setKeyProgressIncrement(10000);
-        seek.setProgressDrawable(seekDrawable());
-        final GradientDrawable thumbS = shape(true, Color.WHITE, 0, 0, 0); thumbS.setSize(dp(14), dp(14));
-        final GradientDrawable thumbL = shape(true, Color.WHITE, 0x66FFFFFF, dp(4), 0); thumbL.setSize(dp(26), dp(26));
-        seek.setThumb(thumbS);
-        seek.setThumbOffset(0);
-        seek.setSplitTrack(false);
-        seek.setBackground(null);
-        seek.setFocusable(true);
         seek.setOnClickListener(v -> togglePlay());
-        seek.setOnFocusChangeListener((v, f) -> { seek.setThumb(f ? thumbL : thumbS); seek.setThumbOffset(0); seek.invalidate(); });
-        seek.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
-            @Override public void onProgressChanged(SeekBar sb, int p, boolean fromUser) {
+        seek.setListener(new ScrubL() {
+            @Override public void onChange(int p, boolean fromUser) {
                 if (!fromUser) return;
                 posTx.setText(fmt(p));
                 seekPending = true;
@@ -544,12 +592,12 @@ public class PlayerActivity extends Activity {
                 handler.postDelayed(seekRun, 400);
                 scheduleHide();
             }
-            @Override public void onStartTrackingTouch(SeekBar sb) { seekPending = true; handler.removeCallbacks(hideRun); }
-            @Override public void onStopTrackingTouch(SeekBar sb) { handler.removeCallbacks(seekRun); seekRun.run(); scheduleHide(); }
+            @Override public void onStart() { seekPending = true; handler.removeCallbacks(hideRun); }
+            @Override public void onStop() { handler.removeCallbacks(seekRun); seekRun.run(); scheduleHide(); }
         });
         LinearLayout.LayoutParams pt = new LinearLayout.LayoutParams(-2, -2);
         pt.leftMargin = dp(14);
-        LinearLayout.LayoutParams sl = new LinearLayout.LayoutParams(0, dp(34), 1f);
+        LinearLayout.LayoutParams sl = new LinearLayout.LayoutParams(0, dp(30), 1f);
         sl.leftMargin = dp(16); sl.rightMargin = dp(16);
         row.addView(posTx, pt);
         row.addView(seek, sl);
