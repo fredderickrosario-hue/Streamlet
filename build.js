@@ -17,6 +17,11 @@ for (const f of ['tv', 'phone']) {
       return !(m && m[1].split(',').every(x => /^\s*body\.tv(?![\w-])/.test(x)));
     }).join('\n');
   }
+  if (f === 'tv') {                                              // the TV page is laid out 1280 CSS px wide and scaled by the web view (no per-frame zoom), without the GPU-heavy blur
+    s = s.replace(/<meta name="viewport"[^>]*>/, '<meta name="viewport" content="width=1280,initial-scale=1,user-scalable=no">');
+    s = s.replace(/-webkit-backdrop-filter:[^;}]*;?/g, '').replace(/backdrop-filter:[^;}]*;?/g, '');
+  }
+  s = s.replace(/<link rel="manifest"[^>]*>\n?/, '').replace(/<link rel="apple-touch-icon"[^>]*>\n?/, '');
   for (const a of ['manifest.webmanifest', 'icon.svg', 'apple-touch-icon.png', 'logo.svg']) s = s.split(`"${a}"`).join(`"../${a}"`);
   s = s.replace(/^if \('serviceWorker' in navigator[^\n]*\n/m, '');
   fs.mkdirSync(f, { recursive: true });
