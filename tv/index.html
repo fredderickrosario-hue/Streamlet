@@ -446,6 +446,7 @@ body:not(.tv) #rows .row h2{font-size:16px}
 body:not(.tv).onhome:not(.launch) #tabsBar{position:absolute;padding-left:14px;top:calc(12px + env(safe-area-inset-top));overflow-x:auto}
 body:not(.tv).onhome:not(.launch) header{padding-left:14px}
 
+
 body.onhome:not(.launch) header{display:none}
 .tspace{height:calc(70px + env(safe-area-inset-top))}
 body.tv .tspace{height:calc(var(--vh,1vh) * 14)}
@@ -1706,6 +1707,7 @@ document.addEventListener('focusin', e => {
   clearTimeout(tvHeroT); tvHeroT = setTimeout(() => setTvHero(c._hero), 170);
 });
 addEventListener('scroll', () => document.body.classList.toggle('scr', scrollY > 30), {passive:true});
+
 
 let homeTok = 0;
 let view = {tab:'home', genre:''};
