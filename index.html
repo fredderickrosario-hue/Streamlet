@@ -273,15 +273,15 @@ nav::before{content:'';position:absolute;inset:0;border-radius:inherit;pointer-e
   box-shadow:inset 0 1.5px 0 rgba(255,255,255,.55),inset 0 -2px 6px rgba(0,0,0,.14),0 8px 22px color-mix(in srgb,var(--acc) 50%,transparent);
   transition:transform .55s cubic-bezier(.3,1.4,.45,1),width .5s cubic-bezier(.3,1.4,.45,1)}
 nav button{position:relative;z-index:1;flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;padding:9px 2px 8px;border:0;background:none;border-radius:24px;color:rgba(255,255,255,.7);font-size:10.5px;font-weight:650;transition:color .2s}
-nav button svg{width:24px;height:24px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;transition:transform .35s cubic-bezier(.3,1.5,.5,1)}
+nav button>svg{width:24px;height:24px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;transition:transform .35s cubic-bezier(.3,1.5,.5,1)}
 nav button.on{color:#fff}
-nav button.on svg{transform:translateY(-1px) scale(1.1)}
+nav button.on>svg{transform:translateY(-1px) scale(1.1)}
 nav button:focus-visible{outline:2px solid #fff;outline-offset:-3px;box-shadow:none}
 body.tv #tabHome::before,body.tv #tabAddons::before,body.tv #tabSpaces::before{content:none}
 body.tv nav{left:18px;top:50%;bottom:auto;right:auto;transform:translateY(-50%);width:96px;flex-direction:column;border-radius:38px;padding:10px 8px;gap:4px}
 body.tv .navpill{left:8px;right:8px;top:0;width:auto;height:var(--ph,72px);transform:translateY(var(--py,10px));border-radius:30px}
 body.tv nav button{flex:0 0 auto;padding:12px 2px 10px;font-size:11.5px;border-radius:28px}
-body.tv nav button svg{width:28px;height:28px}
+body.tv nav button>svg{width:28px;height:28px}
 body.tv header{padding-left:146px}
 body.tv main{padding-left:132px;padding-bottom:40px}
 body.tv.launch main{padding-left:0}
@@ -294,9 +294,9 @@ nav{width:min(92vw,456px);padding:5px;gap:0;border-radius:26px;
 nav::before{display:none}
 .navpill{top:5px;height:calc(100% - 10px);border-radius:21px;background:color-mix(in srgb,var(--acc) 22%,transparent);border:1px solid color-mix(in srgb,var(--acc) 32%,transparent);box-shadow:none}
 nav button{padding:8px 2px 7px;font-size:10px;font-weight:600;color:rgba(255,255,255,.58);border-radius:20px}
-nav button svg{width:22px;height:22px;stroke-width:1.7}
+nav button>svg{width:22px;height:22px;stroke-width:1.7}
 nav button.on{color:color-mix(in srgb,var(--acc) 82%,#fff)}
-nav button.on svg{transform:none}
+nav button.on>svg{transform:none}
 body.tv nav{background:color-mix(in srgb,var(--panel-s) 78%,transparent);border:1px solid rgba(255,255,255,.08);box-shadow:0 10px 28px rgba(0,0,0,.34);border-radius:32px}
 body.tv .navpill{border-radius:26px;box-shadow:none}
 /* ---- watched ribbon (top-right corner of a poster) ---- */
@@ -377,8 +377,8 @@ body.tv .dtop{padding-left:150px}
 .navpill{display:none}
 nav button{color:rgba(255,255,255,.52)}
 nav button.on{color:#fff}
-nav button svg{transition:fill .2s,stroke .2s}
-nav button.on svg{fill:color-mix(in srgb,var(--acc) 24%,transparent);stroke:#fff;stroke-width:2.1;transform:none}
+nav button>svg{transition:fill .2s,stroke .2s}
+nav button.on>svg{fill:color-mix(in srgb,var(--acc) 58%,transparent);stroke:#fff;stroke-width:2;transform:none}
 /* title page: logo appears in the header once you scroll past the backdrop */
 .dtop{transition:background .25s,padding .25s}
 .dtlogo{flex:1;min-width:0;display:flex;align-items:center;margin-left:6px;opacity:0;transform:translateY(6px);transition:opacity .25s,transform .25s;pointer-events:none}
@@ -472,7 +472,7 @@ body.tv{--tvl:104px}
 body.tv nav{width:64px;left:16px;padding:8px 6px;gap:1px;max-height:calc(var(--vh,1vh) * 94);overflow-y:auto;scrollbar-width:none}
 body.tv nav::-webkit-scrollbar{display:none}
 body.tv nav button{padding:10px 0;border-radius:18px}
-body.tv nav button svg{width:26px;height:26px}
+body.tv nav button>svg{width:26px;height:26px}
 body.tv main{padding-left:104px}
 body.tv.launch main{padding-left:0}
 body.tv .tvhero .tin{left:28px}
@@ -489,10 +489,9 @@ body.launch #profiles:not([hidden]){display:flex;flex-direction:column;justify-c
 body.tv nav{background:none !important;border:0 !important;box-shadow:none !important;backdrop-filter:none !important;-webkit-backdrop-filter:none !important;overflow:visible;max-height:none;left:14px;padding:0;width:56px;gap:4px}
 body.tv nav::before,body.tv .navpill{display:none !important}
 body.tv nav button{width:56px;height:46px;padding:0;justify-content:center;border-radius:16px;color:rgba(255,255,255,.72)}
-body.tv nav button svg{filter:drop-shadow(0 1px 6px rgba(0,0,0,.85))}
+body.tv nav button>svg{filter:drop-shadow(0 1px 6px rgba(0,0,0,.85))}
 body.tv nav button.on{color:#fff}
 body.tv nav button:focus-visible{outline:none;background:rgba(255,255,255,.2);box-shadow:0 0 0 2px #fff inset}
-body.tv nav button:focus-visible span,body.tv nav button:hover span{display:block;position:absolute;left:calc(100% + 10px);top:50%;transform:translateY(-50%);white-space:nowrap;background:rgba(14,14,22,.92);border:1px solid rgba(255,255,255,.14);padding:7px 14px;border-radius:12px;font-size:15px;font-weight:700;color:#fff;box-shadow:0 8px 22px rgba(0,0,0,.45);pointer-events:none}
 body.tv .tvhero{margin-left:-104px}
 body.tv .tvhero .tin{left:132px}
 body.tv .tvhero .tbg{left:0;-webkit-mask-image:linear-gradient(to right,rgba(0,0,0,.34) 0,rgba(0,0,0,.2) 24%,#000 62%);mask-image:linear-gradient(to right,rgba(0,0,0,.34) 0,rgba(0,0,0,.2) 24%,#000 62%)}
@@ -512,7 +511,8 @@ body.tv nav button:focus-visible{background:rgba(255,255,255,.16);box-shadow:non
 
 .navav{display:inline-flex;border-radius:50%;line-height:0;flex:0 0 auto}
 .navav .av{width:26px !important;height:26px !important}
-nav button.on .navav{box-shadow:0 0 0 2px #fff}
+nav button.on .navav{box-shadow:0 0 0 2px rgba(255,255,255,.95);outline:none}
+nav button:not(.on) .navav{opacity:.9}
 /* genre tiles */
 .gstrip{display:flex;gap:12px;overflow-x:auto;padding:4px 14px 14px;scrollbar-width:none;position:relative;z-index:2}
 .gstrip::-webkit-scrollbar{display:none}
@@ -648,6 +648,14 @@ body.tv .dright .ethumb{flex:0 0 118px;border-radius:10px}
 body.tv .dright .etitle{font-size:15px}
 body.tv .dright .edate{font-size:12px;color:var(--mut)}
 body.tv .dright .eover{font-size:13px;color:#a9adbb;-webkit-line-clamp:2}
+
+/* sources / episodes panel: header and chips stay put, only the list scrolls */
+body.tv .dbody>.dright{display:flex;flex-direction:column;overflow:hidden;max-height:calc(var(--vh,1vh) * 84)}
+body.tv .dright .dbox{display:contents}
+body.tv .dright .dptitle,body.tv .dright .sfilter,body.tv .dright .srow{flex:0 0 auto}
+body.tv .dright .slist,body.tv .dright .eplist{flex:1 1 auto;min-height:0;overflow-y:auto;scrollbar-width:none;overscroll-behavior:contain}
+body.tv .dright .slist::-webkit-scrollbar,body.tv .dright .eplist::-webkit-scrollbar{display:none}
+body.tv #detail,body.tv #episode{overflow:hidden}
 </style>
 </head>
 <body>
@@ -1433,7 +1441,7 @@ function renderCW(){
       (() => { const b = h('button', {class:'cwb', type:'button', onclick:() => openResume(e)}, po, h('div', {class:'t'}, e.name), h('div', {class:'s'}, label)); attachHold(b, {itemId:e.itemId, type:e.itemType, name:e.name, poster:e.poster, background:e.background, addonId:e.addonId}, {cw:e}); return b; })(),
       h('button', {class:'rm', type:'button', tabindex:'-1', 'aria-label':'Remove', onclick:ev => { ev.stopPropagation(); histRemove(e.k); renderCW(); }}, '✕')));
   }
-  box.append(h('div', {class:'row'}, h('h2', null, 'Continue watching', h('small', {class:'tvhint'}, ' · hold OK for options')), strip));
+  box.append(h('div', {class:'row'}, h('h2', null, 'Continue watching'), strip));
 }
 
 /* ---------- TV home: full-bleed hero that follows the focused title ---------- */
@@ -1995,7 +2003,7 @@ function openEpisode(addon, type, meta, v, sorted){
   const sn = v.season ?? 1, code = `S${String(sn).padStart(2, '0')}E${String(v.episode ?? 0).padStart(2, '0')}`;
   const title = v.title || v.name || `Episode ${v.episode ?? ''}`;
   const when = v.released ? fmtDate(v.released) : '';
-  const streamsBox = h('div');
+  const streamsBox = h('div', {class:'dbox'});
   const saved = histGet().find(x => x.k === `${type}|${v.id}`);
   const etop = h('div', {class:'dtop'}, iconBtn(IC.back, 'Back', () => popLayer('episode')), titleMini(meta));
   ed.replaceChildren(
@@ -2052,7 +2060,7 @@ async function openDetail(addon, type, item, opts = {}){
       };
       draw(); body.append(h('div', {class:'dsec dright'}, h('div', {class:'dptitle'}, 'Episodes'), srow, list));
     } else if (withStreams) {                                              // ---- movie / single title: streams right here
-      const box = h('div'), saved = histGet().find(x => x.k === `${type}|${meta.id}`);
+      const box = h('div', {class:'dbox'}), saved = histGet().find(x => x.k === `${type}|${meta.id}`);
       body.append(h('div', {class:'dsec dright'}, h('div', {class:'dptitle'}, 'Sources'), resumeButton(saved, base), box));
       loadStreams(type, meta.id, box, meta.name, base);
     }
@@ -2912,8 +2920,9 @@ $('#pseek').addEventListener('click', e => { const v = $('#vid'), r = e.currentT
   const w = $('#iword'); [...'Streamlet'].forEach((c, i) => w.append(h('span', {class:i >= 6 ? 'acc' : '', style:`animation-delay:${1.55 + i * .06}s`}, c)));
   let done = false;
   const end = () => { if (done) return; done = true; el.classList.add('out'); setTimeout(() => el.remove(), 700); };
-  setTimeout(end, 3300);
-  el.addEventListener('click', end); addEventListener('keydown', end, {once:true, capture:true});
+  const last = w.lastElementChild;
+  last.addEventListener('animationend', () => setTimeout(end, 700));   // hold the finished logo for a beat
+  setTimeout(end, 12000);                                             // safety net only
 })();
 
 /* ---------- boot ---------- */
