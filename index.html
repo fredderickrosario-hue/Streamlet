@@ -1345,9 +1345,11 @@ function showLogin(){
   L.replaceChildren(
     h('h1', null, 'Stream', h('span', {style:'color:var(--acc)'}, 'let')),
     h('p', {class:'sub'}, 'Sign in to sync your profiles, addons and progress on every device.'),
-    nativePlayer() ? null : [h('button', {class:'gbtn', type:'button', onclick:() => busy(() => FB.au.signInWithPopup(auth, new FB.au.GoogleAuthProvider()))},
-      h('b', {style:'color:#4285f4;font-size:18px'}, 'G'), 'Continue with Google'),
-    h('div', {class:'or'}, 'or use email')],
+    ...(nativePlayer()
+      ? [h('p', {class:'sub', style:'font-size:13px;margin:-8px 0 14px'}, "Google sign-in isn't available inside the app. Tap \"Forgot password?\" with your Google email once to set a password, then sign in below. It's the same account and data.")]
+      : [h('button', {class:'gbtn', type:'button', onclick:() => busy(() => FB.au.signInWithPopup(auth, new FB.au.GoogleAuthProvider()))},
+          h('b', {style:'color:#4285f4;font-size:18px'}, 'G'), 'Continue with Google'),
+         h('div', {class:'or'}, 'or use email')]),
     email, pass,
     h('div', {class:'lrow'},
       h('button', {class:'btn', type:'button', onclick:() => busy(() => { need(); return FB.au.signInWithEmailAndPassword(auth, email.value.trim(), pass.value); })}, 'Sign in'),
