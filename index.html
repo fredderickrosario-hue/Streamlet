@@ -548,7 +548,7 @@ body.tv .gtile{height:52px;min-width:130px;font-size:15px}
 #intro.go .iring{animation:idraw 1.2s cubic-bezier(.6,.1,.2,1) .15s forwards}
 .iplay{transform-box:fill-box;transform-origin:center;opacity:0;transform:scale(.3)}
 #intro.go .iplay{animation:ipop .6s cubic-bezier(.3,1.6,.5,1) .85s forwards}
-.iplug{opacity:0;transform:translate(160px,-120px) rotate(14deg)}
+.iplug{opacity:0;transform:translate(170px,-150px) rotate(24deg)}
 #intro.go .iplug{animation:iplug .7s cubic-bezier(.3,1.4,.5,1) 1.15s forwards}
 .iword{margin-top:3vmin;font-size:clamp(28px,7vmin,64px);font-weight:800;letter-spacing:.5px;color:#fff;display:flex}
 .iword span{opacity:0;transform:translateY(14px)}
@@ -728,6 +728,14 @@ body.tv .sedh{font-size:32px}
 body.tv .dbody{height:calc(var(--vh,1vh) * 100);box-sizing:border-box;padding:calc(var(--vh,1vh) * 8) 64px calc(var(--vh,1vh) * 8) 120px;align-items:stretch}
 body.tv .dleft{display:flex;flex-direction:column;justify-content:flex-end;min-width:0;grid-column:1}
 body.tv .dbody>.dright{position:relative;top:auto;grid-row:1;align-self:start;max-height:calc(var(--vh,1vh) * 84)}
+
+/* brand mark, top-left of the side menu */
+.navbrand{display:none}
+body.tv .navbrand{display:flex;align-items:center;gap:12px;position:absolute;top:calc(var(--vh,1vh) * 4);left:21px;pointer-events:none}
+body.tv .navbrand img{width:44px;height:44px;display:block;filter:drop-shadow(0 4px 12px rgba(0,0,0,.5))}
+body.tv .navbrand span{display:none;font-size:20px;font-weight:800;letter-spacing:-.3px;white-space:nowrap}
+body.tv .navbrand b{color:var(--acc)}
+body.tv nav:focus-within .navbrand span{display:block}
 </style>
 </head>
 <body>
@@ -738,9 +746,9 @@ body.tv .dbody>.dright{position:relative;top:auto;grid-row:1;align-self:start;ma
       <linearGradient id="ig2" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff"/><stop offset="1" stop-color="#ddd3ff"/></linearGradient>
     </defs>
     <circle class="iglow" cx="487" cy="520" r="360" fill="#7c5cff"/>
-    <path class="iring" pathLength="1" d="M522.5 231.7 A291 291 0 1 0 770.8 450.1" fill="none" stroke="url(#ig1)" stroke-width="68" stroke-linecap="round"/>
+    <path class="iring" pathLength="1" d="M563.1 236.0 A294 294 0 1 0 765.0 424.3" fill="none" stroke="url(#ig1)" stroke-width="66" stroke-linecap="round"/>
     <path class="iplay" d="M446 430Q446 410 466 421L592 494Q610 505 592 516L466 589Q446 600 446 580Z" fill="url(#ig2)" stroke="url(#ig2)" stroke-width="26" stroke-linejoin="round"/>
-    <g class="iplug"><g transform="translate(772 330) rotate(13)">
+    <g class="iplug"><g transform="translate(710 338) rotate(-33) scale(.86)">
       <rect x="-74" y="-148" width="38" height="104" rx="19" fill="url(#ig2)"/><rect x="36" y="-148" width="38" height="104" rx="19" fill="url(#ig2)"/>
       <path d="M-100 -66H100Q124 -66 124 -42V12Q124 74 62 82L38 120H-38L-62 82Q-124 74 -124 12V-42Q-124 -66 -100 -66Z" fill="url(#ig2)"/>
     </g></g>
@@ -840,6 +848,7 @@ body.tv .dbody>.dright{position:relative;top:auto;grid-row:1;align-self:start;ma
 <div id="toast"></div>
 <nav id="nav">
   <i class="navpill" id="navPill"></i>
+  <div class="navbrand" aria-hidden="true"><img src="logo.svg" alt=""><span>Stream<b>let</b></span></div>
   <button id="nvSearch" class="tvonly" type="button" aria-label="Search"><svg viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.2"/><path d="M15.2 15.2 20.5 20.5"/></svg><span>Search</span></button>
   <button id="nvSpace" class="tvonly" type="button" aria-label="Spaces"><svg viewBox="0 0 24 24"><rect x="4" y="4" width="6.5" height="6.5" rx="1.6"/><rect x="13.5" y="4" width="6.5" height="6.5" rx="1.6"/><rect x="4" y="13.5" width="6.5" height="6.5" rx="1.6"/><rect x="13.5" y="13.5" width="6.5" height="6.5" rx="1.6"/></svg><span>Spaces</span></button>
   <button id="tabHome" type="button"><svg viewBox="0 0 24 24"><path d="M3 11.5 12 4l9 7.5"/><path d="M5 10.2V20h5v-5.2h4V20h5v-9.8"/></svg><span>Home</span></button>
@@ -1127,6 +1136,16 @@ $('#tabHome').onclick = () => { if (isTVui()) tvTab('home'); else showTab('home'
 $('#nvMovies').onclick = () => tvTab('movie'); $('#nvShows').onclick = () => tvTab('series'); $('#nvNew').onclick = () => tvTab('new');
 $('#nvSpace').onclick = () => showLauncher();
 $('#nvSearch').onclick = () => { if (!cur) return showLauncher(); if (isTVui()) { showTab('search'); setTimeout(() => { const k = $('.kkey'); if (k) k.focus({preventScroll:true}); }, 60); return; } if (srchOn || $('#q').value.trim()) { closeSearch(); return; } if ($('#home').hidden) showTab('home'); srchOn = true; renderTabs(); $('#q').focus(); };
+$('#nav').addEventListener('click', e => {
+  if (!isTVui() || !e.target.closest('button')) return;
+  const settle = () => {
+    const a = document.activeElement; if (!a || !a.closest || !a.closest('#nav')) return;
+    const content = focusables(document.body).filter(x => !x.closest('#nav'));
+    const t = firstFocus(document.body, content);
+    if (t) t.focus({preventScroll:true}); else a.blur();
+  };
+  setTimeout(settle, 160); setTimeout(settle, 800);
+});
 function syncNav(){
   try {
     const home = !$('#home').hidden, st = !!(cur && spaceTabs()), tv = isTVui(), sr = srchOn || !!$('#q').value.trim();
@@ -1507,10 +1526,15 @@ async function pickProfileFx(pr, tile){
     await animDone(f.animate([{transform:start}, {transform:mid}], {duration:420, easing:'cubic-bezier(.2,.8,.2,1)', fill:'forwards'}));
     await new Promise(r => setTimeout(r, 500));                      // hold in the middle
     selectProfile(pr); P.style.opacity = ''; P.style.transition = '';
-    await nextFrames(3); await new Promise(r => setTimeout(r, 80));
-    const tgt = document.querySelector('#tabMe .navav .av') || document.querySelector('.lhead .spaceBtn .av');
-    const tr = tgt && tgt.getBoundingClientRect();
-    if (!tgt || tr.width < 2) {
+    await nextFrames(3);
+    let tgt = null, tr = null, prevR = null;
+    for (let i = 0; i < 45 && !tgt; i++) {                            // up to ~2.5 s for the destination to exist and sit still
+      await new Promise(r => setTimeout(r, 55));
+      const t = document.querySelector('#tabMe .navav .av') || document.querySelector('.lhead .spaceBtn .av');
+      const r = t && t.getBoundingClientRect();
+      if (r && r.width > 2) { if (prevR && Math.abs(r.left - prevR.left) < .5 && Math.abs(r.top - prevR.top) < .5) { tgt = t; tr = r; } prevR = r; }
+    }
+    if (!tgt) {
       cover.animate([{opacity:1}, {opacity:0}], {duration:500, fill:'forwards'}); await animDone(f.animate([{opacity:1}, {opacity:0}], {duration:500, fill:'forwards'}));
     } else {
       hideEl = tgt.closest('.navav') || tgt; hideEl.style.visibility = 'hidden';

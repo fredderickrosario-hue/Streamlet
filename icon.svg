@@ -6,10 +6,10 @@
 <filter id="sh" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="14"/></filter>
 </defs>
 <circle cx="487" cy="520" r="360" fill="url(#glow)"/>
-<path d="M522.5,231.2 A291 291 0 1 0 766.7,439.8" fill="none" stroke="url(#rg)" stroke-width="68" stroke-linecap="round"/>
+<path d="M563.1,236.0 A294 294 0 1 0 765.0,424.3" fill="none" stroke="url(#rg)" stroke-width="66" stroke-linecap="round"/>
 <path d="M452 430Q452 410 472 421L598 494Q616 505 598 516L472 589Q452 600 452 580Z" fill="url(#wh)" stroke="url(#wh)" stroke-width="26" stroke-linejoin="round" transform="translate(-6 0)"/>
-<path d="M750.7,643.0 A291 291 0 0 0 766.7,439.8" fill="none" stroke="url(#cord)" stroke-width="68" stroke-linecap="round"/>
-<g transform="translate(772 330) rotate(13)">
+<path d="M736.3,675.8 A294 294 0 0 0 765.0,424.3" fill="none" stroke="url(#cord)" stroke-width="68" stroke-linecap="round"/>
+<g transform="translate(710 338) rotate(-33) scale(.86)">
  <path d="M-100 -62H100Q124 -62 124 -38V16Q124 78 62 86L40 130H-40L-62 86Q-124 78 -124 16V-38Q-124 -62 -100 -62Z" fill="#000" opacity=".35" filter="url(#sh)" transform="translate(0 14)"/>
  <rect x="-74" y="-148" width="38" height="104" rx="19" fill="url(#wh)"/>
  <rect x="36" y="-148" width="38" height="104" rx="19" fill="url(#wh)"/>
