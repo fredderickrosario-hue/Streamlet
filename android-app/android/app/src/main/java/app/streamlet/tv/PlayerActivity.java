@@ -251,9 +251,9 @@ public class PlayerActivity extends Activity {
 
             @Override
             public void onPlayerError(PlaybackException error) {
-                boolean parse = error.errorCode == PlaybackException.ERROR_CODE_PARSING_CONTAINER_MALFORMED
-                        || error.errorCode == PlaybackException.ERROR_CODE_PARSING_CONTAINER_UNSUPPORTED;
-                if (parse && !compatTried) { compatTried = true; handler.post(() -> retryCompat()); return; }          // some MKVs only play when the player doesn't hunt for the index at the end
+                int ec = error.errorCode;
+                boolean network = ec >= 2000 && ec < 3000;            // connection / HTTP problems: the other player would fail too
+                if (!network && !errOn) { handler.post(() -> switchToVlc()); return; }
                 showError(friendly(error), error.getErrorCodeName());
             }
         };
@@ -279,6 +279,18 @@ public class PlayerActivity extends Activity {
         return new ExoPlayer.Builder(this)
                 .setMediaSourceFactory(new DefaultMediaSourceFactory(new DefaultDataSource.Factory(this, http), ex))
                 .build();
+    }
+
+    /** Hand the stream to the backup player (libVLC), keeping the position and the bridge call. */
+    private void switchToVlc() {
+        if (reported) return;
+        snapshot();
+        reported = true;
+        Intent v = new Intent(this, VlcActivity.class);
+        v.putExtras(getIntent());
+        v.putExtra("startMs", lastPos);
+        startActivity(v);
+        finish();
     }
 
     /** Second try for files the strict reader rejects: start from the beginning and skip the seek index. Seeking is limited in this mode. */
