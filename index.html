@@ -1082,16 +1082,18 @@ const FB_CONFIG = {
   appId: "1:838065755328:web:ffd0becf3ab0314bb04925"
 };
 const FB_VER = '10.14.1';
+let syncErr = '';
 let FB = null, auth = null, db = null, user = null, syncState = 'local', lastSync = 0, syncT = null, firstAuth = true, listening = false, booted = false;
 const withTimeout = (p, ms) => Promise.race([p, new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), ms))]);
 const ek = k => encodeURIComponent(k).replace(/\./g, '%2E');
 const clean = o => JSON.parse(JSON.stringify(o));
 const metaGet = () => lsGet('streamlet.meta', {});
 function stamp(k){ const m = metaGet(); m[k] = Date.now(); lsSet('streamlet.meta', m); scheduleSync(); }
+function noteErr(e){ syncErr = (e && (e.code || e.message)) || 'unknown error'; syncState = 'error'; fillAccountUI(); }
 function scheduleSync(){
   if (!user || !db) return;
   clearTimeout(syncT); syncState = 'syncing';
-  syncT = setTimeout(() => pushAll().catch(() => { syncState = 'error'; fillAccountUI(); }), 1500);
+  syncT = setTimeout(() => pushAll().catch(noteErr), 1500);
 }
 
 async function loadFirebase(){
@@ -1103,11 +1105,15 @@ async function loadFirebase(){
 async function applyRemoteAddons(urls){
   const have = Object.fromEntries(addons.map(a => [a.url, a])), out = [];
   await Promise.all(urls.map(async (u, i) => {
-    if (have[u]) { out[i] = have[u]; return; }
+    if (have[u] && !have[u].pending) { out[i] = have[u]; return; }
+    const {url, base} = parseAddonUrl(u);
     try {
-      const {url, base} = parseAddonUrl(u), manifest = await getJSON(url);
-      if (manifest && manifest.id && Array.isArray(manifest.resources)) { manifest.types = manifest.types || []; out[i] = {url, base, manifest}; }
-    } catch {}
+      const manifest = await getJSON(url);
+      if (!manifest || !manifest.id || !Array.isArray(manifest.resources)) throw new Error('bad manifest');
+      manifest.types = manifest.types || []; out[i] = {url, base, manifest};
+    } catch {
+      out[i] = have[u] || {url, base, pending:true, manifest:{id:'pending:' + u, name:u.replace(/^https?:\/\//, '').replace(/\/manifest\.json.*$/, ''), description:"Couldn't load this addon yet (offline?). It will retry on the next sync.", resources:[], types:[], catalogs:[]}};
+    }
   }));
   addons = out.filter(Boolean);
   try { localStorage.setItem('streamlet.addons', JSON.stringify(addons)); } catch {}
@@ -1174,6 +1180,7 @@ async function initialSync(){
   const {doc, getDoc, getDocs, collection} = FB.fs, base = ['users', user.uid];
   const fam = await getDoc(doc(db, ...base, 'sync', 'family'));
   await mergeFamily(fam.exists() ? fam.data() : null);
+  if (addons.some(a => a.pending)) await applyRemoteAddons(addons.map(a => a.url));
   const ps = await getDocs(collection(db, ...base, 'profiles'));
   ps.forEach(d => mergeProfile(d.id, d.data()));
   await pushAll();
@@ -1247,7 +1254,7 @@ function showLogin(){
 /* ----- account card (Addons tab) ----- */
 function fillAccountUI(){
   const c = $('#acctCard'); if (!c) return;
-  const status = {local:'Not synced', syncing:'Syncing…', synced:'Synced' + (lastSync ? ' · ' + new Date(lastSync).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}) : ''), error:"Sync problem. Will retry."}[syncState] || '';
+  const status = {local:'Not synced', syncing:'Syncing…', synced:'Synced' + (lastSync ? ' · ' + new Date(lastSync).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}) : ''), error:'Sync problem: ' + syncErr + (/permission|denied/i.test(syncErr) ? ' (publish the Firestore rules in the Firebase console)' : '')}[syncState] || '';
   if (!FB) { c.replaceChildren(h('p', {style:'margin:0'}, "Cloud sync isn't available right now (offline?). The app still works on this device.")); return; }
   if (!user) {
     c.replaceChildren(h('p', {style:'margin:0 0 10px'}, 'Not signed in. Your data only lives on this device.'),
@@ -1262,9 +1269,10 @@ function fillAccountUI(){
     try { Object.keys(localStorage).filter(k => k.startsWith('streamlet.')).forEach(k => localStorage.removeItem(k)); } catch {}
     location.reload();
   };
-  c.replaceChildren(h('div', {style:'font-weight:650'}, user.email || user.displayName || 'Signed in'), h('p', {style:'margin:2px 0 10px'}, status),
+  c.replaceChildren(h('div', {style:'font-weight:650'}, user.email || user.displayName || 'Signed in'), h('p', {style:'margin:2px 0 4px'}, status),
+    h('p', {style:'margin:0 0 10px;font-size:13px'}, addons.length + ' addon' + (addons.length === 1 ? '' : 's') + ' on this device' + (addons.some(a => a.pending) ? ' · some could not load yet' : '')),
     h('div', {style:'display:flex;gap:8px;flex-wrap:wrap'},
-      h('button', {class:'btn ghost sm', type:'button', onclick:async () => { syncState = 'syncing'; fillAccountUI(); try { await initialSync(); refreshUI(); } catch { syncState = 'error'; fillAccountUI(); } }}, 'Sync now'), out));
+      h('button', {class:'btn ghost sm', type:'button', onclick:async () => { syncState = 'syncing'; fillAccountUI(); try { await initialSync(); syncErr = ''; refreshUI(); } catch (e) { noteErr(e); } }}, 'Sync now'), out));
 }
 
 /* ----- startup ----- */
@@ -1277,7 +1285,7 @@ async function onUser(u){
   const first = firstAuth; firstAuth = false; user = u;
   if (u) {
     syncState = 'syncing';
-    try { await withTimeout(initialSync(), 20000); } catch { syncState = 'error'; }
+    try { await withTimeout(initialSync(), 20000); syncErr = ''; } catch (e) { noteErr(e); }
     startListeners();
     if (first) { initProfiles(); bootApp(); }
     else { replaceNext = true; initProfiles(); bootApp(); }
