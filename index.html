@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#0e0f13">
+<meta name="color-scheme" content="dark">
 <title>Streamlet</title>
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon.svg">
@@ -153,6 +154,48 @@ select.chip{padding-right:10px;text-overflow:ellipsis}
 .or{color:var(--mut);font-size:12px;margin:14px 0 6px}
 .lrow{display:flex;gap:10px;margin-top:8px}
 .lrow .btn{flex:1}
+/* ---- focus (remote / keyboard) ---- */
+:focus{outline:none}
+:focus-visible{outline:3px solid #fff;outline-offset:2px;box-shadow:0 0 0 7px color-mix(in srgb,var(--acc) 75%,transparent)}
+button.card:focus-visible,.cwb:focus-visible,.ptile:focus-visible,.space:focus-visible{outline:none;box-shadow:none}
+button.card:focus-visible .poster,.cwb:focus-visible .poster,.ptile:focus-visible .pav{outline:3px solid #fff;outline-offset:2px;box-shadow:0 0 0 7px color-mix(in srgb,var(--acc) 75%,transparent)}
+.space:focus-visible{outline:4px solid #fff;outline-offset:3px}
+.poster{transition:transform .15s}
+button.card:focus-visible .poster,.cwb:focus-visible .poster{transform:scale(1.05)}
+.tvhint{display:none;color:var(--mut);font-weight:400}
+.pctl{position:absolute;left:0;right:0;bottom:0;z-index:3;padding:46px 5% calc(26px + env(safe-area-inset-bottom));background:linear-gradient(transparent,#000d);transition:opacity .25s}
+.pctl[hidden]{display:none}
+.pctl.off{opacity:0;pointer-events:none}
+.pseek{height:10px;background:#ffffff40;border-radius:6px;margin-bottom:16px;cursor:pointer}
+.pseek i{display:block;height:100%;width:0;background:var(--acc);border-radius:6px}
+.prow{display:flex;align-items:center;gap:14px}
+#ptime{margin-left:auto;font-variant-numeric:tabular-nums;text-shadow:0 1px 6px #000}
+/* ---- TV layout: wide landscape screens. Portrait phones keep the mobile layout. ---- */
+body.tv .tvhint{display:inline}
+body.tv nav{top:0;right:auto;width:104px;flex-direction:column;justify-content:center;gap:10px;border-top:0;border-right:1px solid #262933;padding:0 8px}
+body.tv nav button{flex:0 0 auto;padding:16px 4px;border-radius:14px;font-size:13px}
+body.tv #tabHome::before,body.tv #tabAddons::before,body.tv #tabSpaces::before{display:block;font-size:26px;margin-bottom:4px}
+body.tv #tabHome::before{content:'🏠'}
+body.tv #tabAddons::before{content:'🧩'}
+body.tv #tabSpaces::before{content:'⇄'}
+body.tv header{padding-left:128px;padding-right:28px}
+body.tv main{padding-left:104px;padding-bottom:40px}
+body.tv.launch main{padding-left:0}
+body.tv .card{flex:0 0 160px}
+body.tv .poster{width:160px;height:236px}
+body.tv .hero .poster{width:170px;height:250px;flex:0 0 170px}
+body.tv .strip{gap:18px;padding:12px 28px 24px;scroll-padding:0 28px}
+body.tv .row h2{margin-left:28px}
+body.tv .hero2{min-height:46vh;margin:6px 28px 22px}
+body.tv #tabsBar{padding:2px 28px 16px}
+body.tv .addon,body.tv #profiles,body.tv #addons .pad{max-width:900px}
+body.tv #launcher{max-width:none;display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:18px;padding:7vh 6vw}
+body.tv #launcher[hidden]{display:none}
+body.tv #launcher>.pill,body.tv #launcher>.sub,body.tv #launcher>.lnks{grid-column:1/-1}
+body.tv #fsBtn{display:none}
+body.tv .spaceRow .space{margin:0;height:100%}
+body.tv #detail>div:not(.bar){max-width:1100px;margin-left:auto;margin-right:auto}
+body.tv .ppanel{max-width:760px;left:auto;right:0;top:0;bottom:0;max-height:none;border-radius:18px 0 0 18px}
 </style>
 </head>
 <body>
@@ -199,6 +242,10 @@ select.chip{padding-right:10px;text-overflow:ellipsis}
 <div id="player" class="sheet" hidden>
   <div class="pbar" id="pbar"><button class="x" id="closePlayer">✕</button><span id="ptitle"></span><button class="x" id="ccBtn">CC · Audio</button><button class="x" id="fsBtn">⛶</button></div>
   <video id="vid" controls playsinline></video>
+  <div class="pctl" id="pctl" hidden>
+    <div class="pseek" id="pseek" tabindex="0" role="slider" aria-label="Seek"><i id="pfill"></i></div>
+    <div class="prow"><button class="x" id="pRew" type="button">⏪ 10</button><button class="x" id="pPlay" type="button">⏸</button><button class="x" id="pFwd" type="button">10 ⏩</button><span id="ptime">0:00 / 0:00</span></div>
+  </div>
   <div id="pback" hidden style="position:absolute;inset:0;z-index:2"></div>
   <div class="ppanel" id="ppanel" hidden></div>
 </div>
@@ -376,6 +423,7 @@ window.addEventListener('popstate', e => {
 });
 $('#exStay').onclick = () => { $('#exitDlg').hidden = true; pageKey = JSON.stringify(pageNow()); history.pushState({page:pageNow(), layers:[]}, ''); };
 $('#exGo').onclick = () => {
+  try { if (window.tizen && tizen.application) { tizen.application.getCurrentApplication().exit(); return; } } catch {}
   try { const A = window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.App; if (A && A.exitApp) { A.exitApp(); return; } } catch {}
   exiting = true; history.back(); setTimeout(() => { try { window.close(); } catch {} }, 150);
 };
@@ -594,9 +642,9 @@ function renderCW(){
     if (e.upnext) po.append(h('span', {class:'upn'}, 'UP NEXT')); else po.append(h('div', {class:'pg'}, h('i', {style:`width:${pct}%`})));
     strip.append(h('div', {class:'card cwc'},
       h('button', {class:'cwb', type:'button', onclick:() => openResume(e)}, po, h('div', {class:'t'}, e.name), h('div', {class:'s'}, label)),
-      h('button', {class:'rm', type:'button', 'aria-label':'Remove', onclick:ev => { ev.stopPropagation(); histRemove(e.k); renderCW(); }}, '✕')));
+      h('button', {class:'rm', type:'button', tabindex:'-1', 'aria-label':'Remove', onclick:ev => { ev.stopPropagation(); histRemove(e.k); renderCW(); }}, '✕')));
   }
-  box.append(h('div', {class:'row'}, h('h2', null, 'Continue watching'), strip));
+  box.append(h('div', {class:'row'}, h('h2', null, 'Continue watching', h('small', {class:'tvhint'}, ' · hold OK to remove')), strip));
 }
 
 let homeTok = 0;
@@ -614,7 +662,9 @@ function genreExtra(cat){
 const sortedOptions = o => (o.length && o.every(x => /^\d{4}$/.test(x))) ? [...o].sort((x,y) => y - x) : o;
 
 function renderTabs(){
-  const bar = $('#tabsBar'); bar.replaceChildren();
+  const bar = $('#tabsBar');
+  const had = document.activeElement && bar.contains(document.activeElement) ? (document.activeElement.tagName === 'SELECT' ? 'SELECT' : document.activeElement.textContent) : null;
+  bar.replaceChildren();
   if (!spaceTabs() || $('#q').value.trim() || !addons.length) { bar.hidden = true; return; }
   bar.hidden = false;
   const genres = [];
@@ -630,6 +680,7 @@ function renderTabs(){
   sel.value = view.genre; if (sel.value !== view.genre) sel.value = '';
   sel.onchange = () => { view.genre = sel.value; pushPage(); renderHome(); };
   bar.append(chip('home','Home'), chip('movie','Movies'), chip('series','Shows'), chip('new','New releases'), sel);
+  if (had) { const t = [...bar.children].find(c => had === 'SELECT' ? c.tagName === 'SELECT' : c.textContent === had); if (t) t.focus({preventScroll:true}); }
 }
 
 async function renderHome(query = $('#q').value.trim()){
@@ -1021,9 +1072,13 @@ function renderPanel(){
 }
 
 let barT;
+function setBar(on){
+  for (const el of [$('#pbar'), $('#pctl')]) el.classList.toggle('off', !on);
+  if (!on) { const a = document.activeElement; if (a && a.closest && a.closest('#pbar, #pctl')) a.blur(); }
+}
 function showBar(){
-  const b = $('#pbar'); b.classList.remove('off'); clearTimeout(barT);
-  barT = setTimeout(() => { if ($('#ppanel').hidden && !$('#vid').paused) b.classList.add('off'); }, 3200);
+  setBar(true); clearTimeout(barT);
+  barT = setTimeout(() => { if ($('#ppanel').hidden && !$('#vid').paused) setBar(false); }, document.body.classList.contains('tv') ? 4500 : 3200);
 }
 ['touchstart','mousemove','click'].forEach(e => $('#player').addEventListener(e, showBar, {passive:true}));
 $('#ccBtn').onclick = () => setPanel($('#ppanel').hidden);
@@ -1039,6 +1094,7 @@ async function playStream(s, title, ctx){
   if (s.ytId) { window.open('https://www.youtube.com/watch?v='+enc(s.ytId),'_blank','noopener'); return; }
   if (!s.url) { toast(s.infoHash ? "Torrent stream: needs a debrid service set up in that addon (so it returns direct links), or a backend." : 'This stream type is not supported.'); return; }
   const v = $('#vid'); $('#player').hidden = false; $('#ptitle').textContent = title || ''; pushLayer('player');
+  const tvp = document.body.classList.contains('tv'); v.controls = !tvp; $('#pctl').hidden = !tvp; showBar();
   setPanel(false);
   pl = {id:pl.id + 1, ctx, subs:[], loading:false, nSrc:0, cur:null, offset:0, blob:null, stream:{url:s.url, name:s.name, title:s.title}};
   lastSave = 0;
@@ -1319,6 +1375,138 @@ async function startAuth(){
     FB.au.onAuthStateChanged(auth, onUser);
   } catch { FB = null; $('#login').hidden = true; bootApp(); }
 }
+
+/* ---------- TV / remote control ---------- */
+const mqTV = matchMedia('(min-width:1000px) and (orientation:landscape)');
+let remoteMode = false;
+const isTVDevice = () => mqTV.matches || /Tizen|SMART-?TV|Web0S|AFTT|BRAVIA|Android TV|CrKey|GoogleTV/i.test(navigator.userAgent) || new URLSearchParams(location.search).has('tv');
+function syncTV(){
+  const tv = isTVDevice(); document.body.classList.toggle('tv', tv);
+  document.documentElement.style.zoom = tv ? String(Math.max(1, Math.min(2, innerWidth / 1280))) : '';
+  if (tv) remoteMode = true;
+  const v = $('#vid'); if (v && !$('#player').hidden) { v.controls = !tv; $('#pctl').hidden = !tv; }
+}
+mqTV.addEventListener('change', syncTV); addEventListener('resize', syncTV); syncTV();
+try { if (window.tizen && tizen.tvinputdevice) ['MediaPlayPause','MediaPlay','MediaPause','MediaStop','MediaFastForward','MediaRewind','Info','ColorF0Red','ColorF2Yellow'].forEach(k => { try { tizen.tvinputdevice.registerKey(k); } catch {} }); } catch {}
+
+const FOCUSABLE = 'a[href],button:not([disabled]),input:not([type=hidden]):not([disabled]),select:not([disabled]),textarea:not([disabled]),summary,[tabindex]:not([tabindex="-1"])';
+function ctxRoot(){
+  for (const id of ['#exitDlg', '#ppanel', '#player', '#profEd', '#spaceEd', '#detail']) { const e = $(id); if (e && !e.hidden) return e; }
+  return document.body;
+}
+function focusables(root){
+  return [...root.querySelectorAll(FOCUSABLE)].filter(el => {
+    if (el.tabIndex < 0 || el.closest('.off,[hidden]') || el.closest('#vid')) return false;
+    const r = el.getBoundingClientRect(); return r.width > 2 && r.height > 2 && getComputedStyle(el).visibility !== 'hidden';
+  });
+}
+function moveFocus(dir){
+  const root = ctxRoot(), list = focusables(root), cur = document.activeElement;
+  if (!cur || cur === document.body || !list.includes(cur)) { const f = firstFocus(root, list); if (f) f.focus({preventScroll:true}); return; }
+  const a = cur.getBoundingClientRect(), ax = (a.left + a.right) / 2, ay = (a.top + a.bottom) / 2;
+  let best = null, bs = Infinity;
+  for (const el of list) {
+    if (el === cur) continue;
+    const r = el.getBoundingClientRect(), cx = (r.left + r.right) / 2, cy = (r.top + r.bottom) / 2;
+    let prim, gap, off;
+    if (dir === 'right' || dir === 'left') {
+      if (dir === 'right' ? !(cx > ax + 1 && r.right > a.right) : !(cx < ax - 1 && r.left < a.left)) continue;
+      prim = dir === 'right' ? Math.max(0, r.left - a.right) : Math.max(0, a.left - r.right);
+      gap = Math.max(0, Math.max(a.top, r.top) - Math.min(a.bottom, r.bottom)); off = Math.abs(cy - ay);
+    } else {
+      if (dir === 'down' ? !(cy > ay + 1 && r.bottom > a.bottom) : !(cy < ay - 1 && r.top < a.top)) continue;
+      prim = dir === 'down' ? Math.max(0, r.top - a.bottom) : Math.max(0, a.top - r.bottom);
+      gap = Math.max(0, Math.max(a.left, r.left) - Math.min(a.right, r.right)); off = Math.abs(cx - ax);
+    }
+    const score = prim + gap * 4 + off * 0.5;
+    if (score < bs) { bs = score; best = el; }
+  }
+  if (!best) return;
+  best.focus({preventScroll:true});
+  best.scrollIntoView({block: dir === 'up' || dir === 'down' ? 'center' : 'nearest', inline: dir === 'left' || dir === 'right' ? 'center' : 'nearest', behavior:'smooth'});
+}
+function firstFocus(root, list){
+  list = list || focusables(root);
+  const pick = sel => list.find(el => el.matches(sel));
+  return pick('#pPlay') || pick('.hero2 .hb.p') || pick('.space, .ptile, #exStay, .sec .btn, .stream, .opt, .gbtn') || pick('.card, .cwb') || list[0];
+}
+let autoEl = null;
+function ensureFocus(){
+  if (!remoteMode) return;
+  const root = ctxRoot(), cur = document.activeElement;
+  const typing = cur && /INPUT|TEXTAREA/.test(cur.tagName);
+  const valid = cur && cur !== document.body && root.contains(cur) && cur.getBoundingClientRect().width > 0 && !cur.closest('.off');
+  if (valid) {
+    // the first focus we placed automatically may have been a placeholder before the banner / rows loaded: upgrade it once
+    if (cur === autoEl) { const hero = focusables(root).find(el => el.matches('.hero2 .hb.p')); if (hero && hero !== cur) { hero.focus({preventScroll:true}); autoEl = hero; } }
+    return;
+  }
+  if (typing) return;
+  const f = firstFocus(root); if (f) { f.focus({preventScroll:true}); autoEl = f; }
+}
+let efT; new MutationObserver(() => { clearTimeout(efT); efT = setTimeout(ensureFocus, 220); })
+  .observe(document.body, {subtree:true, childList:true, attributes:true, attributeFilter:['hidden', 'class']});
+
+const KEYMAP = {Escape:'back', BrowserBack:'back', GoBack:'back', MediaPlayPause:'playpause', MediaPlay:'play', MediaPause:'pause', MediaStop:'stop',
+  MediaFastForward:'ff', MediaRewind:'rw', MediaTrackNext:'ff', MediaTrackPrevious:'rw', ContextMenu:'info', Info:'info', Delete:'info'};
+const KEYCODES = {10009:'back', 10252:'playpause', 415:'play', 19:'pause', 413:'stop', 417:'ff', 412:'rw', 457:'info', 403:'info', 405:'info'};
+const keyAct = e => KEYMAP[e.key] || KEYCODES[e.keyCode] || '';
+
+function playerSeek(d){ const v = $('#vid'); v.currentTime = Math.max(0, Math.min(v.duration || 1e9, v.currentTime + d)); toast((d > 0 ? '+' : '') + d + 's'); showBar(); }
+function playerToggle(){ const v = $('#vid'); if (v.paused) v.play().catch(() => {}); else v.pause(); showBar(); }
+function playerKey(e, act){
+  const v = $('#vid'), barOn = !$('#pbar').classList.contains('off'), a = document.activeElement;
+  if (act === 'playpause') { e.preventDefault(); playerToggle(); return true; }
+  if (act === 'play') { e.preventDefault(); v.play().catch(() => {}); showBar(); return true; }
+  if (act === 'pause') { e.preventDefault(); v.pause(); showBar(); return true; }
+  if (act === 'stop') { e.preventDefault(); popLayer('player'); return true; }
+  if (act === 'ff') { e.preventDefault(); playerSeek(30); return true; }
+  if (act === 'rw') { e.preventDefault(); playerSeek(-10); return true; }
+  if (!document.body.classList.contains('tv')) return false;
+  if (!barOn) {
+    if (e.key === 'ArrowLeft') { e.preventDefault(); playerSeek(-10); return true; }
+    if (e.key === 'ArrowRight') { e.preventDefault(); playerSeek(10); return true; }
+    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); playerToggle(); return true; }
+    if (e.key === 'ArrowUp' || e.key === 'ArrowDown') { e.preventDefault(); showBar(); $('#pPlay').focus({preventScroll:true}); return true; }
+  } else {
+    showBar();
+    if (a && a.id === 'pseek' && (e.key === 'ArrowLeft' || e.key === 'ArrowRight')) { e.preventDefault(); playerSeek(e.key === 'ArrowLeft' ? -10 : 10); return true; }
+  }
+  return false;
+}
+function removeCW(el){ const c = el.closest('.cwc'); if (!c) return; const idx = [...c.parentNode.children].indexOf(c); const k = histForSpace()[idx]; if (k) { histRemove(k.k); renderCW(); toast('Removed from Continue watching'); } }
+
+document.addEventListener('keydown', e => {
+  if (e.ctrlKey || e.metaKey || e.altKey) return;
+  const act = keyAct(e), el = document.activeElement;
+  const typing = el && ((el.tagName === 'INPUT' && !/^(checkbox|radio|button|range|submit)$/.test(el.type)) || el.tagName === 'TEXTAREA');
+  if (!remoteMode && (e.key.startsWith('Arrow') || e.key === 'Enter')) { remoteMode = true; document.body.classList.add('remote'); }
+  if (!$('#exitDlg').hidden && act === 'back') { e.preventDefault(); $('#exStay').click(); return; }
+  if (!$('#player').hidden && $('#ppanel').hidden && $('#exitDlg').hidden && playerKey(e, act)) return;
+  if (act === 'back') {
+    if (typing) { if (e.key === 'Escape') el.blur(); return; }
+    e.preventDefault(); history.back(); return;
+  }
+  if (act === 'info' && el && el.classList.contains('cwb')) { e.preventDefault(); removeCW(el); return; }
+  if (e.key === 'Enter' && e.repeat && el && el.classList.contains('cwb')) { e.preventDefault(); removeCW(el); return; }
+  if (e.key === 'Backspace' && !typing) { e.preventDefault(); history.back(); return; }
+  if (/^Arrow(Up|Down|Left|Right)$/.test(e.key)) {
+    if (typing && (e.key === 'ArrowLeft' || e.key === 'ArrowRight')) return;
+    e.preventDefault(); moveFocus(e.key.slice(5).toLowerCase());
+  }
+}, true);
+
+/* custom controls (TV layout) */
+const fmtClock = t => { t = Math.max(0, Math.round(t || 0)); const h_ = Math.floor(t / 3600), m = Math.floor(t / 60) % 60, sec = t % 60; return (h_ ? h_ + ':' + String(m).padStart(2, '0') : m) + ':' + String(sec).padStart(2, '0'); };
+function updateCtl(){
+  const v = $('#vid'); if ($('#pctl').hidden) return;
+  $('#pfill').style.width = (v.duration ? v.currentTime / v.duration * 100 : 0) + '%';
+  $('#ptime').textContent = fmtClock(v.currentTime) + ' / ' + fmtClock(v.duration);
+  $('#pPlay').textContent = v.paused ? '▶' : '⏸';
+}
+for (const ev of ['timeupdate', 'play', 'pause', 'loadedmetadata']) $('#vid').addEventListener(ev, updateCtl);
+$('#pPlay').onclick = playerToggle; $('#pRew').onclick = () => playerSeek(-10); $('#pFwd').onclick = () => playerSeek(10);
+$('#pseek').addEventListener('click', e => { const v = $('#vid'), r = e.currentTarget.getBoundingClientRect(); if (v.duration) { v.currentTime = v.duration * Math.min(1, Math.max(0, (e.clientX - r.left) / r.width)); showBar(); } });
 
 /* ---------- boot ---------- */
 history.replaceState({guard:true}, '');
