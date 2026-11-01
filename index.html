@@ -44,6 +44,11 @@ nav button.on{color:var(--acc)}
 .msg.err{color:var(--err)}.msg.ok{color:var(--ok)}
 .addon{background:var(--panel);border-radius:12px;padding:12px;margin:10px 0}
 .addon .top{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}
+.addon .top>div{min-width:0;flex:1}
+.addon{overflow:hidden}
+.addon h3,.addon p{overflow-wrap:anywhere}
+.addon .top>.btn{flex:0 0 auto}
+html,body{overflow-x:hidden}
 .addon h3{margin:0;font-size:16px}
 .addon p{margin:4px 0;color:var(--mut);font-size:13px}
 .tags{display:flex;flex-wrap:wrap;gap:5px;margin-top:6px}
@@ -751,6 +756,7 @@ async function renderHome(query = $('#q').value.trim()){
   else Promise.all(jobs).then(() => { if (tok===homeTok && !shown && !box.querySelector('.spin')) box.append(h('div',{class:'empty'}, query ? 'No results.' : none)); });
 }
 
+const maskUrl = u => String(u).replace(/((?:real|all)?debrid(?:link)?|premiumize|torbox|offcloud|easydebrid|putio|apikey|api_key|token|key|password)=([^|/&?]+)/gi, '$1=••••••');
 function renderAddons(){
   fillAccountUI();
   const list = $('#list'); list.replaceChildren();
@@ -763,7 +769,7 @@ function renderAddons(){
         h('div', null, h('h3', null, m.name, ' ', h('small', {style:'color:var(--mut);font-weight:400'}, m.version ? 'v'+m.version : '')), m.description ? h('p', null, m.description) : null),
         h('button', {class:'btn ghost sm', onclick:()=>{ addons = addons.filter(x=>x!==a); save(); renderAddons(); toast('Removed '+m.name); }}, 'Remove')),
       h('div', {class:'tags'}, [...new Set(res)].map(r=>h('span',{class:'tag'},r)), (m.types||[]).map(t=>h('span',{class:'tag'},t))),
-      h('div', {class:'url'}, a.url)));
+      h('div', {class:'url'}, maskUrl(a.url))));
   }
 }
 
