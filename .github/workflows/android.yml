@@ -1,0 +1,76 @@
+name: Build Android APK
+
+on:
+  push:
+    paths:
+      - 'android-app/**'
+      - '.github/workflows/android.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: android-app/package-lock.json
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - uses: android-actions/setup-android@v3
+
+      - name: Install web dependencies
+        working-directory: android-app
+        run: npm ci
+
+      - name: Sync Capacitor
+        working-directory: android-app
+        run: npx cap sync android
+
+      - name: Signing key
+        env:
+          KS_B64: ${{ secrets.ANDROID_KEYSTORE_B64 }}
+        run: |
+          if [ -n "$KS_B64" ]; then
+            echo "$KS_B64" | base64 -d > "$RUNNER_TEMP/streamlet.keystore"
+            echo "Using the keystore from the ANDROID_KEYSTORE_B64 secret"
+          else
+            keytool -genkeypair -storetype PKCS12 -keystore "$RUNNER_TEMP/streamlet.keystore" -alias streamlet \
+              -keyalg RSA -keysize 2048 -validity 36500 -storepass streamlet -keypass streamlet -dname "CN=Streamlet"
+            echo "No secret set: generated a one-off key (uninstall the old app before installing a new APK)"
+          fi
+          echo "STREAMLET_KEYSTORE=$RUNNER_TEMP/streamlet.keystore" >> "$GITHUB_ENV"
+
+      - name: Build release APK
+        working-directory: android-app/android
+        run: |
+          chmod +x gradlew
+          ./gradlew assembleRelease -Pvc=${{ github.run_number }} --no-daemon
+
+      - name: Collect APK
+        run: cp android-app/android/app/build/outputs/apk/release/app-release.apk Streamlet.apk
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Streamlet-apk
+          path: Streamlet.apk
+
+      - name: Publish release "apk-latest"
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release delete apk-latest --cleanup-tag --yes || true
+          gh release create apk-latest Streamlet.apk \
+            --target "${{ github.sha }}" \
+            --title "Streamlet APK (latest build)" \
+            --notes "Sideload this APK on Android / Android TV. Build #${{ github.run_number }}."
