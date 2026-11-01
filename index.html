@@ -420,28 +420,44 @@ nav button.on svg{fill:var(--acc);stroke:var(--acc);transform:none}
 .achev{color:var(--mut);font-size:24px}
 
 /* ---- TV home (landscape): Netflix-style full-bleed hero, Streamlet look ---- */
-.tvhero{display:none}
-body.tv .tvhero{display:block;position:relative;height:calc(var(--vh,1vh) * 74);min-height:420px;margin:0 0 calc(var(--vh,1vh) * -16)}
-body.tv .tvhero .tbg{position:absolute;top:0;bottom:0;left:18%;right:0;-webkit-mask-image:linear-gradient(to right,transparent 0,#000 38%);mask-image:linear-gradient(to right,transparent 0,#000 38%)}
-body.tv .tvhero .tbg img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center 18%;opacity:0;transition:opacity .8s ease;-webkit-mask-image:linear-gradient(to bottom,#000 55%,transparent 100%);mask-image:linear-gradient(to bottom,#000 55%,transparent 100%)}
-body.tv .tvhero .tbg img.on{opacity:1}
-body.tv .tvhero .tin{position:absolute;left:32px;bottom:calc(var(--vh,1vh) * 19);width:min(46%,600px);z-index:2}
-body.tv .tvhero .tlogo{display:block;max-width:100%;max-height:calc(var(--vh,1vh) * 12);object-fit:contain;object-position:left bottom;filter:drop-shadow(0 4px 18px rgba(0,0,0,.8))}
-body.tv .tvhero .ttitle{font-size:clamp(30px,4vw,58px);font-weight:900;line-height:1.02;letter-spacing:-.5px;text-shadow:0 4px 24px rgba(0,0,0,.7);text-transform:var(--tt)}
-body.tv .tvhero .tmeta{display:flex;flex-wrap:wrap;gap:6px 14px;align-items:center;margin:16px 0 8px;font-weight:650;font-size:15px;color:#e9eaf2;text-shadow:0 2px 8px #000}
-body.tv .tvhero .timdb{color:#ffd166}
-body.tv .tvhero .tdesc{margin:0;max-width:540px;font-size:16px;line-height:1.5;color:#e3e5ee;text-shadow:0 2px 10px #000;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
-body.tv .tvhero .tbtns{display:flex;gap:14px;margin-top:16px}
-body.tv .tvhero .hb{padding:13px 34px;font-size:18px;border-radius:14px;transition:transform .15s}
-body.tv .tvhero .hb:focus-visible{transform:scale(1.07)}
-body.tv #rows .row,body.tv #rows #cwBox{position:relative;z-index:2}
-body.tv #rows .row h2{font-size:19px;margin-bottom:6px}
+.tvhero{display:block;position:relative;height:calc(var(--vh,1vh) * 74);min-height:420px;margin:0 0 calc(var(--vh,1vh) * -16)}
+.tvhero .tbg{position:absolute;top:0;bottom:0;left:18%;right:0;-webkit-mask-image:linear-gradient(to right,transparent 0,#000 38%);mask-image:linear-gradient(to right,transparent 0,#000 38%)}
+.tvhero .tbg img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center 18%;opacity:0;transition:opacity .8s ease;-webkit-mask-image:linear-gradient(to bottom,#000 55%,transparent 100%);mask-image:linear-gradient(to bottom,#000 55%,transparent 100%)}
+.tvhero .tbg img.on{opacity:1}
+.tvhero .tin{position:absolute;left:32px;bottom:calc(var(--vh,1vh) * 19);width:min(46%,600px);z-index:2}
+.tvhero .tlogo{display:block;max-width:100%;max-height:calc(var(--vh,1vh) * 12);object-fit:contain;object-position:left bottom;filter:drop-shadow(0 4px 18px rgba(0,0,0,.8))}
+.tvhero .ttitle{font-size:clamp(30px,4vw,58px);font-weight:900;line-height:1.02;letter-spacing:-.5px;text-shadow:0 4px 24px rgba(0,0,0,.7);text-transform:var(--tt)}
+.tvhero .tmeta{display:flex;flex-wrap:wrap;gap:6px 14px;align-items:center;margin:16px 0 8px;font-weight:650;font-size:15px;color:#e9eaf2;text-shadow:0 2px 8px #000}
+.tvhero .timdb{color:#ffd166}
+.tvhero .tdesc{margin:0;max-width:540px;font-size:16px;line-height:1.5;color:#e3e5ee;text-shadow:0 2px 10px #000;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.tvhero .tbtns{display:flex;gap:14px;margin-top:16px}
+.tvhero .hb{padding:13px 34px;font-size:18px;border-radius:14px;transition:transform .15s}
+.tvhero .hb:focus-visible{transform:scale(1.07)}
+#rows .row,#rows #cwBox{position:relative;z-index:2}
+#rows .row h2{font-size:19px;margin-bottom:6px}
 /* header floats on top of the hero; tabs sit under it */
-body.tv.onhome:not(.launch) header{position:fixed;left:0;right:0;background:none;backdrop-filter:none;-webkit-backdrop-filter:none;border-bottom:0;transition:background .25s}
-body.tv.onhome.scr:not(.launch) header{background:color-mix(in srgb,var(--bg) 70%,transparent);backdrop-filter:blur(var(--blur));-webkit-backdrop-filter:blur(var(--blur))}
-body.tv.onhome:not(.launch) #home{position:relative}
-body.tv.onhome:not(.launch) #tabsBar{position:fixed;top:calc(var(--vh,1vh) * 9);left:132px;right:0;z-index:4;padding:0 0 0 32px;transition:opacity .2s}
-body.tv.onhome.scr:not(.launch) #tabsBar{opacity:0;visibility:hidden}
+body.onhome:not(.launch) header{position:fixed;left:0;right:0;background:none;backdrop-filter:none;-webkit-backdrop-filter:none;border-bottom:0;transition:background .25s}
+body.onhome.scr:not(.launch) header{background:color-mix(in srgb,var(--bg) 70%,transparent);backdrop-filter:blur(var(--blur));-webkit-backdrop-filter:blur(var(--blur))}
+body.onhome:not(.launch) #home{position:relative}
+body.onhome:not(.launch) #tabsBar{position:fixed;top:calc(var(--vh,1vh) * 9);left:var(--tvl,132px);right:0;z-index:4;padding:0 0 0 32px;transition:opacity .2s}
+body.onhome.scr:not(.launch) #tabsBar{opacity:0;visibility:hidden}
+
+.tvhero::before{content:'';position:absolute;inset:0 0 auto 0;height:150px;background:linear-gradient(to bottom,rgba(0,0,0,.55),transparent);z-index:1;pointer-events:none}
+/* phone portrait: edge-to-edge hero, text centred like Netflix mobile */
+body:not(.tv){--tvl:0px}
+body:not(.tv) .tvhero{height:calc(var(--vh,1vh) * 68);min-height:440px;margin:0 0 calc(var(--vh,1vh) * -6)}
+body:not(.tv) .tvhero .tbg{left:0;-webkit-mask-image:none;mask-image:none}
+body:not(.tv) .tvhero .tbg img{object-position:center 12%;-webkit-mask-image:linear-gradient(to bottom,#000 62%,transparent 100%);mask-image:linear-gradient(to bottom,#000 62%,transparent 100%)}
+body:not(.tv) .tvhero .tin{left:18px;right:18px;width:auto;bottom:calc(var(--vh,1vh) * 9);text-align:center}
+body:not(.tv) .tvhero .tlogo{margin:0 auto;max-height:calc(var(--vh,1vh) * 11);object-position:center bottom}
+body:not(.tv) .tvhero .ttitle{font-size:clamp(28px,9vw,40px)}
+body:not(.tv) .tvhero .tmeta{justify-content:center;margin:12px 0 6px;font-size:13px}
+body:not(.tv) .tvhero .tdesc{display:none}
+body:not(.tv) .tvhero .tbtns{justify-content:center;margin-top:14px;gap:10px}
+body:not(.tv) .tvhero .hb{padding:11px 28px;font-size:16px;border-radius:12px}
+body:not(.tv) #rows .row h2{font-size:16px}
+body:not(.tv).onhome:not(.launch) #tabsBar{padding-left:14px;top:calc(60px + env(safe-area-inset-top));overflow-x:auto}
+body:not(.tv).onhome:not(.launch) header{padding-left:14px}
 </style>
 </head>
 <body>
@@ -1285,13 +1301,7 @@ async function renderHome(query = $('#q').value.trim()){
       if (!heroDone && !query && heroBox.isConnected) {
         heroDone = true;
         const hm = metas.find(x => x.background) || metas[0], ht = hm.type || cat.type;
-        if (document.body.classList.contains('tv')) { heroBox.replaceChildren(buildTvHero()); setTvHero({a, m:hm, type:ht}, true); }
-        else heroBox.replaceChildren(h('div', {class:'hero2'},
-          (hm.background || hm.poster) ? h('img', {src:hm.background || hm.poster, alt:'', onerror:e=>e.target.remove()}) : null,
-          h('div', {class:'in'}, h('h2', null, hm.name), hm.description ? h('p', null, hm.description) : null,
-            h('div', {class:'hbtns'},
-              h('button', {class:'hb p', onclick:()=>openDetail(a, ht, hm)}, '▶ Play'),
-              h('button', {class:'hb s', onclick:()=>openDetail(a, ht, hm)}, 'More info')))));
+        heroBox.replaceChildren(buildTvHero()); setTvHero({a, m:hm, type:ht}, true);
       }
       for (const m of metas) {
         const btn = h('button', {class:'card', onclick:()=>openDetail(a, m.type||cat.type, m)}, posterEl(m), h('div', {class:'t'}, m.name), h('div', {class:'s'}, m.releaseInfo || m.year || ''));
