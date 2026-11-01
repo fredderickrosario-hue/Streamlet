@@ -731,9 +731,9 @@ body.tv .dbody>.dright{position:relative;top:auto;grid-row:1;align-self:start;ma
 
 /* brand mark, top-left of the side menu */
 .navbrand{display:none}
-body.tv .navbrand{display:flex;align-items:center;gap:12px;position:absolute;top:calc(var(--vh,1vh) * 4);left:21px;pointer-events:none}
-body.tv .navbrand img{width:44px;height:44px;display:block;filter:drop-shadow(0 4px 12px rgba(0,0,0,.5))}
-body.tv .navbrand span{display:none;font-size:20px;font-weight:800;letter-spacing:-.3px;white-space:nowrap}
+body.tv .navbrand{display:flex;align-items:center;gap:12px;position:absolute;top:calc(var(--vh,1vh) * 3.4);left:24px;pointer-events:none;opacity:.92}
+body.tv .navbrand img{width:34px;height:34px;display:block}
+body.tv .navbrand span{display:none;font-size:18px;font-weight:800;letter-spacing:-.3px;white-space:nowrap}
 body.tv .navbrand b{color:var(--acc)}
 body.tv nav:focus-within .navbrand span{display:block}
 </style>
@@ -854,7 +854,6 @@ body.tv nav:focus-within .navbrand span{display:block}
   <button id="tabHome" type="button"><svg viewBox="0 0 24 24"><path d="M3 11.5 12 4l9 7.5"/><path d="M5 10.2V20h5v-5.2h4V20h5v-9.8"/></svg><span>Home</span></button>
   <button id="nvMovies" class="tvonly" type="button" aria-label="Movies"><svg viewBox="0 0 24 24"><rect x="3.5" y="4" width="17" height="16" rx="2.2"/><path d="M8 4v16M16 4v16M3.5 9h4.5M3.5 15h4.5M16 9h4.5M16 15h4.5"/></svg><span>Movies</span></button>
   <button id="nvShows" class="tvonly" type="button" aria-label="Shows"><svg viewBox="0 0 24 24"><rect x="3" y="6.5" width="18" height="12" rx="2.4"/><path d="M8.5 3 12 6.5 15.5 3M8 21.5h8"/></svg><span>Shows</span></button>
-  <button id="nvNew" class="tvonly" type="button" aria-label="New releases"><svg viewBox="0 0 24 24"><path d="M12 3.2l2.3 5.5 5.9.5-4.5 3.9 1.4 5.8L12 15.9 6.9 18.9l1.4-5.8L3.8 9.2l5.9-.5z"/></svg><span>New releases</span></button>
   <button id="tabWatch" type="button"><svg viewBox="0 0 24 24"><path d="M6.5 3.5h11v17l-5.5-4.2-5.5 4.2z"/></svg><span>Watchlist</span></button>
   <button id="tabAddons" type="button"><svg viewBox="0 0 24 24"><path d="M10 4.2a2 2 0 1 1 4 0V6.5h4v4h-2.3a2 2 0 1 0 0 4H18v4h-4v-2.3a2 2 0 1 0-4 0V18.5H6v-4h2.3a2 2 0 1 0 0-4H6v-4h4z"/></svg><span>Addons</span></button>
   <button id="tabSettings" type="button"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.9.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.9 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.9l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.9.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.9-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.9V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg><span>Settings</span></button>
@@ -1133,7 +1132,7 @@ $('#spaceBtn').onclick = () => showLauncher();
 const isTVui = () => document.body.classList.contains('tv');
 function tvTab(t){ if (!cur) return showLauncher(); srchOn = false; $('#q').value = ''; view = {tab:t, genre:''}; showTab('home'); }
 $('#tabHome').onclick = () => { if (isTVui()) tvTab('home'); else showTab('home'); };
-$('#nvMovies').onclick = () => tvTab('movie'); $('#nvShows').onclick = () => tvTab('series'); $('#nvNew').onclick = () => tvTab('new');
+$('#nvMovies').onclick = () => tvTab('movie'); $('#nvShows').onclick = () => tvTab('series');
 $('#nvSpace').onclick = () => showLauncher();
 $('#nvSearch').onclick = () => { if (!cur) return showLauncher(); if (isTVui()) { showTab('search'); setTimeout(() => { const k = $('.kkey'); if (k) k.focus({preventScroll:true}); }, 60); return; } if (srchOn || $('#q').value.trim()) { closeSearch(); return; } if ($('#home').hidden) showTab('home'); srchOn = true; renderTabs(); $('#q').focus(); };
 $('#nav').addEventListener('click', e => {
@@ -1150,7 +1149,7 @@ function syncNav(){
   try {
     const home = !$('#home').hidden, st = !!(cur && spaceTabs()), tv = isTVui(), sr = srchOn || !!$('#q').value.trim();
     const set = (id, on, show = true) => { const b = $(id); b.classList.toggle('on', !!on); b.classList.toggle('gone', !show); };
-    set('#nvMovies', home && st && !sr && view.tab === 'movie', st); set('#nvShows', home && st && !sr && view.tab === 'series', st); set('#nvNew', home && st && !sr && view.tab === 'new', st);
+    set('#nvMovies', home && st && !sr && view.tab === 'movie', st); set('#nvShows', home && st && !sr && view.tab === 'series', st);
     set('#nvSearch', home && sr || !$('#search').hidden); set('#nvSpace', false);
     if (tv) $('#tabHome').classList.toggle('on', home && !sr && (!st || view.tab === 'home'));
   } catch {}
@@ -1521,10 +1520,10 @@ async function pickProfileFx(pr, tile){
     const vp = cover.getBoundingClientRect(), W = vp.width, H = vp.height;
     const S1 = 1.4, start = T(r0.left, r0.top, 1), mid = T(W / 2 - r0.width * S1 / 2, H / 2 - r0.height * S1 / 2, S1);
     f.style.transform = start; av.style.visibility = 'hidden';
-    P.style.transition = 'opacity .3s'; P.style.opacity = '0';
-    cover.animate([{opacity:0}, {opacity:1}], {duration:320, fill:'forwards', easing:'ease'});
-    await animDone(f.animate([{transform:start}, {transform:mid}], {duration:420, easing:'cubic-bezier(.2,.8,.2,1)', fill:'forwards'}));
-    await new Promise(r => setTimeout(r, 500));                      // hold in the middle
+    P.style.transition = 'opacity .55s'; P.style.opacity = '0';
+    cover.animate([{opacity:0}, {opacity:1}], {duration:600, fill:'forwards', easing:'ease'});
+    await animDone(f.animate([{transform:start}, {transform:mid}], {duration:750, easing:'cubic-bezier(.25,.8,.25,1)', fill:'forwards'}));
+    await new Promise(r => setTimeout(r, 750));                      // hold in the middle
     selectProfile(pr); P.style.opacity = ''; P.style.transition = '';
     await nextFrames(3);
     let tgt = null, tr = null, prevR = null;
@@ -1539,8 +1538,8 @@ async function pickProfileFx(pr, tile){
     } else {
       hideEl = tgt.closest('.navav') || tgt; hideEl.style.visibility = 'hidden';
       const end = T(tr.left, tr.top, tr.width / r0.width);
-      cover.animate([{opacity:1}, {opacity:0}], {duration:700, fill:'forwards', easing:'ease'});
-      await animDone(f.animate([{transform:mid}, {transform:end}], {duration:700, easing:'cubic-bezier(.5,0,.2,1)', fill:'forwards'}));
+      cover.animate([{opacity:1}, {opacity:0}], {duration:1200, fill:'forwards', easing:'ease'});
+      await animDone(f.animate([{transform:mid}, {transform:end}], {duration:1200, easing:'cubic-bezier(.45,0,.2,1)', fill:'forwards'}));
     }
   } catch { try { selectProfile(pr); } catch {} }
   finally { if (hideEl) hideEl.style.visibility = ''; f.remove(); cover.remove(); P.style.opacity = ''; P.style.transition = ''; pfx = false; }
