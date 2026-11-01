@@ -2571,7 +2571,7 @@ async function playNative(s, title, ctx){
   const handle = await N.addListener('progress', e => recordProgress(ctx, stream, e.position / 1000, e.duration / 1000));
   try {
     const epLine = ctx && ctx.ep ? `S${ctx.ep.season ?? 1}:E${ctx.ep.episode ?? ''}` + (ctx.ep.title ? ' · ' + ctx.ep.title : '') : '';
-    const r = await N.play({url:s.url, title:title || '', subtitle:epLine, startMs, subtitles:picked, audioLang:code2(settings.audioLang) || null, subLang:pref ? (code2(pref) || pref) : null});
+    const r = await N.play({url:s.url, title:title || '', subtitle:epLine, accent:(getComputedStyle(document.documentElement).getPropertyValue('--acc') || '').trim(), startMs, subtitles:picked, audioLang:code2(settings.audioLang) || null, subLang:pref ? (code2(pref) || pref) : null});
     if (r && r.failed) {
       badStreams.add(s); const el = streamEls.get(s); if (el) el.classList.add('bad');
       const list = (ctx && ctx._list) || [], i = list.indexOf(s);
@@ -3160,12 +3160,13 @@ $('#pseek').addEventListener('click', e => { const v = $('#vid'), r = e.currentT
   if (navigator.webdriver && !/[?&]intro/.test(location.search)) { el.remove(); return; }
   const ring = el.querySelector('.iring'), play = el.querySelector('.iplay'), plug = el.querySelector('.iplug'), glow = el.querySelector('.iglow');
   const w = $('#iword');
-  const letters = [...'Streamlet'].map((c, i) => { const sp = h('span', {class:i >= 6 ? 'acc' : ''}, c); sp.style.cssText = 'display:inline-block;opacity:0;transform:translateY(14px)'; w.append(sp); return sp; });
+  const letters = [...'Streamlet'].map((c, i) => { const sp = h('span', {class:i >= 6 ? 'acc' : ''}, c); w.append(sp); return sp; });
+  w.style.opacity = '0';
   let len = 1800; try { len = ring.getTotalLength(); } catch {}
   ring.style.strokeDasharray = len; ring.style.strokeDashoffset = len; play.style.opacity = '0'; plug.style.opacity = '0'; glow.style.opacity = '0';
   const clamp = t => Math.max(0, Math.min(1, t)), out = t => 1 - Math.pow(1 - t, 3), back = t => { const c = 1.70158; t -= 1; return 1 + (c + 1) * t * t * t + c * t * t; };
   const seg = (n, a, d) => clamp((n - a) / d);
-  const PLAY_END = 4300;                                            // everything has finished and the logo has been held for a moment
+  const PLAY_END = 5200;                                            // everything has finished and the logo has been held for a moment
   const appShown = () => !$('#profiles').hidden || !$('#launcher').hidden || !$('#login').hidden || document.body.classList.contains('onhome');
   let done = false, n = 0, last = null;
   const end = () => { if (done) return; done = true; el.classList.add('out'); setTimeout(() => el.remove(), 800); };
@@ -3177,11 +3178,11 @@ $('#pseek').addEventListener('click', e => { const v = $('#vid'), r = e.currentT
     glow.style.opacity = out(seg(n, 500, 2200));
     plug.style.opacity = out(seg(n, 450, 450));
     ring.style.strokeDashoffset = len * (1 - out(seg(n, 650, 1300)));
-    const pp = back(seg(n, 1550, 650));
-    play.style.opacity = clamp(seg(n, 1550, 300)); play.setAttribute('transform', `translate(520 510) scale(${.3 + .7 * pp}) translate(-520 -510)`);
-    const q = seg(n, 2350, 750), ang = 9 * Math.sin(q * Math.PI * 5) * (1 - q);   // small shake once everything is connected
+    const pp = back(seg(n, 2000, 650));
+    play.style.opacity = clamp(seg(n, 2000, 250)); play.setAttribute('transform', `translate(520 510) scale(${.3 + .7 * pp}) translate(-520 -510)`);
+    const q = seg(n, 2750, 750), ang = 9 * Math.sin(q * Math.PI * 5) * (1 - q);   // small shake once everything is connected
     plug.setAttribute('transform', `rotate(${ang} 765 424)`);
-    letters.forEach((sp, i) => { const k = out(seg(n, 1950 + i * 60, 500)); sp.style.opacity = k; sp.style.transform = `translateY(${14 * (1 - k)}px)`; });
+    const k = out(seg(n, 3000, 900)); w.style.opacity = k; w.style.letterSpacing = (16 * (1 - k) + .5) + 'px'; w.style.filter = k < 1 ? `blur(${6 * (1 - k)}px)` : 'none';
     if (n >= PLAY_END && appShown()) { end(); return; }
     requestAnimationFrame(frame);
   };

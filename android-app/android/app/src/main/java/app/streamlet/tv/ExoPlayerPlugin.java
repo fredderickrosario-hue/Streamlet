@@ -132,6 +132,7 @@ public class ExoPlayerPlugin extends Plugin {
         i.putExtra("audioLang", call.getString("audioLang"));
         i.putExtra("subLang", call.getString("subLang"));
         i.putExtra("subs", subs.toString());
+        i.putExtra("accent", call.getString("accent", ""));
 
         call.setKeepAlive(true);
         pending = call;
