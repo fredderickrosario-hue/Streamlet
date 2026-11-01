@@ -201,6 +201,13 @@ body.tv #fsBtn{display:none}
 body.tv .spaceRow .space{margin:0;height:100%}
 body.tv #detail>div:not(.bar){max-width:1100px;margin-left:auto;margin-right:auto}
 body.tv .ppanel{max-width:760px;left:auto;right:0;top:0;bottom:0;max-height:none;border-radius:18px 0 0 18px}
+.abtns{display:flex;flex-direction:column;gap:6px;flex:0 0 auto}
+.rcard{background:var(--panel);border-radius:12px;padding:12px;margin:8px 0}
+.rcard h4{margin:0 0 2px;font-size:15px;overflow-wrap:anywhere}
+.rcard p{margin:2px 0 8px;color:var(--mut);font-size:13px;overflow-wrap:anywhere;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.rrow{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.addon .top>.btn{flex:0 0 auto}
+textarea.f{resize:vertical}
 </style>
 </head>
 <body>
@@ -222,7 +229,9 @@ body.tv .ppanel{max-width:760px;left:auto;right:0;top:0;bottom:0;max-height:none
         <button class="btn" type="submit">Install</button>
       </form>
       <div class="msg" id="addMsg"></div>
+      <p style="color:var(--mut);font-size:12px;margin:-4px 0 8px">Installing the same addon again with a different link (different settings) adds it as a second copy, like "Torrentio #2". Tap <b>Settings</b> on an addon to rename it or edit its link.</p>
       <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn ghost sm" id="osBtn" type="button">+ OpenSubtitles (subtitles)</button><button class="btn ghost sm" id="demoBtn" type="button">Try the built-in demo addon</button></div>
+      <details id="repoBox" style="margin-top:18px"><summary style="font-size:17px;font-weight:650;cursor:pointer;padding:4px 0">Addon repository</summary><div id="repoBody" style="margin-top:10px"></div></details>
       <h2 style="margin:22px 0 6px;font-size:17px">Account</h2>
       <div class="addon" id="acctCard"></div>
       <h2 style="margin:22px 0 6px;font-size:17px">Player</h2>
@@ -244,6 +253,7 @@ body.tv .ppanel{max-width:760px;left:auto;right:0;top:0;bottom:0;max-height:none
 <div id="detail" class="sheet" hidden></div>
 <div id="spaceEd" class="sheet" hidden></div>
 <div id="profEd" class="sheet" hidden></div>
+<div id="addonEd" class="sheet" hidden></div>
 <div id="player" class="sheet" hidden>
   <div class="pbar" id="pbar"><button class="x" id="closePlayer">✕</button><span id="ptitle"></span><button class="x" id="ccBtn">CC · Audio</button><button class="x" id="fsBtn">⛶</button></div>
   <video id="vid" controls playsinline></video>
@@ -309,6 +319,7 @@ function demoRoute(path){
 /* ---------- addon store ---------- */
 let addons = [];
 try { addons = JSON.parse(localStorage.getItem('streamlet.addons') || '[]'); } catch {}
+ensureUids();
 const save = () => { try { localStorage.setItem('streamlet.addons', JSON.stringify(addons)); } catch {} stamp('addonsT'); };
 
 async function getJSON(url){
@@ -335,15 +346,53 @@ function parseAddonUrl(input){
   return { url:u, base:u.replace(/\/manifest\.json(\?.*)?$/,'') };
 }
 
-async function installAddon(input){
+// every installed copy of an addon is an "instance" with its own uid ("com.x.addon", "com.x.addon#2", ...) and an optional label
+const an = a => a.label || a.manifest.name;
+function ensureUids(){
+  const seen = new Set();
+  for (const a of addons) {
+    if (!a.uid) { let u = a.manifest.id, n = 2; while (seen.has(u)) u = a.manifest.id + '#' + n++; a.uid = u; }
+    seen.add(a.uid);
+  }
+}
+function nextUid(mid){
+  if (!addons.some(a => a.uid === mid)) return mid;
+  let n = 2; while (addons.some(a => a.uid === mid + '#' + n)) n++;
+  return mid + '#' + n;
+}
+const hasRes = (a, r) => (a.manifest.resources || []).some(x => (typeof x === 'string' ? x : x.name) === r);
+const configurable = a => !!(a.manifest.behaviorHints && a.manifest.behaviorHints.configurable);
+const baseOf = u => String(u).replace(/\/manifest\.json(\?.*)?$/, '');
+function openConfigure(base){
+  const url = baseOf(base) + '/configure';
+  try { window.open(url, '_blank', 'noopener'); } catch { location.href = url; }
+  toast('Opening the addon\'s settings page. Copy the new link it gives you, then paste it here.');
+}
+async function fetchManifest(input){
   const {url, base} = parseAddonUrl(input);
   const manifest = await getJSON(url);
   if (!manifest || !manifest.id || !manifest.name || !Array.isArray(manifest.resources))
     throw new Error("That doesn't look like a valid addon manifest.");
   if (!manifest.types) manifest.types = [];
-  const entry = { url, base, manifest };
-  const i = addons.findIndex(a => a.manifest.id === manifest.id);
-  if (i>=0) addons[i] = entry; else addons.push(entry);
+  return {url, base, manifest};
+}
+async function installAddon(input, opts = {}){
+  const {url, base, manifest} = await fetchManifest(input);
+  const i = addons.findIndex(a => a.url === url);
+  if (i >= 0) {                                   // same link: refresh it
+    addons[i] = {...addons[i], url, base, manifest, pending:undefined};
+    if ('label' in opts) addons[i].label = opts.label || undefined;
+  } else {                                        // new link: new copy, even if the addon is already installed
+    const uid = nextUid(manifest.id), n = uid.includes('#') ? +uid.split('#').pop() : 1;
+    addons.push({url, base, manifest, uid, label: opts.label || (n > 1 ? `${manifest.name} #${n}` : undefined)});
+  }
+  save();
+  return manifest;
+}
+async function replaceAddon(uid, input, label){
+  const i = addons.findIndex(a => a.uid === uid); if (i < 0) throw new Error('Addon not found.');
+  const {url, base, manifest} = await fetchManifest(input);
+  addons[i] = {...addons[i], url, base, manifest, pending:undefined, label: label || undefined};
   save();
   return manifest;
 }
@@ -397,7 +446,8 @@ const LAYER_CLOSERS = {
   player: () => stopPlayer(),
   detail: () => { $('#detail').hidden = true; document.body.style.overflow = ''; if (!$('#home').hidden) renderCW(); },
   editor: () => { $('#spaceEd').hidden = true; applyTheme(cur ? cur.theme : 'violet'); },
-  pedit:  () => { $('#profEd').hidden = true; }
+  pedit:  () => { $('#profEd').hidden = true; },
+  aedit:  () => { $('#addonEd').hidden = true; if (!$('#addons').hidden) renderAddons(); }
 };
 function rememberSpace(id){ pset('last', id); }
 function applyPage(p){
@@ -494,7 +544,8 @@ try { spaces = JSON.parse(localStorage.getItem('streamlet.spaces2') || 'null'); 
 if (!Array.isArray(spaces) || !spaces.length) spaces = JSON.parse(JSON.stringify(DEFAULT_SPACES));
 const saveSpaces = () => { try { localStorage.setItem('streamlet.spaces2', JSON.stringify(spaces)); } catch {} stamp('spacesT'); };
 let cur = null; // the space you're currently in
-const spaceAddons = () => (cur && cur.catalogs.length) ? addons.filter(a => cur.catalogs.includes(a.manifest.id)) : addons;
+const spaceAddons = () => (cur && cur.catalogs.length) ? addons.filter(a => cur.catalogs.includes(a.uid)) : addons;
+const streamPool = () => (cur && cur.streams && cur.streams.length) ? addons.filter(a => cur.streams.includes(a.uid)) : addons;
 
 function enterSpace(id){
   cur = spaces.find(s => s.id===id); if (!cur) return;
@@ -511,7 +562,7 @@ function showLauncher(){
     h('p', {class:'sub'}, addons.length ? 'What are we watching?' : 'Install an addon first (Addons & settings below), then pick a space.'),
     ...spaces.map(s => {
       const t = THEMES[s.theme] || THEMES.violet;
-      const names = s.catalogs.length ? s.catalogs.map(id => (addons.find(a=>a.manifest.id===id)||{manifest:{}}).manifest.name).filter(Boolean).join(', ') : 'All installed addons';
+      const names = s.catalogs.length ? s.catalogs.map(id => { const a = addons.find(x => x.uid === id); return a && an(a); }).filter(Boolean).join(', ') : 'All installed addons';
       return h('div', {class:'spaceRow'},
         h('button', {class:'space', style:`background:linear-gradient(135deg,${t.acc},${t.panel2})`, onclick:()=>enterSpace(s.id)},
           h('span',{class:'em'}, s.emoji), h('span',null, h('div',{class:'nm'}, s.name), h('div',{class:'ds'}, names || 'Selected addon not installed'))),
@@ -537,7 +588,9 @@ function editSpace(id){
     h('button', {type:'button', class:'sw'+(s.theme===k?' on':''), title:t.n, style:`background:${t.acc}`, onclick:()=>{ s.theme=k; applyTheme(k); if (s.tabs === undefined) tabsCb.checked = !!THEMES[k].tabs; paintSw(); }}))); };
   paintSw();
   const withCats = addons.filter(a => (a.manifest.catalogs||[]).length);
-  const boxes = withCats.map(a => { const cb = h('input', {type:'checkbox'}); cb.checked = s.catalogs.includes(a.manifest.id); return {a, cb}; });
+  const withStreams = addons.filter(a => hasRes(a, 'stream'));
+  const sboxes = withStreams.map(a => { const cb = h('input', {type:'checkbox'}); cb.checked = (s.streams || []).includes(a.uid); return {a, cb}; });
+  const boxes = withCats.map(a => { const cb = h('input', {type:'checkbox'}); cb.checked = s.catalogs.includes(a.uid); return {a, cb}; });
   const del = h('button', {class:'btn ghost', type:'button'}, 'Delete space');
   let armed = false;
   del.onclick = () => {
@@ -552,13 +605,17 @@ function editSpace(id){
     h('div', {class:'lbl'}, 'Theme'), sw,
     h('label', {class:'chk'}, tabsCb, h('span', null, 'Browse tabs (Home, Movies, Shows, New releases, Categories)')),
     h('div', {class:'lbl'}, 'Catalog addons for this space'),
-    withCats.length ? h('div', null, boxes.map(({a,cb}) => h('label', {class:'chk'}, cb, h('span',null, a.manifest.name)))) : h('p', {class:'spin', style:'padding:0'}, 'No catalog addons installed yet.'),
-    h('p', {class:'spin', style:'padding:0'}, 'Leave all unchecked to use every installed addon. Stream addons are shared by all spaces.'),
+    withCats.length ? h('div', null, boxes.map(({a,cb}) => h('label', {class:'chk'}, cb, h('span',null, an(a))))) : h('p', {class:'spin', style:'padding:0'}, 'No catalog addons installed yet.'),
+    h('p', {class:'spin', style:'padding:0'}, 'Leave all unchecked to use every installed addon.'),
+    withStreams.length > 1 ? h('div', null, h('div', {class:'lbl'}, 'Stream addons for this space'),
+      h('div', null, sboxes.map(({a, cb}) => h('label', {class:'chk'}, cb, h('span', null, an(a))))),
+      h('p', {class:'spin', style:'padding:0'}, 'Only these are asked for streams when you watch from this space. Leave all unchecked to use all of them.')) : null,
     h('div', {style:'display:flex;gap:10px;margin-top:18px'},
       h('button', {class:'btn', type:'button', onclick:()=>{
         if (!name.value.trim()) { toast('Give it a name.'); return; }
         s.name = name.value.trim(); s.emoji = emoji.value.trim() || '📺';
-        s.catalogs = boxes.filter(x => x.cb.checked).map(x => x.a.manifest.id);
+        s.catalogs = boxes.filter(x => x.cb.checked).map(x => x.a.uid);
+        s.streams = sboxes.filter(x => x.cb.checked).map(x => x.a.uid);
         const i = spaces.findIndex(x => x.id===s.id); if (i>=0) spaces[i] = s; else spaces.push(s);
         saveSpaces(); launcherDirty = true; close();
       }}, 'Save'),
@@ -726,7 +783,7 @@ async function renderHome(query = $('#q').value.trim()){
       path = `catalog/${cat.type}/${enc(cat.id)}.json`;
     }
     const strip = h('div', {class:'strip'});
-    const sec = h('div', {class:'row'}, h('h2', null, title, ' ', h('small', null, '· ' + [a.manifest.name, TYPE_LABEL[cat.type]].filter(Boolean).join(' · '))), strip);
+    const sec = h('div', {class:'row'}, h('h2', null, title, ' ', h('small', null, '· ' + [an(a), TYPE_LABEL[cat.type]].filter(Boolean).join(' · '))), strip);
     const loading = h('div', {class:'spin'}, 'Loading…');
     sec.append(loading); box.append(sec);
     jobs.push(getJSON(`${a.base}/${path}`).then(r => {
@@ -766,12 +823,122 @@ function renderAddons(){
     const res = m.resources.map(r => typeof r==='string' ? r : r.name);
     list.append(h('div', {class:'addon'},
       h('div', {class:'top'},
-        h('div', null, h('h3', null, m.name, ' ', h('small', {style:'color:var(--mut);font-weight:400'}, m.version ? 'v'+m.version : '')), m.description ? h('p', null, m.description) : null),
-        h('button', {class:'btn ghost sm', onclick:()=>{ addons = addons.filter(x=>x!==a); save(); renderAddons(); toast('Removed '+m.name); }}, 'Remove')),
+        h('div', null, h('h3', null, an(a), ' ', h('small', {style:'color:var(--mut);font-weight:400'}, a.label ? '· ' + m.name : (m.version ? 'v'+m.version : ''))), m.description ? h('p', null, m.description) : null),
+        h('div', {class:'abtns'},
+          h('button', {class:'btn ghost sm', type:'button', onclick:() => editAddon(a.uid)}, 'Settings'),
+          h('button', {class:'btn ghost sm', type:'button', onclick:()=>{ addons = addons.filter(x=>x!==a); save(); renderAddons(); toast('Removed '+an(a)); }}, 'Remove'))),
       h('div', {class:'tags'}, [...new Set(res)].map(r=>h('span',{class:'tag'},r)), (m.types||[]).map(t=>h('span',{class:'tag'},t))),
       h('div', {class:'url'}, maskUrl(a.url))));
   }
 }
+
+function editAddon(uid){
+  const a = addons.find(x => x.uid === uid); if (!a) return;
+  const ed = $('#addonEd'); ed.hidden = false; ed.scrollTop = 0; pushLayer('aedit');
+  const close = () => popLayer('aedit');
+  const name = h('input', {class:'f', placeholder:a.manifest.name, maxlength:'40', style:'width:100%'}); name.value = a.label || '';
+  const link = h('textarea', {class:'f', rows:'6', spellcheck:'false', autocapitalize:'off', autocorrect:'off', style:'width:100%;font-size:13px'}); link.value = a.url;
+  const msg = h('div', {class:'msg', style:'margin-top:8px'});
+  const run = async fn => { msg.className = 'msg'; msg.textContent = 'Checking…'; try { await fn(); } catch (e) { msg.className = 'msg err'; msg.textContent = e.message || 'Failed.'; } };
+  ed.replaceChildren(
+    h('div', {class:'bar', style:'padding-left:0;padding-right:0'}, h('button', {class:'btn ghost sm', onclick:close}, '← Back')),
+    h('div', {style:'padding:0 16px'},
+      h('h2', {style:'margin:6px 0 2px'}, an(a)), h('p', {style:'margin:0 0 6px;color:var(--mut);font-size:13px'}, a.manifest.name + (a.manifest.version ? ' · v' + a.manifest.version : '') + ' · ' + a.uid),
+      h('div', {class:'lbl'}, 'Name'), name,
+      h('div', {class:'lbl'}, 'Link (includes your settings, and any private keys)'), link,
+      h('div', {class:'rrow', style:'margin-top:8px'},
+        h('button', {class:'btn ghost sm', type:'button', onclick:async () => { try { link.value = (await navigator.clipboard.readText()).trim(); } catch { toast('Long-press the box and choose Paste.'); } }}, 'Paste'),
+        configurable(a) ? h('button', {class:'btn ghost sm', type:'button', onclick:() => openConfigure(link.value || a.url)}, "Open the addon's settings page ↗") : null),
+      msg,
+      h('div', {class:'rrow', style:'margin-top:14px'},
+        h('button', {class:'btn', type:'button', onclick:() => run(async () => { await replaceAddon(a.uid, link.value, name.value.trim()); close(); toast('Saved'); })}, 'Save'),
+        h('button', {class:'btn ghost', type:'button', onclick:() => run(async () => {
+          const {url} = parseAddonUrl(link.value);
+          if (addons.some(x => x.url === url)) throw new Error('That link is already installed. Change the settings first (edit the link, or use the settings page), then save as a copy.');
+          const mf = await installAddon(link.value, {label:name.value.trim() || undefined});
+          close(); toast('Added a copy of ' + mf.name);
+        })}, 'Save as a new copy')),
+      h('p', {class:'spin', style:'padding:10px 0 0'}, 'Tip: open the settings page, choose your options, copy the new link it gives you, paste it above and tap "Save as a new copy". Your original stays as it is, so both are available (for example "Torrentio" and "Torrentio #2").')));
+}
+
+/* ---------- addon repository ---------- */
+const STARTER_REPO = [
+  {name:'Cinemeta', url:'https://v3-cinemeta.strem.io/manifest.json', desc:'The official movie and series catalogs and metadata.'},
+  {name:'OpenSubtitles v3', url:'https://opensubtitles-v3.strem.io/manifest.json', desc:'Subtitles in many languages.'},
+  {name:'Kitsu Anime', url:'https://anime-kitsu.strem.fun/manifest.json', desc:'Anime catalogs and metadata.'},
+  {name:'Blender open movies (demo)', url:'demo', desc:'Built-in sample: free, openly licensed short films.'}
+];
+const reposGet = () => lsGet('streamlet.repos', []);
+const reposSet = v => { lsSet('streamlet.repos', v); stamp('reposT'); };
+const hostOf = u => { try { return new URL(u).hostname; } catch { return String(u).slice(0, 40); } };
+let repo = {src:'starter', q:'', items:null, err:'', show:40, busy:false, loadedFor:''};
+function repoSources(){
+  const out = [{id:'starter', name:'Starter list'}];
+  for (const a of addons) for (const c of (a.manifest.addonCatalogs || [])) out.push({id:`ac:${a.uid}:${c.type}:${c.id}`, name:`${c.name || c.id} · ${an(a)}`, ac:{a, c}});
+  for (const r of reposGet()) out.push({id:'u:' + r.id, name:r.name, url:r.url, user:true});
+  return out;
+}
+function normRepoItem(x){
+  const m = x.manifest || {}, bh = m.behaviorHints || {};
+  const url = x.transportUrl || x.url || x.manifestUrl || x.link || '';
+  return {name:x.name || m.name || hostOf(url), desc:x.description || x.desc || m.description || '', url, types:m.types || x.types || [],
+    cfg: !!(bh.configurable || x.configure), cfgReq: !!(bh.configurationRequired || x.requiresConfig)};
+}
+async function loadRepo(src){
+  if (src.id === 'starter') return STARTER_REPO.map(x => ({...x, types:[], cfg:false, cfgReq:false}));
+  if (src.ac) { const r = await getJSON(`${src.ac.a.base}/addon_catalog/${src.ac.c.type}/${enc(src.ac.c.id)}.json`); return (r.addons || []).map(normRepoItem); }
+  const r = await getJSON(src.url);
+  return (Array.isArray(r) ? r : (r.addons || r.items || [])).map(normRepoItem);
+}
+async function pickRepo(id){
+  const src = repoSources().find(x => x.id === id) || repoSources()[0];
+  repo = {...repo, src:src.id, items:null, err:'', show:40, busy:true}; renderRepo();
+  try { repo.items = (await withTimeout(loadRepo(src), 15000)).filter(x => x.url); } catch (e) { repo.err = "Couldn't load this list: " + (e.message || e); repo.items = []; }
+  repo.busy = false; renderRepo();
+}
+function renderRepo(){
+  const box = $('#repoBody'); if (!box) return;
+  const srcs = repoSources(), cursrc = srcs.find(x => x.id === repo.src) || srcs[0];
+  const sel = h('select', {class:'f', style:'width:100%'}, srcs.map(x => h('option', {value:x.id}, x.name))); sel.value = cursrc.id;
+  sel.onchange = () => pickRepo(sel.value);
+  const q = h('input', {class:'f', type:'search', placeholder:'Search this list…', style:'width:100%;margin-top:8px'}); q.value = repo.q;
+  q.oninput = () => { repo.q = q.value; repo.show = 40; clearTimeout(renderRepo._t); renderRepo._t = setTimeout(() => { renderRepo(); const n = $('#repoBody input[type=search]'); if (n) { n.focus(); n.setSelectionRange(n.value.length, n.value.length); } }, 250); };
+  const nameIn = h('input', {class:'f', placeholder:'Name (optional)', style:'flex:1;min-width:90px'}), urlIn = h('input', {class:'f', placeholder:'Link to a list (JSON)', style:'flex:2;min-width:140px', autocapitalize:'off'});
+  const addRepo = h('button', {class:'btn ghost sm', type:'button', onclick:() => {
+    const u = urlIn.value.trim(); if (!/^https?:\/\//i.test(u)) { toast('Paste the link to a JSON list.'); return; }
+    const r = {id:Date.now().toString(36), name:nameIn.value.trim() || hostOf(u), url:u}; reposSet([...reposGet(), r]); pickRepo('u:' + r.id);
+  }}, 'Add list');
+  const items = (repo.items || []).filter(x => !repo.q || (x.name + ' ' + x.desc).toLowerCase().includes(repo.q.toLowerCase()));
+  const installedUrl = u => { try { const p = parseAddonUrl(u).url; return addons.find(a => a.url === p); } catch { return null; } };
+  const cards = items.slice(0, repo.show).map(it => {
+    const inst = installedUrl(it.url);
+    const btns = [];
+    if (inst) btns.push(h('span', {class:'tag'}, 'Installed ✓'));
+    else {
+      if (it.cfgReq) btns.push(h('button', {class:'btn sm', type:'button', onclick:() => openConfigure(it.url)}, 'Set up ↗'));
+      btns.push(h('button', {class:it.cfgReq ? 'btn ghost sm' : 'btn sm', type:'button', onclick:async (ev) => {
+        const b = ev.currentTarget; b.disabled = true; b.textContent = 'Installing…';
+        try { const m = await installAddon(it.url); toast('Installed ' + m.name); renderAddons(); } catch (e) { toast(e.message || 'Could not install.'); }
+        renderRepo();
+      }}, 'Install'));
+    }
+    if (it.cfg && !it.cfgReq) btns.push(h('button', {class:'btn ghost sm', type:'button', onclick:() => openConfigure(it.url)}, 'Set up ↗'));
+    return h('div', {class:'rcard'}, h('h4', null, it.name), it.desc ? h('p', null, it.desc) : null,
+      h('div', {class:'rrow'}, btns, (it.types || []).slice(0, 4).map(t => h('span', {class:'tag'}, t))));
+  });
+  box.replaceChildren(
+    h('div', {class:'lbl', style:'margin-top:0'}, 'List'), sel, q,
+    repo.busy ? h('p', {class:'spin', style:'padding:8px 0'}, 'Loading…') : null,
+    repo.err ? h('p', {class:'msg err'}, repo.err) : null,
+    ...cards,
+    items.length > repo.show ? h('button', {class:'btn ghost sm', type:'button', style:'margin:6px 0', onclick:() => { repo.show += 40; renderRepo(); }}, `Show more (${items.length - repo.show} left)`) : null,
+    !repo.busy && repo.items && !items.length && !repo.err ? h('p', {class:'spin', style:'padding:8px 0'}, 'Nothing matches.') : null,
+    h('div', {class:'lbl'}, 'Add your own list'),
+    h('div', {class:'rrow'}, nameIn, urlIn, addRepo),
+    cursrc.user ? h('button', {class:'lnk', type:'button', onclick:() => { reposSet(reposGet().filter(r => 'u:' + r.id !== cursrc.id)); pickRepo('starter'); }}, 'Remove this list') : null,
+    h('p', {class:'spin', style:'padding:6px 0 0'}, 'Lists can be addon catalogs from addons you have installed, or any JSON file with an "addons" array of {name, description, url}.'));
+}
+$('#repoBox').addEventListener('toggle', () => { if ($('#repoBox').open && repo.items === null && !repo.busy) pickRepo(repo.src); });
 
 $('#addForm').addEventListener('submit', async ev => {
   ev.preventDefault();
@@ -884,7 +1051,7 @@ const streamLangs = s => { const t = [s.name, s.title, s.description].filter(Boo
 
 /* ---------- detail + streams ---------- */
 function openResume(e){
-  const a = addons.find(x => x.manifest.id === e.addonId) || spaceAddons()[0] || addons[0];
+  const a = addons.find(x => x.uid === e.addonId || x.manifest.id === e.addonId) || spaceAddons()[0] || addons[0];
   if (!a) return;
   openDetail(a, e.itemType, {id:e.itemId, type:e.itemType, name:e.name, poster:e.poster, background:e.background}, {resume:e});
 }
@@ -903,7 +1070,7 @@ async function openDetail(addon, type, item, opts = {}){
   const ma = supports(addon,'meta',type,item.id) ? addon : addons.find(x => supports(x,'meta',type,item.id));
   if (ma) { try { const r = await getJSON(`${ma.base}/meta/${type}/${enc(item.id)}.json`); meta = {...item, ...r.meta}; paint(); } catch {} }
   const sec = h('div',{class:'sec'}); body.append(sec);
-  const info = {item:{id:meta.id, type, name:meta.name, poster:meta.poster, background:meta.background}, addonId:addon.manifest.id};
+  const info = {item:{id:meta.id, type, name:meta.name, poster:meta.poster, background:meta.background}, addonId:addon.uid};
   const altIds = [meta.behaviorHints && meta.behaviorHints.defaultVideoId, meta.imdb_id].filter(x => x && x !== meta.id);
   const rs = opts.resume;
   if (rs && rs.stream && rs.stream.url && !rs.upnext)
@@ -935,24 +1102,24 @@ async function openDetail(addon, type, item, opts = {}){
 
 function noStreamsMsg(type, cands){
   const isStream = r => (typeof r === 'string' ? r : r.name) === 'stream';
-  const withStream = addons.filter(a => (a.manifest.resources || []).some(isStream));
-  const pend = addons.filter(a => a.pending).map(a => a.manifest.name);
+  const withStream = streamPool().filter(a => (a.manifest.resources || []).some(isStream));
+  const pend = addons.filter(a => a.pending).map(a => an(a));
   const pendTxt = pend.length ? " Couldn't load: " + pend.join(', ') + ' (try Sync now, or reinstall it).' : '';
   if (!withStream.length) return 'None of your installed addons provide streams.' + (pendTxt || ' Install one on the Addons tab.');
   const parts = withStream.map(a => {
     const r = (a.manifest.resources || []).find(isStream), pre = (r && r.idPrefixes) || a.manifest.idPrefixes, ty = (r && r.types) || a.manifest.types;
-    return `${a.manifest.name} (${(ty || []).join('/') || 'any type'}; ids: ${pre ? pre.join(', ') : 'any'})`;
+    return `${an(a)} (${(ty || []).join('/') || 'any type'}; ids: ${pre ? pre.join(', ') : 'any'})`;
   });
   return `No stream addon accepts this title (${type}, id ${cands.map(c => '"' + c + '"').join(' / ')}). Stream addons: ${parts.join('; ')}.` + pendTxt;
 }
 async function loadStreams(type, id, box, title, base = {}){
   box.replaceChildren(h('h3',{style:'margin:14px 0 4px;font-size:14px;color:var(--mut);text-transform:uppercase;letter-spacing:.8px'},'Streams'));
   const cands = [id, ...(base.alt || [])];
-  const srcs = addons.map(a => ({a, sid:cands.find(c => supports(a,'stream',type,c))})).filter(x => x.sid);
+  const srcs = streamPool().map(a => ({a, sid:cands.find(c => supports(a,'stream',type,c))})).filter(x => x.sid);
   if (!srcs.length) { box.append(h('p',{class:'spin'}, noStreamsMsg(type, cands))); return; }
   let found = 0;
   await Promise.all(srcs.map(async ({a, sid}) => {
-    const grp = h('div'); const lab = h('div',{class:'src'}, a.manifest.name+' …'); grp.append(lab); box.append(grp);
+    const grp = h('div'); const lab = h('div',{class:'src'}, an(a)+' …'); grp.append(lab); box.append(grp);
     try {
       const r = await getJSON(`${a.base}/stream/${type}/${enc(sid)}.json`);
       let ss = r.streams || [];
@@ -961,7 +1128,7 @@ async function loadStreams(type, id, box, title, base = {}){
         const score = x => { const l = streamLangs(x); return l.includes(pc) ? 0 : l.includes('multi') ? 1 : 2; };
         ss = ss.map((x,i) => [x,i]).sort((a,b) => score(a[0]) - score(b[0]) || a[1] - b[1]).map(x => x[0]);
       }
-      lab.textContent = a.manifest.name; found += ss.length;
+      lab.textContent = an(a); found += ss.length;
       if (!ss.length) lab.textContent += ' — nothing found';
       for (const s of ss) {
         const playable = !!(s.url || s.externalUrl || s.ytId);
@@ -970,7 +1137,7 @@ async function loadStreams(type, id, box, title, base = {}){
             streamLangs(s).length ? h('div', {style:'margin-top:4px'}, streamLangs(s).map(l => h('span', {class:'lc'}, l.toUpperCase()))) : null),
           h('span',{class:'go'}, playable ? '▶' : '✕')));
       }
-    } catch(e) { lab.textContent = a.manifest.name+' — failed: '+e.message; lab.style.color='var(--err)'; }
+    } catch(e) { lab.textContent = an(a)+' — failed: '+e.message; lab.style.color='var(--err)'; }
   }));
 }
 
@@ -1026,7 +1193,7 @@ async function loadSubs(){
     try {
       const r = await getJSON(`${a.base}/subtitles/${ctx.type}/${enc(sid)}.json`);
       if (pl.id !== myId) return;
-      for (const x of (r.subtitles || [])) if (x.url) pl.subs.push({...x, addon:a.manifest.name});
+      for (const x of (r.subtitles || [])) if (x.url) pl.subs.push({...x, addon:an(a)});
     } catch {}
   }));
   if (pl.id !== myId) return;
@@ -1134,7 +1301,7 @@ async function collectSubs(ctx){
   const cands = [ctx.id, ...(ctx.alt || [])];
   const srcs = addons.map(a => ({a, sid:cands.find(c => supports(a, 'subtitles', ctx.type, c))})).filter(x => x.sid), out = [];
   await Promise.all(srcs.map(async ({a, sid}) => {
-    try { const r = await getJSON(`${a.base}/subtitles/${ctx.type}/${enc(sid)}.json`); for (const x of (r.subtitles || [])) if (x.url) out.push({...x, addon:a.manifest.name}); } catch {}
+    try { const r = await getJSON(`${a.base}/subtitles/${ctx.type}/${enc(sid)}.json`); for (const x of (r.subtitles || [])) if (x.url) out.push({...x, addon:an(a)}); } catch {}
   }));
   return out;
 }
@@ -1219,20 +1386,23 @@ async function loadFirebase(){
   return {app, au, fs};
 }
 
-async function applyRemoteAddons(urls){
+async function applyRemoteAddons(list){
+  const items = list.map(x => typeof x === 'string' ? {url:x} : x);
   const have = Object.fromEntries(addons.map(a => [a.url, a])), out = [];
-  await Promise.all(urls.map(async (u, i) => {
-    if (have[u] && !have[u].pending) { out[i] = have[u]; return; }
-    const {url, base} = parseAddonUrl(u);
+  await Promise.all(items.map(async (it, i) => {
+    const old = have[it.url], meta = {label: it.label || undefined};
+    if (it.uid) meta.uid = it.uid;
+    if (old && !old.pending) { out[i] = {...old, ...meta}; return; }
+    const {url, base} = parseAddonUrl(it.url);
     try {
       const manifest = await getJSON(url);
       if (!manifest || !manifest.id || !Array.isArray(manifest.resources)) throw new Error('bad manifest');
-      manifest.types = manifest.types || []; out[i] = {url, base, manifest};
+      manifest.types = manifest.types || []; out[i] = {url, base, manifest, ...meta};
     } catch {
-      out[i] = have[u] || {url, base, pending:true, manifest:{id:'pending:' + u, name:u.replace(/^https?:\/\//, '').replace(/\/manifest\.json.*$/, ''), description:"Couldn't load this addon yet (offline?). It will retry on the next sync.", resources:[], types:[], catalogs:[]}};
+      out[i] = old ? {...old, ...meta} : {url, base, pending:true, ...meta, manifest:{id:'pending:' + it.url, name:it.url.replace(/^https?:\/\//, '').replace(/\/manifest\.json.*$/, ''), description:"Couldn't load this addon yet (offline?). It will retry on the next sync.", resources:[], types:[], catalogs:[]}};
     }
   }));
-  addons = out.filter(Boolean);
+  addons = out.filter(Boolean); ensureUids();
   try { localStorage.setItem('streamlet.addons', JSON.stringify(addons)); } catch {}
 }
 async function mergeFamily(R){
@@ -1242,13 +1412,16 @@ async function mergeFamily(R){
   if (R.addons) {
     const rT = R.addonsT || 0, lT = m.addonsT || 0;
     if (rT > lT || lT === 0) {
-      const localOnly = lT === 0 ? addons.filter(a => !R.addons.includes(a.url)).map(a => a.url) : [];
-      const before = JSON.stringify(addons.map(a => a.url));
+      const rUrls = R.addons.map(x => typeof x === 'string' ? x : x.url);
+      const localOnly = lT === 0 ? addons.filter(a => !rUrls.includes(a.url)).map(a => ({url:a.url, uid:a.uid, label:a.label})) : [];
+      const sig = () => JSON.stringify(addons.map(a => [a.url, a.uid, a.label || '']));
+      const before = sig();
       await applyRemoteAddons([...R.addons, ...localOnly]);
       m.addonsT = localOnly.length ? Date.now() : rT;
-      if (JSON.stringify(addons.map(a => a.url)) !== before) changed = true;
+      if (sig() !== before) changed = true;
     }
   } else if (addons.length && !m.addonsT) m.addonsT = Date.now();
+  if (R.repos && (R.reposT || 0) > (m.reposT || 0)) { lsSet('streamlet.repos', R.repos); m.reposT = R.reposT; }
   lsSet('streamlet.meta', m);
   return changed;
 }
@@ -1274,7 +1447,8 @@ async function pushAll(){
   const {doc, setDoc, deleteField} = FB.fs, m = metaGet(), base = ['users', user.uid], fam = {};
   if (m.profilesT) { fam.profiles = profiles; fam.profilesT = m.profilesT; }
   if (m.spacesT) { fam.spaces = spaces; fam.spacesT = m.spacesT; }
-  if (m.addonsT) { fam.addons = addons.map(a => a.url); fam.addonsT = m.addonsT; }
+  if (m.addonsT) { fam.addons = addons.map(a => ({url:a.url, uid:a.uid, label:a.label || null})); fam.addonsT = m.addonsT; }
+  if (m.reposT) { fam.repos = reposGet(); fam.reposT = m.reposT; }
   if (Object.keys(fam).length) await setDoc(doc(db, ...base, 'sync', 'family'), clean(fam), {merge:true});
   for (const p of profiles) {
     const hist = plsGet(p.id, 'history', []), removed = plsGet(p.id, 'removed', {}), sT = plsGet(p.id, 'settingsT', 0);
@@ -1440,7 +1614,7 @@ try { if (window.tizen && tizen.tvinputdevice) ['MediaPlayPause','MediaPlay','Me
 
 const FOCUSABLE = 'a[href],button:not([disabled]),input:not([type=hidden]):not([disabled]),select:not([disabled]),textarea:not([disabled]),summary,[tabindex]:not([tabindex="-1"])';
 function ctxRoot(){
-  for (const id of ['#exitDlg', '#ppanel', '#player', '#profEd', '#spaceEd', '#detail']) { const e = $(id); if (e && !e.hidden) return e; }
+  for (const id of ['#exitDlg', '#ppanel', '#player', '#addonEd', '#profEd', '#spaceEd', '#detail']) { const e = $(id); if (e && !e.hidden) return e; }
   return document.body;
 }
 function focusables(root){
