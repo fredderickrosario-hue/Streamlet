@@ -2924,12 +2924,14 @@ function revealEl(el, dir, rep, tv, edge){
     else if (under > 1) strip.scrollLeft = Math.max(0, x0 - Math.ceil(under / pitch) * pitch / k);
   }
   if (edge) window.scrollTo(0, edge === 'top' ? 0 : 1e7);                 // last item in that direction: show the whole end of the page
-  else if (el.closest('.tvhero')) window.scrollTo(0, 0); else (strip || el).scrollIntoView({block:'nearest', inline:'nearest'});
+  else if (el.closest('.tvhero')) window.scrollTo(0, 0);
+  else if (strip && (dir === 'up' || dir === 'down') && strip.parentElement) strip.parentElement.scrollIntoView({block:'center', inline:'nearest'});   // moving between rows: the row snaps to the middle of the screen
+  else (strip || el).scrollIntoView({block:'nearest', inline:'nearest'});
   const y1 = scrollY, x1 = strip ? strip.scrollLeft : 0;
   if (rep || (y0 === y1 && x0 === x1)) return;
   window.scrollTo(0, y0); if (strip) strip.scrollLeft = x0;
   cancelAnimationFrame(scrollAnim);
-  const t0 = performance.now(), D = 140;
+  const t0 = performance.now(), D = strip && (dir === 'up' || dir === 'down') ? 280 : 140;
   const step = t => { const kk = Math.min(1, (t - t0) / D), e = 1 - Math.pow(1 - kk, 3); window.scrollTo(0, y0 + (y1 - y0) * e); if (strip) strip.scrollLeft = x0 + (x1 - x0) * e; if (kk < 1) scrollAnim = requestAnimationFrame(step); };
   scrollAnim = requestAnimationFrame(step);
 }
