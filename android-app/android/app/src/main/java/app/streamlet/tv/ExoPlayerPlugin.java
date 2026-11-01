@@ -127,6 +127,7 @@ public class ExoPlayerPlugin extends Plugin {
         Intent i = new Intent(getContext(), PlayerActivity.class);
         i.putExtra("url", url);
         i.putExtra("title", call.getString("title", ""));
+        i.putExtra("subtitle", call.getString("subtitle", ""));
         i.putExtra("startMs", start == null ? 0L : start);
         i.putExtra("audioLang", call.getString("audioLang"));
         i.putExtra("subLang", call.getString("subLang"));
