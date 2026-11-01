@@ -162,12 +162,12 @@ select.chip{padding-right:10px;text-overflow:ellipsis}
 .lrow .btn{flex:1}
 /* ---- focus (remote / keyboard) ---- */
 :focus{outline:none}
-:focus-visible{outline:3px solid #fff;outline-offset:2px;box-shadow:0 0 0 7px color-mix(in srgb,var(--acc) 75%,transparent)}
+:focus-visible{outline:2px solid rgba(255,255,255,.92);outline-offset:3px;box-shadow:none}
 button.card:focus-visible,.cwb:focus-visible,.ptile:focus-visible,.space:focus-visible{outline:none;box-shadow:none}
-button.card:focus-visible .poster,.cwb:focus-visible .poster,.ptile:focus-visible .pav{outline:3px solid #fff;outline-offset:2px;box-shadow:0 0 0 7px color-mix(in srgb,var(--acc) 75%,transparent)}
-.space:focus-visible{outline:4px solid #fff;outline-offset:3px}
+button.card:focus-visible .poster,.cwb:focus-visible .poster,.ptile:focus-visible .pav{outline:2px solid rgba(255,255,255,.92);outline-offset:3px;box-shadow:none}
+.space:focus-visible{outline:2px solid #fff;outline-offset:3px}
 .poster{transition:transform .15s}
-button.card:focus-visible .poster,.cwb:focus-visible .poster{transform:scale(1.05)}
+button.card:focus-visible .poster,.cwb:focus-visible .poster{transform:scale(1.04)}
 .tvhint{display:none;color:var(--mut);font-weight:400}
 .pctl{position:absolute;left:0;right:0;bottom:0;z-index:3;padding:46px 5% calc(26px + env(safe-area-inset-bottom));background:linear-gradient(transparent,#000d);transition:opacity .25s}
 .pctl[hidden]{display:none}
@@ -254,7 +254,7 @@ main{padding-bottom:calc(112px + env(safe-area-inset-bottom))}
 .card.wlc{position:relative}
 .card.wlc>button.wlb{background:none;border:0;padding:0;text-align:left;color:inherit;display:flex;flex-direction:column;width:100%}
 .wlb:focus-visible{outline:none;box-shadow:none}
-.wlb:focus-visible .poster{outline:3px solid #fff;outline-offset:2px;box-shadow:0 0 0 7px color-mix(in srgb,var(--acc) 75%,transparent);transform:scale(1.05)}
+.wlb:focus-visible .poster{outline:2px solid rgba(255,255,255,.92);outline-offset:3px;box-shadow:none;transform:scale(1.05)}
 .mecard{display:flex;align-items:center;gap:18px;padding:20px}
 .mepav{width:88px;height:88px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:44px;box-shadow:0 10px 26px rgba(0,0,0,.4),inset 0 2px 0 rgba(255,255,255,.35);flex:0 0 auto}
 .mestats{display:flex;gap:10px;margin:14px 0}
@@ -378,8 +378,7 @@ body.tv .dtop{padding-left:150px}
 nav button{color:rgba(255,255,255,.52)}
 nav button.on{color:#fff}
 nav button svg{transition:fill .2s,stroke .2s}
-nav button.on svg{fill:var(--acc);stroke:var(--acc);transform:none}
-#tabSettings.on svg circle{fill:var(--panel-s);stroke:var(--panel-s)}
+nav button.on svg{fill:color-mix(in srgb,var(--acc) 24%,transparent);stroke:#fff;stroke-width:2.1;transform:none}
 /* title page: logo appears in the header once you scroll past the backdrop */
 .dtop{transition:background .25s,padding .25s}
 .dtlogo{flex:1;min-width:0;display:flex;align-items:center;margin-left:6px;opacity:0;transform:translateY(6px);transition:opacity .25s,transform .25s;pointer-events:none}
@@ -401,7 +400,7 @@ nav button.on svg{fill:var(--acc);stroke:var(--acc);transform:none}
 .avb{border:3px solid transparent;border-radius:50%;padding:2px;background:none;line-height:0}
 .avb .av{width:100% !important;height:auto !important;aspect-ratio:1/1}
 .avb.on{border-color:#fff;box-shadow:0 0 0 4px color-mix(in srgb,var(--acc) 80%,transparent)}
-.avb:focus-visible{outline:3px solid #fff;outline-offset:2px}
+.avb:focus-visible{outline:2px solid #fff;outline-offset:2px}
 /* addons tab */
 .seg{display:flex;gap:8px;padding:6px 16px 10px}
 .hint{color:var(--mut);margin:2px 2px 10px;font-size:14px}
@@ -498,9 +497,84 @@ body.tv nav button:focus-visible span,body.tv nav button:hover span{display:bloc
 body.tv .tvhero{margin-left:-104px}
 body.tv .tvhero .tin{left:132px}
 body.tv .tvhero .tbg{left:0;-webkit-mask-image:linear-gradient(to right,rgba(0,0,0,.34) 0,rgba(0,0,0,.2) 24%,#000 62%);mask-image:linear-gradient(to right,rgba(0,0,0,.34) 0,rgba(0,0,0,.2) 24%,#000 62%)}
+
+/* ---- v4: TV pages, expanding nav, genre tiles, search page, intro ---- */
+body.tv header{display:none}
+body.tv main{padding-top:26px}
+body.tv.onhome main{padding-top:0}
+/* nav: full-height transparent rail that expands with labels when focused */
+body.tv nav{top:0 !important;bottom:0 !important;left:0 !important;transform:none !important;width:84px;height:auto;max-height:none;padding:0 0 0 14px;justify-content:center;gap:4px;border-radius:0 !important;transition:width .22s ease,background .22s ease;overflow:hidden}
+body.tv nav:focus-within{width:250px;background:linear-gradient(to right,rgba(8,8,14,.96) 0,rgba(8,8,14,.86) 72%,rgba(8,8,14,0) 100%) !important}
+body.tv nav button{width:56px;flex:0 0 auto;display:flex;flex-direction:row;align-items:center;justify-content:center;gap:16px}
+body.tv nav:focus-within button{width:216px;justify-content:flex-start;padding:0 0 0 15px}
+body.tv nav button span:not(.navav){display:none}
+body.tv nav:focus-within button span:not(.navav){display:block;position:static;transform:none;background:none;border:0;box-shadow:none;padding:0;font-size:16px;font-weight:650;color:inherit;white-space:nowrap;pointer-events:none}
+body.tv nav button:focus-visible{background:rgba(255,255,255,.16);box-shadow:none;outline:none}
+body.tv nav button:focus-visible span,body.tv nav button:hover span{position:static}
+.navav{display:inline-flex;border-radius:50%;line-height:0;flex:0 0 auto}
+.navav .av{width:26px !important;height:26px !important}
+nav button.on .navav{box-shadow:0 0 0 2px #fff}
+/* genre tiles */
+.gstrip{display:flex;gap:12px;overflow-x:auto;padding:4px 14px 14px;scrollbar-width:none;position:relative;z-index:2}
+.gstrip::-webkit-scrollbar{display:none}
+.gstrip[hidden]{display:none}
+.gtile{flex:0 0 auto;min-width:112px;height:44px;padding:0 20px;border-radius:12px;border:1px solid rgba(255,255,255,.16);color:#fff;font:inherit;font-weight:800;font-size:13px;letter-spacing:.7px;text-transform:uppercase;background:linear-gradient(135deg,hsl(var(--gh) 55% 38% / .9),hsl(calc(var(--gh) + 30) 55% 24% / .9));box-shadow:0 6px 16px rgba(0,0,0,.28)}
+.gtile.on{border-color:#fff;background:linear-gradient(135deg,hsl(var(--gh) 65% 48%),hsl(calc(var(--gh) + 30) 65% 32%))}
+.gtile:focus-visible{transform:scale(1.05)}
+body.tv .gstrip{padding:6px 28px 16px;gap:14px}
+body.tv .gtile{height:52px;min-width:130px;font-size:15px}
+/* search page */
+#search{display:flex;gap:28px;padding:0 28px 40px 0}
+#search[hidden]{display:none}
+.skb{flex:0 0 400px}
+.sbox{display:flex;align-items:center;height:56px;padding:0 18px;border-radius:14px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.16);font-size:20px;font-weight:650;margin-bottom:16px;overflow:hidden;white-space:nowrap}
+#stext.ph{color:var(--mut);font-weight:500}
+.scaret{width:2px;height:26px;background:var(--acc);margin-left:3px;animation:blink 1s steps(1) infinite}
+@keyframes blink{50%{opacity:0}}
+.kgrid{display:grid;grid-template-columns:repeat(6,1fr);gap:8px}
+.kkey{height:52px;border-radius:12px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.08);color:#fff;font:inherit;font-size:19px;font-weight:700;text-transform:uppercase}
+.kkey.wide{grid-column:span 2;font-size:14px;text-transform:none}
+.kkey:focus-visible{background:rgba(255,255,255,.2);transform:scale(1.06)}
+.sres{flex:1;min-width:0;overflow:hidden}
+.sres .row h2{margin-left:0}
+.sres .strip{padding-left:0}
+/* intro */
+#intro{position:fixed;inset:0;z-index:9999;background:radial-gradient(circle at 50% 42%,#241a45,#0a0a12 70%);display:flex;flex-direction:column;align-items:center;justify-content:center;transition:opacity .6s ease}
+#intro[hidden]{display:none}
+#intro.out{opacity:0;pointer-events:none}
+.ilogo{width:min(46vmin,360px);height:auto;overflow:visible}
+.iglow{opacity:0;animation:iglow 2.4s ease-out .2s forwards;filter:blur(60px)}
+.iring{stroke-dasharray:1;stroke-dashoffset:1;animation:idraw 1.2s cubic-bezier(.6,.1,.2,1) .15s forwards}
+.iplay{transform-box:fill-box;transform-origin:center;opacity:0;transform:scale(.3);animation:ipop .6s cubic-bezier(.3,1.6,.5,1) .85s forwards}
+.iplug{opacity:0;transform:translate(160px,-120px) rotate(14deg);animation:iplug .7s cubic-bezier(.3,1.4,.5,1) 1.15s forwards}
+.iword{margin-top:3vmin;font-size:clamp(28px,7vmin,64px);font-weight:800;letter-spacing:.5px;color:#fff;display:flex}
+.iword span{opacity:0;transform:translateY(14px);animation:iletter .5s ease forwards}
+.iword .acc{color:#8b5cff}
+@keyframes idraw{to{stroke-dashoffset:0}}
+@keyframes ipop{to{opacity:1;transform:scale(1)}}
+@keyframes iplug{to{opacity:1;transform:translate(0,0) rotate(0)}}
+@keyframes iglow{0%{opacity:0}60%{opacity:.55}100%{opacity:.3}}
+@keyframes iletter{to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){#intro *{animation-duration:.01s !important;animation-delay:0s !important}}
 </style>
 </head>
 <body>
+<div id="intro" hidden>
+  <svg viewBox="0 0 1024 1024" class="ilogo" aria-hidden="true">
+    <defs>
+      <linearGradient id="ig1" gradientUnits="userSpaceOnUse" x1="230" y1="250" x2="790" y2="800"><stop offset="0" stop-color="#9a8cff"/><stop offset=".35" stop-color="#a24bff"/><stop offset=".72" stop-color="#2fb6ff"/><stop offset="1" stop-color="#16e0f2"/></linearGradient>
+      <linearGradient id="ig2" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff"/><stop offset="1" stop-color="#ddd3ff"/></linearGradient>
+    </defs>
+    <circle class="iglow" cx="487" cy="520" r="360" fill="#7c5cff"/>
+    <path class="iring" pathLength="1" d="M522.5 231.7 A291 291 0 1 0 770.8 450.1" fill="none" stroke="url(#ig1)" stroke-width="68" stroke-linecap="round"/>
+    <path class="iplay" d="M446 430Q446 410 466 421L592 494Q610 505 592 516L466 589Q446 600 446 580Z" fill="url(#ig2)" stroke="url(#ig2)" stroke-width="26" stroke-linejoin="round"/>
+    <g class="iplug"><g transform="translate(772 330) rotate(13)">
+      <rect x="-74" y="-148" width="38" height="104" rx="19" fill="url(#ig2)"/><rect x="36" y="-148" width="38" height="104" rx="19" fill="url(#ig2)"/>
+      <path d="M-100 -66H100Q124 -66 124 -42V12Q124 74 62 82L38 120H-38L-62 82Q-124 74 -124 12V-42Q-124 -66 -100 -66Z" fill="url(#ig2)"/>
+    </g></g>
+  </svg>
+  <div class="iword" id="iword"></div>
+</div>
 <header>
   <button class="spaceBtn" id="spaceBtn" type="button"></button>
   <input id="q" type="search" placeholder="Search installed addons…" enterkeyhint="search">
@@ -511,6 +585,13 @@ body.tv .tvhero .tbg{left:0;-webkit-mask-image:linear-gradient(to right,rgba(0,0
   <section id="profiles" hidden></section>
   <section id="launcher" hidden></section>
   <section id="home"><div id="tabsBar" hidden></div><div id="rows"></div></section>
+  <section id="search" hidden>
+    <div class="skb">
+      <div class="sbox"><span id="stext"></span><i class="scaret"></i></div>
+      <div class="kgrid" id="kgrid"></div>
+    </div>
+    <div class="sres" id="sres"></div>
+  </section>
   <section id="watch" hidden>
     <div class="pagehead"><h1>Watchlist</h1><p id="wlCount"></p></div>
     <div id="wlTabs"></div>
@@ -750,6 +831,7 @@ const layersOpen = [];                 // overlays currently open, bottom to top
 const pageNow = () => !$('#login').hidden ? {k:'login'}
   : !$('#profiles').hidden ? {k:'profiles'}
   : document.body.classList.contains('launch') ? {k:'launcher'}
+  : !$('#search').hidden ? {k:'search'}
   : !$('#addons').hidden ? {k:'addons'}
   : !$('#watch').hidden ? {k:'watch'}
   : !$('#settings').hidden ? {k:'settings'}
@@ -760,11 +842,14 @@ function pushPage(){
   const p = pageNow(), k = JSON.stringify(p);
   if (k === pageKey) return;
   pageKey = k;
+  if (document.body.classList.contains('tv') && !layersOpen.length && history.state && !history.state.guard) replaceNext = true;   // TV: tabs and filters don't pile up in the Back history
   if (replaceNext) { replaceNext = false; history.replaceState({page:p, layers:[...layersOpen]}, ''); return; }
   history.pushState({page:p, layers:[...layersOpen]}, '');
 }
+const focusStack = [];
 function pushLayer(name){
   if (navSuppress) return;
+  focusStack.push(document.activeElement);
   layersOpen.push(name);
   history.pushState({page:pageNow(), layers:[...layersOpen]}, '');
 }
@@ -788,20 +873,36 @@ function applyPage(p){
   if (p.k === 'login') showLogin();
   else if (p.k === 'profiles') showProfiles();
   else if (p.k === 'launcher') showLauncher();
-  else if (['addons', 'watch', 'settings', 'me'].includes(p.k)) showTab(p.k);
+  else if (['addons', 'watch', 'settings', 'me', 'search'].includes(p.k)) showTab(p.k);
   else if (p.k === 'space') {
     const sp = spaces.find(x => x.id === p.id);
     if (!sp) { showLauncher(); return; }
     cur = sp; rememberSpace(sp.id); applyTheme(sp.theme); $('#q').value = ''; view = {tab:p.tab || 'home', genre:p.genre || ''}; showTab('home');
   }
 }
+/* TV Back button: entry -> home -> side menu -> (home) -> close-app prompt */
+function tvBackStep(){
+  if (!document.body.classList.contains('tv') || document.body.classList.contains('launch') || !cur) return false;
+  const inNav = document.activeElement && document.activeElement.closest && document.activeElement.closest('#nav');
+  const repush = () => { if (history.state && history.state.guard) { pageKey = ''; pushPage(); } };
+  if (!inNav) {
+    if (!$('#home').hidden && view.genre) { view = {tab:view.tab, genre:''}; renderHome(); repush(); return true; }
+    if (!$('#search').hidden && sQuery) { sQuery = ''; sPaint(); sRun(); repush(); return true; }
+    if (focusNav()) { repush(); return true; }
+    return false;
+  }
+  if ($('#home').hidden || view.tab !== 'home') { tvTab('home'); repush(); focusNav(); return true; }
+  return false;
+}
 window.addEventListener('popstate', e => {
   if (exiting) return;
   const st = e.state;
-  if (!st || st.guard) { $('#exitDlg').hidden = false; return; }
+  if (!st || st.guard) { if (tvBackStep()) return; $('#exitDlg').hidden = false; return; }
   $('#exitDlg').hidden = true;
   const want = st.layers || [];
-  while (layersOpen.length > want.length) { const l = layersOpen.pop(); if (LAYER_CLOSERS[l]) LAYER_CLOSERS[l](); }
+  let restore = null;
+  while (layersOpen.length > want.length) { const l = layersOpen.pop(); restore = focusStack.pop() || restore; if (LAYER_CLOSERS[l]) LAYER_CLOSERS[l](); }
+  if (restore && remoteMode) setTimeout(() => { if (restore.isConnected && !restore.closest('[hidden]')) restore.focus({preventScroll:true}); }, 60);
   const k = JSON.stringify(st.page);
   navSuppress = true;
   try {
@@ -818,8 +919,8 @@ $('#exGo').onclick = () => {
 };
 
 /* ---------- views ---------- */
-const TAB_SECTIONS = {home:'#home', watch:'#watch', addons:'#addons', settings:'#settings', me:'#me'};
-const TAB_BUTTONS = {home:'#tabHome', watch:'#tabWatch', addons:'#tabAddons', settings:'#tabSettings', me:'#tabMe'};
+const TAB_SECTIONS = {home:'#home', search:'#search', watch:'#watch', addons:'#addons', settings:'#settings', me:'#me'};
+const TAB_BUTTONS = {home:'#tabHome', search:'#nvSearch', watch:'#tabWatch', addons:'#tabAddons', settings:'#tabSettings', me:'#tabMe'};
 const TAB_TITLES = {watch:'Watchlist', addons:'Addons', settings:'Settings', me:'Profile'};
 function movePill(){
   const nav = $('#nav'), pill = $('#navPill'), b = nav.querySelector('button.on');
@@ -831,11 +932,13 @@ addEventListener('resize', () => setTimeout(movePill, 50));
 function showTab(name){
   if (!cur && name === 'home') return showLauncher();
   document.body.classList.remove('launch'); $('#launcher').hidden = true; $('#profiles').hidden = true; $('#login').hidden = true;
+  navAvatar();
   for (const [k, sel] of Object.entries(TAB_SECTIONS)) { $(sel).hidden = k !== name; $(TAB_BUTTONS[k]).classList.toggle('on', k === name); }
   $('#spaceBtn').replaceChildren(cur ? cur.emoji+' '+cur.name : 'Spaces', h('i',null,'⇄'));
   $('#q').hidden = name !== 'home'; $('#pageTitle').hidden = true; document.body.classList.toggle('onhome', name === 'home');
   $('#q').placeholder = cur ? 'Search '+cur.name+'…' : 'Search…';
   if (name === 'home') renderHome($('#q').value.trim());
+  else if (name === 'search') renderSearch();
   else if (name === 'watch') renderWatch();
   else if (name === 'addons') renderAddons();
   else if (name === 'settings') renderSettings();
@@ -851,13 +954,13 @@ function tvTab(t){ if (!cur) return showLauncher(); srchOn = false; $('#q').valu
 $('#tabHome').onclick = () => { if (isTVui()) tvTab('home'); else showTab('home'); };
 $('#nvMovies').onclick = () => tvTab('movie'); $('#nvShows').onclick = () => tvTab('series'); $('#nvNew').onclick = () => tvTab('new');
 $('#nvSpace').onclick = () => showLauncher();
-$('#nvSearch').onclick = () => { if (!cur) return showLauncher(); if (srchOn || $('#q').value.trim()) { closeSearch(); return; } if ($('#home').hidden) showTab('home'); srchOn = true; renderTabs(); $('#q').focus(); };
+$('#nvSearch').onclick = () => { if (!cur) return showLauncher(); if (isTVui()) { showTab('search'); setTimeout(() => { const k = $('.kkey'); if (k) k.focus({preventScroll:true}); }, 60); return; } if (srchOn || $('#q').value.trim()) { closeSearch(); return; } if ($('#home').hidden) showTab('home'); srchOn = true; renderTabs(); $('#q').focus(); };
 function syncNav(){
   try {
     const home = !$('#home').hidden, st = !!(cur && spaceTabs()), tv = isTVui(), sr = srchOn || !!$('#q').value.trim();
     const set = (id, on, show = true) => { const b = $(id); b.classList.toggle('on', !!on); b.classList.toggle('gone', !show); };
     set('#nvMovies', home && st && !sr && view.tab === 'movie', st); set('#nvShows', home && st && !sr && view.tab === 'series', st); set('#nvNew', home && st && !sr && view.tab === 'new', st);
-    set('#nvSearch', home && sr); set('#nvSpace', false);
+    set('#nvSearch', home && sr || !$('#search').hidden); set('#nvSpace', false);
     if (tv) $('#tabHome').classList.toggle('on', home && !sr && (!st || view.tab === 'home'));
   } catch {}
 }
@@ -1294,39 +1397,48 @@ let srchOn = false;
 const SRCH_SVG = '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.5 15.5L21 21"/></svg>';
 const X_SVG = '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>';
 function closeSearch(){ srchOn = false; const had = $('#q').value; $('#q').value = ''; $('#q').blur(); if (had.trim()) renderHome(''); else renderTabs(); }
-function renderTabs(){
-  const bar = $('#tabsBar'), q = $('#q'), tv = isTVui();
-  syncNav();
-  const searching = srchOn || !!q.value.trim();
-  if (searching && bar.dataset.mode === 's' && bar.contains(q)) return;       // keep focus while typing
-  const had = document.activeElement && bar.contains(document.activeElement) && document.activeElement !== q ? (document.activeElement.tagName === 'SELECT' ? 'SELECT' : (document.activeElement.id || document.activeElement.textContent)) : null;
-  bar.dataset.mode = searching ? 's' : 't';
-  if (!searching && bar.contains(q)) $('header').append(q);
-  bar.hidden = false;
-  const sp = h('button', {class:'chip ico', id:'spIcon', type:'button', 'aria-label':'Spaces', onclick:() => showLauncher()}, cur ? cur.emoji : '⇄');
-  const sr = h('button', {class:'chip ico' + (searching ? ' on' : ''), id:'srIcon', type:'button', 'aria-label':searching ? 'Close search' : 'Search', onclick:() => { if (searching) closeSearch(); else { srchOn = true; renderTabs(); $('#q').focus(); } }});
-  sr.innerHTML = searching ? X_SVG : SRCH_SVG;
-  if (searching) { bar.replaceChildren(...(tv ? [] : [sp, sr]), q); q.hidden = false; return; }
-  if (!spaceTabs() || !addons.length) { bar.replaceChildren(...(tv ? [] : [sp, sr])); bar.hidden = tv; return; }
+function spaceGenres(){
   const genres = [];
   for (const ad of spaceAddons()) for (const cat of (ad.manifest.catalogs || [])) {
     const ge = genreExtra(cat);
     if (!ge || !typeOK(view.tab, cat.type) || NEW_RE.test(cat.id)) continue;
     for (const o of ge.options) if (!/^\d{4}$/.test(o) && !genres.includes(o)) genres.push(o);
   }
-  genres.sort((x,y) => x.localeCompare(y));
+  return genres.sort((x,y) => x.localeCompare(y));
+}
+const gHue = g => { let n = 0; for (const c of g) n = (n * 31 + c.charCodeAt(0)) % 360; return n; };
+let gFocus = null;
+function genreStrip(){
+  const gs = spaceGenres(), el = h('div', {class:'gstrip'});
+  if (!gs.length) { el.hidden = true; return el; }
+  for (const g of gs) el.append(h('button', {class:'gtile' + (view.genre === g ? ' on' : ''), type:'button', style:`--gh:${gHue(g)}`,
+    onclick:() => { gFocus = g; view = {tab:view.tab, genre:view.genre === g ? '' : g}; pushPage(); renderHome(); }}, g));
+  if (gFocus) { const t = [...el.children].find(x => x.textContent === gFocus); gFocus = null; if (t) requestAnimationFrame(() => t.focus({preventScroll:true})); }
+  return el;
+}
+function renderTabs(){
+  const bar = $('#tabsBar'), q = $('#q'), tv = isTVui();
+  syncNav();
+  const searching = srchOn || !!q.value.trim();
+  if (searching && bar.dataset.mode === 's' && bar.contains(q)) return;       // keep focus while typing
+  const had = document.activeElement && bar.contains(document.activeElement) && document.activeElement !== q ? (document.activeElement.id || document.activeElement.textContent) : null;
+  bar.dataset.mode = searching ? 's' : 't';
+  if (!searching && bar.contains(q)) $('header').append(q);
+  if (tv) { if (bar.contains(q)) $('header').append(q); bar.replaceChildren(); bar.hidden = true; return; }
+  bar.hidden = false;
+  const sp = h('button', {class:'chip ico', id:'spIcon', type:'button', 'aria-label':'Spaces', onclick:() => showLauncher()}, cur ? cur.emoji : '⇄');
+  const sr = h('button', {class:'chip ico' + (searching ? ' on' : ''), id:'srIcon', type:'button', 'aria-label':searching ? 'Close search' : 'Search', onclick:() => { if (searching) closeSearch(); else { srchOn = true; renderTabs(); $('#q').focus(); } }});
+  sr.innerHTML = searching ? X_SVG : SRCH_SVG;
+  if (searching) { bar.replaceChildren(sp, sr, q); q.hidden = false; return; }
+  if (!spaceTabs() || !addons.length) { bar.replaceChildren(sp, sr); return; }
   const chip = (id, label) => h('button', {class:'chip'+(view.tab===id ? ' on' : ''), onclick:() => { view = {tab:id, genre:''}; pushPage(); renderHome(); }}, label);
-  const sel = h('select', {class:'chip'+(view.genre ? ' on' : ''), 'aria-label':'Categories'},
-    h('option', {value:''}, 'Categories ▾'), ...genres.map(g => h('option', {value:g}, g)));
-  sel.value = view.genre; if (sel.value !== view.genre) sel.value = '';
-  sel.onchange = () => { view.genre = sel.value; pushPage(); renderHome(); };
-  bar.replaceChildren(...(tv ? [sel] : [sp, sr, chip('home','Home'), chip('movie','Movies'), chip('series','Shows'), chip('new','New releases'), sel]));
-  if (had) { const t = [...bar.children].find(c => had === 'SELECT' ? c.tagName === 'SELECT' : (c.id === had || c.textContent === had)); if (t) t.focus({preventScroll:true}); }
+  bar.replaceChildren(sp, sr, chip('home','Home'), chip('movie','Movies'), chip('series','Shows'), chip('new','New releases'));
+  if (had) { const t = [...bar.children].find(c => c.id === had || c.textContent === had); if (t) t.focus({preventScroll:true}); }
 }
 
-async function renderHome(query = $('#q').value.trim()){
-  const tok = ++homeTok, box = $('#rows');
-  box.replaceChildren(); renderTabs();
+async function renderHome(query = $('#q').value.trim(), target){
+  const tok = ++homeTok, box = target || $('#rows');
+  box.replaceChildren(); if (!target) renderTabs();
   if (!addons.length) {
     box.append(h('div', {class:'empty'},
       h('h2', null, 'No addons installed'),
@@ -1335,8 +1447,9 @@ async function renderHome(query = $('#q').value.trim()){
     return;
   }
   const tabs = spaceTabs() && !query;
-  const heroBox = h('div'); if (!query && !(tabs && view.genre)) box.append(heroBox); else box.append(h('div', {class:'tspace'}));
-  box.append(h('div', {id:'cwBox'})); renderCW();
+  const heroBox = h('div'); if (!query && !(tabs && view.genre)) box.append(heroBox); else if (!target) box.append(h('div', {class:'tspace'}));
+  if (tabs && !target) box.append(genreStrip());
+  if (!target) { box.append(h('div', {id:'cwBox'})); renderCW(); }
   let heroDone = false, shown = 0;
   const jobs = [];
   for (const a of spaceAddons()) for (const cat of (a.manifest.catalogs||[])) {
@@ -1649,7 +1762,7 @@ function loadProfileData(){
   fillSettingsUI();
 }
 function selectProfile(p){
-  profile = p; lsSet('streamlet.profile.last', p.id);
+  profile = p; try { navAvatar(); } catch {} lsSet('streamlet.profile.last', p.id);
   loadProfileData();
   const last = pget('last', null);
   if (last && spaces.some(x => x.id === last)) enterSpace(last); else showLauncher();
@@ -2437,6 +2550,37 @@ async function startAuth(){
   } catch { FB = null; $('#login').hidden = true; bootApp(); }
 }
 
+/* ---------- TV search page with its own on-screen keyboard (the TV's keyboard is slow) ---------- */
+let sQuery = '', sT = 0;
+const KEYS = 'abcdefghijklmnopqrstuvwxyz1234567890'.split('');
+function sPaint(){ const t = $('#stext'); t.textContent = sQuery; t.classList.toggle('ph', !sQuery); if (!sQuery) t.textContent = 'Search ' + (cur ? cur.name : '') + '…'; }
+function sRun(){
+  clearTimeout(sT);
+  sT = setTimeout(() => {
+    const box = $('#sres');
+    if (!sQuery.trim()) { homeTok++; box.replaceChildren(h('div', {class:'empty', style:'padding-top:8vh'}, 'Type to search your addons.')); return; }
+    renderHome(sQuery.trim(), box);
+  }, 450);
+}
+function sType(c){ sQuery += c; sPaint(); sRun(); }
+function sBack(){ sQuery = sQuery.slice(0, -1); sPaint(); sRun(); }
+function renderSearch(){
+  const g = $('#kgrid');
+  if (!g.children.length) {
+    for (const k of KEYS) g.append(h('button', {class:'kkey', type:'button', onclick:() => sType(k)}, k));
+    g.append(h('button', {class:'kkey wide', type:'button', onclick:() => sType(' ')}, 'space'),
+             h('button', {class:'kkey wide', type:'button', onclick:sBack}, '⌫ delete'),
+             h('button', {class:'kkey wide', type:'button', onclick:() => { sQuery = ''; sPaint(); sRun(); }}, 'clear'));
+  }
+  sPaint(); sRun();
+}
+function navAvatar(){
+  const b = $('#tabMe'); if (!b || !profile) return;
+  let w = b.querySelector('.navav');
+  if (!w) { w = h('span', {class:'navav'}); const sv = b.querySelector('svg'); if (sv) sv.replaceWith(w); else b.prepend(w); }
+  w.replaceChildren(avatarEl(profile, 26));
+}
+
 /* ---------- TV / remote control ---------- */
 const mqTV = matchMedia('(min-width:1000px) and (orientation:landscape), (min-width:560px) and (max-height:620px) and (orientation:landscape)');
 let remoteMode = false, forceTV = false;
@@ -2466,8 +2610,28 @@ function focusables(root){
     const r = el.getBoundingClientRect(); return r.width > 2 && r.height > 2 && getComputedStyle(el).visibility !== 'hidden';
   });
 }
-function moveFocus(dir){
-  const root = ctxRoot(), list = focusables(root), cur = document.activeElement;
+let lastContentEl = null;
+document.addEventListener('focusin', e => { if (e.target.closest && !e.target.closest('#nav')) lastContentEl = e.target; });
+function focusNav(){
+  const b = $('#nav button.on:not(.gone)') || $('#tabHome');
+  if (b) { b.focus({preventScroll:true}); return true; }
+  return false;
+}
+function moveFocus(dir, rep){
+  const root = ctxRoot(); let list = focusables(root); const cur = document.activeElement;
+  const tv = document.body.classList.contains('tv') && root === document.body, inNav = !!(tv && cur && cur.closest && cur.closest('#nav'));
+  if (tv) {
+    if (inNav) {
+      if (dir === 'left') return;
+      if (dir === 'right') {
+        const content = list.filter(e => !e.closest('#nav'));
+        const t = lastContentEl && lastContentEl.isConnected && content.includes(lastContentEl) ? lastContentEl : firstFocus(root, content);
+        if (t) t.focus({preventScroll:true});
+        return;
+      }
+      list = list.filter(e => e.closest('#nav'));
+    } else list = list.filter(e => !e.closest('#nav'));
+  }
   if (!cur || cur === document.body || !list.includes(cur)) { const f = firstFocus(root, list); if (f) f.focus({preventScroll:true}); return; }
   const a = cur.getBoundingClientRect(), ax = (a.left + a.right) / 2, ay = (a.top + a.bottom) / 2;
   let best = null, bs = Infinity;
@@ -2487,14 +2651,19 @@ function moveFocus(dir){
     const score = prim + gap * 4 + off * 0.5;
     if (score < bs) { bs = score; best = el; }
   }
-  if (!best) return;
+  if (!best) { if (tv && !inNav && dir === 'left') focusNav(); return; }
   best.focus({preventScroll:true});
-  best.scrollIntoView({block: dir === 'up' || dir === 'down' ? 'center' : 'nearest', inline: dir === 'left' || dir === 'right' ? 'center' : 'nearest', behavior:'smooth'});
+  const beh = rep ? 'auto' : 'smooth';
+  if (tv) {
+    if (dir === 'left' || dir === 'right') best.scrollIntoView({block:'nearest', inline:'nearest', behavior:beh});
+    else if (best.closest('.tvhero')) window.scrollTo({top:0, behavior:beh});
+    else best.scrollIntoView({block:'nearest', inline:'nearest', behavior:beh});
+  } else best.scrollIntoView({block: dir === 'up' || dir === 'down' ? 'center' : 'nearest', inline: dir === 'left' || dir === 'right' ? 'center' : 'nearest', behavior:beh});
 }
 function firstFocus(root, list){
   list = list || focusables(root);
   const pick = sel => list.find(el => el.matches(sel));
-  return pick('#pPlay') || pick('.hero2 .hb.p, .tvhero .hb.p') || pick('.resbtn') || pick('.dsec .chip.on') || pick('.ep, .scard') || pick('.space, .ptile, #exStay, .sec .btn, .stream, .opt, .gbtn') || pick('.card, .cwb') || list[0];
+  return pick('#pPlay') || pick('.kkey') || pick('.hero2 .hb.p, .tvhero .hb.p') || pick('.resbtn') || pick('.dsec .chip.on') || pick('.ep, .scard') || pick('.space, .ptile, #exStay, .sec .btn, .stream, .opt, .gbtn') || pick('.card, .cwb') || list[0];
 }
 let autoEl = null;
 function ensureFocus(){
@@ -2554,10 +2723,14 @@ document.addEventListener('keydown', e => {
     e.preventDefault(); history.back(); return;
   }
   if (el && el._entry && (act === 'info' || (e.key === 'Enter' && e.repeat))) { e.preventDefault(); openMenu(el._entry, el._ctx); return; }
+  if (!typing && !$('#search').hidden && document.body.classList.contains('tv')) {
+    if (e.key === 'Backspace') { e.preventDefault(); sBack(); return; }
+    if (/^[a-z0-9 ]$/i.test(e.key)) { e.preventDefault(); sType(e.key.toLowerCase()); return; }
+  }
   if (e.key === 'Backspace' && !typing) { e.preventDefault(); history.back(); return; }
   if (/^Arrow(Up|Down|Left|Right)$/.test(e.key)) {
     if (typing && (e.key === 'ArrowLeft' || e.key === 'ArrowRight')) return;
-    e.preventDefault(); moveFocus(e.key.slice(5).toLowerCase());
+    e.preventDefault(); moveFocus(e.key.slice(5).toLowerCase(), e.repeat);
   }
 }, true);
 
@@ -2572,6 +2745,18 @@ function updateCtl(){
 for (const ev of ['timeupdate', 'play', 'pause', 'loadedmetadata']) $('#vid').addEventListener(ev, updateCtl);
 $('#pPlay').onclick = playerToggle; $('#pRew').onclick = () => playerSeek(-10); $('#pFwd').onclick = () => playerSeek(10);
 $('#pseek').addEventListener('click', e => { const v = $('#vid'), r = e.currentTarget.getBoundingClientRect(); if (v.duration) { v.currentTime = v.duration * Math.min(1, Math.max(0, (e.clientX - r.left) / r.width)); showBar(); } });
+
+/* ---------- intro animation ---------- */
+(function(){
+  const el = $('#intro');
+  if (navigator.webdriver && !/[?&]intro/.test(location.search)) return;
+  el.hidden = false;
+  const w = $('#iword'); [...'Streamlet'].forEach((c, i) => w.append(h('span', {class:i >= 6 ? 'acc' : '', style:`animation-delay:${1.55 + i * .06}s`}, c)));
+  let done = false;
+  const end = () => { if (done) return; done = true; el.classList.add('out'); setTimeout(() => el.remove(), 700); };
+  setTimeout(end, 3300);
+  el.addEventListener('click', end); addEventListener('keydown', end, {once:true, capture:true});
+})();
 
 /* ---------- boot ---------- */
 history.replaceState({guard:true}, '');
