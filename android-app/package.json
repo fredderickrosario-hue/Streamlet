@@ -1,0 +1,14 @@
+{
+  "name": "streamlet-android",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Android / Android TV shell for Streamlet (Capacitor + native ExoPlayer)",
+  "dependencies": {
+    "@capacitor/android": "latest",
+    "@capacitor/app": "latest",
+    "@capacitor/core": "latest"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "latest"
+  }
+}

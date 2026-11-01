@@ -1093,6 +1093,7 @@ async function playStream(s, title, ctx){
   if (s.externalUrl) { window.open(s.externalUrl,'_blank','noopener'); return; }
   if (s.ytId) { window.open('https://www.youtube.com/watch?v='+enc(s.ytId),'_blank','noopener'); return; }
   if (!s.url) { toast(s.infoHash ? "Torrent stream: needs a debrid service set up in that addon (so it returns direct links), or a backend." : 'This stream type is not supported.'); return; }
+  if (nativePlayer()) { return playNative(s, title, ctx); }
   const v = $('#vid'); $('#player').hidden = false; $('#ptitle').textContent = title || ''; pushLayer('player');
   const tvp = document.body.classList.contains('tv'); v.controls = !tvp; $('#pctl').hidden = !tvp; showBar();
   setPanel(false);
@@ -1115,9 +1116,48 @@ async function playStream(s, title, ctx){
 }
 $('#vid').addEventListener('error', () => toast("Couldn't play that stream."));
 let lastSave = 0;
-function saveProgress(){
-  const c = pl.ctx; if (!c || !c.info || !profile) return;
-  const v = $('#vid'), dur = v.duration, pos = v.currentTime;
+
+/* ---------- native ExoPlayer (Android / Android TV app only) ---------- */
+const nativePlayer = () => {
+  try {
+    const C = window.Capacitor;
+    return (C && C.isNativePlatform && C.isNativePlatform() && ((C.Plugins && C.Plugins.ExoPlayer) || (C.registerPlugin && C.registerPlugin('ExoPlayer')))) || null;
+  } catch { return null; }
+};
+async function collectSubs(ctx){
+  const cands = [ctx.id, ...(ctx.alt || [])];
+  const srcs = addons.map(a => ({a, sid:cands.find(c => supports(a, 'subtitles', ctx.type, c))})).filter(x => x.sid), out = [];
+  await Promise.all(srcs.map(async ({a, sid}) => {
+    try { const r = await getJSON(`${a.base}/subtitles/${ctx.type}/${enc(sid)}.json`); for (const x of (r.subtitles || [])) if (x.url) out.push({...x, addon:a.manifest.name}); } catch {}
+  }));
+  return out;
+}
+async function playNative(s, title, ctx){
+  const N = nativePlayer();
+  let subs = [];
+  if (ctx) { try { subs = await withTimeout(collectSubs(ctx), 5000); } catch {} }
+  for (const sub of (s.subtitles || [])) subs.push({url:sub.url, lang:sub.lang || 'eng'});
+  const pref = settings.subLang !== 'off' ? settings.subLang : null;
+  subs.sort((a, b) => (pref && sameLang(b.lang, pref) ? 1 : 0) - (pref && sameLang(a.lang, pref) ? 1 : 0));
+  const seen = {}, picked = [];
+  for (const x of subs) {                      // preferred language: up to 6 options, others: up to 2 each
+    const n = langName(x.lang), cap = pref && sameLang(x.lang, pref) ? 6 : 2;
+    seen[n] = seen[n] || 0;
+    if (seen[n] < cap && picked.length < 24) { seen[n]++; picked.push({url:x.url, lang:code2(x.lang) || String(x.lang), label:n + (seen[n] > 1 ? ' ' + seen[n] : '')}); }
+  }
+  const saved = ctx && histGet().find(x => x.k === `${ctx.type}|${ctx.id}`);
+  const startMs = saved && !saved.upnext && saved.pos > 20 ? Math.round(saved.pos * 1000) : 0;
+  const stream = {url:s.url, name:s.name, title:s.title};
+  const handle = await N.addListener('progress', e => recordProgress(ctx, stream, e.position / 1000, e.duration / 1000));
+  try {
+    const r = await N.play({url:s.url, title:title || '', startMs, subtitles:picked, audioLang:code2(settings.audioLang) || null, subLang:pref ? (code2(pref) || pref) : null});
+    if (r && r.duration) recordProgress(ctx, stream, r.position / 1000, r.duration / 1000);
+  } catch (e) { toast("Couldn't start the native player: " + ((e && e.message) || e)); }
+  finally { try { handle.remove(); } catch {} if (!$('#home').hidden) renderCW(); }
+}
+function saveProgress(){ const v = $('#vid'); recordProgress(pl.ctx, pl.stream, v.currentTime, v.duration); }
+function recordProgress(c, stream, pos, dur){
+  if (!c || !c.info || !profile) return;
   if (!isFinite(dur) || dur < 60 || pos < 15) return;
   const it = c.info.item, key = `${c.type}|${c.id}`;
   if (pos / dur >= 0.92) {                       // finished: drop it, queue the next episode
@@ -1127,7 +1167,7 @@ function saveProgress(){
     return;
   }
   histPut({k:key, type:c.type, id:c.id, itemId:it.id, itemType:it.type, name:it.name, poster:it.poster, background:it.background, addonId:c.info.addonId,
-    ep:c.ep || null, next:c.next || null, pos, dur, t:Date.now(), space:cur && cur.id, stream:pl.stream});
+    ep:c.ep || null, next:c.next || null, pos, dur, t:Date.now(), space:cur && cur.id, stream});
 }
 $('#vid').addEventListener('timeupdate', () => { if (Date.now() - lastSave > 10000) { lastSave = Date.now(); saveProgress(); } });
 $('#vid').addEventListener('pause', saveProgress);
@@ -1305,9 +1345,9 @@ function showLogin(){
   L.replaceChildren(
     h('h1', null, 'Stream', h('span', {style:'color:var(--acc)'}, 'let')),
     h('p', {class:'sub'}, 'Sign in to sync your profiles, addons and progress on every device.'),
-    h('button', {class:'gbtn', type:'button', onclick:() => busy(() => FB.au.signInWithPopup(auth, new FB.au.GoogleAuthProvider()))},
+    nativePlayer() ? null : [h('button', {class:'gbtn', type:'button', onclick:() => busy(() => FB.au.signInWithPopup(auth, new FB.au.GoogleAuthProvider()))},
       h('b', {style:'color:#4285f4;font-size:18px'}, 'G'), 'Continue with Google'),
-    h('div', {class:'or'}, 'or use email'),
+    h('div', {class:'or'}, 'or use email')],
     email, pass,
     h('div', {class:'lrow'},
       h('button', {class:'btn', type:'button', onclick:() => busy(() => { need(); return FB.au.signInWithEmailAndPassword(auth, email.value.trim(), pass.value); })}, 'Sign in'),
@@ -1378,8 +1418,8 @@ async function startAuth(){
 
 /* ---------- TV / remote control ---------- */
 const mqTV = matchMedia('(min-width:1000px) and (orientation:landscape)');
-let remoteMode = false;
-const isTVDevice = () => mqTV.matches || /Tizen|SMART-?TV|Web0S|AFTT|BRAVIA|Android TV|CrKey|GoogleTV/i.test(navigator.userAgent) || new URLSearchParams(location.search).has('tv');
+let remoteMode = false, forceTV = false;
+const isTVDevice = () => forceTV || mqTV.matches || /Tizen|SMART-?TV|Web0S|AFTT|BRAVIA|Android TV|CrKey|GoogleTV/i.test(navigator.userAgent) || new URLSearchParams(location.search).has('tv');
 function syncTV(){
   const tv = isTVDevice(); document.body.classList.toggle('tv', tv);
   document.documentElement.style.zoom = tv ? String(Math.max(1, Math.min(2, innerWidth / 1280))) : '';
@@ -1387,6 +1427,7 @@ function syncTV(){
   const v = $('#vid'); if (v && !$('#player').hidden) { v.controls = !tv; $('#pctl').hidden = !tv; }
 }
 mqTV.addEventListener('change', syncTV); addEventListener('resize', syncTV); syncTV();
+{ const NP = nativePlayer(); if (NP) NP.device().then(d => { forceTV = !!(d && d.isTV); syncTV(); }).catch(() => {}); }
 try { if (window.tizen && tizen.tvinputdevice) ['MediaPlayPause','MediaPlay','MediaPause','MediaStop','MediaFastForward','MediaRewind','Info','ColorF0Red','ColorF2Yellow'].forEach(k => { try { tizen.tvinputdevice.registerKey(k); } catch {} }); } catch {}
 
 const FOCUSABLE = 'a[href],button:not([disabled]),input:not([type=hidden]):not([disabled]),select:not([disabled]),textarea:not([disabled]),summary,[tabindex]:not([tabindex="-1"])';

@@ -1,0 +1,13 @@
+{
+  "appId": "app.streamlet.tv",
+  "appName": "Streamlet",
+  "webDir": "www",
+  "server": {
+    "url": "https://fredderickrosario-hue.github.io/Streamlet/",
+    "cleartext": false,
+    "allowNavigation": ["fredderickrosario-hue.github.io", "*.firebaseapp.com", "*.googleapis.com", "accounts.google.com"]
+  },
+  "android": {
+    "allowMixedContent": true
+  }
+}
