@@ -510,7 +510,7 @@ body.tv nav:focus-within button span:not(.navav){display:block;position:static;t
 body.tv nav button:focus-visible{background:rgba(255,255,255,.16);box-shadow:none;outline:none}
 
 .navav{display:inline-flex;border-radius:50%;line-height:0;flex:0 0 auto}
-.navav .av{width:26px !important;height:26px !important}
+.navav .av{width:32px !important;height:32px !important}
 nav button.on .navav{box-shadow:0 0 0 2px rgba(255,255,255,.95);outline:none}
 nav button:not(.on) .navav{opacity:.9}
 /* genre tiles */
@@ -542,19 +542,26 @@ body.tv .gtile{height:52px;min-width:130px;font-size:15px}
 #intro[hidden]{display:none}
 #intro.out{opacity:0;pointer-events:none}
 .ilogo{width:min(46vmin,360px);height:auto;overflow:visible}
-.iglow{opacity:0;animation:iglow 2.4s ease-out .2s forwards;filter:blur(60px)}
-.iring{stroke-dasharray:1;stroke-dashoffset:1;animation:idraw 1.2s cubic-bezier(.6,.1,.2,1) .15s forwards}
-.iplay{transform-box:fill-box;transform-origin:center;opacity:0;transform:scale(.3);animation:ipop .6s cubic-bezier(.3,1.6,.5,1) .85s forwards}
-.iplug{opacity:0;transform:translate(160px,-120px) rotate(14deg);animation:iplug .7s cubic-bezier(.3,1.4,.5,1) 1.15s forwards}
+.iglow{opacity:0;filter:blur(60px)}
+#intro.go .iglow{animation:iglow 2.4s ease-out .2s forwards}
+.iring{stroke-dasharray:1;stroke-dashoffset:1}
+#intro.go .iring{animation:idraw 1.2s cubic-bezier(.6,.1,.2,1) .15s forwards}
+.iplay{transform-box:fill-box;transform-origin:center;opacity:0;transform:scale(.3)}
+#intro.go .iplay{animation:ipop .6s cubic-bezier(.3,1.6,.5,1) .85s forwards}
+.iplug{opacity:0;transform:translate(160px,-120px) rotate(14deg)}
+#intro.go .iplug{animation:iplug .7s cubic-bezier(.3,1.4,.5,1) 1.15s forwards}
 .iword{margin-top:3vmin;font-size:clamp(28px,7vmin,64px);font-weight:800;letter-spacing:.5px;color:#fff;display:flex}
-.iword span{opacity:0;transform:translateY(14px);animation:iletter .5s ease forwards}
+.iword span{opacity:0;transform:translateY(14px)}
+#intro.go .iword span{animation:iletter .5s ease forwards}
+#intro.static .iring{stroke-dashoffset:0}
+#intro.static .iplay,#intro.static .iplug,#intro.static .iword span{opacity:1;transform:none}
+#intro.static .iglow{opacity:.3}
 .iword .acc{color:#8b5cff}
 @keyframes idraw{to{stroke-dashoffset:0}}
 @keyframes ipop{to{opacity:1;transform:scale(1)}}
 @keyframes iplug{to{opacity:1;transform:translate(0,0) rotate(0)}}
 @keyframes iglow{0%{opacity:0}60%{opacity:.55}100%{opacity:.3}}
 @keyframes iletter{to{opacity:1;transform:none}}
-@media (prefers-reduced-motion:reduce){#intro *{animation-duration:.01s !important;animation-delay:0s !important}}
 
 /* ---- v5 polish ---- */
 body.tv .cwc .rm,body.tv .wlc .rm{display:none}
@@ -656,6 +663,11 @@ body.tv .dright .dptitle,body.tv .dright .sfilter,body.tv .dright .srow{flex:0 0
 body.tv .dright .slist,body.tv .dright .eplist{flex:1 1 auto;min-height:0;overflow-y:auto;scrollbar-width:none;overscroll-behavior:contain}
 body.tv .dright .slist::-webkit-scrollbar,body.tv .dright .eplist::-webkit-scrollbar{display:none}
 body.tv #detail,body.tv #episode{overflow:hidden}
+
+.pflight{position:fixed;z-index:9998;transform-origin:0 0;pointer-events:none;will-change:transform}
+.pflight .av{box-shadow:0 14px 40px rgba(0,0,0,.55)}
+.pcover{position:fixed;inset:0;z-index:9997;background:#0b0b12;pointer-events:none;opacity:0}
+body.tv main{padding-bottom:90px}
 </style>
 </head>
 <body>
@@ -1361,6 +1373,46 @@ function showProfiles(){
   manageProfiles = false; renderProfiles();
   window.scrollTo(0,0); pushPage();
 }
+let pfx = false;
+function pfxProbe(){
+  const mk = css => { const d = document.createElement('div'); d.style.cssText = 'position:fixed;visibility:hidden;pointer-events:none;' + css; document.body.append(d); const r = d.getBoundingClientRect(); d.remove(); return r; };
+  const a = mk('left:0;top:0;width:100px;height:100px'), v = mk('inset:0');
+  return {k:a.width / 100 || 1, W:v.width, H:v.height};
+}
+const nextFrames = n => new Promise(r => { const f = () => (--n <= 0 ? r() : requestAnimationFrame(f)); requestAnimationFrame(f); });
+const animDone = a => new Promise(r => { a.onfinish = r; a.oncancel = r; });
+async function pickProfileFx(pr, tile){
+  const av = tile && tile.querySelector('.av');
+  if (pfx) return;
+  if (!av || !av.animate || document.body.classList.contains('noanim')) { selectProfile(pr); return; }
+  pfx = true;
+  const {k, W, H} = pfxProbe(), r0 = av.getBoundingClientRect(), size = r0.width / k;
+  const f = h('div', {class:'pflight', style:`left:${r0.left / k}px;top:${r0.top / k}px;width:${size}px;height:${size}px`}, avatarEl(pr, size));
+  const cover = h('div', {class:'pcover'});
+  const P = $('#profiles');
+  let navEl = null;
+  try {
+    document.body.append(cover, f); av.style.visibility = 'hidden';
+    P.style.transition = 'opacity .3s'; P.style.opacity = '0';
+    cover.animate([{opacity:0}, {opacity:1}], {duration:320, fill:'forwards', easing:'ease'});
+    const S1 = 1.4, tx = (W / 2 - r0.width * S1 / 2 - r0.left) / k, ty = (H / 2 - r0.height * S1 / 2 - r0.top) / k;
+    const mid = `translate(${tx}px,${ty}px) scale(${S1})`;
+    await animDone(f.animate([{transform:'translate(0,0) scale(1)'}, {transform:mid}], {duration:420, easing:'cubic-bezier(.2,.8,.2,1)', fill:'forwards'}));
+    await new Promise(r => setTimeout(r, 500));                      // hold in the middle
+    selectProfile(pr); P.style.opacity = ''; P.style.transition = '';
+    await nextFrames(3); await new Promise(r => setTimeout(r, 60));
+    const tgt = document.querySelector('#tabMe .navav .av'), tr = tgt && tgt.getBoundingClientRect();
+    if (!tgt || tr.width < 2 || document.body.classList.contains('launch')) {
+      cover.animate([{opacity:1}, {opacity:0}], {duration:500, fill:'forwards'}); await animDone(f.animate([{opacity:1}, {opacity:0}], {duration:500, fill:'forwards'}));
+    } else {
+      navEl = tgt.closest('.navav'); navEl.style.visibility = 'hidden';
+      const end = `translate(${(tr.left - r0.left) / k}px,${(tr.top - r0.top) / k}px) scale(${tr.width / r0.width})`;
+      cover.animate([{opacity:1}, {opacity:0}], {duration:700, fill:'forwards', easing:'ease'});
+      await animDone(f.animate([{transform:mid}, {transform:end}], {duration:700, easing:'cubic-bezier(.5,0,.2,1)', fill:'forwards'}));
+    }
+  } catch { try { selectProfile(pr); } catch {} }
+  finally { if (navEl) navEl.style.visibility = ''; f.remove(); cover.remove(); P.style.opacity = ''; P.style.transition = ''; pfx = false; }
+}
 function renderProfiles(){
   const P = $('#profiles'); P.hidden = false;
   const ask = h('input', {type:'checkbox'}); ask.checked = localStorage.getItem('streamlet.profile.ask') !== '0';
@@ -1368,7 +1420,7 @@ function renderProfiles(){
   P.replaceChildren(
     h('h1', null, manageProfiles ? 'Manage profiles' : "Who's watching?"),
     h('div', {class:'pgrid'},
-      ...profiles.map(pr => h('button', {class:'ptile', type:'button', onclick:() => manageProfiles ? editProfile(pr.id) : selectProfile(pr)},
+      ...profiles.map(pr => h('button', {class:'ptile', type:'button', onclick:ev => manageProfiles ? editProfile(pr.id) : pickProfileFx(pr, ev.currentTarget)},
         h('div', {class:'pav'}, avatarEl(pr, 88), manageProfiles ? h('span', {class:'pe'}, '✎') : null), h('div', null, pr.name))),
       profiles.length < 8 ? h('button', {class:'ptile', type:'button', onclick:() => editProfile(null)}, h('div', {class:'pav add'}, '+'), h('div', null, 'Add profile')) : null),
     h('div', {class:'lnks', style:'justify-content:center;margin-top:22px'},
@@ -1780,7 +1832,9 @@ const AV_COUNT = 48, AD = '#2a2233';
 const AV_PAL = [['#ff7eb3','#ff5f8d','#ffd9b8'],['#7c5cff','#4fc3ff','#ffe29a'],['#34d399','#22d3ee','#fff3c4'],['#f6a23c','#ff6b6b','#ffffff'],
   ['#a78bfa','#f9a8d4','#ffffff'],['#38bdf8','#6366f1','#ffc9a8'],['#fb7185','#fbbf24','#fff7e6'],['#2dd4bf','#818cf8','#ffd8b0'],
   ['#fda4af','#fde68a','#b6f0ea'],['#22c55e','#14b8a6','#fef08a'],['#f43f5e','#fb923c','#ffe7d6'],['#334155','#64748b','#e5e7eb']];
+let avUid = 0;
 function avSvg(i){
+  const gid = 'avg' + i + '_' + (++avUid);
   const pal = AV_PAL[(i * 5 + Math.floor(i / 16) * 3) % AV_PAL.length], c = pal[2], type = i % 16, acc = (Math.floor(i / 16) + i % 5) % 6;
   const circ = (cx, cy, r, f) => `<circle cx="${cx}" cy="${cy}" r="${r}" fill="${f}"/>`;
   const ell = (cx, cy, rx, ry, f, rot = 0) => `<ellipse cx="${cx}" cy="${cy}" rx="${rx}" ry="${ry}" fill="${f}" transform="rotate(${rot} ${cx} ${cy})"/>`;
@@ -1813,7 +1867,7 @@ function avSvg(i){
     `<circle cx="30" cy="66" r="4.5" fill="#ff8fa3" opacity=".55"/><circle cx="70" cy="66" r="4.5" fill="#ff8fa3" opacity=".55"/><path d="M82 20l2 5 5 2-5 2-2 5-2-5-5-2 5-2z" fill="#fff"/>`
   ];
   const a2 = [7, 9, 11].includes(type) ? (acc === 5 ? 5 : 0) : acc;
-  return `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="avg${i}" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="${pal[0]}"/><stop offset="1" stop-color="${pal[1]}"/></linearGradient></defs><rect width="100" height="100" fill="url(#avg${i})"/><ellipse cx="50" cy="104" rx="44" ry="22" fill="rgba(0,0,0,.16)"/>${B[type]()}${A[a2]}</svg>`;
+  return `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="${gid}" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="${pal[0]}"/><stop offset="1" stop-color="${pal[1]}"/></linearGradient></defs><rect width="100" height="100" fill="url(#${gid})"/><ellipse cx="50" cy="104" rx="44" ry="22" fill="rgba(0,0,0,.16)"/>${B[type]()}${A[a2]}</svg>`;
 }
 function avatarEl(pr, size){
   const el = h('span', {class:'av', style:`width:${size}px;height:${size}px;font-size:${Math.round(size * .52)}px`});
@@ -2789,11 +2843,17 @@ function moveFocus(dir, rep){
   }
   if (!best) { if (tv && !inNav && dir === 'left') focusNav(); return; }
   best.focus({preventScroll:true});
-  revealEl(best, dir, rep, tv);
+  let edge = null;
+  if (tv && (dir === 'up' || dir === 'down')) {
+    const br = best.getBoundingClientRect();
+    const more = list.some(e => e !== best && (dir === 'up' ? e.getBoundingClientRect().bottom < br.top + 2 : e.getBoundingClientRect().top > br.bottom - 2));
+    if (!more) edge = dir === 'up' ? 'top' : 'bottom';
+  }
+  revealEl(best, dir, rep, tv, edge);
 }
 /* keep strips aligned to the card grid, scroll one card at a time, short eased animation */
 let scrollAnim = 0;
-function revealEl(el, dir, rep, tv){
+function revealEl(el, dir, rep, tv, edge){
   if (!tv) { if (document.body.classList.contains('tv')) { el.scrollIntoView({block:'nearest', inline:'nearest', behavior:'auto'}); return; } el.scrollIntoView({block: dir === 'up' || dir === 'down' ? 'center' : 'nearest', inline: dir === 'left' || dir === 'right' ? 'center' : 'nearest', behavior: rep ? 'auto' : 'smooth'}); return; }
   const strip = el.closest('.strip'), y0 = scrollY, x0 = strip ? strip.scrollLeft : 0;
   if (strip) {
@@ -2805,7 +2865,8 @@ function revealEl(el, dir, rep, tv){
     if (over > 1) strip.scrollLeft = x0 + Math.ceil(over / pitch) * pitch / k;
     else if (under > 1) strip.scrollLeft = Math.max(0, x0 - Math.ceil(under / pitch) * pitch / k);
   }
-  if (el.closest('.tvhero')) window.scrollTo(0, 0); else (strip || el).scrollIntoView({block:'nearest', inline:'nearest'});
+  if (edge) window.scrollTo(0, edge === 'top' ? 0 : 1e7);                 // last item in that direction: show the whole end of the page
+  else if (el.closest('.tvhero')) window.scrollTo(0, 0); else (strip || el).scrollIntoView({block:'nearest', inline:'nearest'});
   const y1 = scrollY, x1 = strip ? strip.scrollLeft : 0;
   if (rep || (y0 === y1 && x0 === x1)) return;
   window.scrollTo(0, y0); if (strip) strip.scrollLeft = x0;
@@ -2923,6 +2984,16 @@ $('#pseek').addEventListener('click', e => { const v = $('#vid'), r = e.currentT
   const last = w.lastElementChild;
   last.addEventListener('animationend', () => setTimeout(end, 700));   // hold the finished logo for a beat
   setTimeout(end, 12000);                                             // safety net only
+  const start = () => {
+    el.classList.add('go');
+    setTimeout(() => {                                                // animations switched off on this device? show the finished logo instead
+      let running = true;
+      try { running = document.getAnimations().some(a => a.effect && a.effect.target && el.contains(a.effect.target)); } catch {}
+      if (!running) { el.classList.add('static'); setTimeout(end, 1800); }
+    }, 900);
+  };
+  const ready = () => requestAnimationFrame(() => requestAnimationFrame(() => setTimeout(start, 300)));
+  if (document.readyState === 'complete') ready(); else addEventListener('load', ready, {once:true});
 })();
 
 /* ---------- boot ---------- */
