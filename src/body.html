@@ -1,6 +1,7 @@
 </style>
 </head>
 <body>
+<div id="loadov" hidden><div class="lo-ring"></div><div id="loadmsg"></div><button id="loadcancel" class="btn ghost" type="button">Cancel</button></div>
 <div id="intro">
   <div class="ilock">
   <svg viewBox="0 0 1024 1024" class="ilogo" aria-hidden="true">
@@ -65,6 +66,7 @@
       <h2 class="sh">Playing</h2>
       <div class="addon">
         <label class="row2"><span class="rt">Play the best source automatically<small>Play picks it for you (your audio language, quality, what worked before). A button on each title lets you choose by hand</small></span><input type="checkbox" id="setAuto"></label>
+        <label class="row2"><span class="rt">Show upcoming and in-theater titles<small>Turn off to hide titles that cannot be played yet</small></span><input type="checkbox" id="setUpc"></label>
         <div class="row2"><span class="rt">Highest quality<small>Auto-pick never goes above this</small></span><select id="setMaxQ" class="sel"><option value="best">Best available</option><option value="2160">4K</option><option value="1080">1080p</option><option value="720">720p</option></select></div>
       </div>
       <h2 class="sh">Search</h2>
@@ -85,6 +87,7 @@
           <label class="row2"><span class="rt">Match frame rate<small>Removes judder when your TV supports it</small></span><input type="checkbox" id="setFps"></label>
           <label class="row2"><span class="rt">Tunneled playback<small>Can help 4K and HDR, may affect seeking</small></span><input type="checkbox" id="setTun"></label>
           <label class="row2"><span class="rt">Dolby passthrough<small>Backup player sends Dolby and Atmos to your TV. Turn off if you get no sound</small></span><input type="checkbox" id="setPass"></label>
+          <label class="row2"><span class="rt">Pure black background<small>Fixes the grey screen after the Google screensaver. Turn off only if you see black edges</small></span><input type="checkbox" id="setBlack"></label>
         </div>
       </div>
       <h2 class="sh">About</h2>

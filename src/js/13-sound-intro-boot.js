@@ -224,6 +224,7 @@ $('#pseek').addEventListener('click', e => { const v = $('#vid'), r = e.currentT
 
 /* ---------- boot ---------- */
 history.replaceState({guard:true}, '');
+try { const N = nativePlayer(); if (N && N.setBlackBg) N.setBlackBg({on:lsGet('streamlet.ui', {}).blackBg !== false}); } catch {}
 initProfiles();
 startAuth();
 if ('serviceWorker' in navigator && /^https?:/.test(location.protocol)) navigator.serviceWorker.register('sw.js').catch(()=>{});

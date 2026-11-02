@@ -172,3 +172,34 @@ function catInfo(cat){
   };
 }
 
+
+/* ---------- release state: upcoming titles, movies still in theaters ---------- */
+const yearOf = m => parseInt(String((m && (m.releaseInfo || m.year)) || '').slice(0, 4)) || 0;
+const normTitle = t => String(t || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, ' ').trim();
+const CAM_RE = /\b(?:hd[\s.-]?cam|cam[\s.-]?rip|cam|tele[\s.-]?sync|hd[\s.-]?ts|tele[\s.-]?cine|hd[\s.-]?tc|pre[\s.-]?dvd|dvd[\s.-]?scr|screener)\b/i;   // recordings of a cinema screen
+const theatersMap = () => { const v = lsGet('streamlet.theaters', {}); return v && typeof v === 'object' && !Array.isArray(v) ? v : {}; };
+function relState(m, type){                                              // 'upcoming' | 'theaters' | null
+  if (!m) return null;
+  const r = m.released || m.firstAired, d = r ? new Date(r) : null;
+  if (d && !isNaN(d)) { if (d.getTime() > Date.now()) return 'upcoming'; }
+  else { const y = yearOf(m); if (y && y > new Date().getFullYear()) return 'upcoming'; }
+  if ((m.type || type) === 'movie' && theatersMap()[m.id || m.itemId]) return 'theaters';
+  return null;
+}
+const hideUnreleased = () => lsGet('streamlet.ui', {}).showUpcoming === false;
+const visibleMeta = (m, type) => !(hideUnreleased() && relState(m, type));
+const recentRelease = m => { const r = m && m.released ? new Date(m.released) : null; return r && !isNaN(r) ? (Date.now() - r.getTime()) < 200 * 864e5 : yearOf(m) === new Date().getFullYear(); };
+/* a movie that came out recently and has no real (non-cinema) source yet is "in theaters" */
+function noteTheaters(item, streams){
+  try {
+    if (!item || !item.id || item.type !== 'movie') return;
+    const recent = recentRelease(item);
+    const map = theatersMap(), real = (streams || []).some(x => x && (x.url || x.infoHash || x.externalUrl) && !CAM_RE.test(String(x.name || '') + ' ' + String(x.title || '') + ' ' + String(x.description || '')));
+    const was = !!map[item.id];
+    if (recent && !real) map[item.id] = Date.now(); else delete map[item.id];
+    if (was !== !!map[item.id]) { const ks = Object.keys(map); if (ks.length > 300) delete map[ks[0]]; lsSet('streamlet.theaters', map); refreshRelBadges(item.id); }
+  } catch {}
+}
+const relLabel = st => st === 'upcoming' ? 'Upcoming' : st === 'theaters' ? 'In theaters' : '';
+function relBadgeEl(meta, type){ const st = relState(meta, type), e = h('span', {class:'relbadge' + (st ? ' ' + st : ''), 'data-id':meta.id, 'data-up':st === 'upcoming' ? '1' : ''}, relLabel(st)); e.hidden = !st; return e; }
+function refreshRelBadges(id){ document.querySelectorAll('.relbadge[data-id="' + String(id).replace(/"/g, '') + '"]').forEach(e => { const t = theatersMap()[id] ? 'theaters' : (e.dataset.up === '1' ? 'upcoming' : null); e.className = 'relbadge' + (t ? ' ' + t : ''); e.textContent = relLabel(t); e.hidden = !t; }); }

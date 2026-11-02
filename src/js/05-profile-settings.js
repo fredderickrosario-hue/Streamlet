@@ -19,6 +19,7 @@ const APP_BUILD = '2.0';
 function renderSettings(){
   fillAccountUI(); fillSettingsUI();
   const u = lsGet('streamlet.ui', {}), tv = document.body.classList.contains('tv');
+  const up = $('#setUpc'); up.checked = u.showUpcoming !== false; up.onchange = () => lsSet('streamlet.ui', {...lsGet('streamlet.ui', {}), showUpcoming:up.checked});
   const au = $('#setAuto'), mq = $('#setMaxQ'), sk = $('#setSkip');
   au.checked = u.autoPick !== false; au.onchange = () => lsSet('streamlet.ui', {...lsGet('streamlet.ui', {}), autoPick:au.checked});
   mq.value = u.maxQ || 'best'; mq.onchange = () => lsSet('streamlet.ui', {...lsGet('streamlet.ui', {}), maxQ:mq.value});
@@ -31,11 +32,12 @@ function renderSettings(){
   const snd = $('#setSnd'); snd.checked = u.sound !== false;
   snd.onchange = () => { lsSet('streamlet.ui', {...lsGet('streamlet.ui', {}), sound:snd.checked}); if (snd.checked) sfx.select(); };
   $('#setPlay').hidden = !nativePlayer();
-  for (const [id, k, d] of [['#setHw', 'hw', true], ['#setFps', 'fps', true], ['#setTun', 'tunnel', false], ['#setPass', 'pass', true]]) {
+  for (const [id, k, d] of [['#setHw', 'hw', true], ['#setFps', 'fps', true], ['#setTun', 'tunnel', false], ['#setPass', 'pass', true], ['#setBlack', 'blackBg', true]]) {
     const el = $(id); el.checked = u[k] === undefined ? d : u[k] !== false && !!u[k];
-    el.onchange = () => lsSet('streamlet.ui', {...lsGet('streamlet.ui', {}), [k]:el.checked});
+    el.onchange = () => { lsSet('streamlet.ui', {...lsGet('streamlet.ui', {}), [k]:el.checked}); if (k === 'blackBg') { try { const N = nativePlayer(); if (N && N.setBlackBg) N.setBlackBg({on:el.checked}); } catch {} } };
   }
-  $('#verLine').textContent = `Streamlet · version ${APP_BUILD}` + (nativePlayer() ? ' · Android app' : '');
+  $('#verLine').textContent = 'Streamlet · web version';
+  { const N = nativePlayer(); if (N && N.appVersion) N.appVersion().then(r => { $('#verLine').textContent = `Streamlet · ${vName(r.code)} · Android app`; }).catch(() => {}); }
 }
 function applyUI(){
   const u = lsGet('streamlet.ui', {}), tv = document.body.classList.contains('tv');
@@ -210,6 +212,7 @@ function posterEl(meta){
   if (meta.poster) p.append(h('img', {src:meta.poster, loading:'lazy', decoding:'async', alt:'', onerror:e=>e.target.remove()}));
   const iid = meta.itemId || meta.id;
   if (iid) { p.dataset.iid = iid; if (watchedHas(iid)) p.append(h('span', {class:'rib'})); }
+  const rs = relState(meta, meta.type); if (rs) p.append(h('span', {class:'rtag ' + rs}, relLabel(rs)));
   return p;
 }
 

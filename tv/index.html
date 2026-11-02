@@ -928,9 +928,42 @@ body.tv :is(#detail,#episode) .dacts2 .pib.on svg{fill:color-mix(in srgb,var(--a
 body.tv :is(#detail,#episode) .dacts2 .pib:focus-visible{outline:0;transform:scale(1.3);opacity:1;filter:drop-shadow(0 0 8px rgba(255,255,255,.75))}
 body.tv #episode .dep{font-size:15px;font-weight:700;letter-spacing:.3px;color:#b9bdcc;margin:0 0 8px}
 body.tv #episode .dbt-title{font-size:clamp(34px,4vw,60px)}
+
+/* v3c: the backdrop dims with a plain dark layer (no filter), focus rings sit inside their items so nothing crops them, cast rows scroll sideways, smooth lower half */
+body.tv :is(#detail,#episode) .dhero,body.tv :is(#detail,#episode).p2 .dhero{filter:none !important}
+body.tv :is(#detail,#episode) .dhero::after{content:'';position:absolute;inset:0;background:#07070c;opacity:0;transition:opacity .55s;pointer-events:none;z-index:1}
+body.tv :is(#detail,#episode).p2 .dhero::after{opacity:.9}
+body.tv :is(#detail,#episode) .dtop.scrolled{background:linear-gradient(to bottom,#07070c 0,#07070c 62%,rgba(7,7,12,0));padding-bottom:30px}
+body.tv :is(#detail,#episode) .dp2{scroll-behavior:smooth}
+body.tv :is(#detail,#episode) .dp2 .eplist,body.tv :is(#detail,#episode) .dp2 .slist,body.tv :is(#detail,#episode) .dp2 .dsim,body.tv :is(#detail,#episode) .dp2 .cchips,body.tv :is(#detail,#episode) .dp2 .srow{scroll-behavior:smooth}
+body.tv :is(#detail,#episode) .dp2 .dpl{display:block;padding-right:0}
+body.tv :is(#detail,#episode) .dp2 .dpl .dsec{margin:0 0 14px}
+body.tv :is(#detail,#episode) .dp2 .cchips{display:flex;flex-wrap:nowrap;max-width:none;overflow-x:auto;overflow-y:hidden;gap:8px;padding:4px 64px 6px 4px;margin:0 0 0 -4px;scrollbar-width:none}
+body.tv :is(#detail,#episode) .dp2 .cchips::-webkit-scrollbar{display:none}
+body.tv :is(#detail,#episode) .dp2 .pillx{flex:0 0 auto;white-space:nowrap}
+body.tv :is(#detail,#episode) .dp2 .pillx:focus-visible,body.tv :is(#detail,#episode) .dp2 .chip:focus-visible,body.tv :is(#detail,#episode) .dp2 .ep:focus-visible,body.tv :is(#detail,#episode) .dp2 .scard:focus-visible,body.tv :is(#detail,#episode) .dp2 .dsim .card:focus-visible{outline:3px solid #fff;outline-offset:-3px;transform:none}
+body.tv :is(#detail,#episode) .dp2 .ep:focus-visible .ethumb{outline:3px solid #fff;outline-offset:-3px}
+body.tv :is(#detail,#episode) .dp2 .ep:focus-visible{outline:0}
+body.tv :is(#detail,#episode) .dp2 .dsim .card:focus-visible .poster{outline:3px solid #fff;outline-offset:-3px}
+body.tv :is(#detail,#episode) .dp2 .dsim .card:focus-visible{outline:0}
+
+/* loading screen while the best source is found */
+#loadov{position:fixed;inset:0;z-index:9990;background:#05050a;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:22px;text-align:center;padding:24px}
+#loadov[hidden]{display:none}
+.lo-ring{width:92px;height:92px;border-radius:50%;background:conic-gradient(from 0deg,transparent 0,#a24bff 40%,#2fb6ff 85%,transparent);-webkit-mask:radial-gradient(circle,transparent 57%,#000 59%);mask:radial-gradient(circle,transparent 57%,#000 59%);animation:lospin 1s linear infinite}
+@keyframes lospin{to{transform:rotate(360deg)}}
+#loadmsg{font-size:19px;font-weight:700;max-width:80vw}
+body.tv #loadmsg{font-size:24px}
+/* release labels */
+.rtag{position:absolute;left:0;top:10px;z-index:2;padding:3px 9px 3px 8px;border-radius:0 8px 8px 0;font-size:10.5px;font-weight:800;letter-spacing:.5px;text-transform:uppercase;color:#fff;background:#d9822b;pointer-events:none}
+.rtag.upcoming{background:#6a5cff}
+.relbadge{display:inline-block;margin:0 0 8px;padding:4px 12px;border-radius:999px;font-size:12px;font-weight:800;letter-spacing:.6px;text-transform:uppercase;color:#fff;background:#d9822b}
+.relbadge.upcoming{background:#6a5cff}
+.relbadge[hidden]{display:none}
 </style>
 </head>
 <body>
+<div id="loadov" hidden><div class="lo-ring"></div><div id="loadmsg"></div><button id="loadcancel" class="btn ghost" type="button">Cancel</button></div>
 <div id="intro">
   <div class="ilock">
   <svg viewBox="0 0 1024 1024" class="ilogo" aria-hidden="true">
@@ -991,6 +1024,7 @@ body.tv #episode .dbt-title{font-size:clamp(34px,4vw,60px)}
       <h2 class="sh">Playing</h2>
       <div class="addon">
         <label class="row2"><span class="rt">Play the best source automatically<small>Play picks it for you (your audio language, quality, what worked before). A button on each title lets you choose by hand</small></span><input type="checkbox" id="setAuto"></label>
+        <label class="row2"><span class="rt">Show upcoming and in-theater titles<small>Turn off to hide titles that cannot be played yet</small></span><input type="checkbox" id="setUpc"></label>
         <div class="row2"><span class="rt">Highest quality<small>Auto-pick never goes above this</small></span><select id="setMaxQ" class="sel"><option value="best">Best available</option><option value="2160">4K</option><option value="1080">1080p</option><option value="720">720p</option></select></div>
       </div>
       <h2 class="sh">Search</h2>
@@ -1011,6 +1045,7 @@ body.tv #episode .dbt-title{font-size:clamp(34px,4vw,60px)}
           <label class="row2"><span class="rt">Match frame rate<small>Removes judder when your TV supports it</small></span><input type="checkbox" id="setFps"></label>
           <label class="row2"><span class="rt">Tunneled playback<small>Can help 4K and HDR, may affect seeking</small></span><input type="checkbox" id="setTun"></label>
           <label class="row2"><span class="rt">Dolby passthrough<small>Backup player sends Dolby and Atmos to your TV. Turn off if you get no sound</small></span><input type="checkbox" id="setPass"></label>
+          <label class="row2"><span class="rt">Pure black background<small>Fixes the grey screen after the Google screensaver. Turn off only if you see black edges</small></span><input type="checkbox" id="setBlack"></label>
         </div>
       </div>
       <h2 class="sh">About</h2>
@@ -1269,6 +1304,37 @@ function catInfo(cat){
   };
 }
 
+
+/* ---------- release state: upcoming titles, movies still in theaters ---------- */
+const yearOf = m => parseInt(String((m && (m.releaseInfo || m.year)) || '').slice(0, 4)) || 0;
+const normTitle = t => String(t || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, ' ').trim();
+const CAM_RE = /\b(?:hd[\s.-]?cam|cam[\s.-]?rip|cam|tele[\s.-]?sync|hd[\s.-]?ts|tele[\s.-]?cine|hd[\s.-]?tc|pre[\s.-]?dvd|dvd[\s.-]?scr|screener)\b/i;   // recordings of a cinema screen
+const theatersMap = () => { const v = lsGet('streamlet.theaters', {}); return v && typeof v === 'object' && !Array.isArray(v) ? v : {}; };
+function relState(m, type){                                              // 'upcoming' | 'theaters' | null
+  if (!m) return null;
+  const r = m.released || m.firstAired, d = r ? new Date(r) : null;
+  if (d && !isNaN(d)) { if (d.getTime() > Date.now()) return 'upcoming'; }
+  else { const y = yearOf(m); if (y && y > new Date().getFullYear()) return 'upcoming'; }
+  if ((m.type || type) === 'movie' && theatersMap()[m.id || m.itemId]) return 'theaters';
+  return null;
+}
+const hideUnreleased = () => lsGet('streamlet.ui', {}).showUpcoming === false;
+const visibleMeta = (m, type) => !(hideUnreleased() && relState(m, type));
+const recentRelease = m => { const r = m && m.released ? new Date(m.released) : null; return r && !isNaN(r) ? (Date.now() - r.getTime()) < 200 * 864e5 : yearOf(m) === new Date().getFullYear(); };
+/* a movie that came out recently and has no real (non-cinema) source yet is "in theaters" */
+function noteTheaters(item, streams){
+  try {
+    if (!item || !item.id || item.type !== 'movie') return;
+    const recent = recentRelease(item);
+    const map = theatersMap(), real = (streams || []).some(x => x && (x.url || x.infoHash || x.externalUrl) && !CAM_RE.test(String(x.name || '') + ' ' + String(x.title || '') + ' ' + String(x.description || '')));
+    const was = !!map[item.id];
+    if (recent && !real) map[item.id] = Date.now(); else delete map[item.id];
+    if (was !== !!map[item.id]) { const ks = Object.keys(map); if (ks.length > 300) delete map[ks[0]]; lsSet('streamlet.theaters', map); refreshRelBadges(item.id); }
+  } catch {}
+}
+const relLabel = st => st === 'upcoming' ? 'Upcoming' : st === 'theaters' ? 'In theaters' : '';
+function relBadgeEl(meta, type){ const st = relState(meta, type), e = h('span', {class:'relbadge' + (st ? ' ' + st : ''), 'data-id':meta.id, 'data-up':st === 'upcoming' ? '1' : ''}, relLabel(st)); e.hidden = !st; return e; }
+function refreshRelBadges(id){ document.querySelectorAll('.relbadge[data-id="' + String(id).replace(/"/g, '') + '"]').forEach(e => { const t = theatersMap()[id] ? 'theaters' : (e.dataset.up === '1' ? 'upcoming' : null); e.className = 'relbadge' + (t ? ' ' + t : ''); e.textContent = relLabel(t); e.hidden = !t; }); }
 /* ---------- navigation: Android back button + exit prompt ---------- */
 let navSuppress = false, pageKey = '', launcherDirty = false, exiting = false, replaceNext = false;
 const layersOpen = [];                 // overlays currently open, bottom to top: detail, player, panel | editor
@@ -1302,7 +1368,24 @@ function popLayer(name){
   if (i < 0) return;
   history.go(-(layersOpen.length - i));
 }
+/* "Finding the best source…" screen: Back or Cancel stops it */
+let loadCancelled = false, loadFinishing = false;
+function showLoading(title){
+  loadCancelled = false; $('#loadmsg').textContent = title ? 'Finding the best source for ' + title + '…' : 'Finding the best source…';
+  $('#loadov').hidden = false; if (!layersOpen.includes('load')) pushLayer('load');
+  setTimeout(() => { const b = $('#loadcancel'); if (b && !$('#loadov').hidden) b.focus({preventScroll:true}); }, 30);
+}
+function hideLoading(){                                                     // resolves once the Back stack has settled, so the player can open right after
+  return new Promise(res => {
+    if (!layersOpen.includes('load')) { $('#loadov').hidden = true; return res(); }
+    loadFinishing = true; const t = setTimeout(() => { loadFinishing = false; res(); }, 500);
+    addEventListener('popstate', () => { clearTimeout(t); setTimeout(() => { loadFinishing = false; res(); }, 30); }, {once:true});
+    popLayer('load');
+  });
+}
+$('#loadcancel').onclick = () => { if (layersOpen.includes('load')) popLayer('load'); };
 const LAYER_CLOSERS = {
+  load:   () => { $('#loadov').hidden = true; if (!loadFinishing) loadCancelled = true; },
   panel:  () => { $('#ppanel').hidden = true; $('#pback').hidden = true; showBar(); },
   player: () => stopPlayer(),
   detail: () => { $('#detail').hidden = true; document.body.style.overflow = ''; if (!$('#home').hidden) renderCW(); },
@@ -1721,6 +1804,7 @@ const APP_BUILD = '2.0';
 function renderSettings(){
   fillAccountUI(); fillSettingsUI();
   const u = lsGet('streamlet.ui', {}), tv = document.body.classList.contains('tv');
+  const up = $('#setUpc'); up.checked = u.showUpcoming !== false; up.onchange = () => lsSet('streamlet.ui', {...lsGet('streamlet.ui', {}), showUpcoming:up.checked});
   const au = $('#setAuto'), mq = $('#setMaxQ'), sk = $('#setSkip');
   au.checked = u.autoPick !== false; au.onchange = () => lsSet('streamlet.ui', {...lsGet('streamlet.ui', {}), autoPick:au.checked});
   mq.value = u.maxQ || 'best'; mq.onchange = () => lsSet('streamlet.ui', {...lsGet('streamlet.ui', {}), maxQ:mq.value});
@@ -1733,11 +1817,12 @@ function renderSettings(){
   const snd = $('#setSnd'); snd.checked = u.sound !== false;
   snd.onchange = () => { lsSet('streamlet.ui', {...lsGet('streamlet.ui', {}), sound:snd.checked}); if (snd.checked) sfx.select(); };
   $('#setPlay').hidden = !nativePlayer();
-  for (const [id, k, d] of [['#setHw', 'hw', true], ['#setFps', 'fps', true], ['#setTun', 'tunnel', false], ['#setPass', 'pass', true]]) {
+  for (const [id, k, d] of [['#setHw', 'hw', true], ['#setFps', 'fps', true], ['#setTun', 'tunnel', false], ['#setPass', 'pass', true], ['#setBlack', 'blackBg', true]]) {
     const el = $(id); el.checked = u[k] === undefined ? d : u[k] !== false && !!u[k];
-    el.onchange = () => lsSet('streamlet.ui', {...lsGet('streamlet.ui', {}), [k]:el.checked});
+    el.onchange = () => { lsSet('streamlet.ui', {...lsGet('streamlet.ui', {}), [k]:el.checked}); if (k === 'blackBg') { try { const N = nativePlayer(); if (N && N.setBlackBg) N.setBlackBg({on:el.checked}); } catch {} } };
   }
-  $('#verLine').textContent = `Streamlet · version ${APP_BUILD}` + (nativePlayer() ? ' · Android app' : '');
+  $('#verLine').textContent = 'Streamlet · web version';
+  { const N = nativePlayer(); if (N && N.appVersion) N.appVersion().then(r => { $('#verLine').textContent = `Streamlet · ${vName(r.code)} · Android app`; }).catch(() => {}); }
 }
 function applyUI(){
   const u = lsGet('streamlet.ui', {}), tv = document.body.classList.contains('tv');
@@ -1912,6 +1997,7 @@ function posterEl(meta){
   if (meta.poster) p.append(h('img', {src:meta.poster, loading:'lazy', decoding:'async', alt:'', onerror:e=>e.target.remove()}));
   const iid = meta.itemId || meta.id;
   if (iid) { p.dataset.iid = iid; if (watchedHas(iid)) p.append(h('span', {class:'rib'})); }
+  const rs = relState(meta, meta.type); if (rs) p.append(h('span', {class:'rtag ' + rs}, relLabel(rs)));
   return p;
 }
 
@@ -1958,7 +2044,7 @@ function setTvHero(ctx, instant){
     h('div', {class:'tmeta'}, m.imdbRating ? h('span', {class:'timdb'}, '★ ' + m.imdbRating) : null, ...bits.map(x => h('span', null, String(x)))),
     m.description ? h('p', {class:'tdesc'}, m.description) : null,
     h('div', {class:'tbtns'},
-      h('button', {class:'hb p', type:'button', onclick:() => openDetail(ctx.a, ctx.type, m)}, '▶  Play'),
+      h('button', {class:'hb p', type:'button', onclick:() => quickPlay(ctx.a, ctx.type, m)}, '▶  Play'),
       h('button', {class:'hb s', type:'button', onclick:() => openDetail(ctx.a, ctx.type, m)}, 'More info')));
 }
 document.addEventListener('focusin', e => {
@@ -2067,7 +2153,17 @@ function searchVariants(q){
   if (!n.includes(' ') && n.length >= 7) out.push(n.slice(0, Math.max(5, Math.round(n.length * .6))));   // "tinkerbell" -> "tinker"
   return [...new Set(out.filter(x => x.length >= 2))].slice(0, 3);
 }
-const rankResults = items => [...items.values()].filter(x => x.score >= .36 || (x.exact && x.score >= .25)).sort((x, y) => (y.score - x.score) || (x.rank - y.rank));
+/* the same film found through two addons (different ids) shows once; the entry with a poster wins */
+function dedupeList(list, getM, getType){
+  const seen = new Map(), out = [];
+  for (const it of list) {
+    const m = getM(it), k = (getType(it) || '') + '|' + normTitle(m.name) + '|' + yearOf(m), prev = seen.get(k);
+    if (!prev) { seen.set(k, it); out.push(it); }
+    else if (!getM(prev).poster && m.poster) { out[out.indexOf(prev)] = it; seen.set(k, it); }
+  }
+  return out;
+}
+const rankResults = items => dedupeList([...items.values()].filter(x => x.score >= .36 || (x.exact && x.score >= .25)).filter(x => visibleMeta(x.m, x.type)).sort((x, y) => (y.score - x.score) || (x.rank - y.rank)), x => x.m, x => x.type);
 const peopleOf = m => [].concat(m.cast || [], m.director || [], m.writer || [], (m.links || []).filter(l => /^(cast|director|writers?)$/i.test(l.category || '')).map(l => l.name))
   .flatMap(x => typeof x === 'string' ? x.split(/\s*,\s*/) : []).map(normQ).filter(Boolean);
 function relevance(query, m){                                             // title closeness, or a person / genre match for names and tags
@@ -2184,7 +2280,7 @@ async function renderHome(query = $('#q').value.trim(), target){
     sec.append(loading); box.append(sec);
     jobs.push(getJSON(`${a.base}/${path}`).then(r => {
       if (tok!==homeTok) return;
-      const metas = (r.metas||[]);
+      const metas = (r.metas||[]).filter(x => visibleMeta(x, x.type || cat.type));
       if (!metas.length) { sec.remove(); return; }
       shown++; loading.remove();
       if (!heroDone && !query && heroBox.isConnected) {
@@ -2621,7 +2717,8 @@ async function findSimilar(a, type, meta){
     }).catch(() => {}));
   }
   await Promise.all(jobs);
-  return [...out.values()].filter(x => x.score >= .45).sort((x, y) => y.score - x.score).slice(0, 30);
+  const me = normTitle(meta.name) + '|' + yearOf(meta);
+  return dedupeList([...out.values()].filter(x => x.score >= .45 && visibleMeta(x.m, x.type)).sort((x, y) => y.score - x.score), x => x.m, x => x.type).filter(x => normTitle(x.m.name) + '|' + yearOf(x.m) !== me).slice(0, 30);
 }
 function similarPane(pane, a, type, meta){
   pane.replaceChildren(h('p', {class:'spin', style:'padding:10px 0'}, 'Finding similar titles…'));
@@ -2703,7 +2800,7 @@ function openEpisode(addon, type, meta, v, sorted, again){
           (v.overview || v.description) ? h('p', {class:'ddesc'}, v.overview || v.description) : null,
           h('div', {class:'dacts2'}, play),
           hintEl()),
-        tvRowsFor(addon, type, meta, 'Sources', [resumeButton(saved, base), streamsBox], {sim:false, rows:[h('section', {class:'drow'}, h('h3', {class:'drt'}, 'Season ' + sn), others)]}))));
+        tvRowsFor(addon, type, meta, 'Sources', [streamsBox], {sim:false, rows:[h('section', {class:'drow'}, h('h3', {class:'drt'}, 'Season ' + sn), others)]}))));
     manualSources(streamsBox, () => loadStreams(type, v.id, streamsBox, meta.name, base));
     return;
   }
@@ -2730,7 +2827,7 @@ async function openDetail(addon, type, item, opts = {}){
     const keep = d.scrollTop;
     const vids = type === 'series' && Array.isArray(meta.videos) ? meta.videos.filter(v => v && v.id) : [];
     const sorted = [...vids].sort((x, y) => ((x.season ?? 1) - (y.season ?? 1)) || ((x.episode ?? 0) - (y.episode ?? 0)));
-    const base = {info:{item:{id:meta.id, type, name:meta.name, poster:meta.poster, background:meta.background}, addonId:addon.uid},
+    const base = {info:{item:{id:meta.id, type, name:meta.name, poster:meta.poster, background:meta.background, released:meta.released, releaseInfo:meta.releaseInfo}, addonId:addon.uid},
       alt:[meta.behaviorHints && meta.behaviorHints.defaultVideoId, meta.imdb_id].filter(x => x && x !== meta.id)};
     const ico = toggleIcons(addon, type, meta), yt = trailerOf(meta);
     const top = h('div', {class:'dtop'}, iconBtn(IC.back, 'Back', close), titleMini(meta), ico.wl);
@@ -2738,7 +2835,7 @@ async function openDetail(addon, type, item, opts = {}){
     const ph = el => { if (el) el.classList.add('dphone'); return el; };
     const acts = h('div', {class:'dacts2'});
     const body = h('div', {class:'dbody'}, h('div', {class:'dleft'},
-      titleBlock(meta),
+      titleBlock(meta), relBadgeEl(meta, type),
       metaRow([meta.runtime, isTVui() ? genres.slice(0, 3).join(', ') : null, meta.year || meta.releaseInfo], meta.imdbRating, [ico.seen]),
       meta.description ? h('p', {class:'ddesc'}, meta.description) : null,
       acts, infoPanel(meta, genres), isTVui() ? hintEl() : null,
@@ -2760,8 +2857,9 @@ async function openDetail(addon, type, item, opts = {}){
       draw(); body.append(isTVui() ? tvRows('Episodes', [srow, list]) : h('div', {class:'dsec dright'}, ...rightTabs('Episodes', [srow, list], pane => similarPane(pane, addon, type, meta))));
     } else if (withStreams) {                                              // ---- movie / single title: streams right here
       const box = h('div', {class:'dbox'}), saved = histGet().find(x => x.k === `${type}|${meta.id}`);
-      body.append(isTVui() ? tvRows('Sources', [resumeButton(saved, base), box]) : h('div', {class:'dsec dright'}, ...rightTabs('Sources', [resumeButton(saved, base), box], pane => similarPane(pane, addon, type, meta))));
+      body.append(isTVui() ? tvRows('Sources', [box]) : h('div', {class:'dsec dright'}, ...rightTabs('Sources', [resumeButton(saved, base), box], pane => similarPane(pane, addon, type, meta))));
       manualSources(box, () => loadStreams(type, meta.id, box, meta.name, base));
+      if (autoPickOn() && type === 'movie' && recentRelease(meta)) collectStreams(type, meta.id, base, 2500).then(o => { if (o) noteTheaters(base.info.item, o); }).catch(() => {});
     }
     const rs0 = histGet().find(x => x.itemId === meta.id && !x.upnext);
     acts.append(h('button', {class:'hb p', type:'button', onclick:async () => {
@@ -2830,19 +2928,45 @@ function rankStreams(all, itemId){                                    // best fi
   return all.filter(x => x && x.url && !isBadStream(x)).map((x, i) => [x, key(x), i]).sort((a, b) => { for (let k = 0; k < a[1].length; k++) if (a[1][k] !== b[1][k]) return a[1][k] - b[1][k]; return a[2] - b[2]; }).map(x => x[0]);
 }
 /* asks every stream addon; waits up to 4 s for the slow ones once something has arrived */
-async function autoPlay(type, id, title, base, then){
+async function collectStreams(type, id, base, soft = 4000){
   const cands = [id, ...(base.alt || [])];
   const srcs = streamPool().map(a => ({a, sid:cands.find(c => supports(a, 'stream', type, c))})).filter(x => x.sid);
-  if (!srcs.length) { toast('No stream addon for this title.'); return false; }
-  toast('Finding the best source…');
+  if (!srcs.length) return null;
   const out = [];
   const jobs = Promise.all(srcs.map(async ({a, sid}) => { try { const r = await getJSON(`${a.base}/stream/${type}/${enc(sid)}.json`); out.push(...(r.streams || [])); } catch {} }));
-  await Promise.race([jobs, new Promise(r => setTimeout(r, 4000))]);
+  await Promise.race([jobs, new Promise(r => setTimeout(r, soft))]);
   if (!out.length) await jobs;
+  return out;
+}
+async function autoPlay(type, id, title, base){
+  showLoading(title);
+  const out = await collectStreams(type, id, base);
+  if (out && type === 'movie' && base.info) noteTheaters(base.info.item, out);
+  if (loadCancelled) { return true; }                                   // backed out while waiting
+  if (!out) { await hideLoading(); toast('No stream addon for this title.'); return false; }
   const ranked = rankStreams(sortByLang(out), base.info && base.info.item.id);
+  await hideLoading();
   if (!ranked.length) { toast('No playable source found.'); return false; }
   playStream(ranked[0], title, {type, id, ...base, _list:ranked});
   return true;
+}
+/* the hero's Play button: with auto-pick on it starts the best source straight away (More info opens the page) */
+async function quickPlay(addon, type, item){
+  if (!autoPickOn() || !profile) return openDetail(addon, type, item);
+  showLoading(item.name);
+  let meta = {...item};
+  try { const ma = supports(addon, 'meta', type, item.id) ? addon : addons.find(x => supports(x, 'meta', type, item.id)); if (ma) { const r = await getJSON(`${ma.base}/meta/${type}/${enc(item.id)}.json`); meta = {...item, ...r.meta}; } } catch {}
+  if (loadCancelled) return;
+  let id = meta.id, base = {info:{item:{id:meta.id, type, name:meta.name, poster:meta.poster, background:meta.background, released:meta.released, releaseInfo:meta.releaseInfo}, addonId:addon.uid},
+    alt:[meta.behaviorHints && meta.behaviorHints.defaultVideoId, meta.imdb_id].filter(x => x && x !== meta.id)};
+  if (type === 'series') {
+    const sorted = (Array.isArray(meta.videos) ? meta.videos.filter(v => v && v.id) : []).sort((x, y) => ((x.season ?? 1) - (y.season ?? 1)) || ((x.episode ?? 0) - (y.episode ?? 0)));
+    if (!sorted.length) { await hideLoading(); return openDetail(addon, type, item); }
+    const rs0 = histGet().find(x => x.itemId === meta.id && !x.upnext);
+    const ep = (rs0 && sorted.find(v => v.id === rs0.id)) || sorted.find(v => (v.season ?? 1) >= 1) || sorted[0];
+    base = episodeBase(addon, type, meta, ep, sorted); id = ep.id;
+  }
+  if (!(await autoPlay(type, id, meta.name, base))) openDetail(addon, type, item);
 }
 function sortByLang(ss){
   if (settings.audioLang === 'any') return ss;
@@ -2889,6 +3013,7 @@ async function loadStreams(type, id, box, title, base = {}){
     else if (!loading && !total && !listEl.querySelector('.msg')) listEl.append(h('p', {class:'spin'}, 'No streams found.'));
   };
   draw();
+  const doneAll = () => { if (type === 'movie' && base.info) noteTheaters(base.info.item, groups.flatMap(g => g.ss || [])); };
   await Promise.all(groups.map(async g => {
     try {
       const r = await getJSON(`${g.a.base}/stream/${type}/${enc(g.sid)}.json`);
@@ -2896,6 +3021,7 @@ async function loadStreams(type, id, box, title, base = {}){
     } catch (e) { g.err = e.message || 'failed'; }
     draw();
   }));
+  doneAll();
 }
 
 /* ---------- player (subtitles + audio) ---------- */
@@ -3047,6 +3173,7 @@ async function playStream(s, title, ctx){
 $('#vid').addEventListener('error', () => toast("Couldn't play that stream."));
 let lastSave = 0;
 
+const vName = n => 'v1.0.' + n;                                           // build number shown as a version
 /* ---------- in-app updates (Android app only): compares the installed build with the "apk-latest" release ---------- */
 const UPD_REPO = 'fredderickrosario-hue/Streamlet';
 const UPD_APK = FLAVOR === 'phone' ? `https://github.com/${UPD_REPO}/releases/download/apk-latest-phone/Streamlet-phone.apk` : `https://github.com/${UPD_REPO}/releases/download/apk-latest/Streamlet.apk`;
@@ -3079,8 +3206,8 @@ function showUpdState(){
   if (!updInfo) return;
   $('#tabSettings').classList.toggle('upd', !!updInfo.newer);
   inst.hidden = !updInfo.newer;
-  if (updInfo.newer) { inst.textContent = `Install build ${updInfo.latest}`; inst.onclick = runUpdate; msg.textContent = `Installed: build ${updInfo.cur}. Build ${updInfo.latest} is available.`; }
-  else msg.textContent = `You're up to date (build ${updInfo.cur}).`;
+  if (updInfo.newer) { inst.textContent = `Install ${vName(updInfo.latest)}`; inst.onclick = runUpdate; msg.textContent = `Installed: ${vName(updInfo.cur)}. ${vName(updInfo.latest)} is available.`; }
+  else msg.textContent = `You're up to date (${vName(updInfo.cur)}).`;
 }
 async function manualCheck(){
   const msg = $('#apkMsg'); msg.textContent = 'Checking…';
@@ -3584,7 +3711,7 @@ try { if (window.tizen && tizen.tvinputdevice) ['MediaPlayPause','MediaPlay','Me
 
 const FOCUSABLE = 'a[href],button:not([disabled]),input:not([type=hidden]):not([disabled]),select:not([disabled]),textarea:not([disabled]),summary,[tabindex]:not([tabindex="-1"])';
 function ctxRoot(){
-  for (const id of ['#exitDlg', '#menu', '#ppanel', '#player', '#addonEd', '#profEd', '#spaceEd', '#episode', '#detail']) { const e = $(id); if (e && !e.hidden) return e; }
+  for (const id of ['#loadov', '#exitDlg', '#menu', '#ppanel', '#player', '#addonEd', '#profEd', '#spaceEd', '#episode', '#detail']) { const e = $(id); if (e && !e.hidden) return e; }
   return document.body;
 }
 function focusables(root){
@@ -3600,6 +3727,19 @@ function focusNav(){
   const b = $('#nav button.on:not(.gone)') || $('#tabHome');
   if (b) { b.focus({preventScroll:true}); return true; }
   return false;
+}
+/* TV rows: Up / Down go to the next row and land on its first item (a short row can't make you skip one). Sideways never leaves the row. */
+const ROW_SEL = '.strip,.dacts2,.srow,.sfilter,.eplist,.slist,.cchips,.dsim,.tbtns,.dptabs';
+function moveRow(dir, list, cur){
+  const mine = cur.closest(ROW_SEL); if (!mine) return null;
+  const seen = new Set(), rows = [];
+  for (const el of list) {
+    const k = el.closest(ROW_SEL) || el; if (seen.has(k)) continue; seen.add(k);
+    const r = el.getBoundingClientRect(); rows.push({k, y:(r.top + r.bottom) / 2, first:el});
+  }
+  const cr = cur.getBoundingClientRect(), cy = (cr.top + cr.bottom) / 2;
+  const cand = rows.filter(r => r.k !== mine && (dir === 'down' ? r.y > cy + 8 : r.y < cy - 8)).sort((p, q) => dir === 'down' ? p.y - q.y : q.y - p.y)[0];
+  return cand ? cand.first : null;
 }
 function moveFocus(dir, rep){
   const root = ctxRoot(); let list = focusables(root); const cur = document.activeElement;
@@ -3617,6 +3757,11 @@ function moveFocus(dir, rep){
     } else list = list.filter(e => !e.closest('#nav'));
   }
   if (!cur || cur === document.body || !list.includes(cur)) { const f = firstFocus(root, list); if (f) f.focus({preventScroll:true}); return; }
+  const entryTV = document.body.classList.contains('tv') && (root.id === 'detail' || root.id === 'episode');
+  if ((dir === 'up' || dir === 'down') && !inNav && document.body.classList.contains('tv')) {
+    const t = moveRow(dir, list, cur);
+    if (t) { t.focus({preventScroll:true}); if (root === document.body) revealEl(t, dir, rep, tv, null); else revealEl(t, dir, rep, false, null); return; }
+  }
   const a = cur.getBoundingClientRect(), ax = (a.left + a.right) / 2, ay = (a.top + a.bottom) / 2;
   let best = null, bs = Infinity;
   for (const el of list) {
@@ -3627,7 +3772,7 @@ function moveFocus(dir, rep){
       if (dir === 'right' ? !(cx > ax + 1 && r.right > a.right) : !(cx < ax - 1 && r.left < a.left)) continue;
       prim = dir === 'right' ? Math.max(0, r.left - a.right) : Math.max(0, a.left - r.right);
       gap = Math.max(0, Math.max(a.top, r.top) - Math.min(a.bottom, r.bottom)); off = Math.abs(cy - ay);
-      if (tv && gap > 2) continue;                       // never jump to another row sideways
+      if ((tv || entryTV) && gap > 2) continue;           // never jump to another row sideways
     } else {
       if (dir === 'down' ? !(cy > ay + 1 && r.bottom > a.bottom) : !(cy < ay - 1 && r.top < a.top)) continue;
       prim = dir === 'down' ? Math.max(0, r.top - a.bottom) : Math.max(0, a.top - r.bottom);
@@ -3657,16 +3802,16 @@ function tvEntryReveal(el, lock){
   if (!p2) return;
   const dp = el.closest('.dp2'), row = el.closest('.drow'), dr = dp.getBoundingClientRect(), k = dr.height / (dp.offsetHeight || dr.height) || 1;
   if (row) {
-    if (row === dp.querySelector('.drow')) dp.scrollTop = 0;
-    else dp.scrollTop += (row.getBoundingClientRect().top - dr.top - 70 * k) / k;
+    const want = row === dp.querySelector('.drow') ? 0 : dp.scrollTop + (row.getBoundingClientRect().top - dr.top - 74 * k) / k;
+    dp.scrollTo({top:Math.max(0, want), behavior:'smooth'});
   }
-  const hs = el.closest('.srow,.sfilter,.eplist,.slist,.dsim');
+  const hs = el.closest('.srow,.sfilter,.eplist,.slist,.dsim,.cchips');
   if (hs) {
     const item = el.closest('.srow > *, .sfilter > *, .eplist > *, .slist > *, .dsim > *') || el, sr = hs.getBoundingClientRect(), br = item.getBoundingClientRect(), kk = sr.width / (hs.offsetWidth || sr.width) || 1, m = 70 * kk;
-    if (item === hs.firstElementChild) hs.scrollLeft = 0;
-    else if (item === hs.lastElementChild) hs.scrollLeft = 1e7;
-    else if (br.right > sr.right - m) hs.scrollLeft += (br.right - (sr.right - m)) / kk;
-    else if (br.left < sr.left + m) hs.scrollLeft -= (sr.left + m - br.left) / kk;
+    if (item === hs.firstElementChild) hs.scrollTo({left:0, behavior:'smooth'});
+    else if (item === hs.lastElementChild) hs.scrollTo({left:1e7, behavior:'smooth'});
+    else if (br.right > sr.right - m) hs.scrollTo({left:hs.scrollLeft + (br.right - (sr.right - m)) / kk, behavior:'smooth'});
+    else if (br.left < sr.left + m) hs.scrollTo({left:hs.scrollLeft - (sr.left + m - br.left) / kk, behavior:'smooth'});
   }
 }
 function revealEl(el, dir, rep, tv, edge){
@@ -4011,6 +4156,7 @@ $('#pseek').addEventListener('click', e => { const v = $('#vid'), r = e.currentT
 
 /* ---------- boot ---------- */
 history.replaceState({guard:true}, '');
+try { const N = nativePlayer(); if (N && N.setBlackBg) N.setBlackBg({on:lsGet('streamlet.ui', {}).blackBg !== false}); } catch {}
 initProfiles();
 startAuth();
 </script>

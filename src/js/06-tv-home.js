@@ -22,7 +22,7 @@ function setTvHero(ctx, instant){
     h('div', {class:'tmeta'}, m.imdbRating ? h('span', {class:'timdb'}, '★ ' + m.imdbRating) : null, ...bits.map(x => h('span', null, String(x)))),
     m.description ? h('p', {class:'tdesc'}, m.description) : null,
     h('div', {class:'tbtns'},
-      h('button', {class:'hb p', type:'button', onclick:() => openDetail(ctx.a, ctx.type, m)}, '▶  Play'),
+      h('button', {class:'hb p', type:'button', onclick:() => quickPlay(ctx.a, ctx.type, m)}, '▶  Play'),
       h('button', {class:'hb s', type:'button', onclick:() => openDetail(ctx.a, ctx.type, m)}, 'More info')));
 }
 document.addEventListener('focusin', e => {

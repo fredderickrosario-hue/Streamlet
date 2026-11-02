@@ -116,6 +116,14 @@ public class ExoPlayerPlugin extends Plugin {
         });
     }
 
+    /** setting "Pure black background" */
+    @PluginMethod
+    public void setBlackBg(final PluginCall call) {
+        final boolean on = call.getBoolean("on", true);
+        getContext().getSharedPreferences("streamlet_player", Context.MODE_PRIVATE).edit().putBoolean("blackbg", on).apply();
+        getActivity().runOnUiThread(() -> { MainActivity.applyBg(getActivity(), on); call.resolve(); });
+    }
+
     @PluginMethod
     public void clearLog(PluginCall call) { AppLog.clear(); call.resolve(); }
 

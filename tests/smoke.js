@@ -92,6 +92,24 @@ const ok = (name, cond, extra) => { cond ? pass++ : fail++; console.log((cond ? 
       return { r, got, manual: !!(manualSources && true) };
     });
     ok('Play picks the best source and keeps the rest as fallbacks', ap.r === true && JSON.stringify(ap.got) === JSON.stringify([['1080p', 2]]), JSON.stringify(ap));
+    // duplicates, release labels
+    const dd = await p.evaluate(() => {
+      const list = [{ m: { name: 'Tinker Bell', releaseInfo: '2008' }, type: 'movie' }, { m: { name: 'Tinker  Bell', year: 2008, poster: 'p.jpg' }, type: 'movie' }, { m: { name: 'Tinker Bell', releaseInfo: '2014' }, type: 'movie' }];
+      const out = dedupeList(list, x => x.m, x => x.type);
+      lsSet('streamlet.ui', { showUpcoming: true });
+      const fut = relState({ id: 'a', name: 'X', released: new Date(Date.now() + 5 * 864e5).toISOString() }, 'movie');
+      const old = relState({ id: 'b', name: 'Y', released: '2010-01-01' }, 'movie');
+      noteTheaters({ id: 'c', type: 'movie', released: new Date(Date.now() - 20 * 864e5).toISOString() }, [{ url: 'x', name: 'Movie.2026.HDCAM' }]);
+      const th = relState({ id: 'c', type: 'movie', name: 'Z' }, 'movie');
+      noteTheaters({ id: 'c', type: 'movie', released: new Date(Date.now() - 20 * 864e5).toISOString() }, [{ url: 'x', name: 'Movie 1080p WEB-DL' }]);
+      const gone = relState({ id: 'c', type: 'movie', name: 'Z' }, 'movie');
+      lsSet('streamlet.ui', { showUpcoming: false });
+      const hidden = visibleMeta({ id: 'a', name: 'X', released: new Date(Date.now() + 5 * 864e5).toISOString() }, 'movie');
+      lsSet('streamlet.ui', {});
+      return { n: out.length, first: out[0].m.poster || '', fut, old, th, gone, hidden };
+    });
+    ok('same movie from two addons shows once (poster wins)', dd.n === 2 && dd.first === 'p.jpg', JSON.stringify(dd));
+    ok('upcoming and in-theater labels (recordings do not count as released)', dd.fut === 'upcoming' && dd.old === null && dd.th === 'theaters' && dd.gone === null && dd.hidden === false, JSON.stringify(dd));
     // spaces page
     const sp = await p.evaluate(() => { spaces = [{ id: 'a', name: 'A', emoji: '🍿', theme: 'violet', catalogs: [] }, { id: 'b', name: 'B', emoji: '🎌', theme: 'rose', catalogs: [] }]; showLauncher(); return document.querySelectorAll('.stile:not(.new)').length; });
     ok('spaces page shows every space', sp === 2, sp);

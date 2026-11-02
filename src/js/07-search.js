@@ -33,7 +33,17 @@ function searchVariants(q){
   if (!n.includes(' ') && n.length >= 7) out.push(n.slice(0, Math.max(5, Math.round(n.length * .6))));   // "tinkerbell" -> "tinker"
   return [...new Set(out.filter(x => x.length >= 2))].slice(0, 3);
 }
-const rankResults = items => [...items.values()].filter(x => x.score >= .36 || (x.exact && x.score >= .25)).sort((x, y) => (y.score - x.score) || (x.rank - y.rank));
+/* the same film found through two addons (different ids) shows once; the entry with a poster wins */
+function dedupeList(list, getM, getType){
+  const seen = new Map(), out = [];
+  for (const it of list) {
+    const m = getM(it), k = (getType(it) || '') + '|' + normTitle(m.name) + '|' + yearOf(m), prev = seen.get(k);
+    if (!prev) { seen.set(k, it); out.push(it); }
+    else if (!getM(prev).poster && m.poster) { out[out.indexOf(prev)] = it; seen.set(k, it); }
+  }
+  return out;
+}
+const rankResults = items => dedupeList([...items.values()].filter(x => x.score >= .36 || (x.exact && x.score >= .25)).filter(x => visibleMeta(x.m, x.type)).sort((x, y) => (y.score - x.score) || (x.rank - y.rank)), x => x.m, x => x.type);
 const peopleOf = m => [].concat(m.cast || [], m.director || [], m.writer || [], (m.links || []).filter(l => /^(cast|director|writers?)$/i.test(l.category || '')).map(l => l.name))
   .flatMap(x => typeof x === 'string' ? x.split(/\s*,\s*/) : []).map(normQ).filter(Boolean);
 function relevance(query, m){                                             // title closeness, or a person / genre match for names and tags
@@ -150,7 +160,7 @@ async function renderHome(query = $('#q').value.trim(), target){
     sec.append(loading); box.append(sec);
     jobs.push(getJSON(`${a.base}/${path}`).then(r => {
       if (tok!==homeTok) return;
-      const metas = (r.metas||[]);
+      const metas = (r.metas||[]).filter(x => visibleMeta(x, x.type || cat.type));
       if (!metas.length) { sec.remove(); return; }
       shown++; loading.remove();
       if (!heroDone && !query && heroBox.isConnected) {

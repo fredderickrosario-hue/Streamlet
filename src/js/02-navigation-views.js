@@ -31,7 +31,24 @@ function popLayer(name){
   if (i < 0) return;
   history.go(-(layersOpen.length - i));
 }
+/* "Finding the best source…" screen: Back or Cancel stops it */
+let loadCancelled = false, loadFinishing = false;
+function showLoading(title){
+  loadCancelled = false; $('#loadmsg').textContent = title ? 'Finding the best source for ' + title + '…' : 'Finding the best source…';
+  $('#loadov').hidden = false; if (!layersOpen.includes('load')) pushLayer('load');
+  setTimeout(() => { const b = $('#loadcancel'); if (b && !$('#loadov').hidden) b.focus({preventScroll:true}); }, 30);
+}
+function hideLoading(){                                                     // resolves once the Back stack has settled, so the player can open right after
+  return new Promise(res => {
+    if (!layersOpen.includes('load')) { $('#loadov').hidden = true; return res(); }
+    loadFinishing = true; const t = setTimeout(() => { loadFinishing = false; res(); }, 500);
+    addEventListener('popstate', () => { clearTimeout(t); setTimeout(() => { loadFinishing = false; res(); }, 30); }, {once:true});
+    popLayer('load');
+  });
+}
+$('#loadcancel').onclick = () => { if (layersOpen.includes('load')) popLayer('load'); };
 const LAYER_CLOSERS = {
+  load:   () => { $('#loadov').hidden = true; if (!loadFinishing) loadCancelled = true; },
   panel:  () => { $('#ppanel').hidden = true; $('#pback').hidden = true; showBar(); },
   player: () => stopPlayer(),
   detail: () => { $('#detail').hidden = true; document.body.style.overflow = ''; if (!$('#home').hidden) renderCW(); },

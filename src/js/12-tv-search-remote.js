@@ -49,7 +49,7 @@ try { if (window.tizen && tizen.tvinputdevice) ['MediaPlayPause','MediaPlay','Me
 
 const FOCUSABLE = 'a[href],button:not([disabled]),input:not([type=hidden]):not([disabled]),select:not([disabled]),textarea:not([disabled]),summary,[tabindex]:not([tabindex="-1"])';
 function ctxRoot(){
-  for (const id of ['#exitDlg', '#menu', '#ppanel', '#player', '#addonEd', '#profEd', '#spaceEd', '#episode', '#detail']) { const e = $(id); if (e && !e.hidden) return e; }
+  for (const id of ['#loadov', '#exitDlg', '#menu', '#ppanel', '#player', '#addonEd', '#profEd', '#spaceEd', '#episode', '#detail']) { const e = $(id); if (e && !e.hidden) return e; }
   return document.body;
 }
 function focusables(root){
@@ -65,6 +65,19 @@ function focusNav(){
   const b = $('#nav button.on:not(.gone)') || $('#tabHome');
   if (b) { b.focus({preventScroll:true}); return true; }
   return false;
+}
+/* TV rows: Up / Down go to the next row and land on its first item (a short row can't make you skip one). Sideways never leaves the row. */
+const ROW_SEL = '.strip,.dacts2,.srow,.sfilter,.eplist,.slist,.cchips,.dsim,.tbtns,.dptabs';
+function moveRow(dir, list, cur){
+  const mine = cur.closest(ROW_SEL); if (!mine) return null;
+  const seen = new Set(), rows = [];
+  for (const el of list) {
+    const k = el.closest(ROW_SEL) || el; if (seen.has(k)) continue; seen.add(k);
+    const r = el.getBoundingClientRect(); rows.push({k, y:(r.top + r.bottom) / 2, first:el});
+  }
+  const cr = cur.getBoundingClientRect(), cy = (cr.top + cr.bottom) / 2;
+  const cand = rows.filter(r => r.k !== mine && (dir === 'down' ? r.y > cy + 8 : r.y < cy - 8)).sort((p, q) => dir === 'down' ? p.y - q.y : q.y - p.y)[0];
+  return cand ? cand.first : null;
 }
 function moveFocus(dir, rep){
   const root = ctxRoot(); let list = focusables(root); const cur = document.activeElement;
@@ -82,6 +95,11 @@ function moveFocus(dir, rep){
     } else list = list.filter(e => !e.closest('#nav'));
   }
   if (!cur || cur === document.body || !list.includes(cur)) { const f = firstFocus(root, list); if (f) f.focus({preventScroll:true}); return; }
+  const entryTV = document.body.classList.contains('tv') && (root.id === 'detail' || root.id === 'episode');
+  if ((dir === 'up' || dir === 'down') && !inNav && document.body.classList.contains('tv')) {
+    const t = moveRow(dir, list, cur);
+    if (t) { t.focus({preventScroll:true}); if (root === document.body) revealEl(t, dir, rep, tv, null); else revealEl(t, dir, rep, false, null); return; }
+  }
   const a = cur.getBoundingClientRect(), ax = (a.left + a.right) / 2, ay = (a.top + a.bottom) / 2;
   let best = null, bs = Infinity;
   for (const el of list) {
@@ -92,7 +110,7 @@ function moveFocus(dir, rep){
       if (dir === 'right' ? !(cx > ax + 1 && r.right > a.right) : !(cx < ax - 1 && r.left < a.left)) continue;
       prim = dir === 'right' ? Math.max(0, r.left - a.right) : Math.max(0, a.left - r.right);
       gap = Math.max(0, Math.max(a.top, r.top) - Math.min(a.bottom, r.bottom)); off = Math.abs(cy - ay);
-      if (tv && gap > 2) continue;                       // never jump to another row sideways
+      if ((tv || entryTV) && gap > 2) continue;           // never jump to another row sideways
     } else {
       if (dir === 'down' ? !(cy > ay + 1 && r.bottom > a.bottom) : !(cy < ay - 1 && r.top < a.top)) continue;
       prim = dir === 'down' ? Math.max(0, r.top - a.bottom) : Math.max(0, a.top - r.bottom);
@@ -122,16 +140,16 @@ function tvEntryReveal(el, lock){
   if (!p2) return;
   const dp = el.closest('.dp2'), row = el.closest('.drow'), dr = dp.getBoundingClientRect(), k = dr.height / (dp.offsetHeight || dr.height) || 1;
   if (row) {
-    if (row === dp.querySelector('.drow')) dp.scrollTop = 0;
-    else dp.scrollTop += (row.getBoundingClientRect().top - dr.top - 70 * k) / k;
+    const want = row === dp.querySelector('.drow') ? 0 : dp.scrollTop + (row.getBoundingClientRect().top - dr.top - 74 * k) / k;
+    dp.scrollTo({top:Math.max(0, want), behavior:'smooth'});
   }
-  const hs = el.closest('.srow,.sfilter,.eplist,.slist,.dsim');
+  const hs = el.closest('.srow,.sfilter,.eplist,.slist,.dsim,.cchips');
   if (hs) {
     const item = el.closest('.srow > *, .sfilter > *, .eplist > *, .slist > *, .dsim > *') || el, sr = hs.getBoundingClientRect(), br = item.getBoundingClientRect(), kk = sr.width / (hs.offsetWidth || sr.width) || 1, m = 70 * kk;
-    if (item === hs.firstElementChild) hs.scrollLeft = 0;
-    else if (item === hs.lastElementChild) hs.scrollLeft = 1e7;
-    else if (br.right > sr.right - m) hs.scrollLeft += (br.right - (sr.right - m)) / kk;
-    else if (br.left < sr.left + m) hs.scrollLeft -= (sr.left + m - br.left) / kk;
+    if (item === hs.firstElementChild) hs.scrollTo({left:0, behavior:'smooth'});
+    else if (item === hs.lastElementChild) hs.scrollTo({left:1e7, behavior:'smooth'});
+    else if (br.right > sr.right - m) hs.scrollTo({left:hs.scrollLeft + (br.right - (sr.right - m)) / kk, behavior:'smooth'});
+    else if (br.left < sr.left + m) hs.scrollTo({left:hs.scrollLeft - (sr.left + m - br.left) / kk, behavior:'smooth'});
   }
 }
 function revealEl(el, dir, rep, tv, edge){

@@ -114,7 +114,8 @@ async function findSimilar(a, type, meta){
     }).catch(() => {}));
   }
   await Promise.all(jobs);
-  return [...out.values()].filter(x => x.score >= .45).sort((x, y) => y.score - x.score).slice(0, 30);
+  const me = normTitle(meta.name) + '|' + yearOf(meta);
+  return dedupeList([...out.values()].filter(x => x.score >= .45 && visibleMeta(x.m, x.type)).sort((x, y) => y.score - x.score), x => x.m, x => x.type).filter(x => normTitle(x.m.name) + '|' + yearOf(x.m) !== me).slice(0, 30);
 }
 function similarPane(pane, a, type, meta){
   pane.replaceChildren(h('p', {class:'spin', style:'padding:10px 0'}, 'Finding similar titles…'));
@@ -196,7 +197,7 @@ function openEpisode(addon, type, meta, v, sorted, again){
           (v.overview || v.description) ? h('p', {class:'ddesc'}, v.overview || v.description) : null,
           h('div', {class:'dacts2'}, play),
           hintEl()),
-        tvRowsFor(addon, type, meta, 'Sources', [resumeButton(saved, base), streamsBox], {sim:false, rows:[h('section', {class:'drow'}, h('h3', {class:'drt'}, 'Season ' + sn), others)]}))));
+        tvRowsFor(addon, type, meta, 'Sources', [streamsBox], {sim:false, rows:[h('section', {class:'drow'}, h('h3', {class:'drt'}, 'Season ' + sn), others)]}))));
     manualSources(streamsBox, () => loadStreams(type, v.id, streamsBox, meta.name, base));
     return;
   }
@@ -223,7 +224,7 @@ async function openDetail(addon, type, item, opts = {}){
     const keep = d.scrollTop;
     const vids = type === 'series' && Array.isArray(meta.videos) ? meta.videos.filter(v => v && v.id) : [];
     const sorted = [...vids].sort((x, y) => ((x.season ?? 1) - (y.season ?? 1)) || ((x.episode ?? 0) - (y.episode ?? 0)));
-    const base = {info:{item:{id:meta.id, type, name:meta.name, poster:meta.poster, background:meta.background}, addonId:addon.uid},
+    const base = {info:{item:{id:meta.id, type, name:meta.name, poster:meta.poster, background:meta.background, released:meta.released, releaseInfo:meta.releaseInfo}, addonId:addon.uid},
       alt:[meta.behaviorHints && meta.behaviorHints.defaultVideoId, meta.imdb_id].filter(x => x && x !== meta.id)};
     const ico = toggleIcons(addon, type, meta), yt = trailerOf(meta);
     const top = h('div', {class:'dtop'}, iconBtn(IC.back, 'Back', close), titleMini(meta), ico.wl);
@@ -231,7 +232,7 @@ async function openDetail(addon, type, item, opts = {}){
     const ph = el => { if (el) el.classList.add('dphone'); return el; };
     const acts = h('div', {class:'dacts2'});
     const body = h('div', {class:'dbody'}, h('div', {class:'dleft'},
-      titleBlock(meta),
+      titleBlock(meta), relBadgeEl(meta, type),
       metaRow([meta.runtime, isTVui() ? genres.slice(0, 3).join(', ') : null, meta.year || meta.releaseInfo], meta.imdbRating, [ico.seen]),
       meta.description ? h('p', {class:'ddesc'}, meta.description) : null,
       acts, infoPanel(meta, genres), isTVui() ? hintEl() : null,
@@ -253,8 +254,9 @@ async function openDetail(addon, type, item, opts = {}){
       draw(); body.append(isTVui() ? tvRows('Episodes', [srow, list]) : h('div', {class:'dsec dright'}, ...rightTabs('Episodes', [srow, list], pane => similarPane(pane, addon, type, meta))));
     } else if (withStreams) {                                              // ---- movie / single title: streams right here
       const box = h('div', {class:'dbox'}), saved = histGet().find(x => x.k === `${type}|${meta.id}`);
-      body.append(isTVui() ? tvRows('Sources', [resumeButton(saved, base), box]) : h('div', {class:'dsec dright'}, ...rightTabs('Sources', [resumeButton(saved, base), box], pane => similarPane(pane, addon, type, meta))));
+      body.append(isTVui() ? tvRows('Sources', [box]) : h('div', {class:'dsec dright'}, ...rightTabs('Sources', [resumeButton(saved, base), box], pane => similarPane(pane, addon, type, meta))));
       manualSources(box, () => loadStreams(type, meta.id, box, meta.name, base));
+      if (autoPickOn() && type === 'movie' && recentRelease(meta)) collectStreams(type, meta.id, base, 2500).then(o => { if (o) noteTheaters(base.info.item, o); }).catch(() => {});
     }
     const rs0 = histGet().find(x => x.itemId === meta.id && !x.upnext);
     acts.append(h('button', {class:'hb p', type:'button', onclick:async () => {
@@ -323,19 +325,45 @@ function rankStreams(all, itemId){                                    // best fi
   return all.filter(x => x && x.url && !isBadStream(x)).map((x, i) => [x, key(x), i]).sort((a, b) => { for (let k = 0; k < a[1].length; k++) if (a[1][k] !== b[1][k]) return a[1][k] - b[1][k]; return a[2] - b[2]; }).map(x => x[0]);
 }
 /* asks every stream addon; waits up to 4 s for the slow ones once something has arrived */
-async function autoPlay(type, id, title, base, then){
+async function collectStreams(type, id, base, soft = 4000){
   const cands = [id, ...(base.alt || [])];
   const srcs = streamPool().map(a => ({a, sid:cands.find(c => supports(a, 'stream', type, c))})).filter(x => x.sid);
-  if (!srcs.length) { toast('No stream addon for this title.'); return false; }
-  toast('Finding the best source…');
+  if (!srcs.length) return null;
   const out = [];
   const jobs = Promise.all(srcs.map(async ({a, sid}) => { try { const r = await getJSON(`${a.base}/stream/${type}/${enc(sid)}.json`); out.push(...(r.streams || [])); } catch {} }));
-  await Promise.race([jobs, new Promise(r => setTimeout(r, 4000))]);
+  await Promise.race([jobs, new Promise(r => setTimeout(r, soft))]);
   if (!out.length) await jobs;
+  return out;
+}
+async function autoPlay(type, id, title, base){
+  showLoading(title);
+  const out = await collectStreams(type, id, base);
+  if (out && type === 'movie' && base.info) noteTheaters(base.info.item, out);
+  if (loadCancelled) { return true; }                                   // backed out while waiting
+  if (!out) { await hideLoading(); toast('No stream addon for this title.'); return false; }
   const ranked = rankStreams(sortByLang(out), base.info && base.info.item.id);
+  await hideLoading();
   if (!ranked.length) { toast('No playable source found.'); return false; }
   playStream(ranked[0], title, {type, id, ...base, _list:ranked});
   return true;
+}
+/* the hero's Play button: with auto-pick on it starts the best source straight away (More info opens the page) */
+async function quickPlay(addon, type, item){
+  if (!autoPickOn() || !profile) return openDetail(addon, type, item);
+  showLoading(item.name);
+  let meta = {...item};
+  try { const ma = supports(addon, 'meta', type, item.id) ? addon : addons.find(x => supports(x, 'meta', type, item.id)); if (ma) { const r = await getJSON(`${ma.base}/meta/${type}/${enc(item.id)}.json`); meta = {...item, ...r.meta}; } } catch {}
+  if (loadCancelled) return;
+  let id = meta.id, base = {info:{item:{id:meta.id, type, name:meta.name, poster:meta.poster, background:meta.background, released:meta.released, releaseInfo:meta.releaseInfo}, addonId:addon.uid},
+    alt:[meta.behaviorHints && meta.behaviorHints.defaultVideoId, meta.imdb_id].filter(x => x && x !== meta.id)};
+  if (type === 'series') {
+    const sorted = (Array.isArray(meta.videos) ? meta.videos.filter(v => v && v.id) : []).sort((x, y) => ((x.season ?? 1) - (y.season ?? 1)) || ((x.episode ?? 0) - (y.episode ?? 0)));
+    if (!sorted.length) { await hideLoading(); return openDetail(addon, type, item); }
+    const rs0 = histGet().find(x => x.itemId === meta.id && !x.upnext);
+    const ep = (rs0 && sorted.find(v => v.id === rs0.id)) || sorted.find(v => (v.season ?? 1) >= 1) || sorted[0];
+    base = episodeBase(addon, type, meta, ep, sorted); id = ep.id;
+  }
+  if (!(await autoPlay(type, id, meta.name, base))) openDetail(addon, type, item);
 }
 function sortByLang(ss){
   if (settings.audioLang === 'any') return ss;
@@ -382,6 +410,7 @@ async function loadStreams(type, id, box, title, base = {}){
     else if (!loading && !total && !listEl.querySelector('.msg')) listEl.append(h('p', {class:'spin'}, 'No streams found.'));
   };
   draw();
+  const doneAll = () => { if (type === 'movie' && base.info) noteTheaters(base.info.item, groups.flatMap(g => g.ss || [])); };
   await Promise.all(groups.map(async g => {
     try {
       const r = await getJSON(`${g.a.base}/stream/${type}/${enc(g.sid)}.json`);
@@ -389,5 +418,6 @@ async function loadStreams(type, id, box, title, base = {}){
     } catch (e) { g.err = e.message || 'failed'; }
     draw();
   }));
+  doneAll();
 }
 

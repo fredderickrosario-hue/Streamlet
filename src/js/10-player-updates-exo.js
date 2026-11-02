@@ -147,6 +147,7 @@ async function playStream(s, title, ctx){
 $('#vid').addEventListener('error', () => toast("Couldn't play that stream."));
 let lastSave = 0;
 
+const vName = n => 'v1.0.' + n;                                           // build number shown as a version
 /* ---------- in-app updates (Android app only): compares the installed build with the "apk-latest" release ---------- */
 const UPD_REPO = 'fredderickrosario-hue/Streamlet';
 const UPD_APK = FLAVOR === 'phone' ? `https://github.com/${UPD_REPO}/releases/download/apk-latest-phone/Streamlet-phone.apk` : `https://github.com/${UPD_REPO}/releases/download/apk-latest/Streamlet.apk`;
@@ -179,8 +180,8 @@ function showUpdState(){
   if (!updInfo) return;
   $('#tabSettings').classList.toggle('upd', !!updInfo.newer);
   inst.hidden = !updInfo.newer;
-  if (updInfo.newer) { inst.textContent = `Install build ${updInfo.latest}`; inst.onclick = runUpdate; msg.textContent = `Installed: build ${updInfo.cur}. Build ${updInfo.latest} is available.`; }
-  else msg.textContent = `You're up to date (build ${updInfo.cur}).`;
+  if (updInfo.newer) { inst.textContent = `Install ${vName(updInfo.latest)}`; inst.onclick = runUpdate; msg.textContent = `Installed: ${vName(updInfo.cur)}. ${vName(updInfo.latest)} is available.`; }
+  else msg.textContent = `You're up to date (${vName(updInfo.cur)}).`;
 }
 async function manualCheck(){
   const msg = $('#apkMsg'); msg.textContent = 'Checking…';
