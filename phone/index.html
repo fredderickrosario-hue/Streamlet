@@ -422,6 +422,12 @@ body:not(.tv).onhome:not(.launch) #tabsBar{position:fixed;top:calc(58px + env(sa
 body:not(.tv).onhome.scr:not(.launch) #tabsBar,body:not(.tv).onhome.srch:not(.launch) #tabsBar{opacity:1;visibility:visible;background:color-mix(in srgb,var(--bg) 95%,#000);padding-top:2px}
 body:not(.tv).onhome.tbhide:not(.srch):not(.launch) #tabsBar{transform:translateY(-160%);opacity:0;pointer-events:none}
 body:not(.tv):not(.onhome) #spaceBtn{display:none}
+/* tabs: compact soft chips, one dark block with the logo bar */
+body:not(.tv).onhome.scr:not(.launch) #phBar{box-shadow:none}
+body:not(.tv).onhome:not(.launch) #tabsBar{padding:0 14px 10px}
+body:not(.tv).onhome.scr:not(.launch) #tabsBar{box-shadow:0 10px 22px rgba(0,0,0,.35)}
+body:not(.tv).onhome:not(.launch) #tabsBar .chip{flex:0 0 auto;height:34px;padding:0 16px;display:inline-flex;align-items:center;font-size:14px;font-weight:650;border:0;border-radius:17px;background:rgba(255,255,255,.11);box-shadow:none;-webkit-backdrop-filter:none;backdrop-filter:none}
+body:not(.tv).onhome:not(.launch) #tabsBar .chip.on{background:linear-gradient(135deg,var(--acc),var(--acc2));color:var(--btnt,#fff);box-shadow:none}
 /* search: one dark bar with a soft rounded field, no heavy outline */
 body:not(.tv).onhome.srch:not(.launch) #phBar{box-shadow:none}
 body:not(.tv).onhome.srch:not(.launch) #tabsBar{padding:0 14px 12px;box-shadow:0 10px 22px rgba(0,0,0,.35)}
