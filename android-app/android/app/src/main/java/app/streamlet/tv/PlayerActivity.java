@@ -9,7 +9,9 @@ import android.graphics.Canvas;
 import android.graphics.Rect;
 import android.graphics.Paint;
 import android.graphics.RectF;
+import android.view.animation.Animation;
 import android.view.animation.LinearInterpolator;
+import android.view.animation.RotateAnimation;
 import android.graphics.Color;
 import android.graphics.Typeface;
 import android.graphics.drawable.ClipDrawable;
@@ -469,30 +471,18 @@ public class PlayerActivity extends Activity {
         }
     }
 
-    /** buffering indicator: a short arc that grows and shrinks while it circles */
-    private class Spin extends View {
-        private final Paint pt = new Paint(Paint.ANTI_ALIAS_FLAG);
-        private final RectF rc = new RectF();
-        private final ValueAnimator va = ValueAnimator.ofFloat(0f, 1f);
+    /** buffering indicator: our logo ring with its plug (no play icon) turning counter-clockwise */
+    private class Spin extends ImageView {
+        private final RotateAnimation turn = new RotateAnimation(0f, -360f, Animation.RELATIVE_TO_SELF, .5f, Animation.RELATIVE_TO_SELF, .5f);
         Spin(Context c) {
             super(c);
-            pt.setStyle(Paint.Style.STROKE); pt.setStrokeCap(Paint.Cap.ROUND); pt.setStrokeWidth(dp(4)); pt.setColor(Color.WHITE);
-            va.setDuration(1400); va.setRepeatCount(ValueAnimator.INFINITE); va.setInterpolator(new LinearInterpolator());
-            va.addUpdateListener(a -> invalidate());
+            setImageResource(R.drawable.ld_logo);
+            setScaleType(ImageView.ScaleType.FIT_CENTER);
+            turn.setDuration(1500); turn.setRepeatCount(Animation.INFINITE); turn.setInterpolator(new LinearInterpolator());
         }
         @Override protected void onVisibilityChanged(View v, int vis) {
             super.onVisibilityChanged(v, vis);
-            if (vis == View.VISIBLE) { if (!va.isStarted()) va.start(); } else va.cancel();
-        }
-        @Override protected void onDetachedFromWindow() { va.cancel(); super.onDetachedFromWindow(); }
-        @Override protected void onDraw(Canvas cv) {
-            float t = va.isStarted() ? (float) va.getAnimatedValue() : 0f;
-            float pad = dp(5);
-            rc.set(pad, pad, getWidth() - pad, getHeight() - pad);
-            float sweep = 30f + 220f * (float) Math.abs(Math.sin(t * Math.PI));
-            float start = t * 720f - 90f;
-            pt.setAlpha(255);
-            cv.drawArc(rc, start, sweep, false, pt);
+            if (vis == View.VISIBLE) startAnimation(turn); else clearAnimation();
         }
     }
 
@@ -622,7 +612,7 @@ public class PlayerActivity extends Activity {
         // buffering spinner + quick seek flash
         spinner = new Spin(this);
         spinner.setVisibility(View.GONE);
-        root.addView(spinner, new FrameLayout.LayoutParams(dp(56), dp(56), Gravity.CENTER));
+        root.addView(spinner, new FrameLayout.LayoutParams(dp(96), dp(96), Gravity.CENTER));
         flashTx = text("", 22, true);
         flashTx.setPadding(dp(22), dp(12), dp(22), dp(12));
         flashTx.setBackground(shape(false, 0xAA000000, 0, 0, 30));

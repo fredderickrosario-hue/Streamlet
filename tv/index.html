@@ -536,8 +536,10 @@ nav button.upd{position:relative}
 nav button.upd::after{content:'';position:absolute;top:6px;right:calc(50% - 20px);width:9px;height:9px;border-radius:50%;background:var(--acc);box-shadow:0 0 0 2px #0e0f13,0 0 8px var(--acc)}
 body.tv nav button.upd::after{top:8px;left:34px;right:auto}
 @keyframes updspin{to{transform:rotate(360deg)}}
-.ilogo{width:min(46vmin,360px);height:auto;overflow:visible}
-.iword{margin-top:3vmin;font-size:clamp(28px,7vmin,64px);font-weight:800;letter-spacing:.5px;color:#fff;display:flex}
+.ilock{display:flex;align-items:center;gap:2vmin;position:relative}
+.ilogo{width:min(34vmin,290px);height:auto;overflow:visible;position:relative;z-index:2;flex:0 0 auto}
+.lgr{background:linear-gradient(90deg,#a98bff 0%,#a24bff 30%,#2fb6ff 72%,#16e0f2 100%);-webkit-background-clip:text;background-clip:text;color:transparent;-webkit-text-fill-color:transparent}
+.iword{font-size:clamp(32px,10vmin,96px);font-weight:800;letter-spacing:.5px;color:#fff;display:flex;position:relative;z-index:1;flex:0 0 auto}
 @keyframes idraw{to{stroke-dashoffset:0}}
 @keyframes ipop{to{opacity:1;transform:scale(1)}}
 @keyframes iplug{to{opacity:1;transform:translate(0,0) rotate(0)}}
@@ -760,6 +762,7 @@ body.tv{min-height:calc(var(--vh,1vh) * 100)}   /* 100vh is too tall once the TV
 </head>
 <body>
 <div id="intro">
+  <div class="ilock">
   <svg viewBox="0 0 1024 1024" class="ilogo" aria-hidden="true">
     <defs>
       <linearGradient id="ig1" gradientUnits="userSpaceOnUse" x1="230" y1="250" x2="790" y2="800"><stop offset="0" stop-color="#9a8cff"/><stop offset=".35" stop-color="#a24bff"/><stop offset=".72" stop-color="#2fb6ff"/><stop offset="1" stop-color="#16e0f2"/></linearGradient>
@@ -777,6 +780,7 @@ body.tv{min-height:calc(var(--vh,1vh) * 100)}   /* 100vh is too tall once the TV
     </g>
   </svg>
   <div class="iword" id="iword"></div>
+  </div>
 </div>
 <div id="offline" hidden>No internet connection</div>
 
@@ -3274,13 +3278,13 @@ const sfx = (() => {
   const ensure = () => {
     try {
       if (!ctx) {
-        ctx = new (window.AudioContext || window.webkitAudioContext)();
+        ctx = window.__sfxCtx || new (window.AudioContext || window.webkitAudioContext)();
         const lp = ctx.createBiquadFilter(), master = ctx.createGain();
         lp.type = 'lowpass'; lp.frequency.value = 1900; lp.Q.value = .4; master.gain.value = .9;
         lp.connect(master); master.connect(ctx.destination);
         bus = lp;
       }
-      if (ctx.state === 'suspended') ctx.resume();
+      if (ctx.state === 'suspended' && !window.__sfxCtx) ctx.resume();
     } catch {}
     return ctx;
   };
@@ -3302,20 +3306,68 @@ const sfx = (() => {
     for (let i = 0; i < n; i++) d[i] = Math.random() * 2 - 1;
     const src = c.createBufferSource(), f = c.createBiquadFilter(), g = c.createGain();
     src.buffer = buf; f.type = 'bandpass'; f.Q.value = .9;
-    f.frequency.setValueAtTime(200, t); f.frequency.exponentialRampToValueAtTime(1500, t + dur);
-    g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(vol, t + dur * .6); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    f.frequency.setValueAtTime(320, t); f.frequency.exponentialRampToValueAtTime(1700, t + dur);
+    g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(vol, t + dur * .28); g.gain.exponentialRampToValueAtTime(vol * .7, t + dur * .75); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
     src.connect(f); f.connect(g); g.connect(bus); src.start(t);
+  };
+  const snap = t0 => {                                               // a finger snap: sharp crack, a ringing "pop", a dull thump
+    const c = ensure(); if (!c) return;
+    const t = c.currentTime + t0, sr = c.sampleRate;
+    const noise = (dur, shape) => { const n = Math.floor(sr * dur), b = c.createBuffer(1, n, sr), d = b.getChannelData(0); for (let i = 0; i < n; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / n, shape); const s2 = c.createBufferSource(); s2.buffer = b; return s2; };
+    const crack = noise(.012, 2), hp = c.createBiquadFilter(), g1 = c.createGain();
+    hp.type = 'highpass'; hp.frequency.value = 1500; g1.gain.value = .32;
+    crack.connect(hp); hp.connect(g1); g1.connect(bus); crack.start(t);
+    const pop = noise(.09, 4), bp = c.createBiquadFilter(), g2 = c.createGain();
+    bp.type = 'bandpass'; bp.frequency.value = 1050; bp.Q.value = 3.2; g2.gain.value = 1.7;
+    pop.connect(bp); bp.connect(g2); g2.connect(bus); pop.start(t + .002);
+    const th = c.createOscillator(), g3 = c.createGain();
+    th.type = 'sine'; th.frequency.setValueAtTime(210, t); th.frequency.exponentialRampToValueAtTime(110, t + .1);
+    g3.gain.setValueAtTime(.0001, t); g3.gain.exponentialRampToValueAtTime(.26, t + .005); g3.gain.exponentialRampToValueAtTime(.0001, t + .13);
+    th.connect(g3); g3.connect(bus); th.start(t); th.stop(t + .16);
+  };
+  // the signature: a deep boom as the plug whips home, then a wide, warm chord that blooms, shimmers and fades slowly into the next screen (all synthesized, nothing sampled)
+  let hall = null;
+  const reverb = c => {                                              // a soft room: decaying noise as an impulse response
+    if (hall) return hall;
+    const len = Math.floor(c.sampleRate * 2.6), ir = c.createBuffer(2, len, c.sampleRate);
+    for (let ch = 0; ch < 2; ch++) { const d = ir.getChannelData(ch); for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 2.6) * (i ? 1 : 1); }
+    const lpIR = c.createBiquadFilter(); lpIR.type = 'lowpass'; lpIR.frequency.value = 1800;
+    hall = c.createConvolver(); hall.buffer = ir;
+    const wet = c.createGain(); wet.gain.value = .5; hall.connect(lpIR); lpIR.connect(wet); wet.connect(bus);
+    return hall;
+  };
+  const bloom = t0 => {
+    const c = ensure(); if (!c) return;
+    const t = c.currentTime + t0, room = reverb(c), out = c.createGain();
+    out.gain.value = .32; out.connect(bus); out.connect(room);
+    // the boom
+    const bo = c.createOscillator(), bg = c.createGain();
+    bo.type = 'sine'; bo.frequency.setValueAtTime(78, t); bo.frequency.exponentialRampToValueAtTime(41, t + .5);
+    bg.gain.setValueAtTime(.0001, t); bg.gain.exponentialRampToValueAtTime(.55, t + .012); bg.gain.exponentialRampToValueAtTime(.0001, t + 1.3);
+    bo.connect(bg); bg.connect(out); bo.start(t); bo.stop(t + 1.4);
+    // the chord: open D with a ninth, each note doubled and slightly detuned, warmed by a filter that opens then slowly closes
+    const lp = c.createBiquadFilter(); lp.type = 'lowpass'; lp.Q.value = .7;
+    lp.frequency.setValueAtTime(300, t); lp.frequency.exponentialRampToValueAtTime(1350, t + .6); lp.frequency.exponentialRampToValueAtTime(420, t + 4.6);
+    const cg = c.createGain(); cg.gain.setValueAtTime(.0001, t); cg.gain.exponentialRampToValueAtTime(.17, t + .5); cg.gain.setValueAtTime(.17, t + .7); cg.gain.exponentialRampToValueAtTime(.0001, t + 5.6);
+    lp.connect(cg); cg.connect(out);
+    for (const f of [73.42, 110, 146.83, 185, 220, 329.63]) for (const dt of [-5, 5]) {
+      const o = c.createOscillator(); o.type = 'triangle'; o.frequency.value = f; o.detune.value = dt;
+      const g = c.createGain(); g.gain.value = f < 150 ? .7 : .38; o.connect(g); g.connect(lp); o.start(t); o.stop(t + 5.7);
+    }
+    // glassy shimmer on top that swells in late
+    const sg = c.createGain(); sg.gain.setValueAtTime(.0001, t + .3); sg.gain.exponentialRampToValueAtTime(.03, t + 1.2); sg.gain.exponentialRampToValueAtTime(.0001, t + 5.2); sg.connect(out);
+    const trem = c.createOscillator(), tg = c.createGain(); trem.frequency.value = 5.2; tg.gain.value = .35; trem.connect(tg);
+    for (const f of [440, 587.33]) { const o = c.createOscillator(), g = c.createGain(); o.type = 'sine'; o.frequency.value = f; g.gain.value = .5; tg.connect(g.gain); o.connect(g); g.connect(sg); o.start(t); o.stop(t + 5.3); }
+    trem.start(t); trem.stop(t + 5.3);
   };
   return {
     tick(){ if (!on()) return; const n = performance.now(); if (n - last < 55) return; last = n; note(392, .11, .028); },
     select(){ if (!on()) return; note(440, .14, .05); },
     back(){ if (!on()) return; note(294, .14, .045); },
-    boot(){                                                           // not tied to the sound-effects switch
+    boot(){                                                           // not tied to the sound-effects switch: a whoosh while it swirls, a finger snap and a deep boom as the plug whips home, then a long warm bloom
       ensure();
-      whoosh(.25, 1.55, .05);
-      note(392, .35, .05, 2.0);                                       // the play appears
-      note(165, .3, .07, 2.55);                                       // the plug settles
-      note(523.25, 1.1, .04, 2.85); note(659.25, 1.1, .03, 2.95); note(784, 1.0, .022, 3.05); }
+      whoosh(.08, 1.66, .06);
+      snap(1.75); bloom(1.78); }
   };
 })();
 document.addEventListener('keydown', e => {
@@ -3366,14 +3418,14 @@ $('#pseek').addEventListener('click', e => { const v = $('#vid'), r = e.currentT
   const el = $('#intro');
   if (navigator.webdriver && !/[?&]intro/.test(location.search)) { el.remove(); return; }
   const spin = el.querySelector('.ispin'), ring = el.querySelector('.iring'), play = el.querySelector('.iplay'), plug = el.querySelector('.iplug'), glow = el.querySelector('.iglow');
-  const w = $('#iword');
-  const letters = [...'Streamlet'].map((c, i) => { const sp = h('span', {class:i >= 6 ? 'acc' : ''}, c); w.append(sp); return sp; });
+  const w = $('#iword'), lock = el.querySelector('.ilock'), lk = {w:null};
+  w.append('Stream', h('span', {class:'lgr'}, 'let'));
   w.style.opacity = '0';
   let len = 1800; try { len = ring.getTotalLength(); } catch {}
   ring.style.strokeDasharray = len; ring.style.strokeDashoffset = len; play.style.opacity = '0'; plug.style.opacity = '0'; glow.style.opacity = '0';
-  const clamp = t => Math.max(0, Math.min(1, t)), out = t => 1 - Math.pow(1 - t, 3), back = t => { const c = 1.70158; t -= 1; return 1 + (c + 1) * t * t * t + c * t * t; };
+  const clamp = t => Math.max(0, Math.min(1, t)), inout = t => t < .5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2, out = t => 1 - Math.pow(1 - t, 3), back = t => { const c = 1.70158; t -= 1; return 1 + (c + 1) * t * t * t + c * t * t; };
   const seg = (n, a, d) => clamp((n - a) / d);
-  const PLAY_END = 4600;                                            // everything has finished and the logo has been held for a moment
+  const PLAY_END = 4800;                                            // everything has finished and the logo has been held for a moment
   const appShown = () => !$('#profiles').hidden || !$('#launcher').hidden || !$('#login').hidden || document.body.classList.contains('onhome');
   let done = false, n = 0, last = null;
   const end = () => { if (done) return; done = true; el.classList.add('out'); setTimeout(() => el.remove(), 800); };
@@ -3384,13 +3436,24 @@ $('#pseek').addEventListener('click', e => { const v = $('#vid'), r = e.currentT
     const gp = Math.max(.001, out(seg(n, 250, 1500))); ring.style.strokeDasharray = gp + ' 2'; ring.style.strokeDashoffset = 2 * gp + 1;   // pathLength is 1: the cord grows out of the plug
     spin.setAttribute('transform', `rotate(${260 * (1 - sp)} 487 520) translate(487 520) scale(${.45 + .55 * sp}) translate(-487 -520)`);
     ring.style.filter = sp < 1 ? `blur(${14 * Math.pow(1 - sp, 1.5)}px)` : 'none';
-    const pp = back(seg(n, 1750, 650));
-    play.style.opacity = clamp(seg(n, 1750, 250)); play.setAttribute('transform', `translate(520 510) scale(${.3 + .7 * pp}) translate(-520 -510)`);
-    const q = seg(n, 2500, 750), ang = 9 * Math.sin(q * Math.PI * 5) * (1 - q);   // small shake once everything is connected
+    const pp = back(seg(n, 1750, 550));
+    play.style.opacity = clamp(seg(n, 1750, 200)); play.setAttribute('transform', `translate(520 510) scale(${.3 + .7 * pp}) translate(-520 -510)`);
+    const q = seg(n, 1750, 750), ang = 34 * Math.sin(q * Math.PI * 6) * Math.exp(-3.4 * q);   // the moment the swirl stops the plug whips and settles
     plug.setAttribute('transform', `rotate(${ang} 765 424)`);
-    const k = out(seg(n, 2800, 900)); w.style.opacity = k; w.style.letterSpacing = (16 * (1 - k) + .5) + 'px'; w.style.filter = k < 1 ? `blur(${6 * (1 - k)}px)` : 'none';
+    if (lk.w == null) {                                              // measured once, in layout pixels, before anything moves
+      lk.w = lock.offsetWidth; lk.wl = w.offsetLeft; lk.ww = w.offsetWidth;
+      const gap = parseFloat(getComputedStyle(lock).columnGap) || 0; lk.lw = lk.wl - gap;
+      lk.l = lk.w / 2 - lk.lw / 2;                                   // logo starts in the middle of the screen
+      lk.p = lk.lw * .8;                                             // the plug's right edge: the name comes out from right behind it
+      lk.t = lk.p + lk.l - lk.ww - lk.wl;                            // and starts completely hidden there
+    }
+    const k = inout(seg(n, 2650, 900)), tl = (1 - k) * lk.l, tw = (1 - k) * lk.t;
+    el.querySelector('.ilogo').style.transform = `translateX(${tl}px)`;
+    w.style.transform = `translateX(${tw}px)`;
+    const hide = Math.max(0, Math.min(lk.ww + 14, lk.p + tl - (lk.wl + tw)));     // the wall travels with the plug: only what has slid out past it shows
+    w.style.clipPath = `inset(-12px -12px -12px ${hide}px)`;
   };
-  render(0); el.querySelector('.ilogo').style.opacity = '1'; w.style.opacity = '0';   // set the first frame before anything is shown
+  render(0); el.querySelector('.ilogo').style.opacity = '1'; w.style.opacity = '1';   // set the first frame before anything is shown
   window.__introSet = x => { done = true; render(x); };
   const frame = ts => {
     if (done) return;
