@@ -68,7 +68,7 @@ function runSearch(query, items, onHit){                                   // as
       }
     }
   };
-  run(spaceAddons());
+  run(lsGet('streamlet.ui', {}).srchAll === false ? spaceAddons() : addons);   // by default every installed addon is searched, not just this space's
   if (!jobs.length) run(addons);                                           // this space's addons can't search: use everything installed
   return jobs;
 }

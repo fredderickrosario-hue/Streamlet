@@ -904,6 +904,10 @@ body.launch:not(.tv) .lfoot{flex:0 0 auto;padding-top:8px}
         <div class="row2"><span class="rt">Audio<small>Preferred language when a stream has choices</small></span><select id="setAud" class="sel"></select></div>
       </div>
       <p class="gnote">Subtitles come from your installed subtitle addons, like OpenSubtitles. Audio choices work when a stream carries several tracks.</p>
+      <h2 class="sh">Search</h2>
+      <div class="addon">
+        <label class="row2"><span class="rt">Search all my addons<small>Not only the ones in this space. Finds more, since some catalogs search poorly</small></span><input type="checkbox" id="setSrchAll"></label>
+      </div>
       <h2 class="sh">Look &amp; sound <small>this device</small></h2>
       <div class="addon">
         <label class="row2"><span class="rt">Animated background<small>Slowly drifting colors</small></span><input type="checkbox" id="setAnim"></label>
@@ -1627,6 +1631,7 @@ const APP_BUILD = '2.0';
 function renderSettings(){
   fillAccountUI(); fillSettingsUI();
   const u = lsGet('streamlet.ui', {}), tv = document.body.classList.contains('tv');
+  const sa = $('#setSrchAll'); sa.checked = u.srchAll !== false; sa.onchange = () => lsSet('streamlet.ui', {...lsGet('streamlet.ui', {}), srchAll:sa.checked});
   const anim = $('#setAnim'), glass = $('#setGlass');
   anim.checked = u.anim !== false; glass.checked = u.glass === undefined ? !tv : u.glass !== false;
   anim.onchange = () => { lsSet('streamlet.ui', {...lsGet('streamlet.ui', {}), anim:anim.checked}); applyUI(); };
@@ -2000,7 +2005,7 @@ function runSearch(query, items, onHit){                                   // as
       }
     }
   };
-  run(spaceAddons());
+  run(lsGet('streamlet.ui', {}).srchAll === false ? spaceAddons() : addons);   // by default every installed addon is searched, not just this space's
   if (!jobs.length) run(addons);                                           // this space's addons can't search: use everything installed
   return jobs;
 }
