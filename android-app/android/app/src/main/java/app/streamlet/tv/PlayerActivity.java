@@ -144,9 +144,9 @@ public class PlayerActivity extends Activity {
     private boolean controlsOn = false, menuOn = false, seekPending = false;
     private float speed = 1f;
     private boolean phone = false;
+    private int skipMs = 10000;
     private String epsJson = "";
     private int curS = 1, curE = 0;
-    private TextView speedChip;
     private static class SubCfg { String url, mime, lang, label; boolean shiftable, vtt; }
     private final List<SubCfg> subCfgs = new ArrayList<>();
     private final Map<String, String> subText = new HashMap<>();
@@ -200,6 +200,7 @@ public class PlayerActivity extends Activity {
         String nt = in.getStringExtra("nextTitle"); nextTitle = nt == null ? "" : nt;
         isEpisode = in.getBooleanExtra("episode", false);
         String ej = in.getStringExtra("eps"); epsJson = ej == null ? "" : ej;
+        skipMs = Math.max(1, in.getIntExtra("skip", 10)) * 1000;
         curS = in.getIntExtra("curSeason", 1); curE = in.getIntExtra("curEpisode", 0);
         phone = (getResources().getConfiguration().uiMode & android.content.res.Configuration.UI_MODE_TYPE_MASK) != android.content.res.Configuration.UI_MODE_TYPE_TELEVISION;
         subDelayMs = in.getLongExtra("subDelay", 0L);
@@ -530,7 +531,6 @@ public class PlayerActivity extends Activity {
         playIcon.setImageResource(R.drawable.ic_p_pause);
         playIcon.setColorFilter(Color.WHITE);
         playIcon.setAlpha(big ? 1f : .7f);
-        if (big) play.setBackground(shape(true, 0x73000000, 0x55FFFFFF, dp(1), 0));
         play.setOnFocusChangeListener((v, f) -> { if (!big) playIcon.animate().alpha(f ? 1f : .7f).setDuration(120).start(); v.animate().scaleX(f ? 1.18f : 1f).scaleY(f ? 1.18f : 1f).setDuration(120).start(); });
         play.addView(playIcon, new FrameLayout.LayoutParams(dp(iconDp), dp(iconDp), Gravity.CENTER));
         playBtn = play;
@@ -541,15 +541,15 @@ public class PlayerActivity extends Activity {
     private FrameLayout skipBtn(final boolean fwd) {
         FrameLayout b = new FrameLayout(this);
         b.setFocusable(true); b.setClickable(true);
-        b.setBackground(shape(true, 0x59000000, 0x44FFFFFF, dp(1), 0));
         ImageView iv = new ImageView(this);
         iv.setImageResource(R.drawable.ic_p_replay);
         iv.setColorFilter(Color.WHITE);
         if (fwd) iv.setScaleX(-1f);
-        b.addView(iv, new FrameLayout.LayoutParams(dp(34), dp(34), Gravity.CENTER));
-        TextView t = text("10", 10, true);
+        b.addView(iv, new FrameLayout.LayoutParams(dp(46), dp(46), Gravity.CENTER));
+        TextView t = text(String.valueOf(skipMs / 1000), 11, true);
+        t.setShadowLayer(dp(3), 0, 0, 0xCC000000);
         b.addView(t, new FrameLayout.LayoutParams(-2, -2, Gravity.CENTER));
-        b.setOnClickListener(v -> seekBy(fwd ? 10000 : -10000));
+        b.setOnClickListener(v -> seekBy(fwd ? skipMs : -skipMs));
         b.setOnFocusChangeListener((v, f) -> v.animate().scaleX(f ? 1.15f : 1f).scaleY(f ? 1.15f : 1f).setDuration(120).start());
         return b;
     }
@@ -561,7 +561,6 @@ public class PlayerActivity extends Activity {
         for (int k = 0; k < SPEEDS.length; k++) if (SPEEDS[k] == speed) i = k;
         speed = SPEEDS[(i + 1) % SPEEDS.length];
         if (player != null) player.setPlaybackSpeed(speed);
-        if (speedChip != null) speedChip.setText("Speed " + speedLabel());
         flash("Speed " + speedLabel());
         scheduleHide();
     }
@@ -672,7 +671,7 @@ public class PlayerActivity extends Activity {
         LinearLayout row = new LinearLayout(this);
         row.setOrientation(LinearLayout.HORIZONTAL);
         row.setGravity(Gravity.CENTER_VERTICAL);
-        FrameLayout play = makePlay(phone ? 40 : 26, phone);
+        FrameLayout play = makePlay(phone ? 64 : 26, phone);
         if (!phone) row.addView(play, new LinearLayout.LayoutParams(dp(40), dp(40)));
         posTx = text("0:00", 15, true);
         durTx = text("", 15, true);
@@ -713,15 +712,20 @@ public class PlayerActivity extends Activity {
         overChip.setVisibility(startMsIn > 20000 ? View.VISIBLE : View.GONE);
         skipChip = chip("Skip intro", false, v -> { seekBy(85000); skipDone = true; skipChip.setVisibility(View.GONE); });
         skipChip.setVisibility(isEpisode ? View.VISIBLE : View.GONE);
+        LinearLayout above = new LinearLayout(this);                          // right-aligned, just above the time bar
+        above.setOrientation(LinearLayout.HORIZONTAL);
+        above.setGravity(Gravity.END);
+        ((LinearLayout.LayoutParams) skipChip.getLayoutParams()).bottomMargin = dp(10);
+        above.addView(skipChip);
+        bottom.addView(above, 0, new LinearLayout.LayoutParams(-1, -2));
         final TextView other = chip("Other\u2026", false, null);
         other.setOnClickListener(v -> openOther(other));
         ctl.addView(other);
         ctl.addView(overChip);
-        ctl.addView(skipChip);
-        speedChip = chip("Speed " + speedLabel(), false, v -> cycleSpeed());
-        ctl.addView(speedChip);
-        if (!epsJson.isEmpty()) { final TextView ec = chip("Episodes", false, null); ec.setOnClickListener(v -> openEpisodes(ec)); ctl.addView(ec); }
-        if (!nextTitle.isEmpty()) ctl.addView(chip("Next episode \u25B6", false, v -> { ExoPlayerPlugin.autoNext = true; finishWith(false); }));
+        FrameLayout spd = circleBtn(R.drawable.ic_p_speed, 44, 24, null, false, v -> cycleSpeed());
+        ctl.addView(spd);
+        if (!epsJson.isEmpty()) { final FrameLayout ec = circleBtn(R.drawable.ic_p_episodes, 44, 24, null, false, null); ec.setOnClickListener(v -> openEpisodes(ec)); ctl.addView(ec); }
+        if (!nextTitle.isEmpty()) ctl.addView(circleBtn(R.drawable.ic_p_next, 44, 24, null, false, v -> { ExoPlayerPlugin.autoNext = true; finishWith(false); }));
         final FrameLayout gear = circleBtn(R.drawable.ic_p_gear, 44, 24, null, false, null);
         gear.setOnClickListener(v -> openOptions(gear));
         LinearLayout.LayoutParams gp = new LinearLayout.LayoutParams(dp(44), dp(44));
@@ -734,10 +738,10 @@ public class PlayerActivity extends Activity {
             mid.setOrientation(LinearLayout.HORIZONTAL);
             mid.setGravity(Gravity.CENTER);
             FrameLayout bk = skipBtn(false), fw = skipBtn(true);
-            LinearLayout.LayoutParams sp1 = new LinearLayout.LayoutParams(dp(60), dp(60)); sp1.rightMargin = dp(34);
-            LinearLayout.LayoutParams sp2 = new LinearLayout.LayoutParams(dp(60), dp(60)); sp2.leftMargin = dp(34);
+            LinearLayout.LayoutParams sp1 = new LinearLayout.LayoutParams(dp(64), dp(64)); sp1.rightMargin = dp(30);
+            LinearLayout.LayoutParams sp2 = new LinearLayout.LayoutParams(dp(64), dp(64)); sp2.leftMargin = dp(30);
             mid.addView(bk, sp1);
-            mid.addView(play, new LinearLayout.LayoutParams(dp(78), dp(78)));
+            mid.addView(play, new LinearLayout.LayoutParams(dp(84), dp(84)));
             mid.addView(fw, sp2);
             controls.addView(mid, new FrameLayout.LayoutParams(-2, -2, Gravity.CENTER));
         }
@@ -790,7 +794,18 @@ public class PlayerActivity extends Activity {
         nextLayer.setVisibility(View.GONE);
         root.addView(nextLayer, new FrameLayout.LayoutParams(-1, -1));
 
-        root.setOnClickListener(v -> { if (controlsOn) hideControls(); else showControls(playBtn); });
+        final android.view.GestureDetector gd = new android.view.GestureDetector(this, new android.view.GestureDetector.SimpleOnGestureListener() {
+            @Override public boolean onDown(MotionEvent e) { return true; }
+            @Override public boolean onSingleTapUp(MotionEvent e) { if (controlsOn && !menuOn) { hideControls(); return true; } return false; }
+            @Override public boolean onSingleTapConfirmed(MotionEvent e) { if (!controlsOn && !menuOn && !errOn && !nextOn) showControls(playBtn); return true; }
+            @Override public boolean onDoubleTap(MotionEvent e) {                // controls hidden: double tap the left / right side to skip back / forward
+                if (controlsOn || menuOn || errOn || nextOn) return false;
+                float x = e.getX() / Math.max(1, root.getWidth());
+                if (x < .4f) seekBy(-skipMs); else if (x > .6f) seekBy(skipMs); else togglePlay();
+                return true;
+            }
+        });
+        root.setOnTouchListener((v, ev) -> gd.onTouchEvent(ev));
     }
 
 
@@ -1179,7 +1194,7 @@ public class PlayerActivity extends Activity {
         String[] sp = new String[SPEEDS.length];
         int si = 2;
         for (int i = 0; i < SPEEDS.length; i++) { sp[i] = SPEEDS[i] == 1f ? "1\u00d7" : (SPEEDS[i] + "\u00d7"); if (SPEEDS[i] == speed) si = i; }
-        col.addView(chipRow("Playback speed", sp, si, i -> { speed = SPEEDS[i]; player.setPlaybackSpeed(speed); if (speedChip != null) speedChip.setText("Speed " + speedLabel()); }));
+        col.addView(chipRow("Playback speed", sp, si, i -> { speed = SPEEDS[i]; player.setPlaybackSpeed(speed); }));
         panel.addView(sc, new LinearLayout.LayoutParams(-1, dp(360)));
         menuLayer.addView(panel, new FrameLayout.LayoutParams(dp(720), -2, Gravity.CENTER));
         panel.post(() -> { View f = ((LinearLayout) ((LinearLayout) col.getChildAt(0)).getChildAt(1)).getChildAt(3); if (f != null) f.requestFocus(); });
@@ -1463,8 +1478,8 @@ public class PlayerActivity extends Activity {
                 case KeyEvent.KEYCODE_ENTER:
                 case KeyEvent.KEYCODE_SPACE:
                     togglePlay(); showControls(playBtn); return true;
-                case KeyEvent.KEYCODE_DPAD_LEFT: seekBy(-10000); showControls(seek); return true;
-                case KeyEvent.KEYCODE_DPAD_RIGHT: seekBy(10000); showControls(seek); return true;
+                case KeyEvent.KEYCODE_DPAD_LEFT: seekBy(-skipMs); showControls(seek); return true;
+                case KeyEvent.KEYCODE_DPAD_RIGHT: seekBy(skipMs); showControls(seek); return true;
                 case KeyEvent.KEYCODE_DPAD_UP:
                 case KeyEvent.KEYCODE_DPAD_DOWN: showControls(playBtn); return true;
                 default: break;

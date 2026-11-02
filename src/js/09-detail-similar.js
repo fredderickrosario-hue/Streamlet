@@ -162,9 +162,10 @@ function openEpisode(addon, type, meta, v, sorted){
           metaRow([v.runtime || meta.runtime, when || meta.year || meta.releaseInfo], meta.imdbRating),
           h('h2', {class:'ept'}, `${code} – ${title}`),
           (v.overview || v.description) ? h('p', {class:'ddesc'}, v.overview || v.description) : null),
-        h('div', {class:'dsec dright'}, h('div', {class:'dptitle'}, 'Sources'), resumeButton(saved, base), streamsBox))));
+        h('div', {class:'dsec dright'}, h('div', {class:'dptitle'}, 'Sources'), resumeButton(saved, base),
+          autoPickOn() ? h('button', {class:'btn resbtn', type:'button', onclick:() => autoPlay(type, v.id, meta.name, base)}, '▶  Play best source') : null, streamsBox))));
   bindScroll(ed, etop);
-  loadStreams(type, v.id, streamsBox, meta.name, base);
+  manualSources(streamsBox, () => loadStreams(type, v.id, streamsBox, meta.name, base));
 }
 
 async function openDetail(addon, type, item, opts = {}){
@@ -210,11 +211,16 @@ async function openDetail(addon, type, item, opts = {}){
     } else if (withStreams) {                                              // ---- movie / single title: streams right here
       const box = h('div', {class:'dbox'}), saved = histGet().find(x => x.k === `${type}|${meta.id}`);
       body.append(h('div', {class:'dsec dright'}, ...rightTabs('Sources', [resumeButton(saved, base), box], pane => similarPane(pane, addon, type, meta))));
-      loadStreams(type, meta.id, box, meta.name, base);
+      manualSources(box, () => loadStreams(type, meta.id, box, meta.name, base));
     }
     const rs0 = histGet().find(x => x.itemId === meta.id && !x.upnext);
-    acts.append(h('button', {class:'hb p', type:'button', onclick:() => {
-      if (sorted.length) { const rv = rs0 && sorted.find(v => v.id === rs0.id); openEpisode(addon, type, meta, rv || sorted.find(v => (v.season ?? 1) >= 1) || sorted[0], sorted); }
+    acts.append(h('button', {class:'hb p', type:'button', onclick:async () => {
+      if (sorted.length) {
+        const rv = (rs0 && sorted.find(v => v.id === rs0.id)) || sorted.find(v => (v.season ?? 1) >= 1) || sorted[0];
+        if (autoPickOn()) { if (!(await autoPlay(type, rv.id, meta.name, episodeBase(addon, type, meta, rv, sorted)))) openEpisode(addon, type, meta, rv, sorted); return; }
+        openEpisode(addon, type, meta, rv, sorted);
+      }
+      else if (autoPickOn() && !d.querySelector('.dright .resbtn')) { if (!(await autoPlay(type, meta.id, meta.name, base))) { const b = d.querySelector('.dright .manualbtn'); if (b) b.click(); } }
       else { const rb = d.querySelector('.dright .resbtn'); if (rb) { rb.click(); return; } const t = d.querySelector('.dright .scard:not(.dis)'); if (t) t.focus({preventScroll:true}); else toast('Loading sources…'); }
     }}, rs0 ? '▶  Resume' : '▶  Play'), mirrorBtn(ico.wl, IC.mark, 'Watchlist'), mirrorBtn(ico.seen, IC.seen, 'Watched'));
     d.replaceChildren(top, h('div', {class:'dwrap'}, heroBlock(meta), body));
@@ -261,6 +267,33 @@ function orderStreams(ss, itemId){                                    // the sou
   const pref = prefOf(itemId), rank = x => isBadStream(x) ? 2 : (pref && sigOf(x) === pref ? 0 : 1);
   return ss.map((x, i) => [x, i]).sort((a, b) => rank(a[0]) - rank(b[0]) || a[1] - b[1]).map(x => x[0]);
 }
+/* ---------- best source: picked from your preferences ---------- */
+const autoPickOn = () => lsGet('streamlet.ui', {}).autoPick !== false;
+const resOf = st => { const t = String((st.name || '') + ' ' + (st.title || '') + ' ' + (st.description || '')); return /\b(2160p|4k|uhd)\b/i.test(t) ? 2160 : /\b1440p\b/i.test(t) ? 1440 : /\b1080p\b/i.test(t) ? 1080 : /\b720p\b/i.test(t) ? 720 : /\b(480p|576p|sd)\b/i.test(t) ? 480 : 0; };
+function rankStreams(all, itemId){                                    // best first: what worked before, your audio language, quality up to your limit, ready-to-stream links, seeds
+  const cap = Number(lsGet('streamlet.ui', {}).maxQ) || 99999, pref = prefOf(itemId), pc = settings.audioLang === 'any' ? null : code2(settings.audioLang);
+  const lang = x => { if (!pc) return 0; const l = streamLangs(x); return l.includes(pc) ? 0 : l.includes('multi') ? 1 : 2; };
+  const key = x => {
+    const r = resOf(x), t = String(x.name || '') + ' ' + String(x.title || ''), seeds = Number((/\u{1F464}\s*(\d+)/u.exec(t) || [])[1]) || 0;
+    return [pref && sigOf(x) === pref ? 0 : 1, lang(x), r > cap ? 1 : 0, r === 0 ? 1 : 0, -Math.min(r, cap), /\[[A-Z]{2}\+\]|cached|\u26A1/i.test(t) ? 0 : 1, -seeds];
+  };
+  return all.filter(x => x && x.url && !isBadStream(x)).map((x, i) => [x, key(x), i]).sort((a, b) => { for (let k = 0; k < a[1].length; k++) if (a[1][k] !== b[1][k]) return a[1][k] - b[1][k]; return a[2] - b[2]; }).map(x => x[0]);
+}
+/* asks every stream addon; waits up to 4 s for the slow ones once something has arrived */
+async function autoPlay(type, id, title, base, then){
+  const cands = [id, ...(base.alt || [])];
+  const srcs = streamPool().map(a => ({a, sid:cands.find(c => supports(a, 'stream', type, c))})).filter(x => x.sid);
+  if (!srcs.length) { toast('No stream addon for this title.'); return false; }
+  toast('Finding the best source…');
+  const out = [];
+  const jobs = Promise.all(srcs.map(async ({a, sid}) => { try { const r = await getJSON(`${a.base}/stream/${type}/${enc(sid)}.json`); out.push(...(r.streams || [])); } catch {} }));
+  await Promise.race([jobs, new Promise(r => setTimeout(r, 4000))]);
+  if (!out.length) await jobs;
+  const ranked = rankStreams(sortByLang(out), base.info && base.info.item.id);
+  if (!ranked.length) { toast('No playable source found.'); return false; }
+  playStream(ranked[0], title, {type, id, ...base, _list:ranked});
+  return true;
+}
 function sortByLang(ss){
   if (settings.audioLang === 'any') return ss;
   const pc = code2(settings.audioLang), score = x => { const l = streamLangs(x); return l.includes(pc) ? 0 : l.includes('multi') ? 1 : 2; };
@@ -275,6 +308,12 @@ function streamCard(st, title, ctx){
       langs.length ? h('div', {class:'slangs'}, langs.slice(0, 6).map(l => h('span', {class:'lc'}, l.toUpperCase())), langs.length > 6 ? h('span', {class:'lc more'}, '+' + (langs.length - 6)) : null) : null));
   streamEls.set(st, card);
   return card;
+}
+/* with auto-pick on the list stays hidden until asked for; otherwise it loads right away */
+function manualSources(box, load){
+  if (!autoPickOn()) { load(); return; }
+  box.replaceChildren(h('p', {class:'hint', style:'margin:6px 0 10px'}, 'Play picks the best source for you.'),
+    h('button', {class:'btn ghost manualbtn', type:'button', onclick:() => load()}, 'Choose a source myself'));
 }
 async function loadStreams(type, id, box, title, base = {}){
   const chipsEl = h('div', {class:'sfilter'}), listEl = h('div', {class:'slist'});

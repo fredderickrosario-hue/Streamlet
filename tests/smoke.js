@@ -74,6 +74,24 @@ const ok = (name, cond, extra) => { cond ? pass++ : fail++; console.log((cond ? 
     });
     ok('next episode keeps the same kind of source and moves on', JSON.stringify(ep[0]) === JSON.stringify(['B 720p', 2, 3, 1]), JSON.stringify(ep));
     ok('picking an episode plays that one', JSON.stringify(ep[1]) === JSON.stringify(['B 720p', 3, 4, 0]), JSON.stringify(ep));
+    // best source: language, quality limit, previously failed sources
+    const bs = await p.evaluate(() => {
+      settings.audioLang = 'any'; lsSet('streamlet.ui', { maxQ: '1080' });
+      const mk = (n, t) => ({ url: 'http://x/' + n, name: n, title: t || '' });
+      const list = [mk('Torrentio\n4K', '2160p HDR 👤 50'), mk('Torrentio\n1080p slow', '1080p 👤 5'), mk('Torrentio\n1080p fast', '1080p 👤 90'), mk('Torrentio\n720p', '720p 👤 500'), { name: 'no url' }];
+      const top = rankStreams(list, 'x').map(x => x.name.split('\n')[1]);
+      return top;
+    });
+    ok('auto-pick respects the quality limit and prefers more seeds', JSON.stringify(bs.slice(0, 3)) === JSON.stringify(['1080p fast', '1080p slow', '720p']), JSON.stringify(bs));
+    const ap = await p.evaluate(async () => {
+      lsSet('streamlet.ui', { autoPick: true });
+      addons[0].manifest = { ...addons[0].manifest, resources: [{ name: 'stream', types: ['movie'], idPrefixes: ['tt'] }], types: ['movie'] }; cur = { ...cur, streams: [addons[0].uid] };
+      getJSON = async () => ({ streams: [{ url: 'http://x/a', name: 'A\n720p' }, { url: 'http://x/b', name: 'B\n1080p' }] });
+      const got = []; playStream = (st, title, ctx) => got.push([st.name.split('\n')[1], ctx._list.length]);
+      const r = await autoPlay('movie', 'tt1', 'Movie', { info: { item: { id: 'tt1' } }, alt: [] });
+      return { r, got, manual: !!(manualSources && true) };
+    });
+    ok('Play picks the best source and keeps the rest as fallbacks', ap.r === true && JSON.stringify(ap.got) === JSON.stringify([['1080p', 2]]), JSON.stringify(ap));
     // spaces page
     const sp = await p.evaluate(() => { spaces = [{ id: 'a', name: 'A', emoji: '🍿', theme: 'violet', catalogs: [] }, { id: 'b', name: 'B', emoji: '🎌', theme: 'rose', catalogs: [] }]; showLauncher(); return document.querySelectorAll('.stile:not(.new)').length; });
     ok('spaces page shows every space', sp === 2, sp);

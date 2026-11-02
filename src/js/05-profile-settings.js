@@ -19,6 +19,10 @@ const APP_BUILD = '2.0';
 function renderSettings(){
   fillAccountUI(); fillSettingsUI();
   const u = lsGet('streamlet.ui', {}), tv = document.body.classList.contains('tv');
+  const au = $('#setAuto'), mq = $('#setMaxQ'), sk = $('#setSkip');
+  au.checked = u.autoPick !== false; au.onchange = () => lsSet('streamlet.ui', {...lsGet('streamlet.ui', {}), autoPick:au.checked});
+  mq.value = u.maxQ || 'best'; mq.onchange = () => lsSet('streamlet.ui', {...lsGet('streamlet.ui', {}), maxQ:mq.value});
+  sk.value = String(u.skip || 10); sk.onchange = () => lsSet('streamlet.ui', {...lsGet('streamlet.ui', {}), skip:Number(sk.value)});
   const sa = $('#setSrchAll'); sa.checked = u.srchAll !== false; sa.onchange = () => lsSet('streamlet.ui', {...lsGet('streamlet.ui', {}), srchAll:sa.checked});
   const anim = $('#setAnim'), glass = $('#setGlass');
   anim.checked = u.anim !== false; glass.checked = u.glass === undefined ? !tv : u.glass !== false;

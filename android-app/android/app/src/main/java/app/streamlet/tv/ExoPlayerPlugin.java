@@ -150,6 +150,7 @@ public class ExoPlayerPlugin extends Plugin {
         i.putExtra("nextTitle", call.getString("nextTitle", ""));
         i.putExtra("episode", call.getBoolean("episode", false));
         i.putExtra("eps", call.getString("eps", ""));
+        i.putExtra("skip", call.getInt("skip", 10));
         i.putExtra("curSeason", call.getInt("curSeason", 1));
         i.putExtra("curEpisode", call.getInt("curEpisode", 0));
         Long sd = call.getLong("subDelay", 0L);

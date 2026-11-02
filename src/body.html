@@ -62,6 +62,11 @@
         <div class="row2"><span class="rt">Audio<small>Preferred language when a stream has choices</small></span><select id="setAud" class="sel"></select></div>
       </div>
       <p class="gnote">Subtitles come from your installed subtitle addons, like OpenSubtitles. Audio choices work when a stream carries several tracks.</p>
+      <h2 class="sh">Playing</h2>
+      <div class="addon">
+        <label class="row2"><span class="rt">Play the best source automatically<small>Play picks it for you (your audio language, quality, what worked before). A button on each title lets you choose by hand</small></span><input type="checkbox" id="setAuto"></label>
+        <div class="row2"><span class="rt">Highest quality<small>Auto-pick never goes above this</small></span><select id="setMaxQ" class="sel"><option value="best">Best available</option><option value="2160">4K</option><option value="1080">1080p</option><option value="720">720p</option></select></div>
+      </div>
       <h2 class="sh">Search</h2>
       <div class="addon">
         <label class="row2"><span class="rt">Search all my addons<small>Not only the ones in this space. Finds more, since some catalogs search poorly</small></span><input type="checkbox" id="setSrchAll"></label>
@@ -75,6 +80,7 @@
       <div id="setPlay" hidden>
         <h2 class="sh">Video <small>this device</small></h2>
         <div class="addon">
+          <div class="row2"><span class="rt">Double-tap to skip<small>Double-tap the left or right side while the controls are hidden. Also used by the remote's left and right</small></span><select id="setSkip" class="sel"><option value="5">5 s</option><option value="10">10 s</option><option value="15">15 s</option><option value="30">30 s</option></select></div>
           <label class="row2"><span class="rt">Hardware decoding<small>Smoother and cooler. Turn off only if video looks garbled</small></span><input type="checkbox" id="setHw"></label>
           <label class="row2"><span class="rt">Match frame rate<small>Removes judder when your TV supports it</small></span><input type="checkbox" id="setFps"></label>
           <label class="row2"><span class="rt">Tunneled playback<small>Can help 4K and HDR, may affect seeking</small></span><input type="checkbox" id="setTun"></label>
