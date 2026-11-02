@@ -9,7 +9,7 @@ const IC = {
   share:'<circle cx="18" cy="5.5" r="2.6"/><circle cx="6" cy="12" r="2.6"/><circle cx="18" cy="18.5" r="2.6"/><path d="M8.3 10.8l7.4-4.1M8.3 13.2l7.4 4.1"/>',
   clap:'<rect x="3.5" y="9.5" width="17" height="10.5" rx="1.6"/><path d="M3.5 9.5l1.6-4.4 14.6 3-.5 1.4M8.4 6.1l1.6 3.4M13.6 7.2l1.6 3.4"/>',
   mark:'<path d="M6.5 3.5h11v17l-5.5-4.2-5.5 4.2z"/>',
-  seen:'<circle cx="12" cy="12" r="9"/><path d="M8 12.5l2.8 2.8L16 9.5"/>'
+  seen:'<path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>'
 };
 function iconBtn(path, label, onclick, cls = ''){
   const b = h('button', {class:'ibtn ' + cls, type:'button', 'aria-label':label, title:label, onclick});
@@ -43,10 +43,17 @@ function mirrorBtn(src, path, label){
   b.onclick = () => { src.click(); sync(); };
   sync(); return b;
 }
+/* TV: toggle icons (Watchlist / Watched) with no background; the icon itself grows when focused and fills with the accent color when on */
+function plainIconBtn(src, path, label){
+  if (!src) return null;
+  const b = h('button', {class:'pib', type:'button', 'aria-label':label}); b.innerHTML = `<svg viewBox="0 0 24 24">${path}</svg>`;
+  const sync = () => { b.classList.toggle('on', src.classList.contains('on')); b.title = src.title || label; };
+  b.onclick = () => { src.click(); sync(); }; sync(); return b;
+}
 function metaRow(parts, rating, right){
   const row = h('div', {class:'dmeta'});
   parts.filter(Boolean).forEach((t, i) => { if (i) row.append(h('span', {class:'dot'}, '·')); row.append(h('span', null, t)); });
-  if (rating) row.append(h('span', {class:'imdb'}, 'IMDb'), h('span', null, String(rating)));
+  if (rating) row.append(h('span', {class:'imdb'}, isTVui() ? '★' : 'IMDb'), h('span', null, String(rating)));
   row.append(h('span', {class:'sp'}), ...(right || []).filter(Boolean));
   return row;
 }
@@ -137,6 +144,26 @@ function episodeBase(addon, type, meta, v, sorted){
     rest: sorted.slice(i + 2, i + 6).map(x => ({id:x.id, season:x.season ?? 1, episode:x.episode, title:x.title || x.name})),
     eps: sorted.map(x => ({id:x.id, season:x.season ?? 1, episode:x.episode, title:x.title || x.name}))};
 }
+function hintEl(){ const e = h('div', {class:'dhint', 'aria-hidden':'true'}); e.innerHTML = '<svg viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>'; return e; }
+function epCard(addon, type, meta, v, sorted, soon, th, hist, again){
+  return h('button', {class:'ep' + (soon ? ' soon' : ''), type:'button', onclick:() => openEpisode(addon, type, meta, v, sorted, again)},
+    h('div', {class:'ethumb'}, th ? h('img', {src:th, loading:'lazy', alt:'', onerror:e => e.target.remove()}) : null,
+      h('span', {class:'enum'}, String(v.episode ?? '')),
+      hist && hist.dur && !hist.upnext ? h('div', {class:'epg'}, h('i', {style:`width:${Math.min(100, Math.round(hist.pos / hist.dur * 100))}%`})) : null),
+    h('div', {class:'einfo'}, h('div', {class:'etop'}, h('b', {class:'etitle'}, v.title || v.name || `Episode ${v.episode ?? ''}`), h('span', {class:'edate'}, soon ? 'Soon' : (v.released ? fmtDate(v.released) : ''))),
+      (v.overview || v.description) ? h('p', {class:'eover'}, v.overview || v.description) : null));
+}
+/* TV: the lower half of an entry page: rows of episodes / sources, cast and crew, similar titles */
+function tvRowsFor(addon, type, meta, title, els, opts = {}){
+  const people = [chipsSection('Cast', listOf(meta, 'cast', 'cast')), chipsSection('Director', listOf(meta, 'director', 'director')), chipsSection('Writer', listOf(meta, 'writer', 'writer'))].filter(Boolean);
+  let simRow = null;
+  if (opts.sim !== false) { const sim = h('div', {class:'dpane'}); similarPane(sim, addon, type, meta); simRow = h('section', {class:'drow dsimr'}, h('h3', {class:'drt'}, 'More like this'), sim); }
+  return h('div', {class:'dp2'}, h('div', {class:'dp2in'},
+    h('section', {class:'drow dmain'}, h('h3', {class:'drt'}, title), ...els.filter(Boolean)),
+    ...(opts.rows || []),
+    people.length ? h('section', {class:'drow dpeople'}, h('h3', {class:'drt'}, 'Cast & crew'), h('div', {class:'dpl'}, ...people)) : null,
+    simRow));
+}
 function resumeButton(rs, base){
   if (!rs || !rs.stream || !rs.stream.url || rs.upnext) return null;
   return h('button', {class:'btn resbtn', type:'button', onclick:() => playStream(rs.stream, rs.name, {type:rs.type, id:rs.id, info:base.info, ep:rs.ep, next:rs.next, alt:base.alt, eps:base.eps})},
@@ -144,8 +171,8 @@ function resumeButton(rs, base){
 }
 
 /* the page of a single episode: its own backdrop, overview and the streams */
-function openEpisode(addon, type, meta, v, sorted){
-  const ed = $('#episode'); ed.hidden = false; ed.scrollTop = 0; pushLayer('episode');
+function openEpisode(addon, type, meta, v, sorted, again){
+  const ed = $('#episode'); ed.hidden = false; ed.scrollTop = 0; ed.classList.remove('p2'); if (!again) pushLayer('episode');
   const base = episodeBase(addon, type, meta, v, sorted);
   const sn = v.season ?? 1, code = `S${String(sn).padStart(2, '0')}E${String(v.episode ?? 0).padStart(2, '0')}`;
   const title = v.title || v.name || `Episode ${v.episode ?? ''}`;
@@ -153,6 +180,26 @@ function openEpisode(addon, type, meta, v, sorted){
   const streamsBox = h('div', {class:'dbox'});
   const saved = histGet().find(x => x.k === `${type}|${v.id}`);
   const etop = h('div', {class:'dtop'}, iconBtn(IC.back, 'Back', () => popLayer('episode')), titleMini(meta));
+  if (isTVui()) {                                                      // TV: same two-half page as a movie, for this episode
+    const hist = saved && !saved.upnext && saved.pos > 20;
+    const play = h('button', {class:'hb p', type:'button', onclick:async () => {
+      if (autoPickOn()) { if (!(await autoPlay(type, v.id, meta.name, base))) { const b = ed.querySelector('.manualbtn'); if (b) b.click(); } return; }
+      const t = ed.querySelector('.scard:not(.dis)'); if (t) t.focus(); else { const b = ed.querySelector('.manualbtn'); if (b) b.click(); }
+    }}, hist ? '▶  Continue' : '▶  Play');
+    const others = h('div', {class:'eplist'}, ...sorted.filter(x => (x.season ?? 1) === sn).map(x => epCard(addon, type, meta, x, sorted, x.released && new Date(x.released) > new Date(), x.thumbnail || meta.background, histGet().find(y => y.k === `series|${x.id}`), true)));
+    ed.replaceChildren(etop, h('div', {class:'dwrap'}, heroBlock(meta, v.thumbnail || meta.background || meta.poster),
+      h('div', {class:'dbody'},
+        h('div', {class:'dleft'},
+          h('div', {class:'dep'}, `${meta.name} · Season ${sn}, episode ${v.episode ?? ''}`),
+          h('div', {class:'dbt'}, h('h1', {class:'dbt-title'}, title)),
+          metaRow([v.runtime || meta.runtime, when || meta.year || meta.releaseInfo], meta.imdbRating),
+          (v.overview || v.description) ? h('p', {class:'ddesc'}, v.overview || v.description) : null,
+          h('div', {class:'dacts2'}, play),
+          hintEl()),
+        tvRowsFor(addon, type, meta, 'Sources', [resumeButton(saved, base), streamsBox], {sim:false, rows:[h('section', {class:'drow'}, h('h3', {class:'drt'}, 'Season ' + sn), others)]}))));
+    manualSources(streamsBox, () => loadStreams(type, v.id, streamsBox, meta.name, base));
+    return;
+  }
   ed.replaceChildren(
     etop,
     h('div', {class:'dwrap'}, heroBlock(meta, v.thumbnail || meta.background || meta.poster),
@@ -169,7 +216,7 @@ function openEpisode(addon, type, meta, v, sorted){
 }
 
 async function openDetail(addon, type, item, opts = {}){
-  const d = $('#detail'); d.hidden = false; d.scrollTop = 0; document.body.style.overflow = 'hidden'; if (!opts.noPush) pushLayer('detail');
+  const d = $('#detail'); d.hidden = false; d.scrollTop = 0; d.classList.remove('p2'); document.body.style.overflow = 'hidden'; if (!opts.noPush) pushLayer('detail');
   let meta = {...item}, curSeason = null;
   const close = () => popLayer('detail');
   const build = withStreams => {
@@ -185,11 +232,12 @@ async function openDetail(addon, type, item, opts = {}){
     const acts = h('div', {class:'dacts2'});
     const body = h('div', {class:'dbody'}, h('div', {class:'dleft'},
       titleBlock(meta),
-      metaRow([meta.runtime, meta.year || meta.releaseInfo], meta.imdbRating, [ico.seen]),
+      metaRow([meta.runtime, isTVui() ? genres.slice(0, 3).join(', ') : null, meta.year || meta.releaseInfo], meta.imdbRating, [ico.seen]),
       meta.description ? h('p', {class:'ddesc'}, meta.description) : null,
-      acts, infoPanel(meta, genres),
+      acts, infoPanel(meta, genres), isTVui() ? hintEl() : null,
       ph(genres.length ? h('div', {class:'dgen'}, genres.map(g => h('button', {class:'pillx', type:'button', onclick:() => searchFor(g)}, g))) : null),
       ph(chipsSection('Cast', listOf(meta, 'cast', 'cast'))), ph(chipsSection('Director', listOf(meta, 'director', 'director'))), ph(chipsSection('Writer', listOf(meta, 'writer', 'writer')))));
+    const tvRows = (title, els) => tvRowsFor(addon, type, meta, title, els);
     if (withStreams && sorted.length) {                                    // ---- series: seasons + episodes
       const seasons = [...new Set(sorted.map(v => v.season ?? 1))];
       if (curSeason === null || !seasons.includes(curSeason)) curSeason = seasons.find(x => x >= 1) ?? seasons[0];
@@ -199,18 +247,13 @@ async function openDetail(addon, type, item, opts = {}){
         list.replaceChildren(...sorted.filter(v => (v.season ?? 1) === curSeason).map(v => {
           const hist = histGet().find(x => x.k === `series|${v.id}`), soon = v.released && new Date(v.released) > new Date();
           const th = v.thumbnail || meta.background;
-          return h('button', {class:'ep' + (soon ? ' soon' : ''), type:'button', onclick:() => openEpisode(addon, type, meta, v, sorted)},
-            h('div', {class:'ethumb'}, th ? h('img', {src:th, loading:'lazy', alt:'', onerror:e => e.target.remove()}) : null,
-              h('span', {class:'enum'}, String(v.episode ?? '')),
-              hist && hist.dur && !hist.upnext ? h('div', {class:'epg'}, h('i', {style:`width:${Math.min(100, Math.round(hist.pos / hist.dur * 100))}%`})) : null),
-            h('div', {class:'einfo'}, h('div', {class:'etop'}, h('b', {class:'etitle'}, v.title || v.name || `Episode ${v.episode ?? ''}`), h('span', {class:'edate'}, soon ? 'Soon' : (v.released ? fmtDate(v.released) : ''))),
-              (v.overview || v.description) ? h('p', {class:'eover'}, v.overview || v.description) : null));
+          return epCard(addon, type, meta, v, sorted, soon, th, hist);
         }));
       };
-      draw(); body.append(h('div', {class:'dsec dright'}, ...rightTabs('Episodes', [srow, list], pane => similarPane(pane, addon, type, meta))));
+      draw(); body.append(isTVui() ? tvRows('Episodes', [srow, list]) : h('div', {class:'dsec dright'}, ...rightTabs('Episodes', [srow, list], pane => similarPane(pane, addon, type, meta))));
     } else if (withStreams) {                                              // ---- movie / single title: streams right here
       const box = h('div', {class:'dbox'}), saved = histGet().find(x => x.k === `${type}|${meta.id}`);
-      body.append(h('div', {class:'dsec dright'}, ...rightTabs('Sources', [resumeButton(saved, base), box], pane => similarPane(pane, addon, type, meta))));
+      body.append(isTVui() ? tvRows('Sources', [resumeButton(saved, base), box]) : h('div', {class:'dsec dright'}, ...rightTabs('Sources', [resumeButton(saved, base), box], pane => similarPane(pane, addon, type, meta))));
       manualSources(box, () => loadStreams(type, meta.id, box, meta.name, base));
     }
     const rs0 = histGet().find(x => x.itemId === meta.id && !x.upnext);
@@ -222,7 +265,7 @@ async function openDetail(addon, type, item, opts = {}){
       }
       else if (autoPickOn() && !d.querySelector('.dright .resbtn')) { if (!(await autoPlay(type, meta.id, meta.name, base))) { const b = d.querySelector('.dright .manualbtn'); if (b) b.click(); } }
       else { const rb = d.querySelector('.dright .resbtn'); if (rb) { rb.click(); return; } const t = d.querySelector('.dright .scard:not(.dis)'); if (t) t.focus({preventScroll:true}); else toast('Loading sources…'); }
-    }}, rs0 ? '▶  Resume' : '▶  Play'), mirrorBtn(ico.wl, IC.mark, 'Watchlist'), mirrorBtn(ico.seen, IC.seen, 'Watched'));
+    }}, rs0 ? '▶  Continue' : '▶  Play'), ...(isTVui() ? [plainIconBtn(ico.wl, IC.mark, 'Watchlist'), plainIconBtn(ico.seen, IC.seen, 'Watched')] : [mirrorBtn(ico.wl, IC.mark, 'Watchlist'), mirrorBtn(ico.seen, IC.seen, 'Watched')]));
     d.replaceChildren(top, h('div', {class:'dwrap'}, heroBlock(meta), body));
     d.scrollTop = keep; bindScroll(d, top);
     return {sorted};

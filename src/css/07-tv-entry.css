@@ -1,0 +1,84 @@
+
+/* ---- TV entry page v3: two snapped halves. Top: title, facts, story, buttons. Bottom: rows of episodes / sources, cast and crew, similar titles ---- */
+body.tv :is(#detail,#episode){overflow:hidden}
+body.tv :is(#detail,#episode) .dwrap{padding:0;min-height:0;height:100%}
+body.tv :is(#detail,#episode) .dhero{filter:none;transition:filter .5s}
+body.tv :is(#detail,#episode).p2 .dhero{filter:brightness(.2) saturate(.7)}
+body.tv :is(#detail,#episode) .dtop.scrolled{background:linear-gradient(to bottom,rgba(8,8,14,.97) 55%,rgba(8,8,14,0));padding-bottom:26px}
+body.tv :is(#detail,#episode) .dgrad{background:linear-gradient(90deg,rgba(8,8,14,.86) 0%,rgba(8,8,14,.45) 42%,rgba(8,8,14,0) 72%),linear-gradient(to top,rgba(8,8,14,.92) 0%,rgba(8,8,14,0) 52%)}
+body.tv :is(#detail,#episode) .dbody{display:block;position:relative;z-index:2;max-width:none;margin:0;padding:0;height:auto;transition:transform .55s cubic-bezier(.2,.8,.2,1);will-change:transform}
+body.tv :is(#detail,#episode).p2 .dbody{transform:translateY(calc(var(--vh,1vh) * -100))}
+body.tv :is(#detail,#episode) .dleft{height:calc(var(--vh,1vh) * 100);box-sizing:border-box;padding:0 64px calc(var(--vh,1vh) * 12) 120px;display:flex;flex-direction:column;justify-content:flex-end;min-width:0}
+body.tv :is(#detail,#episode) .dbt{margin:0 0 10px}
+body.tv :is(#detail,#episode) .dbt-logo{max-width:min(100%,560px);max-height:calc(var(--vh,1vh) * 20)}
+body.tv :is(#detail,#episode) .dbt-title{font-size:clamp(44px,5.6vw,84px);line-height:1;font-weight:900;letter-spacing:-1px;text-shadow:0 4px 28px rgba(0,0,0,.7)}
+body.tv :is(#detail,#episode) .dmeta{margin:14px 0 16px;gap:10px;font-size:15px;font-weight:600;color:#d5d8e3}
+body.tv :is(#detail,#episode) .dmeta .imdb{background:none;color:#f5c518;font-size:20px;padding:0;margin-right:-4px}
+body.tv :is(#detail,#episode) .dmeta .imdb + span{font-size:22px;font-weight:800;color:#fff}
+body.tv :is(#detail,#episode) .ddesc{max-width:660px;font-size:15px;line-height:1.6;color:#d0d3de;-webkit-line-clamp:3}
+body.tv :is(#detail,#episode) .dacts2{display:flex;align-items:center;gap:12px;margin:26px 0 0}
+body.tv :is(#detail,#episode) .dacts2 .hb{display:inline-flex;align-items:center;gap:9px;padding:13px 28px;font-size:15px;font-weight:700;border-radius:12px}
+body.tv :is(#detail,#episode) .dacts2 .hb.p{background:#fff;color:#0d0d14;box-shadow:none;padding:13px 34px}
+body.tv :is(#detail,#episode) .dacts2 .hb.s{background:rgba(255,255,255,.14);border:0;color:#fff}
+body.tv :is(#detail,#episode) .dacts2 .lbtn svg{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+body.tv :is(#detail,#episode) .dacts2 .lbtn.on{background:rgba(255,255,255,.26)}
+body.tv :is(#detail,#episode) .dacts2 .lbtn.on svg{fill:currentColor}
+body.tv :is(#detail,#episode) .dacts2 .hb:focus-visible{outline:3px solid #fff;outline-offset:3px;transform:scale(1.04)}
+body.tv :is(#detail,#episode) .dinfo,body.tv :is(#detail,#episode) .dgen{display:none}
+body.tv :is(#detail,#episode) .dtop>.ibtn ~ .ibtn{display:none}
+/* lower half */
+body.tv :is(#detail,#episode) .dp2{height:calc(var(--vh,1vh) * 100);box-sizing:border-box;overflow-y:auto;overscroll-behavior:contain;scrollbar-width:none;padding:calc(var(--vh,1vh) * 10) 0 calc(var(--vh,1vh) * 6) 120px}
+body.tv :is(#detail,#episode) .dp2::-webkit-scrollbar{display:none}
+body.tv :is(#detail,#episode) .drow{margin:0 0 calc(var(--vh,1vh) * 5)}
+body.tv :is(#detail,#episode) .drt{margin:0 0 12px;font-size:19px;font-weight:800;letter-spacing:.2px;color:#fff}
+body.tv :is(#detail,#episode) .dp2 .srow,body.tv :is(#detail,#episode) .dp2 .sfilter{display:flex;gap:8px;padding:2px 64px 14px 4px;margin:0 0 0 -4px;overflow-x:auto;scrollbar-width:none}
+body.tv :is(#detail,#episode) .dp2 .srow::-webkit-scrollbar,body.tv :is(#detail,#episode) .dp2 .sfilter::-webkit-scrollbar{display:none}
+body.tv :is(#detail,#episode) .dp2 .chip{padding:7px 18px;font-size:14px;background:rgba(255,255,255,.1);border:0;color:#d5d8e3;border-radius:999px}
+body.tv :is(#detail,#episode) .dp2 .chip.on{background:#fff;color:#0d0d14}
+body.tv :is(#detail,#episode) .dp2 .chip:focus-visible{outline:3px solid #fff;outline-offset:2px}
+body.tv :is(#detail,#episode) .dp2 .dbox{display:block}
+body.tv :is(#detail,#episode) .dp2 .dbox>.dsec{display:none}
+body.tv :is(#detail,#episode) .dp2 .eplist,body.tv :is(#detail,#episode) .dp2 .slist,body.tv :is(#detail,#episode) .dp2 .dsim{display:flex;gap:16px;overflow-x:auto;overflow-y:hidden;padding:6px 64px 10px 6px;margin:0 0 0 -6px;scrollbar-width:none}
+body.tv :is(#detail,#episode) .dp2 .eplist::-webkit-scrollbar,body.tv :is(#detail,#episode) .dp2 .slist::-webkit-scrollbar,body.tv :is(#detail,#episode) .dp2 .dsim::-webkit-scrollbar{display:none}
+/* episodes: picture on top, title under it */
+body.tv :is(#detail,#episode) .dp2 .ep{flex:0 0 270px;display:block;padding:0;margin:0;background:none;border:0;border-radius:12px;text-align:left}
+body.tv :is(#detail,#episode) .dp2 .ep .ethumb{width:100%;flex:none;aspect-ratio:16/9;border-radius:12px;overflow:hidden;position:relative;background:rgba(255,255,255,.08)}
+body.tv :is(#detail,#episode) .dp2 .ep .einfo{padding:8px 2px 0}
+body.tv :is(#detail,#episode) .dp2 .ep .etop{display:block}
+body.tv :is(#detail,#episode) .dp2 .ep .etitle{display:block;font-size:14px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+body.tv :is(#detail,#episode) .dp2 .ep .edate{font-size:12px;color:#9ea2b3}
+body.tv :is(#detail,#episode) .dp2 .ep .eover{display:none}
+body.tv :is(#detail,#episode) .dp2 .ep:focus-visible{outline:3px solid #fff;outline-offset:3px;transform:scale(1.03)}
+/* sources: compact cards */
+body.tv :is(#detail,#episode) .dp2 .scard{flex:0 0 320px;display:flex;align-items:flex-start;gap:12px;padding:14px 16px;margin:0;background:rgba(255,255,255,.1);border:0;border-radius:14px;text-align:left}
+body.tv :is(#detail,#episode) .dp2 .scard .sname{font-size:15px;display:block;margin:0 0 4px}
+body.tv :is(#detail,#episode) .dp2 .scard .sinfo{font-size:13px;color:#b4b8c6}
+body.tv :is(#detail,#episode) .dp2 .scard .stxt,body.tv :is(#detail,#episode) .dp2 .scard .slall{display:none}
+body.tv :is(#detail,#episode) .dp2 .scard:focus-visible{outline:3px solid #fff;outline-offset:3px;transform:scale(1.03)}
+body.tv :is(#detail,#episode) .dp2 .resbtn,body.tv :is(#detail,#episode) .dp2 .manualbtn{margin:0 0 12px}
+/* cast and crew */
+body.tv :is(#detail,#episode) .dp2 .dpl{display:flex;flex-wrap:wrap;gap:6px 36px;padding-right:64px}
+body.tv :is(#detail,#episode) .dp2 .dpl .dsec{margin:0}
+body.tv :is(#detail,#episode) .dp2 .dpl h4{display:block;margin:0 0 8px;font-size:13px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:#9ea2b3}
+body.tv :is(#detail,#episode) .dp2 .cchips{display:flex;flex-wrap:wrap;gap:8px;max-width:760px}
+body.tv :is(#detail,#episode) .dp2 .pillx{padding:7px 16px;font-size:14px;background:rgba(255,255,255,.1);border:0;color:#e4e6ef}
+body.tv :is(#detail,#episode) .dp2 .pillx:focus-visible{outline:3px solid #fff;outline-offset:2px;background:rgba(255,255,255,.22)}
+/* similar titles: a poster row */
+body.tv :is(#detail,#episode) .dp2 .dsim{padding-top:10px}
+body.tv :is(#detail,#episode) .dp2 .dsim .card{flex:0 0 150px}
+body.tv :is(#detail,#episode) .dp2 .dsim .card .t{font-size:13px}
+body.tv :is(#detail,#episode) .dp2 .dpane{display:block}
+
+/* v3b: no back arrow on TV (the remote's Back does it), a quiet hint to scroll, icon-only toggles without any background */
+body.tv :is(#detail,#episode) .dtop>.ibtn:first-child{display:none}
+body.tv :is(#detail,#episode) .dleft{position:relative}
+body.tv :is(#detail,#episode) .dhint{position:absolute;left:50%;bottom:calc(var(--vh,1vh) * 2.6);margin-left:-14px;width:28px;height:28px;color:rgba(255,255,255,.7);animation:dhint 1.8s ease-in-out infinite}
+body.tv :is(#detail,#episode) .dhint svg{width:28px;height:28px;stroke:currentColor;fill:none;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+@keyframes dhint{0%,100%{transform:translateY(0);opacity:.45}50%{transform:translateY(7px);opacity:.95}}
+body.tv :is(#detail,#episode) .dacts2 .pib{width:46px;height:46px;padding:0;border:0;background:none;color:#fff;display:inline-grid;place-items:center;opacity:.85;transition:transform .15s,opacity .15s}
+body.tv :is(#detail,#episode) .dacts2 .pib svg{width:30px;height:30px;stroke:currentColor;fill:none;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+body.tv :is(#detail,#episode) .dacts2 .pib.on{color:var(--acc);opacity:1}
+body.tv :is(#detail,#episode) .dacts2 .pib.on svg{fill:color-mix(in srgb,var(--acc) 45%,transparent)}
+body.tv :is(#detail,#episode) .dacts2 .pib:focus-visible{outline:0;transform:scale(1.3);opacity:1;filter:drop-shadow(0 0 8px rgba(255,255,255,.75))}
+body.tv #episode .dep{font-size:15px;font-weight:700;letter-spacing:.3px;color:#b9bdcc;margin:0 0 8px}
+body.tv #episode .dbt-title{font-size:clamp(34px,4vw,60px)}

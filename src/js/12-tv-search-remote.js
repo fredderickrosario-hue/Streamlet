@@ -113,10 +113,32 @@ function moveFocus(dir, rep){
 }
 /* keep strips aligned to the card grid, scroll one card at a time, short eased animation */
 let scrollAnim = 0;
+/* TV entry page: two snapped halves. Anything focused in the lower half slides it up; rows and lists scroll to the focused item. */
+function tvEntryReveal(el, lock){
+  const p2 = !!el.closest('.dp2');
+  lock.classList.toggle('p2', p2);
+  const tp = lock.querySelector('.dtop'); if (tp) tp.classList.toggle('scrolled', p2);        // the small title shows up top on the lower half
+  lock.scrollTop = 0; window.scrollTo(0, 0);
+  if (!p2) return;
+  const dp = el.closest('.dp2'), row = el.closest('.drow'), dr = dp.getBoundingClientRect(), k = dr.height / (dp.offsetHeight || dr.height) || 1;
+  if (row) {
+    if (row === dp.querySelector('.drow')) dp.scrollTop = 0;
+    else dp.scrollTop += (row.getBoundingClientRect().top - dr.top - 70 * k) / k;
+  }
+  const hs = el.closest('.srow,.sfilter,.eplist,.slist,.dsim');
+  if (hs) {
+    const item = el.closest('.srow > *, .sfilter > *, .eplist > *, .slist > *, .dsim > *') || el, sr = hs.getBoundingClientRect(), br = item.getBoundingClientRect(), kk = sr.width / (hs.offsetWidth || sr.width) || 1, m = 70 * kk;
+    if (item === hs.firstElementChild) hs.scrollLeft = 0;
+    else if (item === hs.lastElementChild) hs.scrollLeft = 1e7;
+    else if (br.right > sr.right - m) hs.scrollLeft += (br.right - (sr.right - m)) / kk;
+    else if (br.left < sr.left + m) hs.scrollLeft -= (sr.left + m - br.left) / kk;
+  }
+}
 function revealEl(el, dir, rep, tv, edge){
   if (!tv) {
     if (document.body.classList.contains('tv')) {
       const lock = el.closest('#detail,#episode');
+      if (lock && (lock.id === 'detail' || lock.id === 'episode') && el.closest('.dleft, .dp2')) { tvEntryReveal(el, lock); return; }
       if (lock) {                                                    // entry pages never scroll themselves; only their list does
         const hs = el.closest('.srow,.sfilter');                       // season / filter chips scroll sideways inside their own row
         if (hs) {

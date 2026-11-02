@@ -135,7 +135,7 @@ body.tv nav{background:color-mix(in srgb,var(--panel-s) 78%,transparent);border:
 body.tv .navpill{border-radius:26px;box-shadow:none}
 /* ---- watched ribbon (top-right corner of a poster) ---- */
 .rib{position:absolute;top:0;right:0;width:40px;height:40px;pointer-events:none;z-index:2;background:linear-gradient(225deg,var(--acc) 0 50%,transparent 50%)}
-.rib::after{content:'✓';position:absolute;top:2px;right:6px;font-size:13px;font-weight:900;line-height:1;color:var(--btnt)}
+.rib::after{content:'';position:absolute;top:4px;right:5px;width:15px;height:15px;background:var(--btnt);-webkit-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z'/%3E%3Ccircle cx='12' cy='12' r='3'/%3E%3C/svg%3E") center/contain no-repeat;mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z'/%3E%3Ccircle cx='12' cy='12' r='3'/%3E%3C/svg%3E") center/contain no-repeat}
 /* ---- hold menu ---- */
 .card,.cwb,.wlb{-webkit-touch-callout:none;-webkit-user-select:none;user-select:none}
 .menu{align-items:flex-end;padding:0;background:#000a}

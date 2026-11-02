@@ -258,7 +258,7 @@ nav button.on{color:color-mix(in srgb,var(--acc) 82%,#fff)}
 nav button.on>svg{transform:none}
 /* ---- watched ribbon (top-right corner of a poster) ---- */
 .rib{position:absolute;top:0;right:0;width:40px;height:40px;pointer-events:none;z-index:2;background:linear-gradient(225deg,var(--acc) 0 50%,transparent 50%)}
-.rib::after{content:'✓';position:absolute;top:2px;right:6px;font-size:13px;font-weight:900;line-height:1;color:var(--btnt)}
+.rib::after{content:'';position:absolute;top:4px;right:5px;width:15px;height:15px;background:var(--btnt);-webkit-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z'/%3E%3Ccircle cx='12' cy='12' r='3'/%3E%3C/svg%3E") center/contain no-repeat;mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z'/%3E%3Ccircle cx='12' cy='12' r='3'/%3E%3C/svg%3E") center/contain no-repeat}
 /* ---- hold menu ---- */
 .card,.cwb,.wlb{-webkit-touch-callout:none;-webkit-user-select:none;user-select:none}
 .menu{align-items:flex-end;padding:0;background:#000a}
@@ -680,6 +680,88 @@ body.launch:not(.tv) .lfoot{flex:0 0 auto;padding-top:8px}
 
 .scard.bad .sname::after{content:'  ·  failed earlier';font-size:12px;font-weight:600;color:#ff8f8f}
 .scard.bad{opacity:.7}
+
+/* ---- TV entry page v3: two snapped halves. Top: title, facts, story, buttons. Bottom: rows of episodes / sources, cast and crew, similar titles ---- */
+body.tv :is(#detail,#episode){overflow:hidden}
+body.tv :is(#detail,#episode) .dwrap{padding:0;min-height:0;height:100%}
+body.tv :is(#detail,#episode) .dhero{filter:none;transition:filter .5s}
+body.tv :is(#detail,#episode).p2 .dhero{filter:brightness(.2) saturate(.7)}
+body.tv :is(#detail,#episode) .dtop.scrolled{background:linear-gradient(to bottom,rgba(8,8,14,.97) 55%,rgba(8,8,14,0));padding-bottom:26px}
+body.tv :is(#detail,#episode) .dgrad{background:linear-gradient(90deg,rgba(8,8,14,.86) 0%,rgba(8,8,14,.45) 42%,rgba(8,8,14,0) 72%),linear-gradient(to top,rgba(8,8,14,.92) 0%,rgba(8,8,14,0) 52%)}
+body.tv :is(#detail,#episode) .dbody{display:block;position:relative;z-index:2;max-width:none;margin:0;padding:0;height:auto;transition:transform .55s cubic-bezier(.2,.8,.2,1);will-change:transform}
+body.tv :is(#detail,#episode).p2 .dbody{transform:translateY(calc(var(--vh,1vh) * -100))}
+body.tv :is(#detail,#episode) .dleft{height:calc(var(--vh,1vh) * 100);box-sizing:border-box;padding:0 64px calc(var(--vh,1vh) * 12) 120px;display:flex;flex-direction:column;justify-content:flex-end;min-width:0}
+body.tv :is(#detail,#episode) .dbt{margin:0 0 10px}
+body.tv :is(#detail,#episode) .dbt-logo{max-width:min(100%,560px);max-height:calc(var(--vh,1vh) * 20)}
+body.tv :is(#detail,#episode) .dbt-title{font-size:clamp(44px,5.6vw,84px);line-height:1;font-weight:900;letter-spacing:-1px;text-shadow:0 4px 28px rgba(0,0,0,.7)}
+body.tv :is(#detail,#episode) .dmeta{margin:14px 0 16px;gap:10px;font-size:15px;font-weight:600;color:#d5d8e3}
+body.tv :is(#detail,#episode) .dmeta .imdb{background:none;color:#f5c518;font-size:20px;padding:0;margin-right:-4px}
+body.tv :is(#detail,#episode) .dmeta .imdb + span{font-size:22px;font-weight:800;color:#fff}
+body.tv :is(#detail,#episode) .ddesc{max-width:660px;font-size:15px;line-height:1.6;color:#d0d3de;-webkit-line-clamp:3}
+body.tv :is(#detail,#episode) .dacts2{display:flex;align-items:center;gap:12px;margin:26px 0 0}
+body.tv :is(#detail,#episode) .dacts2 .hb{display:inline-flex;align-items:center;gap:9px;padding:13px 28px;font-size:15px;font-weight:700;border-radius:12px}
+body.tv :is(#detail,#episode) .dacts2 .hb.p{background:#fff;color:#0d0d14;box-shadow:none;padding:13px 34px}
+body.tv :is(#detail,#episode) .dacts2 .hb.s{background:rgba(255,255,255,.14);border:0;color:#fff}
+body.tv :is(#detail,#episode) .dacts2 .lbtn svg{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+body.tv :is(#detail,#episode) .dacts2 .lbtn.on{background:rgba(255,255,255,.26)}
+body.tv :is(#detail,#episode) .dacts2 .lbtn.on svg{fill:currentColor}
+body.tv :is(#detail,#episode) .dacts2 .hb:focus-visible{outline:3px solid #fff;outline-offset:3px;transform:scale(1.04)}
+body.tv :is(#detail,#episode) .dinfo,body.tv :is(#detail,#episode) .dgen{display:none}
+body.tv :is(#detail,#episode) .dtop>.ibtn ~ .ibtn{display:none}
+/* lower half */
+body.tv :is(#detail,#episode) .dp2{height:calc(var(--vh,1vh) * 100);box-sizing:border-box;overflow-y:auto;overscroll-behavior:contain;scrollbar-width:none;padding:calc(var(--vh,1vh) * 10) 0 calc(var(--vh,1vh) * 6) 120px}
+body.tv :is(#detail,#episode) .dp2::-webkit-scrollbar{display:none}
+body.tv :is(#detail,#episode) .drow{margin:0 0 calc(var(--vh,1vh) * 5)}
+body.tv :is(#detail,#episode) .drt{margin:0 0 12px;font-size:19px;font-weight:800;letter-spacing:.2px;color:#fff}
+body.tv :is(#detail,#episode) .dp2 .srow,body.tv :is(#detail,#episode) .dp2 .sfilter{display:flex;gap:8px;padding:2px 64px 14px 4px;margin:0 0 0 -4px;overflow-x:auto;scrollbar-width:none}
+body.tv :is(#detail,#episode) .dp2 .srow::-webkit-scrollbar,body.tv :is(#detail,#episode) .dp2 .sfilter::-webkit-scrollbar{display:none}
+body.tv :is(#detail,#episode) .dp2 .chip{padding:7px 18px;font-size:14px;background:rgba(255,255,255,.1);border:0;color:#d5d8e3;border-radius:999px}
+body.tv :is(#detail,#episode) .dp2 .chip.on{background:#fff;color:#0d0d14}
+body.tv :is(#detail,#episode) .dp2 .chip:focus-visible{outline:3px solid #fff;outline-offset:2px}
+body.tv :is(#detail,#episode) .dp2 .dbox{display:block}
+body.tv :is(#detail,#episode) .dp2 .dbox>.dsec{display:none}
+body.tv :is(#detail,#episode) .dp2 .eplist,body.tv :is(#detail,#episode) .dp2 .slist,body.tv :is(#detail,#episode) .dp2 .dsim{display:flex;gap:16px;overflow-x:auto;overflow-y:hidden;padding:6px 64px 10px 6px;margin:0 0 0 -6px;scrollbar-width:none}
+body.tv :is(#detail,#episode) .dp2 .eplist::-webkit-scrollbar,body.tv :is(#detail,#episode) .dp2 .slist::-webkit-scrollbar,body.tv :is(#detail,#episode) .dp2 .dsim::-webkit-scrollbar{display:none}
+/* episodes: picture on top, title under it */
+body.tv :is(#detail,#episode) .dp2 .ep{flex:0 0 270px;display:block;padding:0;margin:0;background:none;border:0;border-radius:12px;text-align:left}
+body.tv :is(#detail,#episode) .dp2 .ep .ethumb{width:100%;flex:none;aspect-ratio:16/9;border-radius:12px;overflow:hidden;position:relative;background:rgba(255,255,255,.08)}
+body.tv :is(#detail,#episode) .dp2 .ep .einfo{padding:8px 2px 0}
+body.tv :is(#detail,#episode) .dp2 .ep .etop{display:block}
+body.tv :is(#detail,#episode) .dp2 .ep .etitle{display:block;font-size:14px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+body.tv :is(#detail,#episode) .dp2 .ep .edate{font-size:12px;color:#9ea2b3}
+body.tv :is(#detail,#episode) .dp2 .ep .eover{display:none}
+body.tv :is(#detail,#episode) .dp2 .ep:focus-visible{outline:3px solid #fff;outline-offset:3px;transform:scale(1.03)}
+/* sources: compact cards */
+body.tv :is(#detail,#episode) .dp2 .scard{flex:0 0 320px;display:flex;align-items:flex-start;gap:12px;padding:14px 16px;margin:0;background:rgba(255,255,255,.1);border:0;border-radius:14px;text-align:left}
+body.tv :is(#detail,#episode) .dp2 .scard .sname{font-size:15px;display:block;margin:0 0 4px}
+body.tv :is(#detail,#episode) .dp2 .scard .sinfo{font-size:13px;color:#b4b8c6}
+body.tv :is(#detail,#episode) .dp2 .scard .stxt,body.tv :is(#detail,#episode) .dp2 .scard .slall{display:none}
+body.tv :is(#detail,#episode) .dp2 .scard:focus-visible{outline:3px solid #fff;outline-offset:3px;transform:scale(1.03)}
+body.tv :is(#detail,#episode) .dp2 .resbtn,body.tv :is(#detail,#episode) .dp2 .manualbtn{margin:0 0 12px}
+/* cast and crew */
+body.tv :is(#detail,#episode) .dp2 .dpl{display:flex;flex-wrap:wrap;gap:6px 36px;padding-right:64px}
+body.tv :is(#detail,#episode) .dp2 .dpl .dsec{margin:0}
+body.tv :is(#detail,#episode) .dp2 .dpl h4{display:block;margin:0 0 8px;font-size:13px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:#9ea2b3}
+body.tv :is(#detail,#episode) .dp2 .cchips{display:flex;flex-wrap:wrap;gap:8px;max-width:760px}
+body.tv :is(#detail,#episode) .dp2 .pillx{padding:7px 16px;font-size:14px;background:rgba(255,255,255,.1);border:0;color:#e4e6ef}
+body.tv :is(#detail,#episode) .dp2 .pillx:focus-visible{outline:3px solid #fff;outline-offset:2px;background:rgba(255,255,255,.22)}
+/* similar titles: a poster row */
+body.tv :is(#detail,#episode) .dp2 .dsim{padding-top:10px}
+body.tv :is(#detail,#episode) .dp2 .dsim .card{flex:0 0 150px}
+body.tv :is(#detail,#episode) .dp2 .dsim .card .t{font-size:13px}
+body.tv :is(#detail,#episode) .dp2 .dpane{display:block}
+
+/* v3b: no back arrow on TV (the remote's Back does it), a quiet hint to scroll, icon-only toggles without any background */
+body.tv :is(#detail,#episode) .dtop>.ibtn:first-child{display:none}
+body.tv :is(#detail,#episode) .dleft{position:relative}
+body.tv :is(#detail,#episode) .dhint{position:absolute;left:50%;bottom:calc(var(--vh,1vh) * 2.6);margin-left:-14px;width:28px;height:28px;color:rgba(255,255,255,.7);animation:dhint 1.8s ease-in-out infinite}
+body.tv :is(#detail,#episode) .dhint svg{width:28px;height:28px;stroke:currentColor;fill:none;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+@keyframes dhint{0%,100%{transform:translateY(0);opacity:.45}50%{transform:translateY(7px);opacity:.95}}
+body.tv :is(#detail,#episode) .dacts2 .pib{width:46px;height:46px;padding:0;border:0;background:none;color:#fff;display:inline-grid;place-items:center;opacity:.85;transition:transform .15s,opacity .15s}
+body.tv :is(#detail,#episode) .dacts2 .pib svg{width:30px;height:30px;stroke:currentColor;fill:none;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+body.tv :is(#detail,#episode) .dacts2 .pib.on{color:var(--acc);opacity:1}
+body.tv :is(#detail,#episode) .dacts2 .pib.on svg{fill:color-mix(in srgb,var(--acc) 45%,transparent)}
+body.tv :is(#detail,#episode) .dacts2 .pib:focus-visible{outline:0;transform:scale(1.3);opacity:1;filter:drop-shadow(0 0 8px rgba(255,255,255,.75))}
 </style>
 </head>
 <body>
@@ -2249,7 +2331,7 @@ const IC = {
   share:'<circle cx="18" cy="5.5" r="2.6"/><circle cx="6" cy="12" r="2.6"/><circle cx="18" cy="18.5" r="2.6"/><path d="M8.3 10.8l7.4-4.1M8.3 13.2l7.4 4.1"/>',
   clap:'<rect x="3.5" y="9.5" width="17" height="10.5" rx="1.6"/><path d="M3.5 9.5l1.6-4.4 14.6 3-.5 1.4M8.4 6.1l1.6 3.4M13.6 7.2l1.6 3.4"/>',
   mark:'<path d="M6.5 3.5h11v17l-5.5-4.2-5.5 4.2z"/>',
-  seen:'<circle cx="12" cy="12" r="9"/><path d="M8 12.5l2.8 2.8L16 9.5"/>'
+  seen:'<path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>'
 };
 function iconBtn(path, label, onclick, cls = ''){
   const b = h('button', {class:'ibtn ' + cls, type:'button', 'aria-label':label, title:label, onclick});
@@ -2283,10 +2365,17 @@ function mirrorBtn(src, path, label){
   b.onclick = () => { src.click(); sync(); };
   sync(); return b;
 }
+/* TV: toggle icons (Watchlist / Watched) with no background; the icon itself grows when focused and fills with the accent color when on */
+function plainIconBtn(src, path, label){
+  if (!src) return null;
+  const b = h('button', {class:'pib', type:'button', 'aria-label':label}); b.innerHTML = `<svg viewBox="0 0 24 24">${path}</svg>`;
+  const sync = () => { b.classList.toggle('on', src.classList.contains('on')); b.title = src.title || label; };
+  b.onclick = () => { src.click(); sync(); }; sync(); return b;
+}
 function metaRow(parts, rating, right){
   const row = h('div', {class:'dmeta'});
   parts.filter(Boolean).forEach((t, i) => { if (i) row.append(h('span', {class:'dot'}, '·')); row.append(h('span', null, t)); });
-  if (rating) row.append(h('span', {class:'imdb'}, 'IMDb'), h('span', null, String(rating)));
+  if (rating) row.append(h('span', {class:'imdb'}, isTVui() ? '★' : 'IMDb'), h('span', null, String(rating)));
   row.append(h('span', {class:'sp'}), ...(right || []).filter(Boolean));
   return row;
 }
@@ -2377,6 +2466,26 @@ function episodeBase(addon, type, meta, v, sorted){
     rest: sorted.slice(i + 2, i + 6).map(x => ({id:x.id, season:x.season ?? 1, episode:x.episode, title:x.title || x.name})),
     eps: sorted.map(x => ({id:x.id, season:x.season ?? 1, episode:x.episode, title:x.title || x.name}))};
 }
+function hintEl(){ const e = h('div', {class:'dhint', 'aria-hidden':'true'}); e.innerHTML = '<svg viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>'; return e; }
+function epCard(addon, type, meta, v, sorted, soon, th, hist, again){
+  return h('button', {class:'ep' + (soon ? ' soon' : ''), type:'button', onclick:() => openEpisode(addon, type, meta, v, sorted, again)},
+    h('div', {class:'ethumb'}, th ? h('img', {src:th, loading:'lazy', alt:'', onerror:e => e.target.remove()}) : null,
+      h('span', {class:'enum'}, String(v.episode ?? '')),
+      hist && hist.dur && !hist.upnext ? h('div', {class:'epg'}, h('i', {style:`width:${Math.min(100, Math.round(hist.pos / hist.dur * 100))}%`})) : null),
+    h('div', {class:'einfo'}, h('div', {class:'etop'}, h('b', {class:'etitle'}, v.title || v.name || `Episode ${v.episode ?? ''}`), h('span', {class:'edate'}, soon ? 'Soon' : (v.released ? fmtDate(v.released) : ''))),
+      (v.overview || v.description) ? h('p', {class:'eover'}, v.overview || v.description) : null));
+}
+/* TV: the lower half of an entry page: rows of episodes / sources, cast and crew, similar titles */
+function tvRowsFor(addon, type, meta, title, els, opts = {}){
+  const people = [chipsSection('Cast', listOf(meta, 'cast', 'cast')), chipsSection('Director', listOf(meta, 'director', 'director')), chipsSection('Writer', listOf(meta, 'writer', 'writer'))].filter(Boolean);
+  let simRow = null;
+  if (opts.sim !== false) { const sim = h('div', {class:'dpane'}); similarPane(sim, addon, type, meta); simRow = h('section', {class:'drow dsimr'}, h('h3', {class:'drt'}, 'More like this'), sim); }
+  return h('div', {class:'dp2'}, h('div', {class:'dp2in'},
+    h('section', {class:'drow dmain'}, h('h3', {class:'drt'}, title), ...els.filter(Boolean)),
+    ...(opts.rows || []),
+    people.length ? h('section', {class:'drow dpeople'}, h('h3', {class:'drt'}, 'Cast & crew'), h('div', {class:'dpl'}, ...people)) : null,
+    simRow));
+}
 function resumeButton(rs, base){
   if (!rs || !rs.stream || !rs.stream.url || rs.upnext) return null;
   return h('button', {class:'btn resbtn', type:'button', onclick:() => playStream(rs.stream, rs.name, {type:rs.type, id:rs.id, info:base.info, ep:rs.ep, next:rs.next, alt:base.alt, eps:base.eps})},
@@ -2384,8 +2493,8 @@ function resumeButton(rs, base){
 }
 
 /* the page of a single episode: its own backdrop, overview and the streams */
-function openEpisode(addon, type, meta, v, sorted){
-  const ed = $('#episode'); ed.hidden = false; ed.scrollTop = 0; pushLayer('episode');
+function openEpisode(addon, type, meta, v, sorted, again){
+  const ed = $('#episode'); ed.hidden = false; ed.scrollTop = 0; ed.classList.remove('p2'); if (!again) pushLayer('episode');
   const base = episodeBase(addon, type, meta, v, sorted);
   const sn = v.season ?? 1, code = `S${String(sn).padStart(2, '0')}E${String(v.episode ?? 0).padStart(2, '0')}`;
   const title = v.title || v.name || `Episode ${v.episode ?? ''}`;
@@ -2393,6 +2502,26 @@ function openEpisode(addon, type, meta, v, sorted){
   const streamsBox = h('div', {class:'dbox'});
   const saved = histGet().find(x => x.k === `${type}|${v.id}`);
   const etop = h('div', {class:'dtop'}, iconBtn(IC.back, 'Back', () => popLayer('episode')), titleMini(meta));
+  if (isTVui()) {                                                      // TV: same two-half page as a movie, for this episode
+    const hist = saved && !saved.upnext && saved.pos > 20;
+    const play = h('button', {class:'hb p', type:'button', onclick:async () => {
+      if (autoPickOn()) { if (!(await autoPlay(type, v.id, meta.name, base))) { const b = ed.querySelector('.manualbtn'); if (b) b.click(); } return; }
+      const t = ed.querySelector('.scard:not(.dis)'); if (t) t.focus(); else { const b = ed.querySelector('.manualbtn'); if (b) b.click(); }
+    }}, hist ? '▶  Continue' : '▶  Play');
+    const others = h('div', {class:'eplist'}, ...sorted.filter(x => (x.season ?? 1) === sn).map(x => epCard(addon, type, meta, x, sorted, x.released && new Date(x.released) > new Date(), x.thumbnail || meta.background, histGet().find(y => y.k === `series|${x.id}`), true)));
+    ed.replaceChildren(etop, h('div', {class:'dwrap'}, heroBlock(meta, v.thumbnail || meta.background || meta.poster),
+      h('div', {class:'dbody'},
+        h('div', {class:'dleft'},
+          h('div', {class:'dep'}, `${meta.name} · Season ${sn}, episode ${v.episode ?? ''}`),
+          h('div', {class:'dbt'}, h('h1', {class:'dbt-title'}, title)),
+          metaRow([v.runtime || meta.runtime, when || meta.year || meta.releaseInfo], meta.imdbRating),
+          (v.overview || v.description) ? h('p', {class:'ddesc'}, v.overview || v.description) : null,
+          h('div', {class:'dacts2'}, play),
+          hintEl()),
+        tvRowsFor(addon, type, meta, 'Sources', [resumeButton(saved, base), streamsBox], {sim:false, rows:[h('section', {class:'drow'}, h('h3', {class:'drt'}, 'Season ' + sn), others)]}))));
+    manualSources(streamsBox, () => loadStreams(type, v.id, streamsBox, meta.name, base));
+    return;
+  }
   ed.replaceChildren(
     etop,
     h('div', {class:'dwrap'}, heroBlock(meta, v.thumbnail || meta.background || meta.poster),
@@ -2409,7 +2538,7 @@ function openEpisode(addon, type, meta, v, sorted){
 }
 
 async function openDetail(addon, type, item, opts = {}){
-  const d = $('#detail'); d.hidden = false; d.scrollTop = 0; document.body.style.overflow = 'hidden'; if (!opts.noPush) pushLayer('detail');
+  const d = $('#detail'); d.hidden = false; d.scrollTop = 0; d.classList.remove('p2'); document.body.style.overflow = 'hidden'; if (!opts.noPush) pushLayer('detail');
   let meta = {...item}, curSeason = null;
   const close = () => popLayer('detail');
   const build = withStreams => {
@@ -2425,11 +2554,12 @@ async function openDetail(addon, type, item, opts = {}){
     const acts = h('div', {class:'dacts2'});
     const body = h('div', {class:'dbody'}, h('div', {class:'dleft'},
       titleBlock(meta),
-      metaRow([meta.runtime, meta.year || meta.releaseInfo], meta.imdbRating, [ico.seen]),
+      metaRow([meta.runtime, isTVui() ? genres.slice(0, 3).join(', ') : null, meta.year || meta.releaseInfo], meta.imdbRating, [ico.seen]),
       meta.description ? h('p', {class:'ddesc'}, meta.description) : null,
-      acts, infoPanel(meta, genres),
+      acts, infoPanel(meta, genres), isTVui() ? hintEl() : null,
       ph(genres.length ? h('div', {class:'dgen'}, genres.map(g => h('button', {class:'pillx', type:'button', onclick:() => searchFor(g)}, g))) : null),
       ph(chipsSection('Cast', listOf(meta, 'cast', 'cast'))), ph(chipsSection('Director', listOf(meta, 'director', 'director'))), ph(chipsSection('Writer', listOf(meta, 'writer', 'writer')))));
+    const tvRows = (title, els) => tvRowsFor(addon, type, meta, title, els);
     if (withStreams && sorted.length) {                                    // ---- series: seasons + episodes
       const seasons = [...new Set(sorted.map(v => v.season ?? 1))];
       if (curSeason === null || !seasons.includes(curSeason)) curSeason = seasons.find(x => x >= 1) ?? seasons[0];
@@ -2439,18 +2569,13 @@ async function openDetail(addon, type, item, opts = {}){
         list.replaceChildren(...sorted.filter(v => (v.season ?? 1) === curSeason).map(v => {
           const hist = histGet().find(x => x.k === `series|${v.id}`), soon = v.released && new Date(v.released) > new Date();
           const th = v.thumbnail || meta.background;
-          return h('button', {class:'ep' + (soon ? ' soon' : ''), type:'button', onclick:() => openEpisode(addon, type, meta, v, sorted)},
-            h('div', {class:'ethumb'}, th ? h('img', {src:th, loading:'lazy', alt:'', onerror:e => e.target.remove()}) : null,
-              h('span', {class:'enum'}, String(v.episode ?? '')),
-              hist && hist.dur && !hist.upnext ? h('div', {class:'epg'}, h('i', {style:`width:${Math.min(100, Math.round(hist.pos / hist.dur * 100))}%`})) : null),
-            h('div', {class:'einfo'}, h('div', {class:'etop'}, h('b', {class:'etitle'}, v.title || v.name || `Episode ${v.episode ?? ''}`), h('span', {class:'edate'}, soon ? 'Soon' : (v.released ? fmtDate(v.released) : ''))),
-              (v.overview || v.description) ? h('p', {class:'eover'}, v.overview || v.description) : null));
+          return epCard(addon, type, meta, v, sorted, soon, th, hist);
         }));
       };
-      draw(); body.append(h('div', {class:'dsec dright'}, ...rightTabs('Episodes', [srow, list], pane => similarPane(pane, addon, type, meta))));
+      draw(); body.append(isTVui() ? tvRows('Episodes', [srow, list]) : h('div', {class:'dsec dright'}, ...rightTabs('Episodes', [srow, list], pane => similarPane(pane, addon, type, meta))));
     } else if (withStreams) {                                              // ---- movie / single title: streams right here
       const box = h('div', {class:'dbox'}), saved = histGet().find(x => x.k === `${type}|${meta.id}`);
-      body.append(h('div', {class:'dsec dright'}, ...rightTabs('Sources', [resumeButton(saved, base), box], pane => similarPane(pane, addon, type, meta))));
+      body.append(isTVui() ? tvRows('Sources', [resumeButton(saved, base), box]) : h('div', {class:'dsec dright'}, ...rightTabs('Sources', [resumeButton(saved, base), box], pane => similarPane(pane, addon, type, meta))));
       manualSources(box, () => loadStreams(type, meta.id, box, meta.name, base));
     }
     const rs0 = histGet().find(x => x.itemId === meta.id && !x.upnext);
@@ -2462,7 +2587,7 @@ async function openDetail(addon, type, item, opts = {}){
       }
       else if (autoPickOn() && !d.querySelector('.dright .resbtn')) { if (!(await autoPlay(type, meta.id, meta.name, base))) { const b = d.querySelector('.dright .manualbtn'); if (b) b.click(); } }
       else { const rb = d.querySelector('.dright .resbtn'); if (rb) { rb.click(); return; } const t = d.querySelector('.dright .scard:not(.dis)'); if (t) t.focus({preventScroll:true}); else toast('Loading sources…'); }
-    }}, rs0 ? '▶  Resume' : '▶  Play'), mirrorBtn(ico.wl, IC.mark, 'Watchlist'), mirrorBtn(ico.seen, IC.seen, 'Watched'));
+    }}, rs0 ? '▶  Continue' : '▶  Play'), ...(isTVui() ? [plainIconBtn(ico.wl, IC.mark, 'Watchlist'), plainIconBtn(ico.seen, IC.seen, 'Watched')] : [mirrorBtn(ico.wl, IC.mark, 'Watchlist'), mirrorBtn(ico.seen, IC.seen, 'Watched')]));
     d.replaceChildren(top, h('div', {class:'dwrap'}, heroBlock(meta), body));
     d.scrollTop = keep; bindScroll(d, top);
     return {sorted};
@@ -3290,10 +3415,32 @@ function moveFocus(dir, rep){
 }
 /* keep strips aligned to the card grid, scroll one card at a time, short eased animation */
 let scrollAnim = 0;
+/* TV entry page: two snapped halves. Anything focused in the lower half slides it up; rows and lists scroll to the focused item. */
+function tvEntryReveal(el, lock){
+  const p2 = !!el.closest('.dp2');
+  lock.classList.toggle('p2', p2);
+  const tp = lock.querySelector('.dtop'); if (tp) tp.classList.toggle('scrolled', p2);        // the small title shows up top on the lower half
+  lock.scrollTop = 0; window.scrollTo(0, 0);
+  if (!p2) return;
+  const dp = el.closest('.dp2'), row = el.closest('.drow'), dr = dp.getBoundingClientRect(), k = dr.height / (dp.offsetHeight || dr.height) || 1;
+  if (row) {
+    if (row === dp.querySelector('.drow')) dp.scrollTop = 0;
+    else dp.scrollTop += (row.getBoundingClientRect().top - dr.top - 70 * k) / k;
+  }
+  const hs = el.closest('.srow,.sfilter,.eplist,.slist,.dsim');
+  if (hs) {
+    const item = el.closest('.srow > *, .sfilter > *, .eplist > *, .slist > *, .dsim > *') || el, sr = hs.getBoundingClientRect(), br = item.getBoundingClientRect(), kk = sr.width / (hs.offsetWidth || sr.width) || 1, m = 70 * kk;
+    if (item === hs.firstElementChild) hs.scrollLeft = 0;
+    else if (item === hs.lastElementChild) hs.scrollLeft = 1e7;
+    else if (br.right > sr.right - m) hs.scrollLeft += (br.right - (sr.right - m)) / kk;
+    else if (br.left < sr.left + m) hs.scrollLeft -= (sr.left + m - br.left) / kk;
+  }
+}
 function revealEl(el, dir, rep, tv, edge){
   if (!tv) {
     if (document.body.classList.contains('tv')) {
       const lock = el.closest('#detail,#episode');
+      if (lock && (lock.id === 'detail' || lock.id === 'episode') && el.closest('.dleft, .dp2')) { tvEntryReveal(el, lock); return; }
       if (lock) {                                                    // entry pages never scroll themselves; only their list does
         const hs = el.closest('.srow,.sfilter');                       // season / filter chips scroll sideways inside their own row
         if (hs) {
