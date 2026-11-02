@@ -3835,6 +3835,7 @@ $('#pseek').addEventListener('click', e => { const v = $('#vid'), r = e.currentT
     try { sfx.warm(); fetch(new URL((FLAVOR === 'auto' ? '' : '../') + 'boot.mp3', location.href)).then(r => r.arrayBuffer()).then(ab => sfx.decode(ab)).then(b => { bootBuf = b; }).catch(() => {}); } catch {}
     if (document.readyState === 'complete') ready(); else addEventListener('load', ready, {once:true});
   };
+  if (FLAVOR !== 'tv') { startJS(); return; }                       // phone and web keep the live animation (a wide video looks like an embed on a portrait screen)
   /* Normally the intro is a ready-made video (picture and sound together, hardware decoded): smooth even while the page is still loading. */
   vid = h('video', {id:'ivid', src:new URL((FLAVOR === 'auto' ? '' : '../') + 'boot.mp4', location.href).href, preload:'auto', playsinline:'', 'disable-pip':'', poster:'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVR4nGPg4hICAABIACcc7ivtAAAAAElFTkSuQmCC'});   // own poster: the web view's default one is a big play button
   el.classList.add('vid'); el.prepend(vid);
