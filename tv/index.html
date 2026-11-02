@@ -680,6 +680,8 @@ input,textarea{-webkit-user-select:text;user-select:text;cursor:text}
 #login .pairrow{margin-bottom:6px}
 .pairtxt p{margin:0 0 12px}.pairtxt b{color:var(--acc);margin-right:8px}
 
+.updbtns{display:flex;flex-wrap:wrap;gap:10px}
+.updbtns .btn{margin:0}
 #offline{position:fixed;top:0;left:0;right:0;z-index:9000;background:#b3261e;color:#fff;text-align:center;padding:8px;font-size:15px;font-weight:700}
 #offline[hidden]{display:none}
 #idle{position:fixed;inset:0;z-index:9500;background:#000;opacity:0;pointer-events:none;transition:opacity 1.5s}
@@ -835,8 +837,8 @@ body.tv{min-height:calc(var(--vh,1vh) * 100)}   /* 100vh is too tall once the TV
       <div class="addon">
         <p id="verLine" style="margin:0 0 10px"></p>
         <div id="apkRow" hidden>
-          <button class="btn ghost" id="apkBtn" type="button">Check for updates</button>
-          <button class="btn" id="apkInstall" type="button" hidden style="margin-left:8px">Install update</button>
+          <div class="updbtns"><button class="btn ghost" id="apkBtn" type="button">Check for updates</button>
+          <button class="btn" id="apkInstall" type="button" hidden>Install update</button></div>
           <p class="hint" id="apkMsg" style="margin-top:8px"></p>
         </div>
         <details class="adbox" id="logBox" style="margin:12px 0"><summary>Playback log</summary><div id="logBody" style="margin-top:8px"></div></details>
@@ -1221,7 +1223,8 @@ Object.entries({violet:'#ff5cc8', sakura:'#ffb36b', sky:'#7c5cff', sun:'#ff5c5c'
   .forEach(([k, v]) => { if (THEMES[k]) THEMES[k].acc2 = v; });
 const THEME_DEFAULTS = {font:"system-ui,-apple-system,Segoe UI,Roboto,sans-serif", r:'10px', rb:'10px', up:false, ls:'0', hw:'650', clip:'none', pb:'none', btnt:'#fff'};
 function applyTheme(key){
-  const t = {...THEME_DEFAULTS, ...(THEMES[key] || THEMES.violet)}, r = document.documentElement.style;
+  const th = THEMES[key] || THEMES.violet;
+  const t = {...THEME_DEFAULTS, ...th, font:THEME_DEFAULTS.font, r:THEME_DEFAULTS.r, rb:THEME_DEFAULTS.rb, hw:THEME_DEFAULTS.hw, up:false, ls:'0', clip:'none', pb:'none'}, r = document.documentElement.style;   // spaces differ by colors only
   const set = (k,v) => r.setProperty(k,v);
   set('--acc',t.acc); set('--acc2',t.acc2 || t.acc); set('--bg',t.bg); set('--panel-s',t.panel);
   set('--panel','color-mix(in srgb,' + t.panel + ' 62%,transparent)'); set('--panel2','color-mix(in srgb,' + t.panel2 + ' 72%,transparent)');
@@ -1272,11 +1275,11 @@ function showLauncher(){
       h('button', {class:'spaceBtn', type:'button', onclick:() => showProfiles()}, profile ? [avatarEl(profile, 22), ' ' + profile.name] : 'Profile', h('i', null, '⇄'))),
     h('div', {class:'lmid'},
       h('h2', {class:'ltitle'}, addons.length ? 'What are we watching?' : 'Add an addon first'),
-      addons.length ? null : h('p', {class:'lsub'}, 'Open Addons & settings, install one, then pick a space.'),
+      addons.length ? null : h('p', {class:'lsub'}, 'Open Addons, install one, then pick a space.'),
       h('div', {class:'sgrid'}, ...spaces.map(tile),
         h('div', {class:'swrap newwrap'}, h('button', {class:'stile new', type:'button', onclick:() => editSpace(null)}, h('span', {class:'sem'}, '＋'), h('span', {class:'stx'}, h('span', {class:'snm'}, 'New space')))))),
     h('div', {class:'lfoot'},
-      h('button', {class:'chip', type:'button', onclick:() => { document.body.classList.remove('launch'); $('#launcher').hidden = true; $('#profiles').hidden = true; $('#login').hidden = true; showTab('addons'); }}, 'Addons & settings'),
+      h('button', {class:'chip', type:'button', onclick:() => { document.body.classList.remove('launch'); $('#launcher').hidden = true; $('#profiles').hidden = true; $('#login').hidden = true; showTab('addons'); }}, 'Addons'),
       editBtn));
   L.classList.toggle('editing', spEdit);
   window.scrollTo(0,0);
@@ -1354,12 +1357,19 @@ function editSpace(id){
 
 /* ---------- watchlist ---------- */
 const wlGet = () => pget('watchlist', []);
-const wlHas = id => wlGet().some(x => x.itemId === id);
+const wlHere = () => wlGet().filter(e => !e.spaces || !cur || e.spaces.includes(cur.id));   // entries saved before spaces existed show everywhere
+const wlHas = id => wlHere().some(x => x.itemId === id);
 function wlAdd(e){
+  const old = wlGet().find(x => x.itemId === e.itemId);
+  if (cur) e.spaces = [...new Set([...((old && old.spaces) || []), cur.id])];
   e.t = Math.max(Date.now(), (pget('wlRemoved', {})[e.itemId] || 0) + 1);
   pset('watchlist', [e, ...wlGet().filter(x => x.itemId !== e.itemId)]); scheduleSync();
 }
 function wlRemove(itemId){
+  const old = wlGet().find(x => x.itemId === itemId);
+  if (old && old.spaces && cur && old.spaces.some(x => x !== cur.id)) {        // still saved in another space: only leave this one
+    pset('watchlist', wlGet().map(x => x.itemId === itemId ? {...x, spaces:x.spaces.filter(y => y !== cur.id), t:Date.now()} : x)); scheduleSync(); return;
+  }
   pset('watchlist', wlGet().filter(x => x.itemId !== itemId));
   const r = pget('wlRemoved', {}); r[itemId] = Date.now();
   pset('wlRemoved', Object.fromEntries(Object.entries(r).sort((a, b) => b[1] - a[1]).slice(0, 200))); scheduleSync();
@@ -1454,7 +1464,7 @@ function openWL(e){
   if (a) openDetail(a, e.type, {id:e.itemId, type:e.type, name:e.name, poster:e.poster, background:e.background});
 }
 function renderWatch(){
-  const all = wlGet(), list = all.filter(e => wlFilter === 'all' || (wlFilter === 'movie' ? e.type === 'movie' : e.type !== 'movie'));
+  const all = wlHere(), list = all.filter(e => wlFilter === 'all' || (wlFilter === 'movie' ? e.type === 'movie' : e.type !== 'movie'));
   $('#wlCount').textContent = all.length ? `${all.length} saved` : '';
   const chip = (id, label) => h('button', {class:'chip' + (wlFilter === id ? ' on' : ''), type:'button', onclick:() => { wlFilter = id; renderWatch(); }}, label);
   $('#wlTabs').replaceChildren(...(all.length ? [chip('all', 'All'), chip('movie', 'Movies'), chip('series', 'Shows')] : []));
@@ -1669,7 +1679,7 @@ function renderCW(){
     if (e.upnext) po.append(h('span', {class:'upn'}, 'UP NEXT')); else po.append(h('div', {class:'pg'}, h('i', {style:`width:${pct}%`})));
     strip.append(h('div', {class:'card cwc'},
       (() => { const b = h('button', {class:'cwb', type:'button', onclick:() => openResume(e)}, po, h('div', {class:'t'}, e.name), h('div', {class:'s'}, label)); attachHold(b, {itemId:e.itemId, type:e.itemType, name:e.name, poster:e.poster, background:e.background, addonId:e.addonId}, {cw:e}); return b; })(),
-      h('button', {class:'rm', type:'button', tabindex:'-1', 'aria-label':'Remove', onclick:ev => { ev.stopPropagation(); histRemove(e.k); renderCW(); }}, '✕')));
+      ));
   }
   box.append(h('div', {class:'row'}, h('h2', null, 'Continue watching'), strip));
 }
