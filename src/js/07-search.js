@@ -45,7 +45,9 @@ function relevance(query, m){                                             // tit
   return sc;
 }
 function runSearch(query, items, onHit){                                   // asks every searchable catalog with every spelling variant; fills `items`
-  const variants = searchVariants(query), jobs = [], qn = normQ(query);
+  const variants = searchVariants(query), jobs = [], qn = normQ(query), trace = [];
+  const note = (a, cat, what, t0, n, err) => { trace.push(`${an(a)} · ${cat.name || cat.id} (${cat.type}) · ${what} · ${err ? 'ERROR ' + err : n + ' results'} · ${Date.now() - t0} ms`); lsSet('streamlet.lastsearch', {q:query, t:Date.now(), rows:trace.slice(0, 60)}); };
+  const ask = (a, cat, path, what, vi, floor) => { const t0 = Date.now(); return getJSON(`${a.base}/catalog/${cat.type}/${enc(cat.id)}/${path}.json`).then(r => { note(a, cat, what, t0, (r.metas || []).length); add(a, cat, r, vi, floor); }).catch(e => note(a, cat, what, t0, 0, (e && e.message) || 'failed')); };
   const add = (a, cat, r, vi, floor) => {
     (r.metas || []).forEach((m, i) => {
       if (!m || !m.id || !m.name) return;
@@ -59,10 +61,10 @@ function runSearch(query, items, onHit){                                   // as
   const run = list => {
     for (const a of list) for (const cat of (a.manifest.catalogs || [])) {
       const info = catInfo(cat), ge = genreExtra(cat);
-      if (info.search) variants.forEach((v, vi) => jobs.push(getJSON(`${a.base}/catalog/${cat.type}/${enc(cat.id)}/search=${enc(v)}.json`).then(r => add(a, cat, r, vi, .62)).catch(() => {})));
+      if (info.search) variants.forEach((v, vi) => jobs.push(ask(a, cat, 'search=' + enc(v), '"' + v + '"', vi, .62)));
       if (ge && qn.length >= 3 && !NEW_RE.test(cat.id) && !info.req.some(n => n !== 'genre')) {
         const opt = ge.options.find(o => normQ(o) === qn);
-        if (opt) jobs.push(getJSON(`${a.base}/catalog/${cat.type}/${enc(cat.id)}/genre=${enc(opt)}.json`).then(r => add(a, cat, r, 0, .7)).catch(() => {}));
+        if (opt) jobs.push(ask(a, cat, 'genre=' + enc(opt), 'genre ' + opt, 0, .7));
       }
     }
   };

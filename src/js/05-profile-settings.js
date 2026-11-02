@@ -46,6 +46,8 @@ async function renderLog(){
   for (const e of play.slice(0, 15)) lines.push(`${when(e.t)} · ${e.title || 'Unknown'} · ${e.src || 'source'}${e.code ? ' · ' + e.code : ''}`);
   lines.push('', 'APP ERRORS' + (sys.length ? '' : ': none'));
   for (const e of sys.slice(0, 20)) lines.push(`${when(e.t)} · ${e.k} · ${e.m}${e.n > 1 ? ' (x' + e.n + ')' : ''}`);
+  const ls = lsGet('streamlet.lastsearch', null);
+  if (ls && ls.rows) { lines.push('', `LAST SEARCH: "${ls.q}" at ${when(ls.t)}`); for (const r of ls.rows.slice(0, 40)) lines.push(r); }
   if (N) lines.push('', 'ANDROID LOG' + (native.trim() ? '' : ': empty'), ...native.trim().split('\n').slice(-40));
   const text = lines.join('\n'), ta = h('textarea', {readonly:'', rows:'10', class:'f', style:'width:100%;font:12px/1.4 monospace;white-space:pre'}); ta.value = text;
   const copy = h('button', {class:'btn ghost sm', type:'button', onclick:async () => {
