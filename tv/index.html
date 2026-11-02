@@ -1071,7 +1071,7 @@ const focusStack = [];
 function pushLayer(name){
   if (navSuppress) return;
   focusStack.push(document.activeElement);
-  layersOpen.push(name);
+  layersOpen.push(name); document.body.classList.add('inlayer');
   history.pushState({page:pageNow(), layers:[...layersOpen]}, '');
 }
 function popLayer(name){
@@ -1123,6 +1123,7 @@ window.addEventListener('popstate', e => {
   const want = st.layers || [];
   let restore = null;
   while (layersOpen.length > want.length) { const l = layersOpen.pop(); restore = focusStack.pop() || restore; if (LAYER_CLOSERS[l]) LAYER_CLOSERS[l](); }
+  document.body.classList.toggle('inlayer', layersOpen.length > 0);
   if (restore && remoteMode) setTimeout(() => { if (restore.isConnected && !restore.closest('[hidden]')) restore.focus({preventScroll:true}); }, 60);
   const k = JSON.stringify(st.page);
   navSuppress = true;

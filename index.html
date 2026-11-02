@@ -462,6 +462,8 @@ body:not(.tv).onhome:not(.launch) #tabsBar{position:fixed;top:calc(58px + env(sa
 body:not(.tv).onhome.scr:not(.launch) #tabsBar,body:not(.tv).onhome.srch:not(.launch) #tabsBar{opacity:1;visibility:visible;background:color-mix(in srgb,var(--bg) 95%,#000);padding-top:2px}
 body:not(.tv).onhome.tbhide:not(.srch):not(.launch) #tabsBar{transform:translateY(-160%);opacity:0;pointer-events:none}
 body:not(.tv):not(.onhome) #spaceBtn{display:none}
+/* inside a title page only its back arrow shows, not the logo bar and tabs */
+body:not(.tv).inlayer #phBar,body:not(.tv).inlayer #tabsBar{display:none !important}
 /* tabs: compact soft chips, one dark block with the logo bar */
 body:not(.tv).onhome:not(.launch) #phBar,body:not(.tv).onhome.scr:not(.launch) #phBar,body:not(.tv).onhome.srch:not(.launch) #phBar{box-shadow:none;border:0}
 body:not(.tv) .tspace{height:calc(124px + env(safe-area-inset-top))}
@@ -1118,7 +1120,7 @@ const focusStack = [];
 function pushLayer(name){
   if (navSuppress) return;
   focusStack.push(document.activeElement);
-  layersOpen.push(name);
+  layersOpen.push(name); document.body.classList.add('inlayer');
   history.pushState({page:pageNow(), layers:[...layersOpen]}, '');
 }
 function popLayer(name){
@@ -1170,6 +1172,7 @@ window.addEventListener('popstate', e => {
   const want = st.layers || [];
   let restore = null;
   while (layersOpen.length > want.length) { const l = layersOpen.pop(); restore = focusStack.pop() || restore; if (LAYER_CLOSERS[l]) LAYER_CLOSERS[l](); }
+  document.body.classList.toggle('inlayer', layersOpen.length > 0);
   if (restore && remoteMode) setTimeout(() => { if (restore.isConnected && !restore.closest('[hidden]')) restore.focus({preventScroll:true}); }, 60);
   const k = JSON.stringify(st.page);
   navSuppress = true;
