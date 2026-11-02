@@ -20,3 +20,6 @@ match /pairings/{pid} {
   allow list: if false;
 }
 ```
+
+## Tests
+`node tests/smoke.js` loads the web, phone and TV builds with a fake addon and checks search (title, actor, genre), the entry page tags, the spaces page, navigation and the TV catalog cache. It also runs on GitHub after every push, together with a check that the committed `index.html`, `tv/` and `phone/` match `src/`.
