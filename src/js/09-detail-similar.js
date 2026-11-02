@@ -134,11 +134,12 @@ function episodeBase(addon, type, meta, v, sorted){
     alt: meta.imdb_id ? [`${meta.imdb_id}:${v.season ?? 1}:${v.episode}`] : [],
     ep:{season:v.season ?? 1, episode:v.episode, title:v.title || v.name},
     next: nx ? {id:nx.id, season:nx.season ?? 1, episode:nx.episode, title:nx.title || nx.name} : null,
-    rest: sorted.slice(i + 2, i + 6).map(x => ({id:x.id, season:x.season ?? 1, episode:x.episode, title:x.title || x.name}))};
+    rest: sorted.slice(i + 2, i + 6).map(x => ({id:x.id, season:x.season ?? 1, episode:x.episode, title:x.title || x.name})),
+    eps: sorted.map(x => ({id:x.id, season:x.season ?? 1, episode:x.episode, title:x.title || x.name}))};
 }
 function resumeButton(rs, base){
   if (!rs || !rs.stream || !rs.stream.url || rs.upnext) return null;
-  return h('button', {class:'btn resbtn', type:'button', onclick:() => playStream(rs.stream, rs.name, {type:rs.type, id:rs.id, info:base.info, ep:rs.ep, next:rs.next, alt:base.alt})},
+  return h('button', {class:'btn resbtn', type:'button', onclick:() => playStream(rs.stream, rs.name, {type:rs.type, id:rs.id, info:base.info, ep:rs.ep, next:rs.next, alt:base.alt, eps:base.eps})},
     '▶ Resume ' + fmtTime(rs.pos) + (rs.ep ? ` · S${rs.ep.season ?? 1}:E${rs.ep.episode ?? '?'}` : ''));
 }
 

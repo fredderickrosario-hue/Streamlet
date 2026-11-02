@@ -61,6 +61,19 @@ const ok = (name, cond, extra) => { cond ? pass++ : fail++; console.log((cond ? 
       return { n: pills.length, buttons: pills.every(x => x.tagName === 'BUTTON') };
     });
     ok('entry page opens with clickable tags', d.n > 0 && d.buttons, JSON.stringify(d));
+    // shows: picking an episode (or "next") inside the player plays it from the same kind of source
+    const ep = await p.evaluate(async () => {
+      const eps = [1, 2, 3, 4].map(n => ({ id: 'tt:1:' + n, season: 1, episode: n, title: 'Ep ' + n }));
+      const calls = []; const real = window.playNative; window.playNative = async (st, title, c) => { calls.push([st.name, c.ep.episode, c.next && c.next.episode, c.rest.length]); };
+      addons[0].manifest = { ...addons[0].manifest, resources: [{ name: 'stream', types: ['series'], idPrefixes: ['tt'] }], types: ['series'] }; cur = { ...cur, streams: [addons[0].uid] };
+      getJSON = async () => ({ streams: [{ url: 'http://x/a', name: 'A 1080p' }, { url: 'http://x/b', name: 'B 720p' }] });
+      const prev = { url: 'http://x/b', name: 'B 720p' };
+      const ctx = { type: 'series', id: eps[0].id, info: { item: { id: 'tt', name: 'Show' } }, alt: [], eps, ep: { season: 1, episode: 1 }, next: eps[1], rest: eps.slice(2, 6) };
+      await autoPlayNext(ctx, prev); await playEpisodeOf(ctx, 1, 3, prev);
+      return calls;
+    });
+    ok('next episode keeps the same kind of source and moves on', JSON.stringify(ep[0]) === JSON.stringify(['B 720p', 2, 3, 1]), JSON.stringify(ep));
+    ok('picking an episode plays that one', JSON.stringify(ep[1]) === JSON.stringify(['B 720p', 3, 4, 0]), JSON.stringify(ep));
     // spaces page
     const sp = await p.evaluate(() => { spaces = [{ id: 'a', name: 'A', emoji: '🍿', theme: 'violet', catalogs: [] }, { id: 'b', name: 'B', emoji: '🎌', theme: 'rose', catalogs: [] }]; showLauncher(); return document.querySelectorAll('.stile:not(.new)').length; });
     ok('spaces page shows every space', sp === 2, sp);

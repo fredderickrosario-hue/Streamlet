@@ -23,6 +23,7 @@ import android.text.TextUtils;
 import android.view.Gravity;
 import android.view.MotionEvent;
 import android.widget.FrameLayout;
+import android.widget.HorizontalScrollView;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
@@ -142,6 +143,10 @@ public class PlayerActivity extends Activity {
     private ImageView playIcon;
     private boolean controlsOn = false, menuOn = false, seekPending = false;
     private float speed = 1f;
+    private boolean phone = false;
+    private String epsJson = "";
+    private int curS = 1, curE = 0;
+    private TextView speedChip;
     private static class SubCfg { String url, mime, lang, label; boolean shiftable, vtt; }
     private final List<SubCfg> subCfgs = new ArrayList<>();
     private final Map<String, String> subText = new HashMap<>();
@@ -194,6 +199,9 @@ public class PlayerActivity extends Activity {
         long startMs = in.getLongExtra("startMs", 0L);
         String nt = in.getStringExtra("nextTitle"); nextTitle = nt == null ? "" : nt;
         isEpisode = in.getBooleanExtra("episode", false);
+        String ej = in.getStringExtra("eps"); epsJson = ej == null ? "" : ej;
+        curS = in.getIntExtra("curSeason", 1); curE = in.getIntExtra("curEpisode", 0);
+        phone = (getResources().getConfiguration().uiMode & android.content.res.Configuration.UI_MODE_TYPE_MASK) != android.content.res.Configuration.UI_MODE_TYPE_TELEVISION;
         subDelayMs = in.getLongExtra("subDelay", 0L);
         startMsIn = in.getLongExtra("startMs", 0L);
         String ac = in.getStringExtra("accent");
@@ -513,6 +521,121 @@ public class PlayerActivity extends Activity {
         return l;
     }
 
+    private FrameLayout makePlay(int iconDp, boolean big) {
+        FrameLayout play = new FrameLayout(this);
+        play.setFocusable(true);
+        play.setClickable(true);
+        play.setOnClickListener(v -> togglePlay());
+        playIcon = new ImageView(this);
+        playIcon.setImageResource(R.drawable.ic_p_pause);
+        playIcon.setColorFilter(Color.WHITE);
+        playIcon.setAlpha(big ? 1f : .7f);
+        if (big) play.setBackground(shape(true, 0x73000000, 0x55FFFFFF, dp(1), 0));
+        play.setOnFocusChangeListener((v, f) -> { if (!big) playIcon.animate().alpha(f ? 1f : .7f).setDuration(120).start(); v.animate().scaleX(f ? 1.18f : 1f).scaleY(f ? 1.18f : 1f).setDuration(120).start(); });
+        play.addView(playIcon, new FrameLayout.LayoutParams(dp(iconDp), dp(iconDp), Gravity.CENTER));
+        playBtn = play;
+        return play;
+    }
+
+    /** round "10 s" button: back (replay arrow) or forward (mirrored) */
+    private FrameLayout skipBtn(final boolean fwd) {
+        FrameLayout b = new FrameLayout(this);
+        b.setFocusable(true); b.setClickable(true);
+        b.setBackground(shape(true, 0x59000000, 0x44FFFFFF, dp(1), 0));
+        ImageView iv = new ImageView(this);
+        iv.setImageResource(R.drawable.ic_p_replay);
+        iv.setColorFilter(Color.WHITE);
+        if (fwd) iv.setScaleX(-1f);
+        b.addView(iv, new FrameLayout.LayoutParams(dp(34), dp(34), Gravity.CENTER));
+        TextView t = text("10", 10, true);
+        b.addView(t, new FrameLayout.LayoutParams(-2, -2, Gravity.CENTER));
+        b.setOnClickListener(v -> seekBy(fwd ? 10000 : -10000));
+        b.setOnFocusChangeListener((v, f) -> v.animate().scaleX(f ? 1.15f : 1f).scaleY(f ? 1.15f : 1f).setDuration(120).start());
+        return b;
+    }
+
+    private String speedLabel() { return speed == 1f ? "1\u00d7" : (speed + "\u00d7"); }
+
+    private void cycleSpeed() {
+        int i = 2;
+        for (int k = 0; k < SPEEDS.length; k++) if (SPEEDS[k] == speed) i = k;
+        speed = SPEEDS[(i + 1) % SPEEDS.length];
+        if (player != null) player.setPlaybackSpeed(speed);
+        if (speedChip != null) speedChip.setText("Speed " + speedLabel());
+        flash("Speed " + speedLabel());
+        scheduleHide();
+    }
+
+    /** list of the show's episodes, grouped by season; picking one hands it back to the app, which plays it from the same kind of source */
+    private void openEpisodes(View opener) {
+        JSONArray eps;
+        try { eps = new JSONArray(epsJson); } catch (Exception e) { return; }
+        menuOpener = opener;
+        menuOn = true;
+        handler.removeCallbacks(hideRun);
+        controls.setVisibility(View.GONE);
+        controlsOn = false;
+        menuLayer.removeAllViews();
+        menuLayer.setVisibility(View.VISIBLE);
+        menuLayer.setBackgroundColor(0x99000000);
+        menuLayer.setClickable(true);
+        menuLayer.setOnClickListener(v -> closeMenu());
+        final LinearLayout panel = new LinearLayout(this);
+        panel.setOrientation(LinearLayout.VERTICAL);
+        panel.setPadding(dp(22), dp(20), dp(22), dp(14));
+        GradientDrawable pbg = new GradientDrawable(GradientDrawable.Orientation.TL_BR, new int[]{0xF2161622, 0xF20B0B12});
+        pbg.setCornerRadius(dp(28));
+        panel.setBackground(pbg);
+        panel.setClickable(true);
+        TextView ttl = text("Episodes", 20, true);
+        ttl.setPadding(dp(6), 0, 0, dp(8));
+        panel.addView(ttl);
+        final List<Integer> seasons = new ArrayList<>();
+        for (int i = 0; i < eps.length(); i++) { int sn = eps.optJSONObject(i).optInt("s", 1); if (!seasons.contains(sn)) seasons.add(sn); }
+        final HorizontalScrollView hs = new HorizontalScrollView(this);
+        hs.setHorizontalScrollBarEnabled(false);
+        final LinearLayout srow = new LinearLayout(this);
+        srow.setOrientation(LinearLayout.HORIZONTAL);
+        srow.setPadding(0, 0, 0, dp(8));
+        hs.addView(srow);
+        panel.addView(hs);
+        final ScrollView sc = new ScrollView(this);
+        sc.setVerticalScrollBarEnabled(false);
+        final LinearLayout list = new LinearLayout(this);
+        list.setOrientation(LinearLayout.VERTICAL);
+        sc.addView(list);
+        final int[] season = {seasons.contains(curS) ? curS : (seasons.isEmpty() ? 1 : seasons.get(0))};
+        final JSONArray fe = eps;
+        final Runnable[] draw = new Runnable[1];
+        draw[0] = () -> {
+            srow.removeAllViews();
+            for (final int sn : seasons) srow.addView(chip(sn == 0 ? "Specials" : "Season " + sn, sn == season[0], v -> { season[0] = sn; draw[0].run(); }));
+            list.removeAllViews();
+            View focus = null;
+            for (int i = 0; i < fe.length(); i++) {
+                final JSONObject o = fe.optJSONObject(i);
+                final int sn = o.optInt("s", 1), en = o.optInt("e", 0);
+                if (sn != season[0]) continue;
+                boolean cur = sn == curS && en == curE;
+                String t = o.optString("t", "");
+                TextView row = text((cur ? "\u25B6  " : "") + en + "  \u00b7  " + (t.isEmpty() ? "Episode " + en : t), 15, cur);
+                row.setSingleLine(true); row.setEllipsize(TextUtils.TruncateAt.END);
+                row.setPadding(dp(14), dp(11), dp(14), dp(11));
+                row.setBackground(fillBg(cur ? 0x22FFFFFF : 0x00000000, 0x44FFFFFF, 14, false));
+                row.setFocusable(true); row.setClickable(true);
+                row.setOnClickListener(v -> { if (sn == curS && en == curE) { closeMenu(); return; } ExoPlayerPlugin.pickSeason = sn; ExoPlayerPlugin.pickEpisode = en; finishWith(false); });
+                list.addView(row, new LinearLayout.LayoutParams(-1, -2));
+                if (cur || focus == null) focus = row;
+            }
+            final View f = focus;
+            if (f != null) sc.post(() -> { sc.scrollTo(0, Math.max(0, f.getTop() - dp(60))); f.requestFocus(); });
+        };
+        draw[0].run();
+        panel.addView(sc, new LinearLayout.LayoutParams(-1, dp(phone ? 250 : 320)));
+        int w = Math.min(dp(720), getResources().getDisplayMetrics().widthPixels - dp(24));
+        menuLayer.addView(panel, new FrameLayout.LayoutParams(w, -2, Gravity.CENTER));
+    }
+
     private void buildControls(String title) {
         controls = new FrameLayout(this);
         int pad = dp(36);
@@ -549,18 +672,8 @@ public class PlayerActivity extends Activity {
         LinearLayout row = new LinearLayout(this);
         row.setOrientation(LinearLayout.HORIZONTAL);
         row.setGravity(Gravity.CENTER_VERTICAL);
-        FrameLayout play = new FrameLayout(this);
-        play.setFocusable(true);
-        play.setClickable(true);
-        play.setOnClickListener(v -> togglePlay());
-        playIcon = new ImageView(this);
-        playIcon.setImageResource(R.drawable.ic_p_pause);
-        playIcon.setColorFilter(Color.WHITE);
-        playIcon.setAlpha(.7f);
-        play.setOnFocusChangeListener((v, f) -> { playIcon.animate().alpha(f ? 1f : .7f).setDuration(120).start(); v.animate().scaleX(f ? 1.18f : 1f).scaleY(f ? 1.18f : 1f).setDuration(120).start(); });
-        play.addView(playIcon, new FrameLayout.LayoutParams(dp(26), dp(26), Gravity.CENTER));
-        playBtn = play;
-        row.addView(play, new LinearLayout.LayoutParams(dp(40), dp(40)));
+        FrameLayout play = makePlay(phone ? 40 : 26, phone);
+        if (!phone) row.addView(play, new LinearLayout.LayoutParams(dp(40), dp(40)));
         posTx = text("0:00", 15, true);
         durTx = text("", 15, true);
         posTx.setAlpha(.95f); durTx.setAlpha(.7f);
@@ -605,6 +718,10 @@ public class PlayerActivity extends Activity {
         ctl.addView(other);
         ctl.addView(overChip);
         ctl.addView(skipChip);
+        speedChip = chip("Speed " + speedLabel(), false, v -> cycleSpeed());
+        ctl.addView(speedChip);
+        if (!epsJson.isEmpty()) { final TextView ec = chip("Episodes", false, null); ec.setOnClickListener(v -> openEpisodes(ec)); ctl.addView(ec); }
+        if (!nextTitle.isEmpty()) ctl.addView(chip("Next episode \u25B6", false, v -> { ExoPlayerPlugin.autoNext = true; finishWith(false); }));
         final FrameLayout gear = circleBtn(R.drawable.ic_p_gear, 44, 24, null, false, null);
         gear.setOnClickListener(v -> openOptions(gear));
         LinearLayout.LayoutParams gp = new LinearLayout.LayoutParams(dp(44), dp(44));
@@ -612,6 +729,18 @@ public class PlayerActivity extends Activity {
         ctl.addView(gear, gp);
         bottom.addView(ctl, new LinearLayout.LayoutParams(-1, -2));
         controls.addView(bottom, new FrameLayout.LayoutParams(-1, -2, Gravity.BOTTOM));
+        if (phone) {                                                  // phone: pause in the middle of the screen with -10 / +10 beside it
+            LinearLayout mid = new LinearLayout(this);
+            mid.setOrientation(LinearLayout.HORIZONTAL);
+            mid.setGravity(Gravity.CENTER);
+            FrameLayout bk = skipBtn(false), fw = skipBtn(true);
+            LinearLayout.LayoutParams sp1 = new LinearLayout.LayoutParams(dp(60), dp(60)); sp1.rightMargin = dp(34);
+            LinearLayout.LayoutParams sp2 = new LinearLayout.LayoutParams(dp(60), dp(60)); sp2.leftMargin = dp(34);
+            mid.addView(bk, sp1);
+            mid.addView(play, new LinearLayout.LayoutParams(dp(78), dp(78)));
+            mid.addView(fw, sp2);
+            controls.addView(mid, new FrameLayout.LayoutParams(-2, -2, Gravity.CENTER));
+        }
         root.addView(controls, new FrameLayout.LayoutParams(-1, -1));
 
         // buffering spinner + quick seek flash
@@ -1050,7 +1179,7 @@ public class PlayerActivity extends Activity {
         String[] sp = new String[SPEEDS.length];
         int si = 2;
         for (int i = 0; i < SPEEDS.length; i++) { sp[i] = SPEEDS[i] == 1f ? "1\u00d7" : (SPEEDS[i] + "\u00d7"); if (SPEEDS[i] == speed) si = i; }
-        col.addView(chipRow("Playback speed", sp, si, i -> { speed = SPEEDS[i]; player.setPlaybackSpeed(speed); }));
+        col.addView(chipRow("Playback speed", sp, si, i -> { speed = SPEEDS[i]; player.setPlaybackSpeed(speed); if (speedChip != null) speedChip.setText("Speed " + speedLabel()); }));
         panel.addView(sc, new LinearLayout.LayoutParams(-1, dp(360)));
         menuLayer.addView(panel, new FrameLayout.LayoutParams(dp(720), -2, Gravity.CENTER));
         panel.post(() -> { View f = ((LinearLayout) ((LinearLayout) col.getChildAt(0)).getChildAt(1)).getChildAt(3); if (f != null) f.requestFocus(); });

@@ -35,6 +35,7 @@ public class ExoPlayerPlugin extends Plugin {
     static PluginCall pending;
     static long subDelay = Long.MIN_VALUE;   // set by the player when it knows the subtitle delay
     static boolean autoNext = false;
+    static int pickSeason = -1, pickEpisode = -1;   // set when the viewer picks another episode inside the player
 
     @Override
     public void load() {
@@ -148,6 +149,9 @@ public class ExoPlayerPlugin extends Plugin {
         i.putExtra("pass", call.getBoolean("pass", true));
         i.putExtra("nextTitle", call.getString("nextTitle", ""));
         i.putExtra("episode", call.getBoolean("episode", false));
+        i.putExtra("eps", call.getString("eps", ""));
+        i.putExtra("curSeason", call.getInt("curSeason", 1));
+        i.putExtra("curEpisode", call.getInt("curEpisode", 0));
         Long sd = call.getLong("subDelay", 0L);
         i.putExtra("subDelay", sd == null ? 0L : sd);
 
@@ -172,7 +176,7 @@ public class ExoPlayerPlugin extends Plugin {
         o.put("ended", false);
         o.put("failed", true);
         if (subDelay != Long.MIN_VALUE) o.put("subDelay", subDelay);
-        subDelay = Long.MIN_VALUE; autoNext = false;
+        subDelay = Long.MIN_VALUE; autoNext = false; pickSeason = -1; pickEpisode = -1;
         o.put("next", next);
         o.put("error", code);
         pending.resolve(o);
@@ -187,6 +191,8 @@ public class ExoPlayerPlugin extends Plugin {
         o.put("ended", ended);
         if (subDelay != Long.MIN_VALUE) o.put("subDelay", subDelay);
         o.put("autoNext", autoNext);
+        if (pickEpisode >= 0) { JSObject pk = new JSObject(); pk.put("season", pickSeason); pk.put("episode", pickEpisode); o.put("pick", pk); }
+        pickSeason = -1; pickEpisode = -1;
         subDelay = Long.MIN_VALUE; autoNext = false;
         pending.resolve(o);
         pending = null;
