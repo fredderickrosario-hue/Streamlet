@@ -369,10 +369,12 @@ nav button{color:rgba(255,255,255,.52)}
 nav button.on{color:#fff}
 nav button>svg{transition:fill .2s,stroke .2s}
 nav button.on{color:#fff}
-nav button.on>svg{fill:var(--acc);stroke:#fff;stroke-width:1.6;stroke-linejoin:round;transform:none}
+nav button.on>svg{fill:color-mix(in srgb,var(--acc) 50%,transparent);stroke:#fff;stroke-width:1.6;stroke-linejoin:round;transform:none}
 nav button.on>svg .k{fill:none;stroke:#fff;stroke-width:1.8}
 nav button.on>svg circle.k{fill:none;stroke:#fff;stroke-width:1.8}
 nav button.on>svg .nf{fill:none;stroke-width:2.4}
+nav button>svg{transition:transform .12s cubic-bezier(.2,.8,.3,1),fill .2s,stroke .2s}
+nav button:active>svg,nav button.prs>svg,nav button.on:active>svg,nav button.on.prs>svg{transform:scale(.9)}
 nav button.on::before{display:none}
 body.tv nav button.on::before{display:none}
 body.tv nav button.on{background:none}
@@ -1300,6 +1302,8 @@ $('#tabHome').onclick = () => { if (isTVui()) tvTab('home'); else showTab('home'
 $('#nvMovies').onclick = () => tvTab('movie'); $('#nvShows').onclick = () => tvTab('series');
 $('#nvSpace').onclick = () => showLauncher();
 $('#nvSearch').onclick = () => { if (!cur) return showLauncher(); if (isTVui()) { showTab('search'); setTimeout(() => { const k = $('.kkey'); if (k) k.focus({preventScroll:true}); }, 60); return; } if (srchOn || $('#q').value.trim()) { closeSearch(); return; } if ($('#home').hidden) showTab('home'); srchOn = true; renderTabs(); $('#q').focus(); };
+$('#nav').addEventListener('keydown', e => { if ((e.key === 'Enter' || e.key === ' ') && e.target.closest('button')) e.target.closest('button').classList.add('prs'); });
+$('#nav').addEventListener('keyup', e => { const b = e.target.closest && e.target.closest('button'); if (b) b.classList.remove('prs'); });
 $('#nav').addEventListener('click', e => {
   if (!isTVui() || !e.target.closest('button')) return;
   const settle = () => {
