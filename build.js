@@ -20,7 +20,6 @@ for (const f of ['tv', 'phone']) {
     }).join('\n');
   }
   if (f === 'tv') {                                              // the TV page is laid out 1280 CSS px wide and scaled by the web view (no per-frame zoom), without the GPU-heavy blur
-    s = s.replace(/<meta name="viewport"[^>]*>/, '<meta name="viewport" content="width=1280">');
     s = s.replace(/-webkit-backdrop-filter:[^;}]*;?/g, '').replace(/backdrop-filter:[^;}]*;?/g, '');
   }
   s = s.replace(/<link rel="manifest"[^>]*>\n?/, '').replace(/<link rel="apple-touch-icon"[^>]*>\n?/, '');

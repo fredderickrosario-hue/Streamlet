@@ -689,7 +689,7 @@ body.tv .dright .chip:focus-visible{outline:2px solid #fff;outline-offset:-2px;b
 .stile .snm{display:block;font-size:20px;font-weight:800}
 .stile .sds{display:block;margin-top:3px;font-size:12.5px;opacity:.7;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 /*@tv*/
-html,body{cursor:none;-webkit-user-select:none;user-select:none;overscroll-behavior:none}
+html,body{cursor:none;-webkit-user-select:none;user-select:none;overscroll-behavior:none;overflow-x:clip}
 input,textarea{-webkit-user-select:text;user-select:text;cursor:text}
 /*@end*/
 /*@tv*/
@@ -1546,6 +1546,7 @@ $('#logBox').addEventListener('toggle', () => { if ($('#logBox').open) renderLog
 { const sync = () => { $('#offline').hidden = navigator.onLine; }; addEventListener('online', sync); addEventListener('offline', sync); sync(); }
 /*@tv*/
 document.addEventListener('contextmenu', e => e.preventDefault());
+addEventListener('scroll', () => { if (scrollX) scrollTo(0, scrollY); }, {passive:true});   // the TV page never scrolls sideways
 document.addEventListener('dragstart', e => e.preventDefault());
 { // dim the screen after a few idle minutes so a static menu doesn't burn into the TV
   const el = h('div', {id:'idle'}); el.append(h('img', {src:(document.querySelector('.navbrand img') || {}).src || 'logo.svg', alt:''}));

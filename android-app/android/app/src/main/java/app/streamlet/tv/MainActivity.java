@@ -14,8 +14,6 @@ public class MainActivity extends BridgeActivity {
         try {
             WebView wv = getBridge().getWebView();
             WebSettings ws = wv.getSettings();
-            ws.setUseWideViewPort(true);                       // honour the page's fixed-width viewport (the TV page is 1280 px wide)
-            ws.setLoadWithOverviewMode(true);
             ws.setSupportZoom(false);
             ws.setBuiltInZoomControls(false);
             ws.setTextZoom(100);                               // ignore the system font size, the page sizes everything itself
