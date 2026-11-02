@@ -545,6 +545,9 @@ body.tv .gtile{height:52px;min-width:130px;font-size:15px}
 #intro{position:fixed;inset:0;z-index:9999;background:radial-gradient(circle at 50% 42%,#241a45,#0a0a12 70%);display:flex;flex-direction:column;align-items:center;justify-content:center;transition:opacity .6s ease}
 #intro[hidden]{display:none}
 #intro.out{opacity:0;pointer-events:none}
+#intro.vid{background:#0a0a12}
+#intro.vid .ilock{visibility:hidden}
+#ivid{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:#0a0a12}
 .ilogo,.iword{opacity:0}
 nav button.upd>svg{animation:updspin 9s linear infinite;transform-origin:50% 50%}
 nav button.upd{position:relative}
@@ -3714,8 +3717,7 @@ $('#pseek').addEventListener('click', e => { const v = $('#vid'), r = e.currentT
   if (navigator.webdriver && !/[?&]intro/.test(location.search)) { el.remove(); return; }
   const spin = el.querySelector('.ispin'), ring = el.querySelector('.iring'), play = el.querySelector('.iplay'), plug = el.querySelector('.iplug'), glow = el.querySelector('.iglow');
   const w = $('#iword'), lock = el.querySelector('.ilock'), lk = {w:null};
-  let bootBuf = null;                                                // the boot sound is a ready-made file: decoded now, played the moment the animation starts
-  try { sfx.warm(); fetch(new URL((FLAVOR === 'auto' ? '' : '../') + 'boot.mp3', location.href)).then(r => r.arrayBuffer()).then(ab => sfx.decode(ab)).then(b => { bootBuf = b; }).catch(() => {}); } catch {}
+  let bootBuf = null;                                                // fallback path only: the boot sound as a ready-made file, decoded now, played the moment the animation starts
   w.append('Stream', h('span', {class:'lgr'}, 'let'));
   w.style.opacity = '0';
   let len = 1800; try { len = ring.getTotalLength(); } catch {}
@@ -3725,7 +3727,10 @@ $('#pseek').addEventListener('click', e => { const v = $('#vid'), r = e.currentT
   const PLAY_END = 4800;                                            // everything has finished and the logo has been held for a moment
   const appShown = () => !$('#profiles').hidden || !$('#launcher').hidden || !$('#login').hidden || document.body.classList.contains('onhome');
   let done = false, n = 0, last = null;
-  const end = () => { if (done) return; done = true; el.classList.add('out'); setTimeout(() => el.remove(), 800); };
+  let vid = null;
+  const end = () => { if (done) return; done = true; el.classList.add('out');
+    if (vid) { const gone = () => el.remove(); vid.onended = gone; setTimeout(gone, 9000); }      // the video keeps playing (invisible) so the sound can fade out on its own
+    else setTimeout(() => el.remove(), 800); };
   const render = n => {
     const sp = out(seg(n, 250, 1500));                              // swirl: starts small, blurred and spinning, then settles into the ring
     glow.style.opacity = out(seg(n, 300, 1800));
@@ -3763,7 +3768,21 @@ $('#pseek').addEventListener('click', e => { const v = $('#vid'), r = e.currentT
   };
   setTimeout(end, 14000);                                           // safety net only
   const ready = () => requestAnimationFrame(() => requestAnimationFrame(() => setTimeout(() => requestAnimationFrame(frame), 400)));
-  if (document.readyState === 'complete') ready(); else addEventListener('load', ready, {once:true});
+  const startJS = () => {                                           // fallback: the same animation drawn live (used when the video can't play)
+    try { sfx.warm(); fetch(new URL((FLAVOR === 'auto' ? '' : '../') + 'boot.mp3', location.href)).then(r => r.arrayBuffer()).then(ab => sfx.decode(ab)).then(b => { bootBuf = b; }).catch(() => {}); } catch {}
+    if (document.readyState === 'complete') ready(); else addEventListener('load', ready, {once:true});
+  };
+  /* Normally the intro is a ready-made video (picture and sound together, hardware decoded): smooth even while the page is still loading. */
+  vid = h('video', {id:'ivid', src:new URL((FLAVOR === 'auto' ? '' : '../') + 'boot.mp4', location.href).href, preload:'auto', playsinline:'', 'disable-pip':''});
+  el.classList.add('vid'); el.prepend(vid);
+  let began = false;
+  const fallback = () => { if (began || done) return; began = true; try { vid.pause(); } catch {} vid.remove(); vid = null; el.classList.remove('vid'); startJS(); };
+  vid.addEventListener('error', fallback);
+  vid.addEventListener('playing', () => { if (began) return; began = true; clearTimeout(giveUp);
+    const poll = setInterval(() => { if (done || !vid) return clearInterval(poll); if (vid.currentTime >= PLAY_END / 1000 && appShown()) { clearInterval(poll); end(); } }, 100); }, {once:true});
+  const giveUp = setTimeout(fallback, 4000);                         // nothing playing after 4 s (autoplay blocked, slow network): draw it live instead
+  const go = () => { const r = vid.play(); if (r && r.catch) r.catch(fallback); };
+  if (vid.readyState >= 3) go(); else vid.addEventListener('canplay', go, {once:true});
 })();
 
 /* ---------- boot ---------- */
