@@ -54,6 +54,7 @@ const ok = (name, cond, extra) => { cond ? pass++ : fail++; console.log((cond ? 
     ok('similar titles function present', r.sim === true);
     // entry page: opens, tags are buttons that start a search
     const d = await p.evaluate(async () => {
+      if (!profile) profile = { id: 'p1', name: 'Test', avatar: 0 };
       await openDetail(addons[0], 'movie', { id: 's1', type: 'movie', name: 'Spider-Man: Homecoming', releaseInfo: '2017', genres: ['Action'], cast: ['Tom Holland'] });
       await new Promise(r => setTimeout(r, 800));
       const pills = [...document.querySelectorAll('#detail .pillx')];
