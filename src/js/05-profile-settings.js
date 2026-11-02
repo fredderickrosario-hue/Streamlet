@@ -81,9 +81,12 @@ $('#closeBtn').onclick = async () => {
   try { const A = window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.App; if (A && A.exitApp) { await A.exitApp(); return; } } catch {}
   window.close(); toast('You can close this tab.');
 };
-$('#updBtn').onclick = async () => {
-  try { for (const r of await navigator.serviceWorker.getRegistrations()) await r.unregister(); for (const k of await caches.keys()) await caches.delete(k); } catch {}
-  location.reload();
+$('#updBtn').onclick = async () => {                                  // clears everything the app has cached (never your data), then starts again with a fresh copy
+  toast('Clearing the cache…');
+  try { for (const r of await navigator.serviceWorker.getRegistrations()) await r.unregister(); } catch {}
+  try { for (const k of await caches.keys()) await caches.delete(k); } catch {}
+  try { const N = nativePlayer(); if (N && N.clearWebCache) await N.clearWebCache(); } catch {}
+  setTimeout(() => { location.href = location.pathname + '?r=' + Date.now(); }, 300);   // a new address, so even a stuck copy of the page is skipped
 };
 
 /* ---------- profile picker ---------- */

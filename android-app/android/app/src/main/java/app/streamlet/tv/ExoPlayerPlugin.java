@@ -107,6 +107,15 @@ public class ExoPlayerPlugin extends Plugin {
     @PluginMethod
     public void getLog(PluginCall call) { JSObject r = new JSObject(); r.put("log", AppLog.read()); call.resolve(r); }
 
+    /** empties the web view's saved pages and files (settings and accounts are kept) */
+    @PluginMethod
+    public void clearWebCache(final PluginCall call) {
+        getActivity().runOnUiThread(() -> {
+            try { getBridge().getWebView().clearCache(true); call.resolve(); }
+            catch (Exception e) { call.reject(String.valueOf(e.getMessage())); }
+        });
+    }
+
     @PluginMethod
     public void clearLog(PluginCall call) { AppLog.clear(); call.resolve(); }
 

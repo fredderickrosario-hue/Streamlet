@@ -1022,7 +1022,7 @@ body.tv #episode .dbt-title{font-size:clamp(34px,4vw,60px)}
           <p class="hint" id="apkMsg" style="margin-top:8px"></p>
         </div>
         <details class="adbox" id="logBox" style="margin:10px 0"><summary>Diagnostics</summary><div id="logBody" style="margin-top:8px"></div></details>
-        <div class="aboutpad" style="display:flex;gap:10px;flex-wrap:wrap"><button class="btn ghost sm" id="updBtn" type="button">Restart</button><button class="btn ghost sm" id="closeBtn" type="button">Close app</button></div>
+        <div class="aboutpad" style="display:flex;gap:10px;flex-wrap:wrap"><button class="btn ghost sm" id="updBtn" type="button">Clear cache &amp; restart</button><button class="btn ghost sm" id="closeBtn" type="button">Close app</button></div>
       </div>
     </div>
   </section>
@@ -1783,9 +1783,12 @@ $('#closeBtn').onclick = async () => {
   try { const A = window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.App; if (A && A.exitApp) { await A.exitApp(); return; } } catch {}
   window.close(); toast('You can close this tab.');
 };
-$('#updBtn').onclick = async () => {
-  try { for (const r of await navigator.serviceWorker.getRegistrations()) await r.unregister(); for (const k of await caches.keys()) await caches.delete(k); } catch {}
-  location.reload();
+$('#updBtn').onclick = async () => {                                  // clears everything the app has cached (never your data), then starts again with a fresh copy
+  toast('Clearing the cache…');
+  try { for (const r of await navigator.serviceWorker.getRegistrations()) await r.unregister(); } catch {}
+  try { for (const k of await caches.keys()) await caches.delete(k); } catch {}
+  try { const N = nativePlayer(); if (N && N.clearWebCache) await N.clearWebCache(); } catch {}
+  setTimeout(() => { location.href = location.pathname + '?r=' + Date.now(); }, 300);   // a new address, so even a stuck copy of the page is skipped
 };
 
 /* ---------- profile picker ---------- */
