@@ -820,6 +820,16 @@ body.tv .stile .snm{font-size:23px}
 body.tv .stile .sds{font-size:16px}
 body.tv .stile:focus-visible{transform:scale(1.07);outline-width:5px}
 body.tv .lfoot .chip{min-height:52px;padding:0 30px;font-size:18px}
+/* spaces v3: clean tile edges, only the tile list scrolls */
+.stile{border:0;background-clip:padding-box;box-shadow:inset 0 0 0 1px rgba(255,255,255,.1),0 10px 26px rgba(0,0,0,.3)}
+.stile.new{box-shadow:none;border:2px dashed rgba(255,255,255,.3)}
+.stile:focus-visible{box-shadow:inset 0 0 0 1px rgba(255,255,255,.1)}
+body.launch:not(.tv){overflow:hidden}
+body.launch:not(.tv) #launcher:not([hidden]){height:100vh;height:100dvh;min-height:0;box-sizing:border-box;overflow:hidden;padding-bottom:calc(14px + env(safe-area-inset-bottom))}
+body.launch:not(.tv) .lmid{flex:1 1 auto;min-height:0;padding:4vh 0 0;display:flex;flex-direction:column}
+body.launch:not(.tv) .lmid .ltitle,body.launch:not(.tv) .lmid .lsub{flex:0 0 auto}
+body.launch:not(.tv) .sgrid{flex:1 1 auto;min-height:0;overflow-y:auto;overscroll-behavior:contain;align-content:start;padding:6px 2px 18px;margin:12px -2px 0;-webkit-mask-image:linear-gradient(to bottom,transparent 0,#000 8px,#000 calc(100% - 18px),transparent);mask-image:linear-gradient(to bottom,transparent 0,#000 8px,#000 calc(100% - 18px),transparent)}
+body.launch:not(.tv) .lfoot{flex:0 0 auto;padding-top:8px}
 
 .scard.bad .sname::after{content:'  ·  failed earlier';font-size:12px;font-weight:600;color:#ff8f8f}
 .scard.bad{opacity:.7}
