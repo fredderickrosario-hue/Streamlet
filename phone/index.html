@@ -422,6 +422,15 @@ body:not(.tv).onhome:not(.launch) #tabsBar{position:fixed;top:calc(58px + env(sa
 body:not(.tv).onhome.scr:not(.launch) #tabsBar,body:not(.tv).onhome.srch:not(.launch) #tabsBar{opacity:1;visibility:visible;background:color-mix(in srgb,var(--bg) 95%,#000);padding-top:2px}
 body:not(.tv).onhome.tbhide:not(.srch):not(.launch) #tabsBar{transform:translateY(-160%);opacity:0;pointer-events:none}
 body:not(.tv):not(.onhome) #spaceBtn{display:none}
+/* inner pages (watchlist, addons, settings, profile): no empty top bar; the title stays put and only the content scrolls, fading under the title */
+body:not(.tv):not(.onhome):not(.launch) header{display:none}
+body:not(.tv).pgfix:not(.launch){overflow:hidden}
+body:not(.tv).pgfix:not(.launch) main{padding:0}
+body:not(.tv).pgfix:not(.launch) main>section:not([hidden]){display:flex;flex-direction:column;height:100vh;height:100dvh;overflow:hidden}
+body:not(.tv).pgfix:not(.launch) .pagehead{flex:0 0 auto;padding:calc(env(safe-area-inset-top) + 16px) 18px 8px}
+body:not(.tv).pgfix:not(.launch) #wlTabs,body:not(.tv).pgfix:not(.launch) #adSeg,body:not(.tv).pgfix:not(.launch) #addBox{flex:0 0 auto}
+body:not(.tv).pgfix:not(.launch) #settings>.pad,body:not(.tv).pgfix:not(.launch) #me>.pad,body:not(.tv).pgfix:not(.launch) #wlGrid,body:not(.tv).pgfix:not(.launch) #adBrowse:not([hidden]),body:not(.tv).pgfix:not(.launch) #adInstalled #list{flex:1 1 auto;min-height:0;overflow-y:auto;overscroll-behavior:contain;padding-bottom:130px;-webkit-mask-image:linear-gradient(to bottom,transparent 0,#000 26px);mask-image:linear-gradient(to bottom,transparent 0,#000 26px)}
+body:not(.tv).pgfix:not(.launch) #adInstalled:not([hidden]){flex:1 1 auto;min-height:0;display:flex;flex-direction:column;padding-bottom:0}
 body:not(.tv).tbhide:not(.onhome):not(.launch) header{transform:translateY(-115%)}
 body:not(.tv):not(.onhome) header{transition:transform .28s ease,background .25s}
 body:not(.tv):not(.onhome).scr header{background:color-mix(in srgb,var(--bg) 95%,#000)}
@@ -986,7 +995,7 @@ function showTab(name){
   navAvatar();
   for (const [k, sel] of Object.entries(TAB_SECTIONS)) { $(sel).hidden = k !== name; $(TAB_BUTTONS[k]).classList.toggle('on', k === name); }
   $('#spaceBtn').replaceChildren(cur ? cur.emoji+' '+cur.name : 'Spaces', h('i',null,'⇄'));
-  $('#q').hidden = name !== 'home'; $('#pageTitle').hidden = true; document.body.classList.toggle('onhome', name === 'home');
+  $('#q').hidden = name !== 'home'; $('#pageTitle').hidden = true; document.body.classList.toggle('onhome', name === 'home'); document.body.classList.toggle('pgfix', ['watch', 'addons', 'settings', 'me'].includes(name));
   $('#q').placeholder = cur ? 'Search '+cur.name+'…' : 'Search…';
   if (name === 'home') renderHome($('#q').value.trim());
   else if (name === 'search') renderSearch();
