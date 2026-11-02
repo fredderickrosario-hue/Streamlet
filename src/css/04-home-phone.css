@@ -1,0 +1,122 @@
+/* ---- TV home (landscape): Netflix-style full-bleed hero, Streamlet look ---- */
+.tvhero{display:block;position:relative;height:calc(var(--vh,1vh) * 74);min-height:420px;margin:0 0 calc(var(--vh,1vh) * -16)}
+.tvhero .tbg{position:absolute;top:0;bottom:0;left:18%;right:0;-webkit-mask-image:linear-gradient(to right,transparent 0,#000 38%);mask-image:linear-gradient(to right,transparent 0,#000 38%)}
+.tvhero .tbg img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center 18%;opacity:0;transition:opacity .8s ease;-webkit-mask-image:linear-gradient(to bottom,#000 55%,transparent 100%);mask-image:linear-gradient(to bottom,#000 55%,transparent 100%)}
+.tvhero .tbg img.on{opacity:1}
+.tvhero .tin{position:absolute;left:32px;bottom:calc(var(--vh,1vh) * 19);width:min(46%,600px);z-index:2}
+.tvhero .tlogo{display:block;max-width:100%;max-height:calc(var(--vh,1vh) * 12);object-fit:contain;object-position:left bottom;filter:drop-shadow(0 4px 18px rgba(0,0,0,.8))}
+.tvhero .ttitle{font-size:clamp(30px,4vw,58px);font-weight:900;line-height:1.02;letter-spacing:-.5px;text-shadow:0 4px 24px rgba(0,0,0,.7);text-transform:var(--tt)}
+.tvhero .tmeta{display:flex;flex-wrap:wrap;gap:6px 14px;align-items:center;margin:16px 0 8px;font-weight:650;font-size:15px;color:#e9eaf2;text-shadow:0 2px 8px #000}
+.tvhero .timdb{color:#ffd166}
+.tvhero .tdesc{margin:0;max-width:540px;font-size:16px;line-height:1.5;color:#e3e5ee;text-shadow:0 2px 10px #000;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.tvhero .tbtns{display:flex;gap:14px;margin-top:16px}
+.tvhero .hb{padding:13px 34px;font-size:18px;border-radius:14px;transition:transform .15s}
+.tvhero .hb:focus-visible{transform:scale(1.07)}
+#rows .row,#rows #cwBox{position:relative;z-index:2}
+#rows .row h2{font-size:19px;margin-bottom:6px}
+/* header floats on top of the hero; tabs sit under it */
+body.onhome:not(.launch) header{position:fixed;left:0;right:0;background:none;backdrop-filter:none;-webkit-backdrop-filter:none;border-bottom:0;transition:background .25s}
+body.onhome.scr:not(.launch) header{background:color-mix(in srgb,var(--bg) 70%,transparent);backdrop-filter:blur(var(--blur));-webkit-backdrop-filter:blur(var(--blur))}
+body.onhome:not(.launch) #home{position:relative}
+body.onhome:not(.launch) #tabsBar{position:fixed;top:calc(var(--vh,1vh) * 3.5);left:var(--tvl,132px);right:0;z-index:4;padding:0 0 0 32px;transition:opacity .2s}
+body.onhome.scr:not(.launch) #tabsBar{opacity:0;visibility:hidden}
+
+.tvhero::before{content:'';position:absolute;inset:0 0 auto 0;height:150px;background:linear-gradient(to bottom,rgba(0,0,0,.55),transparent);z-index:1;pointer-events:none}
+/* phone portrait: edge-to-edge hero, text centred like Netflix mobile */
+body:not(.tv){--tvl:0px}
+body:not(.tv) .tvhero{height:calc(var(--vh,1vh) * 68);min-height:440px;margin:0 0 calc(var(--vh,1vh) * -6)}
+body:not(.tv) .tvhero .tbg{left:0;-webkit-mask-image:none;mask-image:none}
+body:not(.tv) .tvhero .tbg img{object-position:center 12%;-webkit-mask-image:linear-gradient(to bottom,#000 62%,transparent 100%);mask-image:linear-gradient(to bottom,#000 62%,transparent 100%)}
+body:not(.tv) .tvhero .tin{left:18px;right:18px;width:auto;bottom:calc(var(--vh,1vh) * 9);text-align:center}
+body:not(.tv) .tvhero .tlogo{margin:0 auto;max-height:calc(var(--vh,1vh) * 11);object-position:center bottom}
+body:not(.tv) .tvhero .ttitle{font-size:clamp(28px,9vw,40px)}
+body:not(.tv) .tvhero .tmeta{justify-content:center;margin:12px 0 6px;font-size:13px}
+body:not(.tv) .tvhero .tdesc{display:none}
+body:not(.tv) .tvhero .tbtns{justify-content:center;margin-top:14px;gap:10px}
+body:not(.tv) .tvhero .hb{padding:11px 28px;font-size:16px;border-radius:12px}
+body:not(.tv) #rows .row h2{font-size:16px}
+body:not(.tv).onhome:not(.launch) #tabsBar{position:absolute;padding-left:14px;top:calc(12px + env(safe-area-inset-top));overflow-x:auto}
+body:not(.tv).onhome:not(.launch) header{padding-left:14px}
+/*@phone*/
+/* phone home: a sticky bar (logo left, search + spaces right) that darkens on scroll; the tabs row under it scrolls away */
+#phBar{display:none}
+body:not(.tv).onhome:not(.launch) #phBar{display:flex;position:fixed;top:0;left:0;right:0;z-index:31;align-items:center;justify-content:space-between;padding:calc(8px + env(safe-area-inset-top)) 12px 8px 16px;background:linear-gradient(to bottom,rgba(0,0,0,.6),transparent);transition:background .25s,box-shadow .25s}
+body:not(.tv).onhome.scr:not(.launch) #phBar,body:not(.tv).onhome.srch:not(.launch) #phBar{background:color-mix(in srgb,var(--bg) 95%,#000);box-shadow:0 1px 0 rgba(255,255,255,.07),0 8px 20px rgba(0,0,0,.35)}
+#phBar .phbrand{display:flex;align-items:center;gap:8px;font-weight:800;font-size:21px;letter-spacing:-.3px;color:#fff}
+#phBar .phbrand img{width:32px;height:32px}
+#phBar .phbrand b{color:var(--acc)}
+#phBar .phbtns{display:flex;gap:4px}
+#phBar button{width:42px;height:42px;border:0;border-radius:50%;background:transparent;color:#fff;display:grid;place-items:center;padding:0}
+#phBar button svg{width:24px;height:24px;stroke:currentColor;fill:none;stroke-width:2.1;stroke-linecap:round;stroke-linejoin:round}
+body:not(.tv).onhome:not(.launch) #tabsBar{position:fixed;top:calc(58px + env(safe-area-inset-top));left:0;right:0;z-index:30;padding:0 14px 8px;background:none;transition:transform .28s ease,opacity .2s,background .25s}
+body:not(.tv).onhome.scr:not(.launch) #tabsBar,body:not(.tv).onhome.srch:not(.launch) #tabsBar{opacity:1;visibility:visible;background:color-mix(in srgb,var(--bg) 95%,#000);padding-top:2px}
+body:not(.tv).onhome.tbhide:not(.srch):not(.launch) #tabsBar{transform:translateY(-160%);opacity:0;pointer-events:none}
+body:not(.tv):not(.onhome) #spaceBtn{display:none}
+/* inside a title page only its back arrow shows, not the logo bar and tabs */
+body:not(.tv).inlayer #phBar,body:not(.tv).inlayer #tabsBar{display:none !important}
+/* tabs: compact soft chips, one dark block with the logo bar */
+body:not(.tv).onhome:not(.launch) #phBar,body:not(.tv).onhome.scr:not(.launch) #phBar,body:not(.tv).onhome.srch:not(.launch) #phBar{box-shadow:none;border:0}
+body:not(.tv) .tspace{height:calc(124px + env(safe-area-inset-top))}
+body:not(.tv).onhome:not(.launch) #tabsBar{padding:0 14px 10px}
+body:not(.tv).onhome.scr:not(.launch) #tabsBar{box-shadow:0 10px 22px rgba(0,0,0,.35)}
+body:not(.tv).onhome:not(.launch) #tabsBar .chip{flex:0 0 auto;height:34px;padding:0 16px;display:inline-flex;align-items:center;font-size:14px;font-weight:650;border:0;border-radius:17px;background:rgba(255,255,255,.11);box-shadow:none;-webkit-backdrop-filter:none;backdrop-filter:none}
+body:not(.tv).onhome:not(.launch) #tabsBar .chip.on{background:linear-gradient(135deg,var(--acc),var(--acc2));color:var(--btnt,#fff);box-shadow:none}
+/* search: one dark bar with a soft rounded field, no heavy outline */
+body:not(.tv).onhome.srch:not(.launch) #phBar{box-shadow:none}
+body:not(.tv).onhome.srch:not(.launch) #tabsBar{padding:0 14px 12px;box-shadow:0 10px 22px rgba(0,0,0,.35)}
+body:not(.tv).srch #tabsBar #q{display:block;width:100%;max-width:none;min-width:0;height:44px;padding:0 18px 0 46px;border:0;border-radius:22px;outline:none;box-shadow:none;font-size:16px;color:#fff;-webkit-backdrop-filter:none;backdrop-filter:none;background:rgba(255,255,255,.09) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23ffffff99' stroke-width='2.2' stroke-linecap='round'%3E%3Ccircle cx='10.5' cy='10.5' r='6.5'/%3E%3Cpath d='M15.5 15.5L21 21'/%3E%3C/svg%3E") no-repeat 16px center/20px}
+body:not(.tv).srch #tabsBar #q:focus,body:not(.tv).srch #tabsBar #q:focus-visible{outline:none;box-shadow:none;background-color:rgba(255,255,255,.13)}
+body:not(.tv).srch #tabsBar #q::placeholder{color:rgba(255,255,255,.5)}
+body:not(.tv).srch #tabsBar #q::-webkit-search-cancel-button{display:none}
+/* inner pages (watchlist, addons, settings, profile): no empty top bar; the title stays put and only the content scrolls, fading under the title */
+body:not(.tv):not(.onhome):not(.launch) header{display:none}
+body:not(.tv).pgfix:not(.launch){overflow:hidden}
+body:not(.tv).pgfix:not(.launch) main{padding:0}
+body:not(.tv).pgfix:not(.launch) main>section:not([hidden]){display:flex;flex-direction:column;height:100vh;height:100dvh;overflow:hidden}
+body:not(.tv).pgfix:not(.launch) .pagehead{flex:0 0 auto;padding:calc(env(safe-area-inset-top) + 16px) 18px 8px}
+body:not(.tv).pgfix:not(.launch) #wlTabs,body:not(.tv).pgfix:not(.launch) #adSeg,body:not(.tv).pgfix:not(.launch) #addBox{flex:0 0 auto}
+body:not(.tv).pgfix:not(.launch) #settings>.pad,body:not(.tv).pgfix:not(.launch) #me>.pad,body:not(.tv).pgfix:not(.launch) #wlGrid,body:not(.tv).pgfix:not(.launch) #adBrowse:not([hidden]),body:not(.tv).pgfix:not(.launch) #adInstalled #list{flex:1 1 auto;min-height:0;overflow-y:auto;overscroll-behavior:contain;padding-bottom:130px;-webkit-mask-image:linear-gradient(to bottom,transparent 0,#000 26px);mask-image:linear-gradient(to bottom,transparent 0,#000 26px)}
+body:not(.tv).pgfix:not(.launch) #adInstalled:not([hidden]){flex:1 1 auto;min-height:0;display:flex;flex-direction:column;padding-bottom:0}
+body:not(.tv).tbhide:not(.onhome):not(.launch) header{transform:translateY(-115%)}
+body:not(.tv):not(.onhome) header{transition:transform .28s ease,background .25s}
+body:not(.tv):not(.onhome).scr header{background:color-mix(in srgb,var(--bg) 95%,#000)}
+/*@end*/
+
+body.onhome:not(.launch) header{display:none}
+.tspace{height:calc(70px + env(safe-area-inset-top))}
+body.tv .tspace{height:calc(var(--vh,1vh) * 14)}
+.chip.ico{width:42px;height:42px;padding:0;display:inline-flex;align-items:center;justify-content:center;font-size:20px;border-radius:50%}
+.chip.ico.on{background:linear-gradient(135deg,var(--acc),var(--acc2));color:var(--btnt)}
+#tabsBar #q{flex:1;min-width:140px;max-width:560px;height:42px;padding:0 16px}
+#tabsBar{align-items:center}
+
+/* ---- landscape / TV side nav: search, spaces and the browse tabs live here, icon-only ---- */
+body:not(.tv) nav .tvonly,nav .gone{display:none !important}
+body.tv{--tvl:104px}
+body.tv nav{width:64px;left:16px;padding:8px 6px;gap:1px;max-height:calc(var(--vh,1vh) * 94);overflow-y:auto;scrollbar-width:none}
+body.tv nav::-webkit-scrollbar{display:none}
+body.tv nav button{padding:10px 0;border-radius:18px}
+body.tv nav button>svg{width:26px;height:26px}
+body.tv main{padding-left:104px}
+body.tv.launch main{padding-left:0}
+body.tv .tvhero .tin{left:28px}
+/* who's watching: centred on screen */
+body.tv #profiles h1{font-size:40px;margin-bottom:36px}
+body.tv #profiles .ptile{width:170px}
+body.tv #profiles .pav{width:132px;height:132px;margin-bottom:12px}
+body.tv #profiles .pav.add{font-size:56px}
+body.tv #profiles .pav .av{width:132px !important;height:132px !important;font-size:68px !important}
+body.tv #profiles .pgrid{gap:30px 34px}
+body.launch #profiles:not([hidden]){display:flex;flex-direction:column;justify-content:center;align-items:center;min-height:calc(var(--vh,1vh) * 100);padding-top:0;padding-bottom:0;max-width:none;margin:0}
+
+/* TV nav: no pill, hero bleeds underneath, label appears on focus */
+body.tv nav{background:none !important;border:0 !important;box-shadow:none !important;backdrop-filter:none !important;-webkit-backdrop-filter:none !important;overflow:visible;max-height:none;left:14px;padding:0;width:56px;gap:4px}
+body.tv nav::before,body.tv .navpill{display:none !important}
+body.tv nav button{width:56px;height:46px;padding:0;justify-content:center;border-radius:16px;color:rgba(255,255,255,.72)}
+body.tv nav button>svg{filter:drop-shadow(0 1px 6px rgba(0,0,0,.85))}
+body.tv nav button.on{color:#fff}
+body.tv nav button:focus-visible{outline:none;background:rgba(255,255,255,.2);box-shadow:0 0 0 2px #fff inset}
+body.tv .tvhero{margin-left:-104px}
+body.tv .tvhero .tin{left:132px}
+body.tv .tvhero .tbg{left:0;-webkit-mask-image:linear-gradient(to right,rgba(0,0,0,.34) 0,rgba(0,0,0,.2) 24%,#000 62%);mask-image:linear-gradient(to right,rgba(0,0,0,.34) 0,rgba(0,0,0,.2) 24%,#000 62%)}
+

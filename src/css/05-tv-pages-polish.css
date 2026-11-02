@@ -1,0 +1,167 @@
+/* ---- v4: TV pages, expanding nav, genre tiles, search page, intro ---- */
+body.tv header{display:none}
+body.tv main{padding-top:26px}
+body.tv.onhome main{padding-top:0}
+/* nav: full-height transparent rail that expands with labels when focused */
+body.tv nav{top:0 !important;bottom:0 !important;left:0 !important;transform:none !important;width:112px;background:linear-gradient(to right,rgba(8,8,14,.78) 0,rgba(8,8,14,.5) 55%,transparent) !important;height:auto;max-height:none;padding:0 0 0 14px;justify-content:center;gap:4px;border-radius:0 !important;transition:width .22s ease,background .22s ease;overflow:hidden}
+body.tv nav:focus-within{width:250px;background:linear-gradient(to right,rgba(8,8,14,.96) 0,rgba(8,8,14,.86) 72%,rgba(8,8,14,0) 100%) !important}
+body.tv nav button{width:56px;flex:0 0 auto;display:flex;flex-direction:row;align-items:center;justify-content:center;gap:16px}
+body.tv nav:focus-within button{width:216px;justify-content:flex-start;padding:0 0 0 15px}
+body.tv nav button > span:not(.navav){display:none}
+body.tv nav:focus-within button span:not(.navav){display:block;position:static;transform:none;background:none;border:0;box-shadow:none;padding:0;font-size:16px;font-weight:650;color:inherit;white-space:nowrap;pointer-events:none}
+body.tv nav button:focus-visible{background:rgba(255,255,255,.16);box-shadow:none;outline:none}
+
+.navav{display:inline-flex;border-radius:50%;line-height:0;flex:0 0 auto}
+.navav .av{width:32px !important;height:32px !important}
+nav button.on .navav{box-shadow:0 0 0 2px rgba(255,255,255,.95);outline:none}
+nav button:not(.on) .navav{opacity:.9}
+/* genre tiles */
+.gstrip{display:flex;gap:12px;overflow-x:auto;padding:4px 14px 14px;scrollbar-width:none;position:relative;z-index:2}
+.gstrip::-webkit-scrollbar{display:none}
+.gstrip[hidden]{display:none}
+.gtile{flex:0 0 auto;min-width:112px;height:44px;padding:0 20px;border-radius:12px;border:1px solid rgba(255,255,255,.16);color:#fff;font:inherit;font-weight:800;font-size:13px;letter-spacing:.7px;text-transform:uppercase;background:linear-gradient(135deg,hsl(var(--gh) 55% 38% / .9),hsl(calc(var(--gh) + 30) 55% 24% / .9));box-shadow:0 6px 16px rgba(0,0,0,.28)}
+.gtile.on{border-color:#fff;background:linear-gradient(135deg,hsl(var(--gh) 65% 48%),hsl(calc(var(--gh) + 30) 65% 32%))}
+.gtile:focus-visible{transform:scale(1.05)}
+body.tv .gstrip{padding:6px 28px 16px;gap:14px}
+body.tv .gtile{height:52px;min-width:130px;font-size:15px}
+/* search page */
+#search{display:flex;gap:28px;padding:0 28px 40px 0}
+#search[hidden]{display:none}
+.skb{flex:0 0 400px}
+.sbox{display:flex;align-items:center;height:56px;padding:0 18px;border-radius:14px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.16);font-size:20px;font-weight:650;margin-bottom:16px;overflow:hidden;white-space:nowrap}
+#stext.ph{color:var(--mut);font-weight:500}
+.scaret{width:2px;height:26px;background:var(--acc);margin-left:3px;animation:blink 1s steps(1) infinite}
+@keyframes blink{50%{opacity:0}}
+.kgrid{display:grid;grid-template-columns:repeat(6,1fr);gap:8px}
+.kkey{height:52px;border-radius:12px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.08);color:#fff;font:inherit;font-size:19px;font-weight:700;text-transform:uppercase}
+.kkey.wide{grid-column:span 2;font-size:14px;text-transform:none}
+.kkey:focus-visible{background:rgba(255,255,255,.2);transform:scale(1.06)}
+.sres{flex:1;min-width:0;overflow:hidden}
+.sres .row h2{margin-left:0}
+.sres .strip{padding-left:0}
+/* intro */
+#intro{position:fixed;inset:0;z-index:9999;background:radial-gradient(circle at 50% 42%,#241a45,#0a0a12 70%);display:flex;flex-direction:column;align-items:center;justify-content:center;transition:opacity .6s ease}
+#intro[hidden]{display:none}
+#intro.out{opacity:0;pointer-events:none}
+.ilogo,.iword{opacity:0}
+nav button.upd>svg{animation:updspin 9s linear infinite;transform-origin:50% 50%}
+nav button.upd{position:relative}
+nav button.upd::after{content:'';position:absolute;top:6px;right:calc(50% - 20px);width:9px;height:9px;border-radius:50%;background:var(--acc);box-shadow:0 0 0 2px #0e0f13,0 0 8px var(--acc)}
+body.tv nav button.upd::after{top:8px;left:34px;right:auto}
+@keyframes updspin{to{transform:rotate(360deg)}}
+.ilock{display:flex;align-items:center;gap:2vmin;position:relative}
+.ilogo{width:min(34vmin,290px);height:auto;overflow:visible;position:relative;z-index:2;flex:0 0 auto}
+.lgr{background:linear-gradient(90deg,#a98bff 0%,#a24bff 30%,#2fb6ff 72%,#16e0f2 100%);-webkit-background-clip:text;background-clip:text;color:transparent;-webkit-text-fill-color:transparent}
+.iword{font-size:clamp(32px,10vmin,96px);font-weight:800;letter-spacing:.5px;color:#fff;display:flex;position:relative;z-index:1;flex:0 0 auto}
+@keyframes idraw{to{stroke-dashoffset:0}}
+@keyframes ipop{to{opacity:1;transform:scale(1)}}
+@keyframes iplug{to{opacity:1;transform:translate(0,0) rotate(0)}}
+@keyframes iglow{0%{opacity:0}60%{opacity:.55}100%{opacity:.3}}
+@keyframes iletter{to{opacity:1;transform:none}}
+
+/* ---- v5 polish ---- */
+body.tv .cwc .rm,body.tv .wlc .rm{display:none}
+/* genre tiles: calm glass pills */
+.gtile{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);box-shadow:none;min-width:116px;height:44px;font-size:13px;letter-spacing:.6px}
+.gtile.on{background:linear-gradient(135deg,var(--acc),var(--acc2));border-color:transparent;color:var(--btnt)}
+.gstrip{padding-top:10px;padding-bottom:18px}
+body.tv .gstrip{padding:14px 28px 22px}
+body.tv .gtile{height:46px;min-width:124px;font-size:14px}
+.gtile:focus-visible{transform:scale(1.04)}
+body.tv .card,body.tv .cwb,body.tv .strip{scroll-margin:16px 0 36px}
+/* hero title block: tidy logo, readable text, scrim behind it */
+.tvhero::after{content:'';position:absolute;inset:0;background:linear-gradient(to right,color-mix(in srgb,var(--bg) 88%,transparent) 0,color-mix(in srgb,var(--bg) 55%,transparent) 36%,transparent 62%);pointer-events:none;z-index:1}
+body:not(.tv) .tvhero::after{display:none}
+body.tv .tvhero .tin{width:min(44%,520px)}
+body.tv .tvhero .tlogo{width:auto;height:auto;max-width:min(100%,400px);max-height:calc(var(--vh,1vh) * 12)}
+body.tv .tvhero .ttitle{font-size:clamp(30px,3.6vw,52px)}
+body.tv .tvhero .tmeta{margin:14px 0 8px;font-size:14px;gap:6px 12px}
+body.tv .tvhero .tmeta span:not(.timdb):not(:first-child)::before{content:'·';margin-right:12px;color:var(--mut)}
+body.tv .tvhero .tdesc{max-width:480px;font-size:15px;-webkit-line-clamp:3}
+body.tv .tvhero .tbg img{transition:opacity .5s ease}
+/* detail page: logo/title bottom-left instead of a huge centred banner */
+body.tv .dlogo{left:max(28px,calc(50% - 532px));transform:none;bottom:26px;width:auto;height:auto;max-width:min(46%,420px);max-height:calc(var(--vh,1vh) * 11)}
+body.tv .dtitle{left:max(28px,calc(50% - 532px));right:auto;text-align:left;font-size:clamp(30px,3.4vw,48px);max-width:60%;bottom:24px}
+body.tv .dgrad{background:linear-gradient(to bottom,rgba(0,0,0,.35),transparent 30%,color-mix(in srgb,var(--bg) 60%,transparent) 70%,var(--bg) 100%),linear-gradient(to right,color-mix(in srgb,var(--bg) 70%,transparent),transparent 55%)}
+/* strips bleed under the (transparent) nav so cards slide off the screen edge, not a hard cut */
+body.tv #rows .strip,body.tv #rows .gstrip{margin-left:-104px;padding-left:132px;scroll-padding-left:132px}
+
+/* ---- entry page, landscape/TV: backdrop behind, info on the left, episodes or sources on the right ---- */
+.dbt,.dacts2,.dinfo,.dptitle{display:none}
+body.tv .dhero .dlogo,body.tv .dhero .dtitle{display:none}
+body.tv .dwrap{padding:0;min-height:100%}
+body.tv .dhero{position:fixed;inset:0;height:auto;background-size:cover;background-position:center 18%;z-index:0}
+body.tv .dgrad{background:linear-gradient(to right,color-mix(in srgb,var(--bg) 94%,transparent) 0,color-mix(in srgb,var(--bg) 78%,transparent) 38%,color-mix(in srgb,var(--bg) 25%,transparent) 70%,transparent 100%),linear-gradient(to top,color-mix(in srgb,var(--bg) 70%,transparent),transparent 40%)}
+body.tv .dbody{position:relative;z-index:2;max-width:none;margin:0;padding:calc(var(--vh,1vh) * 12) 56px 48px 120px;display:grid;grid-template-columns:minmax(0,1fr) min(500px,42%);column-gap:44px;align-items:start}
+body.tv .dbody>*{grid-column:1}
+body.tv .dbody>.dright{grid-column:2;grid-row:1 / span 12;position:sticky;top:calc(var(--vh,1vh) * 8);max-height:calc(var(--vh,1vh) * 86);overflow-y:auto;margin:0;padding:18px 18px 8px;border-radius:24px;background:rgba(12,12,22,.66);backdrop-filter:blur(var(--blur));-webkit-backdrop-filter:blur(var(--blur));border:1px solid rgba(255,255,255,.1);scrollbar-width:none}
+body.tv .dbody>.dright::-webkit-scrollbar{display:none}
+body.tv .dphone{display:none}
+body.tv .dbt{display:block;margin-bottom:6px}
+body.tv .dbt-logo{display:block;width:auto;height:auto;max-width:min(100%,440px);max-height:calc(var(--vh,1vh) * 14);object-fit:contain;object-position:left bottom;filter:drop-shadow(0 4px 18px rgba(0,0,0,.8))}
+body.tv .dbt-title{margin:0;font-size:clamp(32px,3.8vw,56px);line-height:1.04;font-weight:900;letter-spacing:-.5px;text-shadow:0 4px 24px rgba(0,0,0,.7)}
+body.tv .dmeta{margin:12px 0 10px;font-size:15px}
+body.tv .dmeta .sp,body.tv .dmeta .ibtn{display:none}
+body.tv .ddesc{max-width:600px;font-size:16px;line-height:1.55;display:-webkit-box;-webkit-line-clamp:5;-webkit-box-orient:vertical;overflow:hidden;text-shadow:0 2px 10px #000}
+body.tv .ept{margin:2px 0 8px;font-size:22px}
+body.tv .dacts2{display:flex;flex-wrap:wrap;gap:12px;margin:14px 0 6px}
+body.tv .dacts2 .hb{padding:12px 26px;font-size:16px;border-radius:14px}
+body.tv .dinfo{display:grid;grid-template-columns:1fr 1fr;gap:16px 30px;max-width:640px;margin-top:22px;padding:18px 24px;border-radius:22px;background:rgba(18,20,44,.58);backdrop-filter:blur(var(--blur));-webkit-backdrop-filter:blur(var(--blur));border:1px solid rgba(255,255,255,.1)}
+body.tv .dil{display:block;margin-bottom:5px;font-size:11px;font-weight:800;letter-spacing:.9px;text-transform:uppercase;color:var(--mut)}
+body.tv .di span:last-child{font-size:14px;line-height:1.45;color:#e6e8f2}
+body.tv .dptitle{display:block;margin:0 0 12px;font-size:18px;font-weight:800}
+body.tv .dright .eplist .ep,body.tv .dright .scard{scroll-margin:70px 0}
+body.tv .dright .ethumb{flex:0 0 130px}
+body.tv .dtop{padding-left:120px}
+
+/* ---- v6: entry page, calmer and minimal ---- */
+.sinfo{display:none}
+body.tv .sinfo{display:block;font-size:13px;color:var(--mut)}
+body.tv .stxt,body.tv .scard .slall,body.tv .dright .resbtn,body.tv .dright .dsec>h4{display:none}
+.slangs{display:none}
+body.tv .slangs{display:flex;flex-wrap:wrap;gap:6px;margin-top:7px}
+body.tv .slangs .lc{font-size:11px;padding:2px 8px;border-radius:6px;background:rgba(255,255,255,.1);border:0;color:#d8dbe6;margin:0;font-weight:700;letter-spacing:.4px}
+body.tv .slangs .lc.more{background:none;color:var(--mut)}
+body.tv .dtop>.ibtn ~ .ibtn{display:none}
+body.tv .dhero{filter:brightness(.72) saturate(.85)}
+body.tv .dgrad{background:linear-gradient(to right,color-mix(in srgb,var(--bg) 94%,transparent) 0,color-mix(in srgb,var(--bg) 62%,transparent) 42%,color-mix(in srgb,var(--bg) 70%,transparent) 72%,color-mix(in srgb,var(--bg) 90%,transparent) 100%),linear-gradient(to top,color-mix(in srgb,var(--bg) 80%,transparent),transparent 50%)}
+body.tv .dbody{padding:calc(var(--vh,1vh) * 14) 64px 48px 120px;grid-template-columns:minmax(0,1fr) min(470px,40%);column-gap:60px}
+body.tv .dbt-logo{max-width:min(100%,300px);max-height:calc(var(--vh,1vh) * 9)}
+body.tv .dbt-title{font-size:clamp(28px,3vw,44px);font-weight:800;letter-spacing:-.3px}
+body.tv .dmeta{margin:16px 0 10px;font-size:14px;color:#c9ccd8;font-weight:600;gap:8px}
+body.tv .ddesc{max-width:500px;font-size:15px;line-height:1.6;color:#c4c7d3;text-shadow:none;-webkit-line-clamp:3}
+body.tv .dacts2{display:flex;align-items:center;gap:12px;margin:24px 0 4px}
+body.tv .dacts2 .hb.p{background:#fff;color:#0d0d14;box-shadow:none;padding:12px 32px;font-size:16px;border-radius:999px}
+body.tv .dacts2 .ibtn{width:46px;height:46px;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);backdrop-filter:none}
+body.tv .dinfo{display:block;max-width:500px;margin-top:30px;padding:0;background:none;border:0;border-radius:0;backdrop-filter:none;-webkit-backdrop-filter:none}
+body.tv .di{display:flex;gap:18px;margin:0 0 10px}
+body.tv .dil{flex:0 0 74px;margin:0;padding-top:2px;font-size:11px}
+body.tv .di span:last-child{font-size:14px;color:#d6d9e4;line-height:1.45}
+body.tv .dbody>.dright{background:none;border:0;border-radius:0;padding:0 8px 0 0;backdrop-filter:none;-webkit-backdrop-filter:none}
+body.tv .dptitle{margin:0 0 14px;font-size:12px;font-weight:700;letter-spacing:1.4px;text-transform:uppercase;color:var(--mut)}
+body.tv .dright .sfilter,body.tv .dright .srow{padding:0 0 14px;gap:8px}
+body.tv .dright .chip{padding:7px 16px;font-size:13px;background:transparent;border:1px solid rgba(255,255,255,.2);color:#c6c9d5;box-shadow:none}
+body.tv .dright .chip.on{background:#fff;border-color:#fff;color:#0d0d14}
+body.tv .dright .chip b{opacity:.55}
+body.tv .dright .scard,body.tv .dright .ep{background:none;border:0;border-bottom:1px solid rgba(255,255,255,.08);box-shadow:none;border-radius:0;margin:0;padding:14px 10px;gap:14px;align-items:center;backdrop-filter:none}
+body.tv .dright .scard:focus-visible,body.tv .dright .ep:focus-visible{background:rgba(255,255,255,.1);border-radius:14px;outline:2px solid rgba(255,255,255,.85);outline-offset:-2px;border-bottom-color:transparent}
+body.tv .dright .splay{flex:0 0 32px;height:32px;font-size:11px;background:rgba(255,255,255,.14);color:#fff}
+body.tv .dright .sname{font-size:16px;margin:0 0 3px}
+body.tv .dright .ethumb{flex:0 0 118px;border-radius:10px}
+body.tv .dright .etitle{font-size:15px}
+body.tv .dright .edate{font-size:12px;color:var(--mut)}
+body.tv .dright .eover{font-size:13px;color:#a9adbb;-webkit-line-clamp:2}
+
+/* sources / episodes panel: header and chips stay put, only the list scrolls */
+body.tv .dbody>.dright{display:flex;flex-direction:column;overflow:hidden;max-height:calc(var(--vh,1vh) * 84)}
+body.tv .dright .dbox{display:contents}
+body.tv .dright .dptitle,body.tv .dright .sfilter,body.tv .dright .srow{flex:0 0 auto}
+body.tv .dright .slist,body.tv .dright .eplist{flex:1 1 auto;min-height:0;overflow-y:auto;scrollbar-width:none;overscroll-behavior:contain}
+body.tv .dright .slist::-webkit-scrollbar,body.tv .dright .eplist::-webkit-scrollbar{display:none}
+body.tv #detail,body.tv #episode{overflow:hidden}
+
+.pflight{position:fixed;z-index:9998;transform-origin:0 0;pointer-events:none;will-change:transform}
+.pflight .av{box-shadow:0 14px 40px rgba(0,0,0,.55)}
+.pcover{position:fixed;inset:0;z-index:9997;background:#0b0b12;pointer-events:none;opacity:0}
+body.tv main{padding-bottom:90px}
+

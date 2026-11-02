@@ -1,0 +1,146 @@
+</style>
+</head>
+<body>
+<div id="intro">
+  <div class="ilock">
+  <svg viewBox="0 0 1024 1024" class="ilogo" aria-hidden="true">
+    <defs>
+      <linearGradient id="ig1" gradientUnits="userSpaceOnUse" x1="230" y1="250" x2="790" y2="800"><stop offset="0" stop-color="#9a8cff"/><stop offset=".35" stop-color="#a24bff"/><stop offset=".72" stop-color="#2fb6ff"/><stop offset="1" stop-color="#16e0f2"/></linearGradient>
+      <radialGradient id="iglg"><stop offset="0" stop-color="#7c5cff" stop-opacity=".55"/><stop offset="1" stop-color="#7c5cff" stop-opacity="0"/></radialGradient>
+      <linearGradient id="ig2" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff"/><stop offset="1" stop-color="#ddd3ff"/></linearGradient>
+    </defs>
+    <circle class="iglow" cx="487" cy="520" r="400" fill="url(#iglg)" style="opacity:0"/>
+    <g class="ispin">
+    <path class="iring" pathLength="1" d="M563.1 236.0 A294 294 0 1 0 765.0 424.3" fill="none" stroke="url(#ig1)" stroke-width="66" stroke-linecap="round"/>
+    <path class="iplay" d="M446 430Q446 410 466 421L592 494Q610 505 592 516L466 589Q446 600 446 580Z" fill="url(#ig2)" stroke="url(#ig2)" stroke-width="26" stroke-linejoin="round"/>
+    <g class="iplug"><g transform="translate(710 338) rotate(-33) scale(.86)">
+      <rect x="-74" y="-148" width="38" height="104" rx="19" fill="url(#ig2)"/><rect x="36" y="-148" width="38" height="104" rx="19" fill="url(#ig2)"/>
+      <path d="M-100 -66H100Q124 -66 124 -42V12Q124 74 62 82L38 120H-38L-62 82Q-124 74 -124 12V-42Q-124 -66 -100 -66Z" fill="url(#ig2)"/>
+    </g></g>
+    </g>
+  </svg>
+  <div class="iword" id="iword"></div>
+  </div>
+</div>
+<div id="offline" hidden>No internet connection</div>
+<!--@phone-->
+<div id="phBar"><div class="phbrand"><img src="logo.svg" alt=""><span>Stream<b>let</b></span></div>
+  <div class="phbtns"><button id="phSearch" type="button" aria-label="Search"></button>
+  <button id="phSpace" type="button" aria-label="Spaces"><svg viewBox="0 0 24 24"><rect x="4" y="4" width="6.5" height="6.5" rx="1.6"/><rect x="13.5" y="4" width="6.5" height="6.5" rx="1.6"/><rect x="4" y="13.5" width="6.5" height="6.5" rx="1.6"/><rect x="13.5" y="13.5" width="6.5" height="6.5" rx="1.6"/></svg></button></div></div>
+<!--@end-->
+<header>
+  <button class="spaceBtn" id="spaceBtn" type="button"></button>
+  <input id="q" type="search" placeholder="Search installed addons…" enterkeyhint="search">
+  <h1 id="pageTitle" hidden></h1>
+</header>
+<main>
+  <section id="login" hidden></section>
+  <section id="profiles" hidden></section>
+  <section id="launcher" hidden></section>
+  <section id="home"><div id="tabsBar" hidden></div><div id="rows"></div></section>
+  <section id="search" hidden>
+    <div class="skb">
+      <div class="sbox"><span id="stext"></span><i class="scaret"></i></div>
+      <div class="kgrid" id="kgrid"></div>
+    </div>
+    <div class="sres" id="sres"></div>
+  </section>
+  <section id="watch" hidden>
+    <div class="pagehead"><h1>Watchlist</h1><p id="wlCount"></p></div>
+    <div id="wlTabs"></div>
+    <div id="wlGrid" class="wgrid"></div>
+  </section>
+  <section id="settings" hidden>
+    <div class="pagehead"><h1>Settings</h1></div>
+    <div class="pad">
+      <div class="addon profcard"><div id="profRow"></div></div>
+      <h2 class="sh">Account</h2>
+      <div class="addon" id="acctCard"></div>
+      <h2 class="sh">Language</h2>
+      <div class="addon">
+        <div class="row2"><span class="rt">Subtitles<small>Picked automatically in this language</small></span><select id="setSub" class="sel"></select></div>
+        <div class="row2"><span class="rt">Audio<small>Preferred language when a stream has choices</small></span><select id="setAud" class="sel"></select></div>
+      </div>
+      <p class="gnote">Subtitles come from your installed subtitle addons, like OpenSubtitles. Audio choices work when a stream carries several tracks.</p>
+      <h2 class="sh">Look &amp; sound <small>this device</small></h2>
+      <div class="addon">
+        <label class="row2"><span class="rt">Animated background<small>Slowly drifting colors</small></span><input type="checkbox" id="setAnim"></label>
+        <label class="row2"><span class="rt">Glass blur<small>Turn off if the app feels slow</small></span><input type="checkbox" id="setGlass"></label>
+        <label class="row2"><span class="rt">Navigation sounds<small>Soft clicks when you move and select</small></span><input type="checkbox" id="setSnd"></label>
+      </div>
+      <div id="setPlay" hidden>
+        <h2 class="sh">Video <small>this device</small></h2>
+        <div class="addon">
+          <label class="row2"><span class="rt">Hardware decoding<small>Smoother and cooler. Turn off only if video looks garbled</small></span><input type="checkbox" id="setHw"></label>
+          <label class="row2"><span class="rt">Match frame rate<small>Removes judder when your TV supports it</small></span><input type="checkbox" id="setFps"></label>
+          <label class="row2"><span class="rt">Tunneled playback<small>Can help 4K and HDR, may affect seeking</small></span><input type="checkbox" id="setTun"></label>
+        </div>
+      </div>
+      <h2 class="sh">About</h2>
+      <div class="addon">
+        <div class="row2"><span class="rt" id="verLine"></span></div>
+        <div id="apkRow" hidden class="aboutpad">
+          <div class="updbtns"><button class="btn ghost" id="apkBtn" type="button">Check for updates</button>
+          <button class="btn" id="apkInstall" type="button" hidden>Install update</button></div>
+          <p class="hint" id="apkMsg" style="margin-top:8px"></p>
+        </div>
+        <details class="adbox" id="logBox" style="margin:10px 0"><summary>Playback log</summary><div id="logBody" style="margin-top:8px"></div></details>
+        <div class="aboutpad" style="display:flex;gap:10px;flex-wrap:wrap"><button class="btn ghost sm" id="updBtn" type="button">Restart</button><button class="btn ghost sm" id="closeBtn" type="button">Close app</button></div>
+      </div>
+    </div>
+  </section>
+  <section id="me" hidden></section>
+  <section id="addons" hidden>
+    <div class="pagehead"><h1>Addons</h1><p id="adCount"></p></div>
+    <div class="seg" id="adSeg"></div>
+    <div class="pad" id="adInstalled">
+      <details id="addBox" class="adbox"><summary>＋ Add an addon from a link</summary>
+        <form class="add" id="addForm">
+          <input id="addUrl" type="url" inputmode="url" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="Paste the addon link">
+          <button class="btn" type="submit">Install</button>
+        </form>
+        <div class="msg" id="addMsg"></div>
+      </details>
+      <div id="list"></div>
+    </div>
+    <div class="pad" id="adBrowse" hidden>
+      <p class="hint">Popular addons. Tap Install to add one.</p>
+      <div id="recList"></div>
+      <details id="repoBox" class="adbox" style="margin-top:18px"><summary>Find more addons</summary><div id="repoBody" style="margin-top:10px"></div></details>
+    </div>
+  </section>
+</main>
+
+<div id="detail" class="sheet" hidden></div>
+<div id="episode" class="sheet" hidden></div>
+<div id="spaceEd" class="sheet" hidden></div>
+<div id="profEd" class="sheet" hidden></div>
+<div id="addonEd" class="sheet" hidden></div>
+<div id="player" class="sheet" hidden>
+  <div class="pbar" id="pbar"><button class="x" id="closePlayer">✕</button><span id="ptitle"></span><button class="x" id="ccBtn">CC · Audio</button><button class="x" id="fsBtn">⛶</button></div>
+  <video id="vid" controls playsinline></video>
+  <div class="pctl" id="pctl" hidden>
+    <div class="pseek" id="pseek" tabindex="0" role="slider" aria-label="Seek"><i id="pfill"></i></div>
+    <div class="prow"><button class="x" id="pRew" type="button">⏪ 10</button><button class="x" id="pPlay" type="button">⏸</button><button class="x" id="pFwd" type="button">10 ⏩</button><span id="ptime">0:00 / 0:00</span></div>
+  </div>
+  <div id="pback" hidden style="position:absolute;inset:0;z-index:2"></div>
+  <div class="ppanel" id="ppanel" hidden></div>
+</div>
+<div id="exitDlg" class="dlg" hidden><div class="box"><h3>Close Streamlet?</h3><p>You're at the very beginning, so going back again will close the app.</p><div class="dbtns"><button class="btn ghost" id="exStay" type="button">Stay</button><button class="btn" id="exGo" type="button">Close app</button></div></div></div>
+<div id="menu" class="dlg menu" hidden></div>
+<div id="toast"></div>
+<nav id="nav">
+  <i class="navpill" id="navPill"></i>
+  <div class="navbrand" aria-hidden="true"><img src="logo.svg" alt=""><span>Stream<b>let</b></span></div>
+  <button id="nvSearch" class="tvonly" type="button" aria-label="Search"><svg viewBox="0 0 24 24"><circle class="nf" cx="10.5" cy="10.5" r="6.2"/><path d="M15.2 15.2 20.5 20.5"/></svg><span>Search</span></button>
+  <button id="nvSpace" class="tvonly" type="button" aria-label="Spaces"><svg viewBox="0 0 24 24"><rect x="4" y="4" width="6.5" height="6.5" rx="1.6"/><rect x="13.5" y="4" width="6.5" height="6.5" rx="1.6"/><rect x="4" y="13.5" width="6.5" height="6.5" rx="1.6"/><rect x="13.5" y="13.5" width="6.5" height="6.5" rx="1.6"/></svg><span>Spaces</span></button>
+  <button id="tabHome" type="button"><svg viewBox="0 0 24 24"><path d="M3 11.5 12 4l9 7.5"/><path d="M5 10.2V20h5v-5.2h4V20h5v-9.8"/></svg><span>Home</span></button>
+  <button id="nvMovies" class="tvonly" type="button" aria-label="Movies"><svg viewBox="0 0 24 24"><rect x="3.5" y="4" width="17" height="16" rx="2.2"/><path class="k" d="M8 4v16M16 4v16M3.5 9h4.5M3.5 15h4.5M16 9h4.5M16 15h4.5"/></svg><span>Movies</span></button>
+  <button id="nvShows" class="tvonly" type="button" aria-label="Shows"><svg viewBox="0 0 24 24"><rect x="3" y="6.5" width="18" height="12" rx="2.4"/><path d="M8.5 3 12 6.5 15.5 3M8 21.5h8"/></svg><span>Shows</span></button>
+  <button id="tabWatch" type="button"><svg viewBox="0 0 24 24"><path d="M6.5 3.5h11v17l-5.5-4.2-5.5 4.2z"/></svg><span>Watchlist</span></button>
+  <button id="tabAddons" type="button"><svg viewBox="0 0 24 24"><path d="M20.5 11H19V7a2 2 0 0 0-2-2h-4V3.5a2.5 2.5 0 0 0-5 0V5H4a2 2 0 0 0-2 2v3.8h1.5a2.7 2.7 0 0 1 0 5.4H2V20a2 2 0 0 0 2 2h3.8v-1.5a2.7 2.7 0 0 1 5.4 0V22H17a2 2 0 0 0 2-2v-4h1.5a2.5 2.5 0 0 0 0-5z" transform="translate(.3 .3) scale(.94)"/></svg><span>Addons</span></button>
+  <button id="tabSettings" type="button"><svg viewBox="0 0 24 24"><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.9.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.9 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.9l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.9.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.9-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.9V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/><circle class="k" cx="12" cy="12" r="3"/></svg><span>Settings</span></button>
+  <button id="tabMe" type="button"><svg viewBox="0 0 24 24"><circle cx="12" cy="8.6" r="3.7"/><path d="M4.6 20c.8-4 4-6 7.4-6s6.6 2 7.4 6"/></svg><span>Profile</span></button>
+</nav>
+
+<script>

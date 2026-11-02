@@ -8,7 +8,7 @@ Addon-powered media app (PWA) with themed "spaces". Streamlet ships with no cont
 
 ## Two apps (TV and phone)
 
-`index.html` is the shared source. Run `node build.js` after changing it: it writes `tv/index.html` and `phone/index.html` (what the two Android apps load from GitHub Pages) and the plain `index.html` still works as the web app. The workflow builds two APKs: `apk-latest` (TV, `Streamlet.apk`) and `apk-latest-phone` (`Streamlet-phone.apk`).
+The source lives in `src/` (`head.html`, `css/`, `body.html`, `js/`, `tail.html`, joined in file-name order). Edit those, never `index.html` itself. Run `node build.js` after changing them: it regenerates `index.html` (the web app) and writes `tv/index.html` and `phone/index.html` (what the two Android apps load from GitHub Pages) and the plain `index.html` still works as the web app. The workflow builds two APKs: `apk-latest` (TV, `Streamlet.apk`) and `apk-latest-phone` (`Streamlet-phone.apk`).
 
 ## Sign in with your phone (TV)
 

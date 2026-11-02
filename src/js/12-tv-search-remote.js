@@ -1,0 +1,230 @@
+/* ---------- TV search page with its own on-screen keyboard (the TV's keyboard is slow) ---------- */
+let sQuery = '', sT = 0;
+const KEYS = 'abcdefghijklmnopqrstuvwxyz1234567890'.split('');
+function sPaint(){ const t = $('#stext'); t.textContent = sQuery; t.classList.toggle('ph', !sQuery); if (!sQuery) t.textContent = 'Search ' + (cur ? cur.name : '') + '…'; }
+function sRun(){
+  clearTimeout(sT);
+  sT = setTimeout(() => {
+    const box = $('#sres');
+    if (!sQuery.trim()) { homeTok++; box.replaceChildren(h('div', {class:'empty', style:'padding-top:8vh'}, 'Type to search your addons.')); return; }
+    renderHome(sQuery.trim(), box);
+  }, 450);
+}
+function sType(c){ sQuery += c; sPaint(); sRun(); }
+function sBack(){ sQuery = sQuery.slice(0, -1); sPaint(); sRun(); }
+function renderSearch(){
+  const g = $('#kgrid');
+  if (!g.children.length) {
+    for (const k of KEYS) g.append(h('button', {class:'kkey', type:'button', onclick:() => sType(k)}, k));
+    g.append(h('button', {class:'kkey wide', type:'button', onclick:() => sType(' ')}, 'space'),
+             h('button', {class:'kkey wide', type:'button', onclick:sBack}, '⌫ delete'),
+             h('button', {class:'kkey wide', type:'button', onclick:() => { sQuery = ''; sPaint(); sRun(); }}, 'clear'));
+  }
+  sPaint(); sRun();
+}
+function navAvatar(){
+  const b = $('#tabMe'); if (!b || !profile) return;
+  let w = b.querySelector('.navav');
+  if (!w) { w = h('span', {class:'navav'}); const sv = b.querySelector('svg'); if (sv) sv.replaceWith(w); else b.prepend(w); }
+  w.replaceChildren(avatarEl(profile, 26));
+}
+
+/* ---------- TV / remote control ---------- */
+const mqTV = matchMedia('(min-width:1000px) and (orientation:landscape), (min-width:560px) and (max-height:620px) and (orientation:landscape)');
+let remoteMode = FLAVOR === 'tv', forceTV = false;
+const isTVDevice = () => FLAVOR === 'tv' ? true : FLAVOR === 'phone' ? false : forceTV || mqTV.matches || /Tizen|SMART-?TV|Web0S|AFTT|BRAVIA|Android TV|CrKey|GoogleTV/i.test(navigator.userAgent) || new URLSearchParams(location.search).has('tv');
+function syncTV(){
+  const tv = isTVDevice(), was = document.body.classList.contains('tv'); document.body.classList.toggle('tv', tv);
+  const z = !tv ? 1 : innerWidth >= 1280 ? Math.min(2, innerWidth / 1280) : Math.max(0.62, innerWidth / 1100);
+  document.documentElement.style.zoom = tv ? String(z) : '';
+  document.documentElement.style.setProperty('--vh', (innerHeight / z / 100) + 'px');
+  if (tv !== was) { try { if (cur && !$('#home').hidden && !document.body.classList.contains('launch')) renderHome(); } catch {} }
+  if (tv) { remoteMode = true; document.body.classList.add('remote'); }
+  try { applyUI(); movePill(); } catch {}
+  const v = $('#vid'); if (v && !$('#player').hidden) { v.controls = !tv; $('#pctl').hidden = !tv; }
+}
+mqTV.addEventListener('change', syncTV); addEventListener('resize', syncTV); syncTV();
+{ const NP = nativePlayer(); if (NP && FLAVOR === 'auto') NP.device().then(d => { forceTV = !!(d && d.isTV); syncTV(); }).catch(() => {}); }
+try { if (window.tizen && tizen.tvinputdevice) ['MediaPlayPause','MediaPlay','MediaPause','MediaStop','MediaFastForward','MediaRewind','Info','ColorF0Red','ColorF2Yellow'].forEach(k => { try { tizen.tvinputdevice.registerKey(k); } catch {} }); } catch {}
+
+const FOCUSABLE = 'a[href],button:not([disabled]),input:not([type=hidden]):not([disabled]),select:not([disabled]),textarea:not([disabled]),summary,[tabindex]:not([tabindex="-1"])';
+function ctxRoot(){
+  for (const id of ['#exitDlg', '#menu', '#ppanel', '#player', '#addonEd', '#profEd', '#spaceEd', '#episode', '#detail']) { const e = $(id); if (e && !e.hidden) return e; }
+  return document.body;
+}
+function focusables(root){
+  return [...root.querySelectorAll(FOCUSABLE)].filter(el => {
+    if (el.tabIndex < 0 || el.closest('.off,[hidden]') || el.closest('#vid')) return false;
+    if (el.style.visibility === 'hidden') return false;
+    const r = el.getBoundingClientRect(); return r.width > 2 && r.height > 2;
+  });
+}
+let lastContentEl = null;
+document.addEventListener('focusin', e => { if (e.target.closest && !e.target.closest('#nav')) lastContentEl = e.target; });
+function focusNav(){
+  const b = $('#nav button.on:not(.gone)') || $('#tabHome');
+  if (b) { b.focus({preventScroll:true}); return true; }
+  return false;
+}
+function moveFocus(dir, rep){
+  const root = ctxRoot(); let list = focusables(root); const cur = document.activeElement;
+  const tv = document.body.classList.contains('tv') && root === document.body, inNav = !!(tv && cur && cur.closest && cur.closest('#nav'));
+  if (tv) {
+    if (inNav) {
+      if (dir === 'left') return;
+      if (dir === 'right') {
+        const content = list.filter(e => !e.closest('#nav'));
+        const t = lastContentEl && lastContentEl.isConnected && content.includes(lastContentEl) ? lastContentEl : firstFocus(root, content);
+        if (t) t.focus({preventScroll:true});
+        return;
+      }
+      list = list.filter(e => e.closest('#nav'));
+    } else list = list.filter(e => !e.closest('#nav'));
+  }
+  if (!cur || cur === document.body || !list.includes(cur)) { const f = firstFocus(root, list); if (f) f.focus({preventScroll:true}); return; }
+  const a = cur.getBoundingClientRect(), ax = (a.left + a.right) / 2, ay = (a.top + a.bottom) / 2;
+  let best = null, bs = Infinity;
+  for (const el of list) {
+    if (el === cur) continue;
+    const r = el.getBoundingClientRect(), cx = (r.left + r.right) / 2, cy = (r.top + r.bottom) / 2;
+    let prim, gap, off;
+    if (dir === 'right' || dir === 'left') {
+      if (dir === 'right' ? !(cx > ax + 1 && r.right > a.right) : !(cx < ax - 1 && r.left < a.left)) continue;
+      prim = dir === 'right' ? Math.max(0, r.left - a.right) : Math.max(0, a.left - r.right);
+      gap = Math.max(0, Math.max(a.top, r.top) - Math.min(a.bottom, r.bottom)); off = Math.abs(cy - ay);
+      if (tv && gap > 2) continue;                       // never jump to another row sideways
+    } else {
+      if (dir === 'down' ? !(cy > ay + 1 && r.bottom > a.bottom) : !(cy < ay - 1 && r.top < a.top)) continue;
+      prim = dir === 'down' ? Math.max(0, r.top - a.bottom) : Math.max(0, a.top - r.bottom);
+      gap = Math.max(0, Math.max(a.left, r.left) - Math.min(a.right, r.right)); off = Math.abs(cx - ax);
+    }
+    const score = prim + gap * 4 + off * 0.5;
+    if (score < bs) { bs = score; best = el; }
+  }
+  if (!best) { if (tv && !inNav && dir === 'left') focusNav(); return; }
+  best.focus({preventScroll:true});
+  let edge = null;
+  if (document.body.classList.contains('tv') && (dir === 'up' || dir === 'down')) {
+    const br = best.getBoundingClientRect();
+    const more = list.some(e => e !== best && (dir === 'up' ? e.getBoundingClientRect().bottom < br.top + 2 : e.getBoundingClientRect().top > br.bottom - 2));
+    if (!more) edge = dir === 'up' ? 'top' : 'bottom';
+  }
+  if (!inNav) revealEl(best, dir, rep, tv, edge);
+}
+/* keep strips aligned to the card grid, scroll one card at a time, short eased animation */
+let scrollAnim = 0;
+function revealEl(el, dir, rep, tv, edge){
+  if (!tv) {
+    if (document.body.classList.contains('tv')) {
+      const lock = el.closest('#detail,#episode');
+      if (lock) {                                                    // entry pages never scroll themselves; only their list does
+        const hs = el.closest('.srow,.sfilter');                       // season / filter chips scroll sideways inside their own row
+        if (hs) {
+          const sr = hs.getBoundingClientRect(), br = el.getBoundingClientRect(), k = sr.width / (hs.offsetWidth || sr.width) || 1, m = 28 * k;
+          if (el === hs.firstElementChild) hs.scrollLeft = 0;
+          else if (el === hs.lastElementChild) hs.scrollLeft = 1e7;
+          else if (br.right > sr.right - m) hs.scrollLeft += (br.right - (sr.right - m)) / k;
+          else if (br.left < sr.left + m) hs.scrollLeft -= (sr.left + m - br.left) / k;
+        }
+        const sc = el.closest('.eplist,.slist,.dsim');
+        if (sc) {
+          const item = el.closest('.eplist > *, .slist > *, .dsim > *') || el, sr = sc.getBoundingClientRect(), br = item.getBoundingClientRect();
+          const k = sr.height / (sc.offsetHeight || sr.height) || 1, m = 56 * k;
+          if (item === sc.firstElementChild) sc.scrollTop = 0;
+          else if (item === sc.lastElementChild) sc.scrollTop = 1e7;
+          else if (br.top < sr.top + m) sc.scrollTop -= (sr.top + m - br.top) / k;
+          else if (br.bottom > sr.bottom - m) sc.scrollTop += (br.bottom - (sr.bottom - m)) / k;
+        }
+        lock.scrollTop = 0; window.scrollTo(0, 0);
+        return;
+      }
+      const sh = el.closest('.sheet');
+      if (sh) {                                                      // editors: keep the focused control clear of the sticky bar and the bottom edge
+        const sr = sh.getBoundingClientRect(), br = el.getBoundingClientRect();
+        const k = sr.height / (sh.clientHeight || sr.height) || 1, mt = 96 * k, mb = 72 * k;
+        if (edge === 'top') sh.scrollTop = 0;
+        else if (edge === 'bottom') sh.scrollTop = 1e7;
+        else if (br.top < sr.top + mt) sh.scrollTop -= (sr.top + mt - br.top) / k;
+        else if (br.bottom > sr.bottom - mb) sh.scrollTop += (br.bottom - (sr.bottom - mb)) / k;
+        return;
+      }
+      el.scrollIntoView({block:'nearest', inline:'nearest', behavior:'auto'}); return;
+    } el.scrollIntoView({block: dir === 'up' || dir === 'down' ? 'center' : 'nearest', inline: dir === 'left' || dir === 'right' ? 'center' : 'nearest', behavior: rep ? 'auto' : 'smooth'}); return; }
+  const strip = el.closest('.strip'), y0 = scrollY, x0 = strip ? strip.scrollLeft : 0;
+  if (strip) {
+    const item = el.closest('.strip > *') || el, sr = strip.getBoundingClientRect(), br = item.getBoundingClientRect();
+    const k = sr.width / (strip.offsetWidth || sr.width) || 1, pad = (parseFloat(getComputedStyle(strip).paddingLeft) || 0) * k;
+    const sib = item.nextElementSibling || item.previousElementSibling;
+    const pitch = sib ? Math.abs(sib.getBoundingClientRect().left - br.left) : br.width + 14 * k;
+    const over = br.right - (sr.right - pad), under = (sr.left + pad) - br.left;
+    if (over > 1) strip.scrollLeft = x0 + Math.ceil(over / pitch) * pitch / k;
+    else if (under > 1) strip.scrollLeft = Math.max(0, x0 - Math.ceil(under / pitch) * pitch / k);
+  }
+  if (edge) window.scrollTo(0, edge === 'top' ? 0 : 1e7);                 // last item in that direction: show the whole end of the page
+  else if (el.closest('.tvhero')) window.scrollTo(0, 0);
+  else if (strip && (dir === 'up' || dir === 'down') && strip.parentElement) strip.parentElement.scrollIntoView({block:'center', inline:'nearest'});   // moving between rows: the row snaps to the middle of the screen
+  else (strip || el).scrollIntoView({block:'nearest', inline:'nearest'});
+  const y1 = scrollY, x1 = strip ? strip.scrollLeft : 0;
+  if (rep || (y0 === y1 && x0 === x1)) return;
+  window.scrollTo(0, y0); if (strip) strip.scrollLeft = x0;
+  cancelAnimationFrame(scrollAnim);
+  const t0 = performance.now(), D = strip && (dir === 'up' || dir === 'down') ? 280 : 140;
+  const step = t => { const kk = Math.min(1, (t - t0) / D), e = 1 - Math.pow(1 - kk, 3); window.scrollTo(0, y0 + (y1 - y0) * e); if (strip) strip.scrollLeft = x0 + (x1 - x0) * e; if (kk < 1) scrollAnim = requestAnimationFrame(step); };
+  scrollAnim = requestAnimationFrame(step);
+}
+function firstFocus(root, list){
+  list = list || focusables(root);
+  const pick = sel => list.find(el => el.matches(sel));
+  return pick('#pPlay') || pick('.dacts2 .hb.p') || pick('.kkey') || pick('.hero2 .hb.p, .tvhero .hb.p') || pick('.resbtn') || pick('.dsec .chip.on') || pick('.ep, .scard') || pick('.stile:not(.new), .space, .ptile, #exStay, .sec .btn, .stream, .opt, .gbtn') || pick('.card, .cwb') || list[0];
+}
+let autoEl = null;
+function ensureFocus(){
+  if (!remoteMode) return;
+  const root = ctxRoot(), cur = document.activeElement;
+  const typing = cur && /INPUT|TEXTAREA/.test(cur.tagName);
+  const valid = cur && cur !== document.body && root.contains(cur) && cur.getBoundingClientRect().width > 0 && !cur.closest('.off');
+  if (valid) {
+    // the first focus we placed automatically may have been a placeholder before the banner / rows loaded: upgrade it once
+    if (cur === autoEl) { const hero = focusables(root).find(el => el.matches('.hero2 .hb.p, .tvhero .hb.p')); if (hero && hero !== cur) { hero.focus({preventScroll:true}); autoEl = hero; } }
+    return;
+  }
+  if (typing) return;
+  const f = firstFocus(root); if (f) { f.focus({preventScroll:true}); autoEl = f; }
+}
+let efT; new MutationObserver(() => { clearTimeout(efT); efT = setTimeout(ensureFocus, 220); })
+  .observe(document.body, {subtree:true, childList:true, attributes:true, attributeFilter:['hidden', 'class']});
+
+const KEYMAP = {Escape:'back', BrowserBack:'back', GoBack:'back', MediaPlayPause:'playpause', MediaPlay:'play', MediaPause:'pause', MediaStop:'stop',
+  MediaFastForward:'ff', MediaRewind:'rw', MediaTrackNext:'ff', MediaTrackPrevious:'rw', ContextMenu:'info', Info:'info', Delete:'info'};
+const KEYCODES = {10009:'back', 10252:'playpause', 415:'play', 19:'pause', 413:'stop', 417:'ff', 412:'rw', 457:'info', 403:'info', 405:'info'};
+const keyAct = e => KEYMAP[e.key] || KEYCODES[e.keyCode] || '';
+
+function playerSeek(d){ const v = $('#vid'); v.currentTime = Math.max(0, Math.min(v.duration || 1e9, v.currentTime + d)); toast((d > 0 ? '+' : '') + d + 's'); showBar(); }
+function playerToggle(){ const v = $('#vid'); if (v.paused) v.play().catch(() => {}); else v.pause(); showBar(); }
+function playerKey(e, act){
+  const v = $('#vid'), barOn = !$('#pbar').classList.contains('off'), a = document.activeElement;
+  if (act === 'playpause') { e.preventDefault(); playerToggle(); return true; }
+  if (act === 'play') { e.preventDefault(); v.play().catch(() => {}); showBar(); return true; }
+  if (act === 'pause') { e.preventDefault(); v.pause(); showBar(); return true; }
+  if (act === 'stop') { e.preventDefault(); popLayer('player'); return true; }
+  if (act === 'ff') { e.preventDefault(); playerSeek(30); return true; }
+  if (act === 'rw') { e.preventDefault(); playerSeek(-10); return true; }
+  if (!document.body.classList.contains('tv')) return false;
+  if (!barOn) {
+    if (e.key === 'ArrowLeft') { e.preventDefault(); playerSeek(-10); return true; }
+    if (e.key === 'ArrowRight') { e.preventDefault(); playerSeek(10); return true; }
+    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); playerToggle(); return true; }
+    if (e.key === 'ArrowUp' || e.key === 'ArrowDown') { e.preventDefault(); showBar(); $('#pPlay').focus({preventScroll:true}); return true; }
+  } else {
+    showBar();
+    if (a && a.id === 'pseek' && (e.key === 'ArrowLeft' || e.key === 'ArrowRight')) { e.preventDefault(); playerSeek(e.key === 'ArrowLeft' ? -10 : 10); return true; }
+  }
+  return false;
+}
+let okHold = null;
+document.addEventListener('keyup', e => {
+  if (!okHold || !(e.key === 'Enter' || e.keyCode === 23)) return;
+  const hd = okHold; okHold = null; clearTimeout(hd.t);
+  e.preventDefault(); e.stopImmediatePropagation();
+  if (!hd.fired && hd.el.isConnected) hd.el.click();
+}, true);

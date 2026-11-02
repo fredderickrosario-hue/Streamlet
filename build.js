@@ -1,11 +1,16 @@
-// Builds the two app flavors from index.html:  tv/index.html  and  phone/index.html
-//   node build.js
+// Source lives in src/ (head.html, css/*.css, body.html, js/*.js, tail.html, joined in file-name order).
+//   node build.js   ->  index.html (the web app / PWA), tv/index.html and phone/index.html
+// Edit the files in src/, never index.html itself (it is regenerated).
+// Builds the two app flavors from the assembled index.html:
 // - sets FLAVOR ('tv' or 'phone')
 // - drops code wrapped in /*@tv*/ ... /*@end*/ (when building phone) or /*@phone*/ ... /*@end*/ (when building tv)
 // - phone build: drops every one-line `body.tv ...{}` CSS rule (the TV layout), TV build: forced TV mode
 // - both: relative asset links point one folder up, no service worker (the apps load the page from the network)
 const fs = require('fs');
-const src = fs.readFileSync('index.html', 'utf8');
+const read = f => fs.readFileSync(f, 'utf8');
+const dir = d => fs.readdirSync(d).filter(f => !f.startsWith('.')).sort().map(f => read(`${d}/${f}`)).join('');
+const src = read('src/head.html') + dir('src/css') + read('src/body.html') + dir('src/js') + read('src/tail.html');
+fs.writeFileSync('index.html', src);
 for (const f of ['tv', 'phone']) {
   let s = src.replace("const FLAVOR = 'auto';", `const FLAVOR = '${f}';`);
   const other = f === 'tv' ? 'phone' : 'tv';
