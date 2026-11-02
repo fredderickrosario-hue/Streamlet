@@ -135,6 +135,7 @@ public class PlayerActivity extends Activity {
     private String nextTitle = "";
     private boolean isEpisode = false, nextOn = false, skipDone = false, overDone = false, delayInit = false;
     private long startMsIn = 0;
+    private boolean resumeChecked = false;
     private TextView overChip, skipChip, nextCount;
     private FrameLayout nextLayer;
     private int nextSecs = 0;
@@ -269,6 +270,14 @@ public class PlayerActivity extends Activity {
             @Override
             public void onPlaybackStateChanged(int state) {
                 if (state == Player.STATE_ENDED) onEnded();
+                if (state == Player.STATE_READY && !resumeChecked) {                 // some files ignore the start position until they know their length: seek again once
+                    resumeChecked = true;
+                    long want = startMsIn, got = Math.max(0L, player.getCurrentPosition());
+                    if (want > 20000) {
+                        AppLog.add("RESUME", "wanted " + want / 1000 + " s, at " + got / 1000 + " s, seekable=" + player.isCurrentMediaItemSeekable());
+                        if (got < want - 5000 && player.isCurrentMediaItemSeekable()) player.seekTo(want);
+                    }
+                }
                 spinner.setVisibility(state == Player.STATE_BUFFERING ? View.VISIBLE : View.GONE);
                 handler.removeCallbacks(stallRun);                                   // a source that sits buffering for 45 s counts as failed (the next-source screen takes over)
                 if (state == Player.STATE_BUFFERING && !errOn && !reported) handler.postDelayed(stallRun, 45000);
