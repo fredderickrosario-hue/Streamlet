@@ -3427,10 +3427,15 @@ const sfx = (() => {
     tick(){ if (!on()) return; const n = performance.now(); if (n - last < 55) return; last = n; note(392, .11, .028); },
     select(){ if (!on()) return; note(440, .14, .05); },
     back(){ if (!on()) return; note(294, .14, .045); },
-    boot(){                                                           // not tied to the sound-effects switch: a whoosh while it swirls, a finger snap and a deep boom as the plug whips home, then a long warm bloom
-      ensure();
-      whoosh(.08, 1.66, .06);
-      snap(1.75); bloom(1.78); }
+    warm(){ ensure(); },                                              // create the audio engine early so nothing is slow at the moment it's needed
+    decode(ab){ const c = ensure(); return c ? c.decodeAudioData(ab) : Promise.reject(new Error('no audio')); },
+    playBuffer(buf){                                                  // plays a ready-made sound; returns how long (ms) the speaker takes to produce it, so the picture can wait for it
+      const c = ensure(); if (!c || !buf) return 0;
+      const s2 = c.createBufferSource(); s2.buffer = buf; s2.connect(c.destination); s2.start();
+      return Math.min(250, Math.round((c.outputLatency || c.baseLatency || 0) * 1000 + 30));
+    },
+    bootLite(){ ensure(); whoosh(.08, 1.66, .06); snap(1.75); },      // fallback if boot.mp3 isn't ready: whoosh + snap only, cheap
+    bootFull(){ ensure(); whoosh(.08, 1.66, .06); snap(1.75); bloom(1.78); }   // used only by tools/make-boot-sound.js to render boot.mp3 (too heavy to run live on a TV)
   };
 })();
 document.addEventListener('keydown', e => {
@@ -3482,6 +3487,8 @@ $('#pseek').addEventListener('click', e => { const v = $('#vid'), r = e.currentT
   if (navigator.webdriver && !/[?&]intro/.test(location.search)) { el.remove(); return; }
   const spin = el.querySelector('.ispin'), ring = el.querySelector('.iring'), play = el.querySelector('.iplay'), plug = el.querySelector('.iplug'), glow = el.querySelector('.iglow');
   const w = $('#iword'), lock = el.querySelector('.ilock'), lk = {w:null};
+  let bootBuf = null;                                                // the boot sound is a ready-made file: decoded now, played the moment the animation starts
+  try { sfx.warm(); fetch(new URL((FLAVOR === 'auto' ? '' : '../') + 'boot.mp3', location.href)).then(r => r.arrayBuffer()).then(ab => sfx.decode(ab)).then(b => { bootBuf = b; }).catch(() => {}); } catch {}
   w.append('Stream', h('span', {class:'lgr'}, 'let'));
   w.style.opacity = '0';
   let len = 1800; try { len = ring.getTotalLength(); } catch {}
@@ -3520,7 +3527,7 @@ $('#pseek').addEventListener('click', e => { const v = $('#vid'), r = e.currentT
   window.__introSet = x => { done = true; render(x); };
   const frame = ts => {
     if (done) return;
-    if (last === null) { last = ts; sfx.boot(); }
+    if (last === null) { last = ts; const lat = bootBuf ? sfx.playBuffer(bootBuf) : (sfx.bootLite(), 0); n = -lat; }   // the picture waits for the speaker's delay so sound and image line up
     n += Math.min(ts - last, 50);                                   // a slow start only slows the animation down; it never skips it
     last = ts;
     render(n);
