@@ -423,7 +423,8 @@ body:not(.tv).onhome.scr:not(.launch) #tabsBar,body:not(.tv).onhome.srch:not(.la
 body:not(.tv).onhome.tbhide:not(.srch):not(.launch) #tabsBar{transform:translateY(-160%);opacity:0;pointer-events:none}
 body:not(.tv):not(.onhome) #spaceBtn{display:none}
 /* tabs: compact soft chips, one dark block with the logo bar */
-body:not(.tv).onhome.scr:not(.launch) #phBar{box-shadow:none}
+body:not(.tv).onhome:not(.launch) #phBar,body:not(.tv).onhome.scr:not(.launch) #phBar,body:not(.tv).onhome.srch:not(.launch) #phBar{box-shadow:none;border:0}
+body:not(.tv) .tspace{height:calc(124px + env(safe-area-inset-top))}
 body:not(.tv).onhome:not(.launch) #tabsBar{padding:0 14px 10px}
 body:not(.tv).onhome.scr:not(.launch) #tabsBar{box-shadow:0 10px 22px rgba(0,0,0,.35)}
 body:not(.tv).onhome:not(.launch) #tabsBar .chip{flex:0 0 auto;height:34px;padding:0 16px;display:inline-flex;align-items:center;font-size:14px;font-weight:650;border:0;border-radius:17px;background:rgba(255,255,255,.11);box-shadow:none;-webkit-backdrop-filter:none;backdrop-filter:none}
