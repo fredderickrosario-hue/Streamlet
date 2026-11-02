@@ -119,7 +119,10 @@ function moveFocus(dir, rep){
     const score = prim + gap * 4 + off * 0.5;
     if (score < bs) { bs = score; best = el; }
   }
-  if (!best) { if (tv && !inNav && dir === 'left') focusNav(); return; }
+  if (!best) {
+    if (entryTV && root.id === 'episode' && (dir === 'left' || dir === 'right') && cur.closest('.dleft') && root._step) { root._step(dir === 'right' ? 1 : -1); return; }   // episode page: previous / next episode
+    if (tv && !inNav && dir === 'left') focusNav(); return;
+  }
   best.focus({preventScroll:true});
   let edge = null;
   if (document.body.classList.contains('tv') && (dir === 'up' || dir === 'down')) {

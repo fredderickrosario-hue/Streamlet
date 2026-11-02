@@ -38,7 +38,7 @@ public class VlcActivity extends Activity {
     private TextView posTx, durTx, hint, note;
     private SeekBar seek;
     private final Handler handler = new Handler(Looper.getMainLooper());
-    private boolean reported = false, barOn = true, ended = false;
+    private boolean reported = false, barOn = true, ended = false, seekedStart = false;
     private long lastPos = 0, lastDur = 0;
     private int accent = 0xFF8B5CFF;
     private final Runnable hideRun = new Runnable() { @Override public void run() { setBar(false); } };
@@ -121,11 +121,16 @@ public class VlcActivity extends Activity {
         mp.attachViews(layout, null, false, false);
         Media m = new Media(lib, Uri.parse(in.getStringExtra("url")));
         m.addOption(":http-user-agent=Mozilla/5.0 (Linux; Android 12; TV)");
+        final long startF = in.getLongExtra("startMs", 0L);
+        if (startF > 0) m.addOption(":start-time=" + (startF / 1000.0));
         mp.setMedia(m);
         m.release();
         long start = in.getLongExtra("startMs", 0L);
         mp.setEventListener(ev -> {
             switch (ev.type) {
+                case MediaPlayer.Event.Playing:
+                    if (startF > 0 && !seekedStart) { seekedStart = true; if (Math.abs(mp.getTime() - startF) > 5000) mp.setTime(startF); }
+                    break;
                 case MediaPlayer.Event.EncounteredError:
                     AppLog.add("VLC", "playback error"); finishFailed(); break;
                 case MediaPlayer.Event.EndReached:

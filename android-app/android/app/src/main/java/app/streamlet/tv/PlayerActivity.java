@@ -5,7 +5,17 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.animation.ValueAnimator;
 import android.content.Context;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
+import android.graphics.Outline;
+import android.util.LruCache;
+import android.view.ViewOutlineProvider;
+import java.io.InputStream;
+import java.net.HttpURLConnection;
+import java.net.URL;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import android.graphics.Rect;
 import android.graphics.Paint;
 import android.graphics.RectF;
@@ -340,7 +350,7 @@ public class PlayerActivity extends Activity {
         AppLog.add("FALLBACK", "ExoPlayer could not play it, switching to the backup player");
         Intent v = new Intent(this, VlcActivity.class);
         v.putExtras(getIntent());
-        v.putExtra("startMs", lastPos);
+        v.putExtra("startMs", Math.max(lastPos, startMsIn));              // the failed first try may never have played: keep where the viewer was
         startActivity(v);
         finish();
     }
@@ -556,16 +566,74 @@ public class PlayerActivity extends Activity {
 
     private String speedLabel() { return speed == 1f ? "1\u00d7" : (speed + "\u00d7"); }
 
-    private void cycleSpeed() {
-        int i = 2;
-        for (int k = 0; k < SPEEDS.length; k++) if (SPEEDS[k] == speed) i = k;
-        speed = SPEEDS[(i + 1) % SPEEDS.length];
-        if (player != null) player.setPlaybackSpeed(speed);
-        flash("Speed " + speedLabel());
-        scheduleHide();
+    private void setSpeed(float v) {
+        speed = v;
+        if (player != null) player.setPlaybackParameters(new androidx.media3.common.PlaybackParameters(v, 1f));
+        flash(v == 1f ? "Normal speed" : "Speed " + speedLabel());
     }
 
-    /** list of the show's episodes, grouped by season; picking one hands it back to the app, which plays it from the same kind of source */
+    /** small drop-up list above the speed button */
+    private void openSpeed(View anchor) {
+        menuOpener = anchor;
+        menuOn = true;
+        handler.removeCallbacks(hideRun);
+        menuLayer.removeAllViews();
+        menuLayer.setVisibility(View.VISIBLE);
+        menuLayer.setBackgroundColor(0x00000000);
+        menuLayer.setClickable(true);
+        menuLayer.setOnClickListener(v -> closeMenu());
+        final LinearLayout panel = new LinearLayout(this);
+        panel.setOrientation(LinearLayout.VERTICAL);
+        panel.setPadding(dp(8), dp(8), dp(8), dp(8));
+        GradientDrawable pbg = new GradientDrawable();
+        pbg.setColor(0xEE12121C); pbg.setCornerRadius(dp(18)); pbg.setStroke(dp(1), 0x33FFFFFF);
+        panel.setBackground(pbg);
+        panel.setClickable(true);
+        String[] names = {"0.5\u00d7  Slow", "0.75\u00d7", "1\u00d7  Normal", "1.25\u00d7", "1.5\u00d7", "2\u00d7  Fast"};
+        View focus = null;
+        for (int i = SPEEDS.length - 1; i >= 0; i--) {                         // fastest on top, like a drop-up
+            final float sv = SPEEDS[i];
+            boolean cur = sv == speed;
+            TextView row = text((cur ? "\u2713  " : "     ") + names[i], 15, cur);
+            row.setPadding(dp(16), dp(10), dp(22), dp(10));
+            row.setBackground(fillBg(cur ? 0x22FFFFFF : 0x00000000, 0x55FFFFFF, 12, false));
+            row.setFocusable(true); row.setClickable(true);
+            row.setOnClickListener(v -> { setSpeed(sv); closeMenu(); });
+            panel.addView(row, new LinearLayout.LayoutParams(-2, -2));
+            if (cur || focus == null) focus = row;
+        }
+        int[] loc = new int[2];
+        anchor.getLocationOnScreen(loc);
+        int w = dp(210), rootH = Math.max(root.getHeight(), 1);
+        FrameLayout.LayoutParams lp = new FrameLayout.LayoutParams(w, -2, Gravity.BOTTOM | Gravity.START);
+        lp.leftMargin = Math.max(dp(12), loc[0] + anchor.getWidth() / 2 - w / 2);
+        lp.bottomMargin = Math.max(dp(8), rootH - loc[1] + dp(10));
+        menuLayer.addView(panel, lp);
+        final View f = focus;
+        if (f != null) panel.post(f::requestFocus);
+    }
+
+    private final ExecutorService thumbPool = Executors.newFixedThreadPool(3);
+    private final LruCache<String, Bitmap> thumbs = new LruCache<>(40);
+    private void loadThumb(final ImageView iv, final String url) {
+        if (url == null || url.isEmpty()) return;
+        iv.setTag(url);
+        Bitmap c = thumbs.get(url);
+        if (c != null) { iv.setImageBitmap(c); return; }
+        thumbPool.execute(() -> {
+            try {
+                HttpURLConnection cn = (HttpURLConnection) new URL(url).openConnection();
+                cn.setConnectTimeout(8000); cn.setReadTimeout(8000);
+                InputStream in = cn.getInputStream();
+                BitmapFactory.Options o = new BitmapFactory.Options(); o.inSampleSize = 2;
+                final Bitmap b = BitmapFactory.decodeStream(in, null, o);
+                in.close();
+                if (b != null) { thumbs.put(url, b); handler.post(() -> { if (url.equals(iv.getTag())) iv.setImageBitmap(b); }); }
+            } catch (Exception ignored) { }
+        });
+    }
+
+    /** side panel on the right: season chips and a list of episodes with their pictures */
     private void openEpisodes(View opener) {
         JSONArray eps;
         try { eps = new JSONArray(epsJson); } catch (Exception e) { return; }
@@ -576,32 +644,35 @@ public class PlayerActivity extends Activity {
         controlsOn = false;
         menuLayer.removeAllViews();
         menuLayer.setVisibility(View.VISIBLE);
-        menuLayer.setBackgroundColor(0x99000000);
+        menuLayer.setBackgroundColor(0x00000000);
         menuLayer.setClickable(true);
         menuLayer.setOnClickListener(v -> closeMenu());
         final LinearLayout panel = new LinearLayout(this);
         panel.setOrientation(LinearLayout.VERTICAL);
-        panel.setPadding(dp(22), dp(20), dp(22), dp(14));
-        GradientDrawable pbg = new GradientDrawable(GradientDrawable.Orientation.TL_BR, new int[]{0xF2161622, 0xF20B0B12});
-        pbg.setCornerRadius(dp(28));
+        panel.setPadding(dp(18), dp(22), dp(14), dp(14));
+        GradientDrawable pbg = new GradientDrawable(GradientDrawable.Orientation.LEFT_RIGHT, new int[]{0xD8101018, 0xEE0B0B12});
         panel.setBackground(pbg);
         panel.setClickable(true);
-        TextView ttl = text("Episodes", 20, true);
-        ttl.setPadding(dp(6), 0, 0, dp(8));
+        TextView ttl = text("Episodes", 22, true);
+        ttl.setPadding(dp(4), 0, 0, dp(10));
         panel.addView(ttl);
         final List<Integer> seasons = new ArrayList<>();
         for (int i = 0; i < eps.length(); i++) { int sn = eps.optJSONObject(i).optInt("s", 1); if (!seasons.contains(sn)) seasons.add(sn); }
         final HorizontalScrollView hs = new HorizontalScrollView(this);
         hs.setHorizontalScrollBarEnabled(false);
+        hs.setClipChildren(false); hs.setClipToPadding(false);
         final LinearLayout srow = new LinearLayout(this);
         srow.setOrientation(LinearLayout.HORIZONTAL);
-        srow.setPadding(0, 0, 0, dp(8));
+        srow.setPadding(dp(2), dp(6), dp(2), dp(10));
+        srow.setClipChildren(false);
         hs.addView(srow);
         panel.addView(hs);
         final ScrollView sc = new ScrollView(this);
         sc.setVerticalScrollBarEnabled(false);
+        sc.setClipChildren(false); sc.setClipToPadding(false);
         final LinearLayout list = new LinearLayout(this);
         list.setOrientation(LinearLayout.VERTICAL);
+        list.setClipChildren(false);
         sc.addView(list);
         final int[] season = {seasons.contains(curS) ? curS : (seasons.isEmpty() ? 1 : seasons.get(0))};
         final JSONArray fe = eps;
@@ -615,24 +686,45 @@ public class PlayerActivity extends Activity {
                 final JSONObject o = fe.optJSONObject(i);
                 final int sn = o.optInt("s", 1), en = o.optInt("e", 0);
                 if (sn != season[0]) continue;
-                boolean cur = sn == curS && en == curE;
+                final boolean cur = sn == curS && en == curE;
                 String t = o.optString("t", "");
-                TextView row = text((cur ? "\u25B6  " : "") + en + "  \u00b7  " + (t.isEmpty() ? "Episode " + en : t), 15, cur);
-                row.setSingleLine(true); row.setEllipsize(TextUtils.TruncateAt.END);
-                row.setPadding(dp(14), dp(11), dp(14), dp(11));
-                row.setBackground(fillBg(cur ? 0x22FFFFFF : 0x00000000, 0x44FFFFFF, 14, false));
+                LinearLayout row = new LinearLayout(this);
+                row.setOrientation(LinearLayout.HORIZONTAL);
+                row.setGravity(Gravity.CENTER_VERTICAL);
+                row.setPadding(dp(8), dp(8), dp(12), dp(8));
+                row.setBackground(fillBg(cur ? 0x26FFFFFF : 0x00000000, 0x44FFFFFF, 14, false));
                 row.setFocusable(true); row.setClickable(true);
-                row.setOnClickListener(v -> { if (sn == curS && en == curE) { closeMenu(); return; } ExoPlayerPlugin.pickSeason = sn; ExoPlayerPlugin.pickEpisode = en; finishWith(false); });
-                list.addView(row, new LinearLayout.LayoutParams(-1, -2));
+                final ImageView th = new ImageView(this);
+                th.setScaleType(ImageView.ScaleType.CENTER_CROP);
+                GradientDrawable ph = new GradientDrawable(); ph.setColor(0x33FFFFFF); ph.setCornerRadius(dp(10)); th.setBackground(ph);
+                th.setClipToOutline(true);
+                th.setOutlineProvider(new ViewOutlineProvider() { @Override public void getOutline(View v, Outline ol) { ol.setRoundRect(0, 0, v.getWidth(), v.getHeight(), dp(10)); } });
+                row.addView(th, new LinearLayout.LayoutParams(dp(128), dp(72)));
+                loadThumb(th, o.optString("th", ""));
+                LinearLayout col = new LinearLayout(this);
+                col.setOrientation(LinearLayout.VERTICAL);
+                TextView n = text((cur ? "NOW PLAYING  \u00b7  " : "Episode ") + (cur ? "" : "") + en, 12, true); n.setAlpha(.7f);
+                if (cur) n.setTextColor(accent);
+                TextView tt = text(t.isEmpty() ? "Episode " + en : t, 15, true);
+                tt.setSingleLine(false); tt.setMaxLines(2); tt.setEllipsize(TextUtils.TruncateAt.END);
+                col.addView(n); col.addView(tt);
+                LinearLayout.LayoutParams cl = new LinearLayout.LayoutParams(0, -2, 1f); cl.leftMargin = dp(12);
+                row.addView(col, cl);
+                row.setOnClickListener(v -> { if (cur) { closeMenu(); return; } ExoPlayerPlugin.pickSeason = sn; ExoPlayerPlugin.pickEpisode = en; finishWith(false); });
+                LinearLayout.LayoutParams rl = new LinearLayout.LayoutParams(-1, -2); rl.bottomMargin = dp(6);
+                list.addView(row, rl);
                 if (cur || focus == null) focus = row;
             }
             final View f = focus;
-            if (f != null) sc.post(() -> { sc.scrollTo(0, Math.max(0, f.getTop() - dp(60))); f.requestFocus(); });
+            if (f != null) sc.post(() -> { sc.scrollTo(0, Math.max(0, f.getTop() - dp(40))); f.requestFocus(); });
         };
         draw[0].run();
-        panel.addView(sc, new LinearLayout.LayoutParams(-1, dp(phone ? 250 : 320)));
-        int w = Math.min(dp(720), getResources().getDisplayMetrics().widthPixels - dp(24));
-        menuLayer.addView(panel, new FrameLayout.LayoutParams(w, -2, Gravity.CENTER));
+        panel.addView(sc, new LinearLayout.LayoutParams(-1, 0, 1f));
+        int pw = Math.min(dp(430), (int) (getResources().getDisplayMetrics().widthPixels * (phone ? 0.78f : 0.42f)));
+        FrameLayout.LayoutParams lp = new FrameLayout.LayoutParams(pw, -1, Gravity.END);
+        menuLayer.addView(panel, lp);
+        panel.setTranslationX(pw);
+        panel.animate().translationX(0).setDuration(220).start();
     }
 
     private void buildControls(String title) {
@@ -660,6 +752,18 @@ public class PlayerActivity extends Activity {
         LinearLayout.LayoutParams tl = new LinearLayout.LayoutParams(0, -2, 1f);
         tl.leftMargin = dp(16);
         top.addView(tcol, tl);
+        if (!epsJson.isEmpty()) {                                              // top right: episodes list and next episode
+            final FrameLayout ec = circleBtn(R.drawable.ic_p_episodes, 50, 28, null, false, null);
+            ec.setOnClickListener(v -> openEpisodes(ec));
+            ((LinearLayout.LayoutParams) ec.getLayoutParams()).leftMargin = dp(10);
+            top.addView(ec);
+        }
+        if (!nextTitle.isEmpty()) {
+            FrameLayout nx = circleBtn(R.drawable.ic_p_next, 50, 28, null, false, v -> { ExoPlayerPlugin.autoNext = true; finishWith(false); });
+            ((LinearLayout.LayoutParams) nx.getLayoutParams()).leftMargin = dp(10);
+            top.addView(nx);
+        }
+        top.setClipChildren(false); top.setClipToPadding(false);
         controls.addView(top, new FrameLayout.LayoutParams(-1, -2, Gravity.TOP));
 
         // bottom: [play] elapsed ---- remaining, then one centered row: audio & subtitles + options
@@ -722,15 +826,16 @@ public class PlayerActivity extends Activity {
         other.setOnClickListener(v -> openOther(other));
         ctl.addView(other);
         ctl.addView(overChip);
-        FrameLayout spd = circleBtn(R.drawable.ic_p_speed, 44, 24, null, false, v -> cycleSpeed());
+        final FrameLayout spd = circleBtn(R.drawable.ic_p_speed, 44, 24, null, false, null);
+        spd.setOnClickListener(v -> openSpeed(spd));
         ctl.addView(spd);
-        if (!epsJson.isEmpty()) { final FrameLayout ec = circleBtn(R.drawable.ic_p_episodes, 44, 24, null, false, null); ec.setOnClickListener(v -> openEpisodes(ec)); ctl.addView(ec); }
-        if (!nextTitle.isEmpty()) ctl.addView(circleBtn(R.drawable.ic_p_next, 44, 24, null, false, v -> { ExoPlayerPlugin.autoNext = true; finishWith(false); }));
         final FrameLayout gear = circleBtn(R.drawable.ic_p_gear, 44, 24, null, false, null);
         gear.setOnClickListener(v -> openOptions(gear));
         LinearLayout.LayoutParams gp = new LinearLayout.LayoutParams(dp(44), dp(44));
         gp.leftMargin = dp(6);
         ctl.addView(gear, gp);
+        ctl.setClipChildren(false); ctl.setClipToPadding(false); presetBox.setClipChildren(false);
+        bottom.setClipChildren(false); bottom.setClipToPadding(false); controls.setClipChildren(false); controls.setClipToPadding(false); root.setClipChildren(false);
         bottom.addView(ctl, new LinearLayout.LayoutParams(-1, -2));
         controls.addView(bottom, new FrameLayout.LayoutParams(-1, -2, Gravity.BOTTOM));
         if (phone) {                                                  // phone: pause in the middle of the screen with -10 / +10 beside it

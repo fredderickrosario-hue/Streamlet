@@ -992,23 +992,40 @@ body.tv :is(#detail,#episode) .dp2 .ep:focus-visible{outline:0}
 body.tv :is(#detail,#episode) .dp2 .dsim .card:focus-visible .poster{outline:3px solid #fff;outline-offset:-3px}
 body.tv :is(#detail,#episode) .dp2 .dsim .card:focus-visible{outline:0}
 
-/* loading screen while the best source is found */
-#loadov{position:fixed;inset:0;z-index:9990;background:#05050a;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:22px;text-align:center;padding:24px}
+/* loading: just the logo turning, no dimming (it is usually gone in a moment) */
+#loadov{position:fixed;inset:0;z-index:9990;display:flex;align-items:center;justify-content:center;background:none}
 #loadov[hidden]{display:none}
-.lo-ring{width:92px;height:92px;border-radius:50%;background:conic-gradient(from 0deg,transparent 0,#a24bff 40%,#2fb6ff 85%,transparent);-webkit-mask:radial-gradient(circle,transparent 57%,#000 59%);mask:radial-gradient(circle,transparent 57%,#000 59%);animation:lospin 1s linear infinite}
-@keyframes lospin{to{transform:rotate(360deg)}}
-#loadmsg{font-size:19px;font-weight:700;max-width:80vw}
-body.tv #loadmsg{font-size:24px}
+.lo-logo{width:min(18vmin,150px);height:auto;filter:drop-shadow(0 6px 22px rgba(0,0,0,.65))}
+.lo-spin{transform-origin:487px 520px;animation:lospin 1.1s linear infinite}
+@keyframes lospin{to{transform:rotate(-360deg)}}
 /* release labels */
 .rtag{position:absolute;left:0;top:10px;z-index:2;padding:3px 9px 3px 8px;border-radius:0 8px 8px 0;font-size:10.5px;font-weight:800;letter-spacing:.5px;text-transform:uppercase;color:#fff;background:#d9822b;pointer-events:none}
 .rtag.upcoming{background:#6a5cff}
 .relbadge{display:inline-block;margin:0 0 8px;padding:4px 12px;border-radius:999px;font-size:12px;font-weight:800;letter-spacing:.6px;text-transform:uppercase;color:#fff;background:#d9822b}
 .relbadge.upcoming{background:#6a5cff}
 .relbadge[hidden]{display:none}
+
+/* v3d: episode arrows, no glow under the season chip, focus rings drawn above the pictures */
+body.tv #episode .dnav{position:fixed;top:50%;margin-top:-30px;z-index:5;font-size:54px;line-height:56px;font-weight:300;color:rgba(255,255,255,.55);pointer-events:none;text-shadow:0 2px 14px rgba(0,0,0,.7)}
+body.tv #episode .dnav.l{left:70px}
+body.tv #episode .dnav.r{right:22px}
+body.tv #episode.p2 .dnav{display:none}
+body.tv :is(#detail,#episode) .dp2 .chip,body.tv :is(#detail,#episode) .dp2 .chip.on{box-shadow:none !important;filter:none}
+body.tv :is(#detail,#episode) .dp2 .srow,body.tv :is(#detail,#episode) .dp2 .sfilter{background:none !important;box-shadow:none !important}
+body.tv :is(#detail,#episode) .dp2 .ep .ethumb::after,body.tv :is(#detail,#episode) .dp2 .dsim .card .poster::after{content:'';position:absolute;inset:0;border-radius:inherit;box-shadow:inset 0 0 0 3px #fff;opacity:0;z-index:6;pointer-events:none}
+body.tv :is(#detail,#episode) .dp2 .ep:focus-visible .ethumb::after,body.tv :is(#detail,#episode) .dp2 .dsim .card:focus-visible .poster::after{opacity:1}
+body.tv :is(#detail,#episode) .dp2 .ep:focus-visible .ethumb,body.tv :is(#detail,#episode) .dp2 .dsim .card:focus-visible .poster{outline:0 !important}
+body.tv :is(#detail,#episode) .dp2 .dsim .card .poster{position:relative}
+
+/* v3e: a focused white chip keeps a visible ring (dark band inside the white ring), and focused "on" chips switch to the accent color */
+body.tv :is(#detail,#episode) .dp2 .chip:focus-visible{box-shadow:inset 0 0 0 5px rgba(8,8,14,.55) !important}
+body.tv :is(#detail,#episode) .dp2 .chip.on:focus-visible{background:var(--acc);color:var(--btnt,#fff)}
+body.tv .chip:focus-visible,body.tv .pillx:focus-visible,body.tv .hb:focus-visible{outline:3px solid #fff;outline-offset:-3px;transform:none}
+body.tv .hb.p:focus-visible{outline-offset:3px;box-shadow:0 0 0 1px rgba(0,0,0,.4)}
 </style>
 </head>
 <body>
-<div id="loadov" hidden><div class="lo-ring"></div><div id="loadmsg"></div><button id="loadcancel" class="btn ghost" type="button">Cancel</button></div>
+<div id="loadov" hidden aria-label="Loading"><svg viewBox="0 0 1024 1024" class="lo-logo" aria-hidden="true"><defs><linearGradient id="lg1" gradientUnits="userSpaceOnUse" x1="230" y1="250" x2="790" y2="800"><stop offset="0" stop-color="#9a8cff"/><stop offset=".35" stop-color="#a24bff"/><stop offset=".72" stop-color="#2fb6ff"/><stop offset="1" stop-color="#16e0f2"/></linearGradient><linearGradient id="lg2" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff"/><stop offset="1" stop-color="#ddd3ff"/></linearGradient></defs><g class="lo-spin"><path d="M563.1 236.0 A294 294 0 1 0 765.0 424.3" fill="none" stroke="url(#lg1)" stroke-width="66" stroke-linecap="round"/><g transform="translate(710 338) rotate(-33) scale(.86)"><rect x="-74" y="-148" width="38" height="104" rx="19" fill="url(#lg2)"/><rect x="36" y="-148" width="38" height="104" rx="19" fill="url(#lg2)"/><path d="M-100 -66H100Q124 -66 124 -42V12Q124 74 62 82L38 120H-38L-62 82Q-124 74 -124 12V-42Q-124 -66 -100 -66Z" fill="url(#lg2)"/></g></g></svg></div>
 <div id="intro">
   <div class="ilock">
   <svg viewBox="0 0 1024 1024" class="ilogo" aria-hidden="true">
@@ -1420,9 +1437,8 @@ function popLayer(name){
 /* "Finding the best source…" screen: Back or Cancel stops it */
 let loadCancelled = false, loadFinishing = false;
 function showLoading(title){
-  loadCancelled = false; $('#loadmsg').textContent = title ? 'Finding the best source for ' + title + '…' : 'Finding the best source…';
+  loadCancelled = false;
   $('#loadov').hidden = false; if (!layersOpen.includes('load')) pushLayer('load');
-  setTimeout(() => { const b = $('#loadcancel'); if (b && !$('#loadov').hidden) b.focus({preventScroll:true}); }, 30);
 }
 function hideLoading(){                                                     // resolves once the Back stack has settled, so the player can open right after
   return new Promise(res => {
@@ -1432,7 +1448,7 @@ function hideLoading(){                                                     // r
     popLayer('load');
   });
 }
-$('#loadcancel').onclick = () => { if (layersOpen.includes('load')) popLayer('load'); };
+$('#loadov').onclick = () => { if (layersOpen.includes('load')) popLayer('load'); };            // a tap (or Back) stops it
 const LAYER_CLOSERS = {
   load:   () => { $('#loadov').hidden = true; if (!loadFinishing) loadCancelled = true; },
   panel:  () => { $('#ppanel').hidden = true; $('#pback').hidden = true; showBar(); },
@@ -2665,10 +2681,24 @@ const LANG_HINTS = [
 const streamLangs = s => { const t = [s.name, s.title, s.description].filter(Boolean).join(' '); return LANG_HINTS.filter(([,re]) => re.test(t)).map(([k]) => k); };
 
 /* ---------- detail + streams ---------- */
-function openResume(e){
+/* a "Continue watching" card: plays on from where it stopped (same source), no page in between */
+async function openResume(e){
   const a = addons.find(x => x.uid === e.addonId || x.manifest.id === e.addonId) || spaceAddons()[0] || addons[0];
   if (!a) return;
-  openDetail(a, e.itemType, {id:e.itemId, type:e.itemType, name:e.name, poster:e.poster, background:e.background}, {resume:e});
+  const item = {id:e.itemId, type:e.itemType, name:e.name, poster:e.poster, background:e.background};
+  if (!profile || (!autoPickOn() && !(e.stream && e.stream.url))) return openDetail(a, e.itemType, item, {resume:e});
+  showLoading();
+  let meta = {...item};
+  try { const ma = supports(a, 'meta', e.itemType, e.itemId) ? a : addons.find(x => supports(x, 'meta', e.itemType, e.itemId)); if (ma) { const r = await getJSON(`${ma.base}/meta/${e.itemType}/${enc(e.itemId)}.json`); meta = {...item, ...r.meta}; } } catch {}
+  if (loadCancelled) return;
+  let base = {info:{item:{id:e.itemId, type:e.itemType, name:e.name, poster:e.poster, background:e.background, released:meta.released, releaseInfo:meta.releaseInfo}, addonId:a.uid},
+    alt:[meta.behaviorHints && meta.behaviorHints.defaultVideoId, meta.imdb_id].filter(x => x && x !== e.itemId), ep:e.ep || undefined, next:e.next || undefined};
+  if (e.itemType === 'series' && Array.isArray(meta.videos)) {
+    const sorted = meta.videos.filter(v => v && v.id).sort((x, y) => ((x.season ?? 1) - (y.season ?? 1)) || ((x.episode ?? 0) - (y.episode ?? 0))), v = sorted.find(x => x.id === e.id);
+    if (v) base = episodeBase(a, e.itemType, meta, v, sorted);
+  }
+  if (e.stream && e.stream.url && !e.upnext) { await hideLoading(); playStream(e.stream, e.name, {type:e.type, id:e.id, ...base}); return; }
+  if (!(await autoPlay(e.type, e.id, e.name, base))) openDetail(a, e.itemType, item, {resume:e});
 }
 const IC = {
   back:'<path d="M15 5l-7 7 7 7"/>',
@@ -2809,7 +2839,7 @@ function episodeBase(addon, type, meta, v, sorted){
     ep:{season:v.season ?? 1, episode:v.episode, title:v.title || v.name},
     next: nx ? {id:nx.id, season:nx.season ?? 1, episode:nx.episode, title:nx.title || nx.name} : null,
     rest: sorted.slice(i + 2, i + 6).map(x => ({id:x.id, season:x.season ?? 1, episode:x.episode, title:x.title || x.name})),
-    eps: sorted.map(x => ({id:x.id, season:x.season ?? 1, episode:x.episode, title:x.title || x.name}))};
+    eps: sorted.map(x => ({id:x.id, season:x.season ?? 1, episode:x.episode, title:x.title || x.name, thumb:x.thumbnail || ''}))};
 }
 function hintEl(){ const e = h('div', {class:'dhint', 'aria-hidden':'true'}); e.innerHTML = '<svg viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>'; return e; }
 function epCard(addon, type, meta, v, sorted, soon, th, hist, again){
@@ -2864,6 +2894,9 @@ function openEpisode(addon, type, meta, v, sorted, again){
           h('div', {class:'dacts2'}, play),
           hintEl()),
         tvRowsFor(addon, type, meta, 'Sources', [streamsBox], {sim:false, rows:[h('section', {class:'drow'}, h('h3', {class:'drt'}, 'Season ' + sn), others)]}))));
+    const at = sorted.indexOf(v);
+    ed._step = d => { const t = sorted[at + d]; if (t) openEpisode(addon, type, meta, t, sorted, true); };       // Left / Right on the top half
+    for (const [cls, ok, label] of [['l', at > 0, '‹'], ['r', at >= 0 && at < sorted.length - 1, '›']]) if (ok) ed.append(h('div', {class:'dnav ' + cls, 'aria-hidden':'true'}, label));
     manualSources(streamsBox, () => loadStreams(type, v.id, streamsBox, meta.name, base));
     return;
   }
@@ -3319,7 +3352,7 @@ async function playNative(s, title, ctx){
   try {
     const epLine = ctx && ctx.ep ? `S${ctx.ep.season ?? 1}:E${ctx.ep.episode ?? ''}` + (ctx.ep.title ? ' · ' + ctx.ep.title : '') : '';
     const itemId = ctx && ctx.info && ctx.info.item.id, nextTitle = ctx && ctx.next ? `S${ctx.next.season ?? 1}:E${ctx.next.episode ?? ''}` + (ctx.next.title ? ' · ' + ctx.next.title : '') : '';
-    const r = await N.play({nextTitle, episode:!!(ctx && ctx.ep), subDelay:(mapGet('streamlet.subdelay')[itemId] || 0), url:s.url, title:title || '', hw:uiPlay('hw', true), fps:uiPlay('fps', true), tunnel:uiPlay('tunnel', false), pass:uiPlay('pass', true), skip:Number(lsGet('streamlet.ui', {}).skip) || 10, eps:(ctx && ctx.eps && ctx.ep ? JSON.stringify(ctx.eps.map(x => ({s:x.season, e:x.episode, t:x.title || ''}))) : ''), curSeason:(ctx && ctx.ep ? ctx.ep.season ?? 1 : 1), curEpisode:(ctx && ctx.ep ? ctx.ep.episode ?? 0 : 0), subtitle:epLine, accent:(getComputedStyle(document.documentElement).getPropertyValue('--acc') || '').trim(), startMs, subtitles:picked, audioLang:code2(settings.audioLang) || null, subLang:pref ? (code2(pref) || pref) : null});
+    const r = await N.play({nextTitle, episode:!!(ctx && ctx.ep), subDelay:(mapGet('streamlet.subdelay')[itemId] || 0), url:s.url, title:title || '', hw:uiPlay('hw', true), fps:uiPlay('fps', true), tunnel:uiPlay('tunnel', false), pass:uiPlay('pass', true), skip:Number(lsGet('streamlet.ui', {}).skip) || 10, eps:(ctx && ctx.eps && ctx.ep ? JSON.stringify(ctx.eps.map(x => ({s:x.season, e:x.episode, t:x.title || '', th:x.thumb || ''}))) : ''), curSeason:(ctx && ctx.ep ? ctx.ep.season ?? 1 : 1), curEpisode:(ctx && ctx.ep ? ctx.ep.episode ?? 0 : 0), subtitle:epLine, accent:(getComputedStyle(document.documentElement).getPropertyValue('--acc') || '').trim(), startMs, subtitles:picked, audioLang:code2(settings.audioLang) || null, subLang:pref ? (code2(pref) || pref) : null});
     if (r && r.failed) {
       badStreams.add(s); badSet(s); logErr(title, s, r.error); const el = streamEls.get(s); if (el) el.classList.add('bad');
       const list = (ctx && ctx._list) || [], i = list.indexOf(s);
@@ -3844,7 +3877,10 @@ function moveFocus(dir, rep){
     const score = prim + gap * 4 + off * 0.5;
     if (score < bs) { bs = score; best = el; }
   }
-  if (!best) { if (tv && !inNav && dir === 'left') focusNav(); return; }
+  if (!best) {
+    if (entryTV && root.id === 'episode' && (dir === 'left' || dir === 'right') && cur.closest('.dleft') && root._step) { root._step(dir === 'right' ? 1 : -1); return; }   // episode page: previous / next episode
+    if (tv && !inNav && dir === 'left') focusNav(); return;
+  }
   best.focus({preventScroll:true});
   let edge = null;
   if (document.body.classList.contains('tv') && (dir === 'up' || dir === 'down')) {

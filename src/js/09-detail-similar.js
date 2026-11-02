@@ -1,8 +1,22 @@
 /* ---------- detail + streams ---------- */
-function openResume(e){
+/* a "Continue watching" card: plays on from where it stopped (same source), no page in between */
+async function openResume(e){
   const a = addons.find(x => x.uid === e.addonId || x.manifest.id === e.addonId) || spaceAddons()[0] || addons[0];
   if (!a) return;
-  openDetail(a, e.itemType, {id:e.itemId, type:e.itemType, name:e.name, poster:e.poster, background:e.background}, {resume:e});
+  const item = {id:e.itemId, type:e.itemType, name:e.name, poster:e.poster, background:e.background};
+  if (!profile || (!autoPickOn() && !(e.stream && e.stream.url))) return openDetail(a, e.itemType, item, {resume:e});
+  showLoading();
+  let meta = {...item};
+  try { const ma = supports(a, 'meta', e.itemType, e.itemId) ? a : addons.find(x => supports(x, 'meta', e.itemType, e.itemId)); if (ma) { const r = await getJSON(`${ma.base}/meta/${e.itemType}/${enc(e.itemId)}.json`); meta = {...item, ...r.meta}; } } catch {}
+  if (loadCancelled) return;
+  let base = {info:{item:{id:e.itemId, type:e.itemType, name:e.name, poster:e.poster, background:e.background, released:meta.released, releaseInfo:meta.releaseInfo}, addonId:a.uid},
+    alt:[meta.behaviorHints && meta.behaviorHints.defaultVideoId, meta.imdb_id].filter(x => x && x !== e.itemId), ep:e.ep || undefined, next:e.next || undefined};
+  if (e.itemType === 'series' && Array.isArray(meta.videos)) {
+    const sorted = meta.videos.filter(v => v && v.id).sort((x, y) => ((x.season ?? 1) - (y.season ?? 1)) || ((x.episode ?? 0) - (y.episode ?? 0))), v = sorted.find(x => x.id === e.id);
+    if (v) base = episodeBase(a, e.itemType, meta, v, sorted);
+  }
+  if (e.stream && e.stream.url && !e.upnext) { await hideLoading(); playStream(e.stream, e.name, {type:e.type, id:e.id, ...base}); return; }
+  if (!(await autoPlay(e.type, e.id, e.name, base))) openDetail(a, e.itemType, item, {resume:e});
 }
 const IC = {
   back:'<path d="M15 5l-7 7 7 7"/>',
@@ -143,7 +157,7 @@ function episodeBase(addon, type, meta, v, sorted){
     ep:{season:v.season ?? 1, episode:v.episode, title:v.title || v.name},
     next: nx ? {id:nx.id, season:nx.season ?? 1, episode:nx.episode, title:nx.title || nx.name} : null,
     rest: sorted.slice(i + 2, i + 6).map(x => ({id:x.id, season:x.season ?? 1, episode:x.episode, title:x.title || x.name})),
-    eps: sorted.map(x => ({id:x.id, season:x.season ?? 1, episode:x.episode, title:x.title || x.name}))};
+    eps: sorted.map(x => ({id:x.id, season:x.season ?? 1, episode:x.episode, title:x.title || x.name, thumb:x.thumbnail || ''}))};
 }
 function hintEl(){ const e = h('div', {class:'dhint', 'aria-hidden':'true'}); e.innerHTML = '<svg viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>'; return e; }
 function epCard(addon, type, meta, v, sorted, soon, th, hist, again){
@@ -198,6 +212,9 @@ function openEpisode(addon, type, meta, v, sorted, again){
           h('div', {class:'dacts2'}, play),
           hintEl()),
         tvRowsFor(addon, type, meta, 'Sources', [streamsBox], {sim:false, rows:[h('section', {class:'drow'}, h('h3', {class:'drt'}, 'Season ' + sn), others)]}))));
+    const at = sorted.indexOf(v);
+    ed._step = d => { const t = sorted[at + d]; if (t) openEpisode(addon, type, meta, t, sorted, true); };       // Left / Right on the top half
+    for (const [cls, ok, label] of [['l', at > 0, '‹'], ['r', at >= 0 && at < sorted.length - 1, '›']]) if (ok) ed.append(h('div', {class:'dnav ' + cls, 'aria-hidden':'true'}, label));
     manualSources(streamsBox, () => loadStreams(type, v.id, streamsBox, meta.name, base));
     return;
   }
