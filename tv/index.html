@@ -913,6 +913,7 @@ body.launch:not(.tv) .lfoot{flex:0 0 auto;padding-top:8px}
           <label class="row2"><span class="rt">Hardware decoding<small>Smoother and cooler. Turn off only if video looks garbled</small></span><input type="checkbox" id="setHw"></label>
           <label class="row2"><span class="rt">Match frame rate<small>Removes judder when your TV supports it</small></span><input type="checkbox" id="setFps"></label>
           <label class="row2"><span class="rt">Tunneled playback<small>Can help 4K and HDR, may affect seeking</small></span><input type="checkbox" id="setTun"></label>
+          <label class="row2"><span class="rt">Dolby passthrough<small>Backup player sends Dolby and Atmos to your TV. Turn off if you get no sound</small></span><input type="checkbox" id="setPass"></label>
         </div>
       </div>
       <h2 class="sh">About</h2>
@@ -923,7 +924,7 @@ body.launch:not(.tv) .lfoot{flex:0 0 auto;padding-top:8px}
           <button class="btn" id="apkInstall" type="button" hidden>Install update</button></div>
           <p class="hint" id="apkMsg" style="margin-top:8px"></p>
         </div>
-        <details class="adbox" id="logBox" style="margin:10px 0"><summary>Playback log</summary><div id="logBody" style="margin-top:8px"></div></details>
+        <details class="adbox" id="logBox" style="margin:10px 0"><summary>Diagnostics</summary><div id="logBody" style="margin-top:8px"></div></details>
         <div class="aboutpad" style="display:flex;gap:10px;flex-wrap:wrap"><button class="btn ghost sm" id="updBtn" type="button">Restart</button><button class="btn ghost sm" id="closeBtn" type="button">Close app</button></div>
       </div>
     </div>
@@ -983,6 +984,20 @@ body.launch:not(.tv) .lfoot{flex:0 0 auto;padding-top:8px}
 </nav>
 
 <script>
+/* ---------- diagnostics: remembers app errors so a problem on the TV can be read later (Settings > Diagnostics) ---------- */
+(() => {
+  const add = (kind, msg) => {
+    try {
+      const a = JSON.parse(localStorage.getItem('streamlet.syslog') || '[]');
+      if (a[0] && a[0].m === msg) { a[0].n = (a[0].n || 1) + 1; a[0].t = Date.now(); }
+      else a.unshift({t:Date.now(), k:kind, m:String(msg).slice(0, 300)});
+      localStorage.setItem('streamlet.syslog', JSON.stringify(a.slice(0, 60)));
+    } catch {}
+  };
+  addEventListener('error', e => { if (e.message) add('JS', `${e.message} @ ${String(e.filename || '').split('/').pop()}:${e.lineno}`); });
+  addEventListener('unhandledrejection', e => add('PROMISE', (e.reason && (e.reason.stack || e.reason.message)) || e.reason));
+  window.sysLog = add;
+})();
 const FLAVOR = 'tv';                                              // build.js sets this to 'tv' or 'phone' for the two apps
 /* ---------- tiny helpers ---------- */
 const $ = s => document.querySelector(s);
@@ -1616,7 +1631,7 @@ function renderSettings(){
   const snd = $('#setSnd'); snd.checked = u.sound !== false;
   snd.onchange = () => { lsSet('streamlet.ui', {...lsGet('streamlet.ui', {}), sound:snd.checked}); if (snd.checked) sfx.select(); };
   $('#setPlay').hidden = !nativePlayer();
-  for (const [id, k, d] of [['#setHw', 'hw', true], ['#setFps', 'fps', true], ['#setTun', 'tunnel', false]]) {
+  for (const [id, k, d] of [['#setHw', 'hw', true], ['#setFps', 'fps', true], ['#setTun', 'tunnel', false], ['#setPass', 'pass', true]]) {
     const el = $(id); el.checked = u[k] === undefined ? d : u[k] !== false && !!u[k];
     el.onchange = () => lsSet('streamlet.ui', {...lsGet('streamlet.ui', {}), [k]:el.checked});
   }
@@ -1627,10 +1642,23 @@ function applyUI(){
   document.body.classList.toggle('noanim', u.anim === false);
   document.body.classList.toggle('noglass', u.glass === undefined ? tv : u.glass === false);
 }
-function renderLog(){
-  const a = lsGet('streamlet.errlog', []), box = $('#logBody');
-  box.replaceChildren(...(a.length ? a.slice(0, 12).map(e => h('p', {class:'hint', style:'margin:0 0 8px'}, `${new Date(e.t).toLocaleString([], {month:'short', day:'numeric', hour:'2-digit', minute:'2-digit'})} · ${e.title || 'Unknown'} · ${e.src || 'source'}${e.code ? ' · ' + e.code : ''}`)) : [h('p', {class:'hint'}, 'No playback errors yet.')]),
-    a.length ? h('button', {class:'btn ghost sm', type:'button', onclick:() => { lsSet('streamlet.errlog', []); renderLog(); }}, 'Clear log') : null);
+async function renderLog(){
+  const box = $('#logBody'), when = t => new Date(t).toLocaleString([], {month:'short', day:'numeric', hour:'2-digit', minute:'2-digit'});
+  const play = lsGet('streamlet.errlog', []), sys = lsGet('streamlet.syslog', []), N = nativePlayer();
+  let native = ''; try { if (N && N.getLog) native = ((await N.getLog()) || {}).log || ''; } catch {}
+  const lines = [`Streamlet ${APP_BUILD} · ${document.body.classList.contains('tv') ? 'TV' : 'phone/web'} · ${innerWidth}x${innerHeight} · ${navigator.onLine ? 'online' : 'offline'}`, ''];
+  lines.push('PLAYBACK ERRORS' + (play.length ? '' : ': none'));
+  for (const e of play.slice(0, 15)) lines.push(`${when(e.t)} · ${e.title || 'Unknown'} · ${e.src || 'source'}${e.code ? ' · ' + e.code : ''}`);
+  lines.push('', 'APP ERRORS' + (sys.length ? '' : ': none'));
+  for (const e of sys.slice(0, 20)) lines.push(`${when(e.t)} · ${e.k} · ${e.m}${e.n > 1 ? ' (x' + e.n + ')' : ''}`);
+  if (N) lines.push('', 'ANDROID LOG' + (native.trim() ? '' : ': empty'), ...native.trim().split('\n').slice(-40));
+  const text = lines.join('\n'), ta = h('textarea', {readonly:'', rows:'10', class:'f', style:'width:100%;font:12px/1.4 monospace;white-space:pre'}); ta.value = text;
+  const copy = h('button', {class:'btn ghost sm', type:'button', onclick:async () => {
+    try { await navigator.clipboard.writeText(text); toast('Copied'); } catch { ta.focus(); ta.select(); try { document.execCommand('copy'); toast('Copied'); } catch { toast('Select the text and copy it'); } }
+  }}, 'Copy');
+  const share = navigator.share ? h('button', {class:'btn ghost sm', type:'button', onclick:() => navigator.share({title:'Streamlet log', text}).catch(() => {})}, 'Share') : null;
+  const clear = h('button', {class:'btn ghost sm', type:'button', onclick:async () => { lsSet('streamlet.errlog', []); lsSet('streamlet.syslog', []); try { if (N && N.clearLog) await N.clearLog(); } catch {} renderLog(); }}, 'Clear');
+  box.replaceChildren(ta, h('div', {style:'display:flex;gap:8px;margin-top:8px;flex-wrap:wrap'}, copy, share, clear));
 }
 $('#logBox').addEventListener('toggle', () => { if ($('#logBox').open) renderLog(); });
 { const sync = () => { $('#offline').hidden = navigator.onLine; }; addEventListener('online', sync); addEventListener('offline', sync); sync(); }
@@ -2909,7 +2937,7 @@ async function playNative(s, title, ctx){
   try {
     const epLine = ctx && ctx.ep ? `S${ctx.ep.season ?? 1}:E${ctx.ep.episode ?? ''}` + (ctx.ep.title ? ' · ' + ctx.ep.title : '') : '';
     const itemId = ctx && ctx.info && ctx.info.item.id, nextTitle = ctx && ctx.next ? `S${ctx.next.season ?? 1}:E${ctx.next.episode ?? ''}` + (ctx.next.title ? ' · ' + ctx.next.title : '') : '';
-    const r = await N.play({nextTitle, episode:!!(ctx && ctx.ep), subDelay:(mapGet('streamlet.subdelay')[itemId] || 0), url:s.url, title:title || '', hw:uiPlay('hw', true), fps:uiPlay('fps', true), tunnel:uiPlay('tunnel', false), subtitle:epLine, accent:(getComputedStyle(document.documentElement).getPropertyValue('--acc') || '').trim(), startMs, subtitles:picked, audioLang:code2(settings.audioLang) || null, subLang:pref ? (code2(pref) || pref) : null});
+    const r = await N.play({nextTitle, episode:!!(ctx && ctx.ep), subDelay:(mapGet('streamlet.subdelay')[itemId] || 0), url:s.url, title:title || '', hw:uiPlay('hw', true), fps:uiPlay('fps', true), tunnel:uiPlay('tunnel', false), pass:uiPlay('pass', true), subtitle:epLine, accent:(getComputedStyle(document.documentElement).getPropertyValue('--acc') || '').trim(), startMs, subtitles:picked, audioLang:code2(settings.audioLang) || null, subLang:pref ? (code2(pref) || pref) : null});
     if (r && r.failed) {
       badStreams.add(s); badSet(s); logErr(title, s, r.error); const el = streamEls.get(s); if (el) el.classList.add('bad');
       const list = (ctx && ctx._list) || [], i = list.indexOf(s);

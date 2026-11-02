@@ -74,6 +74,7 @@
           <label class="row2"><span class="rt">Hardware decoding<small>Smoother and cooler. Turn off only if video looks garbled</small></span><input type="checkbox" id="setHw"></label>
           <label class="row2"><span class="rt">Match frame rate<small>Removes judder when your TV supports it</small></span><input type="checkbox" id="setFps"></label>
           <label class="row2"><span class="rt">Tunneled playback<small>Can help 4K and HDR, may affect seeking</small></span><input type="checkbox" id="setTun"></label>
+          <label class="row2"><span class="rt">Dolby passthrough<small>Backup player sends Dolby and Atmos to your TV. Turn off if you get no sound</small></span><input type="checkbox" id="setPass"></label>
         </div>
       </div>
       <h2 class="sh">About</h2>
@@ -84,7 +85,7 @@
           <button class="btn" id="apkInstall" type="button" hidden>Install update</button></div>
           <p class="hint" id="apkMsg" style="margin-top:8px"></p>
         </div>
-        <details class="adbox" id="logBox" style="margin:10px 0"><summary>Playback log</summary><div id="logBody" style="margin-top:8px"></div></details>
+        <details class="adbox" id="logBox" style="margin:10px 0"><summary>Diagnostics</summary><div id="logBody" style="margin-top:8px"></div></details>
         <div class="aboutpad" style="display:flex;gap:10px;flex-wrap:wrap"><button class="btn ghost sm" id="updBtn" type="button">Restart</button><button class="btn ghost sm" id="closeBtn" type="button">Close app</button></div>
       </div>
     </div>

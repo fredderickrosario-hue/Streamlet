@@ -26,7 +26,7 @@ function renderSettings(){
   const snd = $('#setSnd'); snd.checked = u.sound !== false;
   snd.onchange = () => { lsSet('streamlet.ui', {...lsGet('streamlet.ui', {}), sound:snd.checked}); if (snd.checked) sfx.select(); };
   $('#setPlay').hidden = !nativePlayer();
-  for (const [id, k, d] of [['#setHw', 'hw', true], ['#setFps', 'fps', true], ['#setTun', 'tunnel', false]]) {
+  for (const [id, k, d] of [['#setHw', 'hw', true], ['#setFps', 'fps', true], ['#setTun', 'tunnel', false], ['#setPass', 'pass', true]]) {
     const el = $(id); el.checked = u[k] === undefined ? d : u[k] !== false && !!u[k];
     el.onchange = () => lsSet('streamlet.ui', {...lsGet('streamlet.ui', {}), [k]:el.checked});
   }
@@ -37,10 +37,23 @@ function applyUI(){
   document.body.classList.toggle('noanim', u.anim === false);
   document.body.classList.toggle('noglass', u.glass === undefined ? tv : u.glass === false);
 }
-function renderLog(){
-  const a = lsGet('streamlet.errlog', []), box = $('#logBody');
-  box.replaceChildren(...(a.length ? a.slice(0, 12).map(e => h('p', {class:'hint', style:'margin:0 0 8px'}, `${new Date(e.t).toLocaleString([], {month:'short', day:'numeric', hour:'2-digit', minute:'2-digit'})} · ${e.title || 'Unknown'} · ${e.src || 'source'}${e.code ? ' · ' + e.code : ''}`)) : [h('p', {class:'hint'}, 'No playback errors yet.')]),
-    a.length ? h('button', {class:'btn ghost sm', type:'button', onclick:() => { lsSet('streamlet.errlog', []); renderLog(); }}, 'Clear log') : null);
+async function renderLog(){
+  const box = $('#logBody'), when = t => new Date(t).toLocaleString([], {month:'short', day:'numeric', hour:'2-digit', minute:'2-digit'});
+  const play = lsGet('streamlet.errlog', []), sys = lsGet('streamlet.syslog', []), N = nativePlayer();
+  let native = ''; try { if (N && N.getLog) native = ((await N.getLog()) || {}).log || ''; } catch {}
+  const lines = [`Streamlet ${APP_BUILD} · ${document.body.classList.contains('tv') ? 'TV' : 'phone/web'} · ${innerWidth}x${innerHeight} · ${navigator.onLine ? 'online' : 'offline'}`, ''];
+  lines.push('PLAYBACK ERRORS' + (play.length ? '' : ': none'));
+  for (const e of play.slice(0, 15)) lines.push(`${when(e.t)} · ${e.title || 'Unknown'} · ${e.src || 'source'}${e.code ? ' · ' + e.code : ''}`);
+  lines.push('', 'APP ERRORS' + (sys.length ? '' : ': none'));
+  for (const e of sys.slice(0, 20)) lines.push(`${when(e.t)} · ${e.k} · ${e.m}${e.n > 1 ? ' (x' + e.n + ')' : ''}`);
+  if (N) lines.push('', 'ANDROID LOG' + (native.trim() ? '' : ': empty'), ...native.trim().split('\n').slice(-40));
+  const text = lines.join('\n'), ta = h('textarea', {readonly:'', rows:'10', class:'f', style:'width:100%;font:12px/1.4 monospace;white-space:pre'}); ta.value = text;
+  const copy = h('button', {class:'btn ghost sm', type:'button', onclick:async () => {
+    try { await navigator.clipboard.writeText(text); toast('Copied'); } catch { ta.focus(); ta.select(); try { document.execCommand('copy'); toast('Copied'); } catch { toast('Select the text and copy it'); } }
+  }}, 'Copy');
+  const share = navigator.share ? h('button', {class:'btn ghost sm', type:'button', onclick:() => navigator.share({title:'Streamlet log', text}).catch(() => {})}, 'Share') : null;
+  const clear = h('button', {class:'btn ghost sm', type:'button', onclick:async () => { lsSet('streamlet.errlog', []); lsSet('streamlet.syslog', []); try { if (N && N.clearLog) await N.clearLog(); } catch {} renderLog(); }}, 'Clear');
+  box.replaceChildren(ta, h('div', {style:'display:flex;gap:8px;margin-top:8px;flex-wrap:wrap'}, copy, share, clear));
 }
 $('#logBox').addEventListener('toggle', () => { if ($('#logBox').open) renderLog(); });
 { const sync = () => { $('#offline').hidden = navigator.onLine; }; addEventListener('online', sync); addEventListener('offline', sync); sync(); }

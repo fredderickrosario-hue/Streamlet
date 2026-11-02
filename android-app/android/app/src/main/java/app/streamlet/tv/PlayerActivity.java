@@ -96,6 +96,7 @@ public class PlayerActivity extends Activity {
     private TextView errNextLabel;
     private View errNextBtn;
     private boolean errOn = false;
+    private final Runnable stallRun = new Runnable() { @Override public void run() { if (!errOn && !reported) { AppLog.add("STALL", "no data for 45 s from " + String.valueOf(android.net.Uri.parse(String.valueOf(getIntent().getStringExtra("url"))).getHost())); showError("This source isn't loading.", "STALLED"); } } };
     private MediaItem mediaItem;
     private TrackSelectionParameters trackParams;
     private Player.Listener playerListener;
@@ -250,6 +251,8 @@ public class PlayerActivity extends Activity {
             public void onPlaybackStateChanged(int state) {
                 if (state == Player.STATE_ENDED) onEnded();
                 spinner.setVisibility(state == Player.STATE_BUFFERING ? View.VISIBLE : View.GONE);
+                handler.removeCallbacks(stallRun);                                   // a source that sits buffering for 45 s counts as failed (the next-source screen takes over)
+                if (state == Player.STATE_BUFFERING && !errOn && !reported) handler.postDelayed(stallRun, 45000);
                 refreshProgress();
             }
 
@@ -278,6 +281,7 @@ public class PlayerActivity extends Activity {
             @Override
             public void onPlayerError(PlaybackException error) {
                 int ec = error.errorCode;
+                AppLog.add("EXO", error.getErrorCodeName() + " (" + ec + ") " + String.valueOf(error.getMessage()));
                 boolean network = ec >= 2000 && ec < 3000;            // connection / HTTP problems: the other player would fail too
                 if (!network && !errOn) { handler.post(() -> switchToVlc()); return; }
                 showError(friendly(error), error.getErrorCodeName());
@@ -324,6 +328,7 @@ public class PlayerActivity extends Activity {
         if (reported) return;
         snapshot();
         reported = true;
+        AppLog.add("FALLBACK", "ExoPlayer could not play it, switching to the backup player");
         Intent v = new Intent(this, VlcActivity.class);
         v.putExtras(getIntent());
         v.putExtra("startMs", lastPos);

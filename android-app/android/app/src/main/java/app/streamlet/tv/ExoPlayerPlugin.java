@@ -102,6 +102,13 @@ public class ExoPlayerPlugin extends Plugin {
         }).start();
     }
 
+    /** the rolling native log (crashes, how the last run ended, player errors) */
+    @PluginMethod
+    public void getLog(PluginCall call) { JSObject r = new JSObject(); r.put("log", AppLog.read()); call.resolve(r); }
+
+    @PluginMethod
+    public void clearLog(PluginCall call) { AppLog.clear(); call.resolve(); }
+
     @PluginMethod
     public void device(PluginCall call) {
         UiModeManager um = (UiModeManager) getContext().getSystemService(Context.UI_MODE_SERVICE);
@@ -138,6 +145,7 @@ public class ExoPlayerPlugin extends Plugin {
         i.putExtra("hw", call.getBoolean("hw", true));
         i.putExtra("fps", call.getBoolean("fps", true));
         i.putExtra("tunnel", call.getBoolean("tunnel", false));
+        i.putExtra("pass", call.getBoolean("pass", true));
         i.putExtra("nextTitle", call.getString("nextTitle", ""));
         i.putExtra("episode", call.getBoolean("episode", false));
         Long sd = call.getLong("subDelay", 0L);

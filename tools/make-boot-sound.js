@@ -13,6 +13,6 @@ const {chromium} = require('playwright'); const fs = require('fs'); const {execS
     let s = ''; const u = new Uint8Array(ab); for (let i = 0; i < u.length; i += 8192) s += String.fromCharCode(...u.subarray(i, i + 8192)); return btoa(s);
   });
   fs.writeFileSync('/tmp/boot.wav', Buffer.from(b64, 'base64'));
-  execSync('ffmpeg -y -loglevel error -i /tmp/boot.wav -af "afade=t=out:st=7.4:d=0.8" -ac 2 -b:a 160k boot.mp3');
+  execSync('ffmpeg -y -loglevel error -i /tmp/boot.wav -af "highpass=f=140:poles=2,equalizer=f=220:t=h:w=200:g=-4,afade=t=out:st=7.4:d=0.8,alimiter=limit=0.6:level=false" -ac 2 -b:a 160k boot.mp3');
   await b.close(); console.log('boot.mp3 written');
 })();

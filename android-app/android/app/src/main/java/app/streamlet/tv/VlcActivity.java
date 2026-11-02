@@ -115,6 +115,7 @@ public class VlcActivity extends Activity {
         args.add("--http-reconnect");
         args.add(in.getBooleanExtra("hw", true) ? "--avcodec-hw=any" : "--avcodec-hw=none");
         args.add("--network-caching=2500");
+        if (in.getBooleanExtra("pass", true)) args.add("--spdif");                      // pass Dolby (Digital, Plus, Atmos) to the TV / receiver instead of decoding it here
         lib = new LibVLC(this, args);
         mp = new MediaPlayer(lib);
         mp.attachViews(layout, null, false, false);
@@ -126,7 +127,7 @@ public class VlcActivity extends Activity {
         mp.setEventListener(ev -> {
             switch (ev.type) {
                 case MediaPlayer.Event.EncounteredError:
-                    finishFailed(); break;
+                    AppLog.add("VLC", "playback error"); finishFailed(); break;
                 case MediaPlayer.Event.EndReached:
                     ended = true; finishWith(true); break;
                 default: break;

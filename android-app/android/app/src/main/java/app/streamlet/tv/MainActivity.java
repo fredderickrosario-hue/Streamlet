@@ -9,6 +9,7 @@ import com.getcapacitor.BridgeActivity;
 public class MainActivity extends BridgeActivity {
     @Override
     public void onCreate(Bundle savedInstanceState) {
+        AppLog.init(getApplicationContext());
         registerPlugin(ExoPlayerPlugin.class);
         super.onCreate(savedInstanceState);
         try {
