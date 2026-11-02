@@ -869,8 +869,15 @@ try { addons = JSON.parse(localStorage.getItem('streamlet.addons') || '[]'); } c
 ensureUids();
 const save = () => { try { localStorage.setItem('streamlet.addons', JSON.stringify(addons)); } catch {} stamp('addonsT'); };
 
+
 async function getJSON(url){
   if (url.startsWith('demo://sample/')) return demoRoute(url.slice('demo://sample/'.length));
+  
+  const j = await fetchJSON(url);
+  
+  return j;
+}
+async function fetchJSON(url){
   const c = new AbortController(); const t = setTimeout(()=>c.abort(), 12000);
   try {
     const r = await fetch(url, {signal:c.signal});
@@ -1567,7 +1574,7 @@ function editProfile(id){
 
 function posterEl(meta){
   const p = h('div', {class:'poster'}, (meta.name||'?').trim().charAt(0).toUpperCase());
-  if (meta.poster) p.append(h('img', {src:meta.poster, loading:'lazy', alt:'', onerror:e=>e.target.remove()}));
+  if (meta.poster) p.append(h('img', {src:meta.poster, loading:'lazy', decoding:'async', alt:'', onerror:e=>e.target.remove()}));
   const iid = meta.itemId || meta.id;
   if (iid) { p.dataset.iid = iid; if (watchedHas(iid)) p.append(h('span', {class:'rib'})); }
   return p;
