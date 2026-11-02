@@ -10,6 +10,8 @@ for (const f of ['tv', 'phone']) {
   let s = src.replace("const FLAVOR = 'auto';", `const FLAVOR = '${f}';`);
   const other = f === 'tv' ? 'phone' : 'tv';
   s = s.replace(new RegExp(`/\\*@${other}\\*/[\\s\\S]*?/\\*@end\\*/`, 'g'), '');
+  s = s.replace(new RegExp(`<!--@${other}-->[\\s\\S]*?<!--@end-->`, 'g'), '');
+  s = s.replace(/<!--@(tv|phone)-->|<!--@end-->/g, '');
   s = s.replace(/\/\*@(tv|phone)\*\//g, '').replace(/\/\*@end\*\//g, '');
   if (f === 'phone') {
     s = s.split('\n').filter(l => {

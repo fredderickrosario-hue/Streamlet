@@ -777,6 +777,7 @@ body.tv{min-height:calc(var(--vh,1vh) * 100)}   /* 100vh is too tall once the TV
   <div class="iword" id="iword"></div>
 </div>
 <div id="offline" hidden>No internet connection</div>
+
 <header>
   <button class="spaceBtn" id="spaceBtn" type="button"></button>
   <input id="q" type="search" placeholder="Search installed addons…" enterkeyhint="search">
@@ -1755,14 +1756,18 @@ function renderTabs(){
   bar.dataset.mode = searching ? 's' : 't';
   if (!searching && bar.contains(q)) $('header').append(q);
   if (tv) { if (bar.contains(q)) $('header').append(q); bar.replaceChildren(); bar.hidden = true; return; }
+  document.body.classList.toggle('srch', searching);
+  const ps = $('#phSearch'), pp = $('#phSpace');
+  if (ps) {                                                              // phone: search and spaces live in the sticky top bar
+    ps.innerHTML = searching ? X_SVG : SRCH_SVG;
+    ps.onclick = () => { if (searching) closeSearch(); else { srchOn = true; renderTabs(); $('#q').focus(); } };
+    pp.onclick = () => showLauncher();
+  }
+  if (searching) { bar.hidden = false; bar.replaceChildren(q); q.hidden = false; return; }
+  if (!spaceTabs() || !addons.length) { bar.hidden = true; bar.replaceChildren(); return; }
   bar.hidden = false;
-  const sp = h('button', {class:'chip ico', id:'spIcon', type:'button', 'aria-label':'Spaces', onclick:() => showLauncher()}, cur ? cur.emoji : '⇄');
-  const sr = h('button', {class:'chip ico' + (searching ? ' on' : ''), id:'srIcon', type:'button', 'aria-label':searching ? 'Close search' : 'Search', onclick:() => { if (searching) closeSearch(); else { srchOn = true; renderTabs(); $('#q').focus(); } }});
-  sr.innerHTML = searching ? X_SVG : SRCH_SVG;
-  if (searching) { bar.replaceChildren(sp, sr, q); q.hidden = false; return; }
-  if (!spaceTabs() || !addons.length) { bar.replaceChildren(sp, sr); return; }
   const chip = (id, label) => h('button', {class:'chip'+(view.tab===id ? ' on' : ''), onclick:() => { view = {tab:id, genre:''}; pushPage(); renderHome(); }}, label);
-  bar.replaceChildren(sp, sr, chip('home','Home'), chip('movie','Movies'), chip('series','Shows'), chip('new','New releases'));
+  bar.replaceChildren(chip('home','Home'), chip('movie','Movies'), chip('series','Shows'), chip('new','New releases'));
   if (had) { const t = [...bar.children].find(c => c.id === had || c.textContent === had); if (t) t.focus({preventScroll:true}); }
 }
 
