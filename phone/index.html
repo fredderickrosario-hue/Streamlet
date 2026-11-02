@@ -2430,7 +2430,8 @@ async function checkUpdate(){
 }
 async function runUpdate(){
   const N = nativePlayer(), msg = $('#apkMsg'), btn = $('#apkInstall');
-  btn.disabled = true; msg.textContent = 'Downloading…';
+  if (btn.dataset.busy) return; btn.dataset.busy = '1'; msg.textContent = 'Downloading…';   // not 'disabled': that would take the remote's focus away
+  lsSet('streamlet.upd', Date.now());                                    // if the system restarts the app while installing, come back to Settings
   const hd = await N.addListener('updateProgress', e => { if (e.percent >= 0) msg.textContent = `Downloading… ${e.percent}%`; });
   try { await N.installApk({url:UPD_APK}); msg.textContent = 'Tap Install in the window that opened.'; }
   catch (e) {
@@ -2439,7 +2440,7 @@ async function runUpdate(){
       : "Couldn't download the update (" + (e.message || e) + ').';
   }
   try { hd.remove(); } catch {}
-  btn.disabled = false;
+  delete btn.dataset.busy;
 }
 function showUpdState(){
   const msg = $('#apkMsg'), inst = $('#apkInstall');
@@ -2814,6 +2815,8 @@ function fillAccountUI(){
 function bootApp(){
   booted = true;
   const lastP = profiles.find(x => x.id === lsGet('streamlet.profile.last', null)) || profiles[0];
+  const upd = Date.now() - (lsGet('streamlet.upd', 0) || 0) < 20 * 60 * 1000;     // restarted while installing an update: skip the profile picker, land on Settings
+  if (upd) { lsSet('streamlet.upd', 0); selectProfile(lastP); setTimeout(() => { try { showTab('settings'); } catch {} }, 600); return; }
   if (profiles.length > 1 && localStorage.getItem('streamlet.profile.ask') !== '0') showProfiles(); else selectProfile(lastP);
 }
 async function onUser(u){
