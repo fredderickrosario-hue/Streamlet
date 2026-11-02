@@ -462,6 +462,13 @@ body:not(.tv).onhome:not(.launch) #tabsBar{position:fixed;top:calc(58px + env(sa
 body:not(.tv).onhome.scr:not(.launch) #tabsBar,body:not(.tv).onhome.srch:not(.launch) #tabsBar{opacity:1;visibility:visible;background:color-mix(in srgb,var(--bg) 95%,#000);padding-top:2px}
 body:not(.tv).onhome.tbhide:not(.srch):not(.launch) #tabsBar{transform:translateY(-160%);opacity:0;pointer-events:none}
 body:not(.tv):not(.onhome) #spaceBtn{display:none}
+/* search: one dark bar with a soft rounded field, no heavy outline */
+body:not(.tv).onhome.srch:not(.launch) #phBar{box-shadow:none}
+body:not(.tv).onhome.srch:not(.launch) #tabsBar{padding:0 14px 12px;box-shadow:0 10px 22px rgba(0,0,0,.35)}
+body:not(.tv).srch #tabsBar #q{display:block;width:100%;max-width:none;min-width:0;height:44px;padding:0 18px 0 46px;border:0;border-radius:22px;outline:none;box-shadow:none;font-size:16px;color:#fff;-webkit-backdrop-filter:none;backdrop-filter:none;background:rgba(255,255,255,.09) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23ffffff99' stroke-width='2.2' stroke-linecap='round'%3E%3Ccircle cx='10.5' cy='10.5' r='6.5'/%3E%3Cpath d='M15.5 15.5L21 21'/%3E%3C/svg%3E") no-repeat 16px center/20px}
+body:not(.tv).srch #tabsBar #q:focus,body:not(.tv).srch #tabsBar #q:focus-visible{outline:none;box-shadow:none;background-color:rgba(255,255,255,.13)}
+body:not(.tv).srch #tabsBar #q::placeholder{color:rgba(255,255,255,.5)}
+body:not(.tv).srch #tabsBar #q::-webkit-search-cancel-button{display:none}
 /* inner pages (watchlist, addons, settings, profile): no empty top bar; the title stays put and only the content scrolls, fading under the title */
 body:not(.tv):not(.onhome):not(.launch) header{display:none}
 body:not(.tv).pgfix:not(.launch){overflow:hidden}
