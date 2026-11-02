@@ -207,12 +207,14 @@ $('#pseek').addEventListener('click', e => { const v = $('#vid'), r = e.currentT
     if (document.readyState === 'complete') ready(); else addEventListener('load', ready, {once:true});
   };
   /* Normally the intro is a ready-made video (picture and sound together, hardware decoded): smooth even while the page is still loading. */
-  vid = h('video', {id:'ivid', src:new URL((FLAVOR === 'auto' ? '' : '../') + 'boot.mp4', location.href).href, preload:'auto', playsinline:'', 'disable-pip':''});
+  vid = h('video', {id:'ivid', src:new URL((FLAVOR === 'auto' ? '' : '../') + 'boot.mp4', location.href).href, preload:'auto', playsinline:'', 'disable-pip':'', poster:'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVR4nGPg4hICAABIACcc7ivtAAAAAElFTkSuQmCC'});   // own poster: the web view's default one is a big play button
   el.classList.add('vid'); el.prepend(vid);
   let began = false;
   const fallback = () => { if (began || done) return; began = true; try { vid.pause(); } catch {} vid.remove(); vid = null; el.classList.remove('vid'); startJS(); };
   vid.addEventListener('error', fallback);
   vid.addEventListener('playing', () => { if (began) return; began = true; clearTimeout(giveUp);
+    const show = () => vid && (vid.style.opacity = '1');                      // invisible until a real picture is there
+    if (vid.requestVideoFrameCallback) vid.requestVideoFrameCallback(show); else setTimeout(show, 80);
     const poll = setInterval(() => { if (done || !vid) return clearInterval(poll); if (vid.currentTime >= PLAY_END / 1000 && appShown()) { clearInterval(poll); end(); } }, 100); }, {once:true});
   const giveUp = setTimeout(fallback, 4000);                         // nothing playing after 4 s (autoplay blocked, slow network): draw it live instead
   const go = () => { const r = vid.play(); if (r && r.catch) r.catch(fallback); };
