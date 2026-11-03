@@ -6,11 +6,11 @@ function personalSeeds(){
   const movies = wdGet().filter(m => m.type === 'movie' && mlHere(m.space)).sort((x, y) => (y.t || 0) - (x.t || 0));
   const used = new Set(), out = [], push = (kind, it) => { if (!it.id || used.has(it.id)) return; used.add(it.id); out.push({kind, ...it}); };
   const watched = [...shows.map(s => ({id:s.id, type:'series', name:s.n, addonId:s.a, t:s.t || 0})), ...movies.map(m => ({id:m.itemId, type:'movie', name:m.name, addonId:m.addonId, t:m.t || 0}))].sort((x, y) => y.t - x.t);
-  const liked = [...likeGet().map(e => ({id:e.itemId, type:e.type, name:e.name, addonId:e.addonId, t:(e.t || 0) + 1e13})), ...wl.map(e => ({id:e.itemId, type:e.type, name:e.name, addonId:e.addonId, t:e.t || 0})), ...shows.filter(s => (done.get(s.id) || 0) >= 3).map(s => ({id:s.id, type:'series', name:s.n, addonId:s.a, t:s.t || 0}))].sort((x, y) => y.t - x.t);
+  const liked = [...likeHere().map(e => ({id:e.itemId, type:e.type, name:e.name, addonId:e.addonId, t:(e.t || 0) + 1e13})), ...wl.map(e => ({id:e.itemId, type:e.type, name:e.name, addonId:e.addonId, t:e.t || 0})), ...shows.filter(s => (done.get(s.id) || 0) >= 3).map(s => ({id:s.id, type:'series', name:s.n, addonId:s.a, t:s.t || 0}))].sort((x, y) => y.t - x.t);
   // alternate: the latest watched, the latest liked, the next watched, ...
   const A = watched.slice(), B = liked.slice();
   while ((A.length || B.length) && out.length < 6) { const a = A.shift(); if (a) push('watched', a); if (out.length >= 6) break; const b = B.shift(); if (b) push('liked', b); }
-  return {seeds: out, any: !!(watched.length || liked.length), wl, mine: new Set([...likeGet().map(e => e.itemId), ...Object.keys(sh), ...wdGet().map(m => m.itemId), ...wlGet().map(e => e.itemId)])};
+  return {seeds: out, any: !!(watched.length || liked.length), wl, mine: new Set([...likeHere().map(e => e.itemId), ...Object.keys(sh), ...wdGet().map(m => m.itemId), ...wlGet().map(e => e.itemId)])};
 }
 async function personalRecs(s){
   let list = recsCache.get(s.id);

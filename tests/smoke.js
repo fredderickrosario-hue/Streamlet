@@ -289,10 +289,10 @@ const ok = (name, cond, extra) => { cond ? pass++ : fail++; console.log((cond ? 
         recsCache.clear();
         findSimilar = async () => [1, 2, 3, 4].map(i => ({a:addons[0], type:'series', m:{id:'ttr' + i, name:'Rec ' + i, type:'series'}}));
         const heads = async tab => { view = {tab, genre:''}; await renderHome(''); await new Promise(r => setTimeout(r, 500)); return [...document.querySelectorAll('#rows .row h2')].map(x => x.textContent); };
-        likeAdd({itemId:'ttL1', type:'movie', name:'Liked Movie', addonId:addons[0].uid}); const lk = likeHas('ttL1'); pset('likes', []);
+        likeAdd({itemId:'ttL1', type:'movie', name:'Liked Movie', addonId:addons[0].uid}); const c1 = cur; cur = {id:'other', catalogs:[], streams:[]}; const lk = likeHas('ttL1') === false && likeHere().length === 0; cur = c1; const lk2 = likeHas('ttL1'); likeRemove('ttL1'); pset('likes', []);
         const home = await heads('home'), shows = await heads('series');
         findSimilar = ofs; cur = oc; view = ot; pset('shows', {});
-        return lk && home.some(x => x === 'Because you watched Show P') && home.includes('Your next watch') && !shows.some(x => /Because you/.test(x)) ? true : JSON.stringify({home, shows});
+        return lk && lk2 && home.some(x => x === 'Because you watched Show P') && home.includes('Your next watch') && !shows.some(x => /Because you/.test(x)) ? true : JSON.stringify({home, shows});
       }).catch(e => String(e));
       ok('Home: personal rows (next watch, because you watched); catalogs stay on the Movies / Shows tabs', r === true, r);
     }

@@ -19,14 +19,18 @@ function wlRemove(itemId){
 }
 /* ---------- liked (the heart) ---------- */
 const likeGet = () => pget('likes', []);
-const likeHas = id => !!profile && likeGet().some(x => x.itemId === id);
+const likeSpaces = e => e.spaces || ((pget('shows', {})[e.itemId] || {}).sp ? [pget('shows', {})[e.itemId].sp] : []);   // likes made before spaces existed follow the show's space
+const likeHere = () => likeGet().filter(e => cur && likeSpaces(e).includes(cur.id));                                   // a like belongs to the space it was made in
+const likeHas = id => !!profile && likeHere().some(x => x.itemId === id);
 function likeAdd(e){
-  if (!profile) return;
-  const rt = pget('likeRemoved', {})[e.itemId] || 0;
-  pset('likes', [{itemId:e.itemId, type:e.type, name:e.name, poster:e.poster, addonId:e.addonId, t:Math.max(Date.now(), rt + 1)}, ...likeGet().filter(x => x.itemId !== e.itemId)].slice(0, 1000)); scheduleSync();
+  if (!profile || !cur) return;
+  const rt = pget('likeRemoved', {})[e.itemId] || 0, old = likeGet().find(x => x.itemId === e.itemId);
+  pset('likes', [{itemId:e.itemId, type:e.type, name:e.name, poster:e.poster, addonId:e.addonId, spaces:[...new Set([...(old ? likeSpaces(old) : []), cur.id])], t:Math.max(Date.now(), rt + 1)}, ...likeGet().filter(x => x.itemId !== e.itemId)].slice(0, 1000)); scheduleSync();
 }
 function likeRemove(id){
-  if (!profile) return;
+  if (!profile || !cur) return;
+  const old = likeGet().find(x => x.itemId === id), rest = old ? likeSpaces(old).filter(x => x !== cur.id) : [];
+  if (rest.length) { pset('likes', likeGet().map(x => x.itemId === id ? {...x, spaces:rest, t:Date.now()} : x)); scheduleSync(); return; }   // still liked in another space
   pset('likes', likeGet().filter(x => x.itemId !== id));
   const r = pget('likeRemoved', {}); r[id] = Date.now();
   pset('likeRemoved', Object.fromEntries(Object.entries(r).sort((a, b) => b[1] - a[1]).slice(0, 400))); scheduleSync();
