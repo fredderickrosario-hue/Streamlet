@@ -196,6 +196,23 @@ const ok = (name, cond, extra) => { cond ? pass++ : fail++; console.log((cond ? 
       ok('Québec addon: a Cinemeta episode of Stat gets the matching Radio-Canada stream', r === true, r);
       await p.evaluate(() => { delete window.Capacitor; });
     }
+    {
+      const r = await p.evaluate(async () => {
+        const id = 'tt555', old = cur;
+        cur = {id:'sp1', allHistory:true, catalogs:[], streams:[]};
+        addons.push({uid:'m.test', url:'https://m.test/manifest.json', base:'https://m.test', manifest:{id:'m.test', name:'M', resources:[{name:'meta', types:['series'], idPrefixes:['tt']}], types:['series']}});
+        const real = getJSON; getJSON = async u => u.includes('/meta/series/') ? {meta:{id, name:'Show Q', poster:'p', videos:[
+          {id:id + ':1:1', season:1, episode:1, released:'2020-01-01T00:00:00Z'}, {id:id + ':1:2', season:1, episode:2, released:'2020-01-08T00:00:00Z'}, {id:id + ':1:3', season:1, episode:3, released:'2999-01-01T00:00:00Z'}]}} : real(u);
+        pset('shows', {[id]:{n:'Show Q', ty:'series', sp:'sp1', t:Date.now(), a:'m.test'}});
+        epMark(id, [{season:1, episode:1}], true); nuMem.clear();
+        const a = await nextEpisodeCards(new Set());
+        epMark(id, [{season:1, episode:2}], true); nuMem.clear();
+        const b = await nextEpisodeCards(new Set());
+        getJSON = real; cur = old; addons.pop();
+        return a.length === 1 && a[0].ep.episode === 2 && a[0].upnext && b.length === 0;
+      }).catch(e => String(e));
+      ok('Continue watching: next aired episode of a started show, none when only future ones remain', r === true, r);
+    }
     ok('no errors after all of the above', errs.length === 0, errs[0]);
     await p.close();
   }

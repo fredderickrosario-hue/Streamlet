@@ -1981,24 +1981,55 @@ function posterEl(meta){
   return p;
 }
 
+function cwCard(e){
+  const pct = e.dur ? Math.min(100, Math.round(e.pos / e.dur * 100)) : 0;
+  const label = (e.ep ? `S${e.ep.season ?? 1}:E${e.ep.episode ?? '?'}` : '') + (e.upnext ? ' · Next episode' : (e.dur ? (e.ep ? ' · ' : '') + Math.max(1, Math.round((e.dur - e.pos) / 60)) + 'm left' : ''));
+  const po = posterEl({name:e.name, poster:e.poster, itemId:e.itemId});
+  if (e.upnext) po.append(h('span', {class:'upn'}, 'UP NEXT')); else po.append(h('div', {class:'pg'}, h('i', {style:`width:${pct}%`})));
+  return h('div', {class:'card cwc'},
+    (() => { const b = h('button', {class:'cwb', type:'button', onclick:() => openResume(e)}, po, h('div', {class:'t'}, e.name), h('div', {class:'s'}, label)); attachHold(b, {itemId:e.itemId, type:e.itemType, name:e.name, poster:e.poster, background:e.background, addonId:e.addonId}, {cw:e.fromShow ? null : e}); return b; })());
+}
+/* shows being watched whose next episode is out (and not started) join the row as "Next episode", found from the shows remembered on this device */
+const nuMem = new Map();
+async function nextEpisodeCards(have){
+  const sh = pget('shows', {}), now = Date.now(), out = [];
+  const ids = Object.keys(sh).filter(id => sh[id].ty === 'series' && !have.has(id) && now - (sh[id].t || 0) < 150 * 864e5 && (allHist() || sh[id].sp === (cur && cur.id)));
+  await Promise.all(ids.slice(0, 12).map(async id => {
+    try {
+      const s0 = sh[id], hit = nuMem.get(id);
+      let meta = hit && now - hit.t < 30 * 60e3 ? hit.m : null;
+      if (!meta) {
+        const ma = addons.find(x => x.uid === s0.a && supports(x, 'meta', 'series', id)) || spaceAddons().find(x => supports(x, 'meta', 'series', id)); if (!ma) return;
+        meta = (await getJSON(`${ma.base}/meta/series/${enc(id)}.json`)).meta; meta._a = ma.uid; nuMem.set(id, {t:now, m:meta});
+      }
+      const vids = (meta.videos || []).filter(v => v && v.id && (v.season ?? 1) >= 1).sort((x, y) => ((x.season ?? 1) - (y.season ?? 1)) || ((x.episode ?? 0) - (y.episode ?? 0)));
+      let last = -1; vids.forEach((v, i) => { if (epDone(id, v.season ?? 1, v.episode)) last = i; });
+      if (last < 0) return;
+      const nx = vids.slice(last + 1).find(v => !epDone(id, v.season ?? 1, v.episode) && (!v.released || new Date(v.released).getTime() <= now));
+      if (!nx || (epGet(id, nx.season ?? 1, nx.episode) || {}).pos > 20) return;
+      out.push({k:`next|${nx.id}`, type:'series', id:nx.id, itemId:id, itemType:'series', name:meta.name || s0.n, poster:meta.poster || s0.p, background:meta.background || s0.b, addonId:meta._a || s0.a,
+        ep:{season:nx.season ?? 1, episode:nx.episode, title:nx.title || nx.name}, pos:0, dur:0, t:now, upnext:true, fromShow:true});
+    } catch {}
+  }));
+  return out;
+}
+let cwTok = 0;
 function renderCW(){
   const box = $('#cwBox'); if (!box) return;
   box.replaceChildren();
   const query = $('#q').value.trim();
   if (query || !cur || (spaceTabs() && (view.tab !== 'home' || view.genre))) return;
-  const hist = histForSpace(); if (!hist.length) return;
-  const strip = h('div', {class:'strip'});
-  for (const e of hist) {
-    const pct = e.dur ? Math.min(100, Math.round(e.pos / e.dur * 100)) : 0;
-    const label = (e.ep ? `S${e.ep.season ?? 1}:E${e.ep.episode ?? '?'}` : '') + (e.upnext ? ' · Up next' : (e.dur ? (e.ep ? ' · ' : '') + Math.max(1, Math.round((e.dur - e.pos) / 60)) + 'm left' : ''));
-    const po = posterEl({name:e.name, poster:e.poster, itemId:e.itemId});
-    if (e.upnext) po.append(h('span', {class:'upn'}, 'UP NEXT')); else po.append(h('div', {class:'pg'}, h('i', {style:`width:${pct}%`})));
-    strip.append(h('div', {class:'card cwc'},
-      (() => { const b = h('button', {class:'cwb', type:'button', onclick:() => openResume(e)}, po, h('div', {class:'t'}, e.name), h('div', {class:'s'}, label)); attachHold(b, {itemId:e.itemId, type:e.itemType, name:e.name, poster:e.poster, background:e.background, addonId:e.addonId}, {cw:e}); return b; })(),
-      ));
-  }
-  box.append(h('div', {class:'row'}, h('h2', null, 'Continue watching'), strip));
+  const hist = histForSpace(), tok = ++cwTok, strip = h('div', {class:'strip'});
+  const row = h('div', {class:'row'}, h('h2', null, 'Continue watching'), strip);
+  for (const e of hist) strip.append(cwCard(e));
+  if (hist.length) box.append(row);
+  nextEpisodeCards(new Set(hist.map(e => e.itemId))).then(extra => {
+    if (tok !== cwTok || !extra.length) return;
+    for (const e of extra.reverse()) strip.prepend(cwCard(e));
+    if (!row.isConnected) box.append(row);
+  }).catch(() => {});
 }
+
 
 
 $('#bkOut').onclick = () => { if (profile) backupExport(); };
@@ -3568,6 +3599,7 @@ function recordProgress(c, stream, pos, dur){
   const it = c.info.item, key = `${c.type}|${c.id}`;
   const es = c.ep ? (c.ep.season ?? 1) : 0, ee = c.ep ? (c.ep.episode ?? 0) : 0, fin = pos / dur >= 0.92;
   epPut(it.id, es, ee, fin ? {pos:0, dur, done:true} : {pos, dur, done:false});
+  if (it.type === 'series' || c.ep) { const sh = pget('shows', {}); sh[it.id] = {n:it.name, p:it.poster, b:it.background, a:c.info.addonId, ty:'series', sp:cur && cur.id, t:Date.now()}; pset('shows', Object.fromEntries(Object.entries(sh).sort((x, y) => y[1].t - x[1].t).slice(0, 60))); }
   if (fin) {                       // finished: drop it, queue the next episode
     histRemove(key);
     if (it.type === 'movie' || (c.ep && !c.next)) watchedAdd({itemId:it.id, type:it.type, name:it.name});
