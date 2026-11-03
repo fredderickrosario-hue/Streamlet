@@ -398,7 +398,7 @@ async function quickPlay(addon, type, item){
     const sorted = (Array.isArray(meta.videos) ? meta.videos.filter(v => v && v.id) : []).sort((x, y) => ((x.season ?? 1) - (y.season ?? 1)) || ((x.episode ?? 0) - (y.episode ?? 0)));
     if (!sorted.length) { await hideLoading(); return openDetail(addon, type, item); }
     const rs0 = histGet().find(x => x.itemId === meta.id && !x.upnext);
-    const ep = (rs0 && sorted.find(v => v.id === rs0.id)) || sorted.find(v => (v.season ?? 1) >= 1) || sorted[0];
+    const ep = epNext(meta.id, sorted).v;
     base = episodeBase(addon, type, meta, ep, sorted); id = ep.id;
   }
   if (!(await autoPlay(type, id, meta.name, base))) openDetail(addon, type, item); else backToEntry(addon, type, item);

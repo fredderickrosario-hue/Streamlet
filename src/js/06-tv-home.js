@@ -18,18 +18,65 @@ function setTvHero(ctx, instant){
   const bits = [m.releaseInfo || m.year, m.runtime, ...gen].filter(Boolean);
   const title = h('div', {class:'ttitle'}, m.name);
   const logo = m.logo ? h('img', {class:'tlogo', src:m.logo, alt:m.name, onerror:e => e.target.replaceWith(title)}) : title;
-  tin.replaceChildren(logo,
+  tin.replaceChildren(ctx.tag ? h('div', {class:'ttag'}, ctx.tag) : null, logo,
     h('div', {class:'tmeta'}, m.imdbRating ? h('span', {class:'timdb'}, '★ ' + m.imdbRating) : null, ...bits.map(x => h('span', null, String(x)))),
     m.description ? h('p', {class:'tdesc'}, m.description) : null,
     h('div', {class:'tbtns'},
-      h('button', {class:'hb p', type:'button', onclick:() => quickPlay(ctx.a, ctx.type, m)}, '▶  Play'),
-      h('button', {class:'hb s', type:'button', onclick:() => openDetail(ctx.a, ctx.type, m)}, 'More info')));
+      h('button', {class:'hb p', type:'button', onclick:() => quickPlay(ctx.a, ctx.type, m)}, ctx.play || '▶  Play'),
+      h('button', {class:'hb s', type:'button', onclick:() => openDetail(ctx.a, ctx.type, m)}, 'More info')),
+    heroSlides.length > 1 ? h('div', {class:'tdots', 'aria-hidden':'true'}, heroSlides.map((x, i) => h('i', {class:i === heroIdx ? 'on' : '', onclick:() => { heroPause(); heroGo(i); }}))) : null);
 }
+/* ---------- hero slideshow: new episodes of what you watch, confirmed new seasons, then recommendations ---------- */
+let heroSlides = [], heroIdx = 0, heroTimer = 0, heroHold = 0, heroTok = 0;
+const heroPause = (ms = 25000) => { heroHold = Date.now() + ms; };
+function heroGo(i){
+  if (!heroSlides.length || !$('#rows .tvhero')) return;
+  heroIdx = (i + heroSlides.length) % heroSlides.length; setTvHero(heroSlides[heroIdx]);
+}
+function heroTick(){
+  if (!$('#rows .tvhero') || !$('#rows .tvhero').isConnected) { clearInterval(heroTimer); heroTimer = 0; return; }
+  if (document.hidden || layersOpen.length || Date.now() < heroHold || scrollY > 200 || heroSlides.length < 2) return;
+  heroGo(heroIdx + 1);
+}
+const dayOf = d => { const t = new Date(d); return isNaN(t) ? 0 : t.getTime(); };
+async function heroBuild(first, extras, tok){
+  const out = [], now = Date.now(), DAY = 864e5, seen = new Set([first.m.id]);
+  const shows = [], ids = new Set();
+  for (const e of [...histGet(), ...wdGet().map(x => ({itemId:x.itemId, itemType:x.type, name:x.name}))]) {
+    const ty = e.itemType || e.type; if (ty !== 'series' || ids.has(e.itemId) || ids.size >= 8) continue; ids.add(e.itemId); shows.push(e);
+  }
+  const addonFor = e => addons.find(x => x.uid === e.addonId && supports(x, 'meta', 'series', e.itemId)) || addons.find(x => supports(x, 'meta', 'series', e.itemId));
+  const found = (await Promise.all(shows.map(async e => {
+    try {
+      const ma = addonFor(e); if (!ma) return null;
+      const r = await getJSON(`${ma.base}/meta/series/${enc(e.itemId)}.json`), m = {...r.meta, type:'series'};
+      const vids = (m.videos || []).filter(v => v && v.id && v.released && (v.season ?? 1) >= 1);
+      const sorted = vids.sort((x, y) => ((x.season ?? 1) - (y.season ?? 1)) || ((x.episode ?? 0) - (y.episode ?? 0)));
+      const code = v => `S${v.season ?? 1}E${v.episode}`;
+      const fresh = sorted.filter(v => dayOf(v.released) <= now && now - dayOf(v.released) < 30 * DAY && !epDone(m.id, v.season ?? 1, v.episode));
+      const started = sorted.some(v => epDone(m.id, v.season ?? 1, v.episode)) || histGet().some(x => x.itemId === m.id);
+      if (started && fresh.length) { const v = fresh[0]; return {a:ma, m, type:'series', tag:'New episode · ' + code(v), play:'▶  Play ' + code(v), rank:0}; }
+      const future = sorted.filter(v => dayOf(v.released) > now);
+      const nx = future[0], last = sorted.filter(v => dayOf(v.released) <= now).pop();
+      if (nx && (nx.episode ?? 1) === 1 && (nx.season ?? 1) > ((last && last.season) || 0))
+        return {a:ma, m, type:'series', tag:`Season ${nx.season} returns ${new Date(nx.released).toLocaleDateString(undefined, {month:'short', day:'numeric', timeZone:'UTC'})}`, rank:1};
+    } catch {}
+    return null;
+  }))).filter(Boolean).sort((x, y) => x.rank - y.rank);
+  if (tok !== heroTok) return;
+  for (const f of found) if (!seen.has(f.m.id) && (f.m.background || f.m.poster)) { seen.add(f.m.id); out.push(f); }
+  for (const x of extras) if (!seen.has(x.m.id) && x.m.background && out.length < 8) { seen.add(x.m.id); out.push({...x, tag:'Recommended'}); }
+  heroSlides = [{...first, tag:first.tag || (out.length ? 'Recommended' : '')}, ...out].slice(0, 8);
+  // the hero starts on the most relevant slide: something new from your shows
+  heroIdx = 0; if (found.length) { const i = heroSlides.findIndex(x => x.tag && /^New episode|^Season/.test(x.tag)); if (i > 0) heroIdx = i; }
+  if (heroSlides.length > 1) { setTvHero(heroSlides[heroIdx], true); if (!heroTimer) heroTimer = setInterval(heroTick, 8000); }
+}
+for (const ev of ['keydown', 'touchstart', 'pointerdown']) document.addEventListener(ev, () => heroPause(20000), {passive:true});
 document.addEventListener('focusin', e => {
   if (!document.body.classList.contains('tv')) return;
   const c = e.target.closest && e.target.closest('button.card');
   if (!c || !c._hero || !c._hero.m || c._hero.m === (tvHeroCtx || {}).m) return;
-  clearTimeout(tvHeroT); tvHeroT = setTimeout(() => setTvHero(c._hero), 170);
+  heroPause(30000); clearTimeout(tvHeroT); tvHeroT = setTimeout(() => setTvHero(c._hero), 170);
 });
 addEventListener('scroll', () => document.body.classList.toggle('scr', scrollY > 30), {passive:true});
 /*@phone*/

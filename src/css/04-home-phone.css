@@ -120,3 +120,9 @@ body.tv .tvhero{margin-left:-104px}
 body.tv .tvhero .tin{left:132px}
 body.tv .tvhero .tbg{left:0;-webkit-mask-image:linear-gradient(to right,rgba(0,0,0,.34) 0,rgba(0,0,0,.2) 24%,#000 62%);mask-image:linear-gradient(to right,rgba(0,0,0,.34) 0,rgba(0,0,0,.2) 24%,#000 62%)}
 
+.tvhero .ttag{display:inline-block;margin-bottom:10px;padding:5px 12px;border-radius:8px;font-size:13px;font-weight:800;letter-spacing:.3px;background:var(--acc);color:#fff;text-shadow:none}
+.tvhero .tdots{display:flex;gap:7px;margin-top:16px}
+.tvhero .tdots i{display:block;width:8px;height:8px;border-radius:99px;background:rgba(255,255,255,.35);transition:width .3s,background .3s}
+.tvhero .tdots i.on{width:24px;background:#fff}
+body:not(.tv) .tvhero .tdots{justify-content:center}
+.tvhero .tbg img{transition:opacity .9s ease}
