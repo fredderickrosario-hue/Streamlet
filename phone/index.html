@@ -2462,9 +2462,9 @@ function repoSources(){
   for (const a of addons) for (const c of (a.manifest.addonCatalogs || [])) {
     const nm = `${c.name || c.id}${c.type && c.type !== 'all' ? ' (' + c.type + ')' : ''} · ${an(a)}`;
     if (seen.has(nm)) continue; seen.add(nm);
-    out.push({id:`ac:${a.uid}:${c.type}:${c.id}`, name:nm, ac:{a, c}});
+    out.push({id:`ac:${a.uid}:${c.type}:${c.id}`, name:nm, ac:{a, c}, group:String(c.name || c.id), type:c.type || 'all', owner:an(a)});
   }
-  for (const r of reposGet()) out.push({id:'u:' + r.id, name:r.name, url:r.url, user:true});
+  for (const r of reposGet()) out.push({id:'u:' + r.id, name:r.name, url:r.url, user:true, group:r.name, type:'all', owner:''});
   return out;
 }
 function normRepoItem(x){
@@ -2505,8 +2505,15 @@ function renderBrowse(){ $('#recList').replaceChildren(...STARTER_REPO.map(it =>
 function renderRepo(){
   const box = $('#repoBody'); if (!box) return;
   const srcs = repoSources(), cursrc = srcs.find(x => x.id === repo.src) || srcs[0] || {};
-  const sel = srcs.length ? h('select', {class:'f', style:'width:100%'}, srcs.map(x => h('option', {value:x.id}, x.name))) : h('p', {class:'spin', style:'padding:0'}, 'No extra lists yet. Add one below.');
-  if (srcs.length) { sel.value = cursrc.id; sel.onchange = () => pickRepo(sel.value); }
+  const TYPE_NAMES = {all:'All', movie:'Movies', series:'Shows', channel:'Channels', tv:'TV', anime:'Anime', other:'Other'};
+  const tName = t => TYPE_NAMES[t] || (String(t).charAt(0).toUpperCase() + String(t).slice(1));
+  const groups = []; for (const x of srcs) { const k = x.group + (srcs.some(y => y !== x && y.group === x.group && y.owner !== x.owner) ? ' · ' + x.owner : ''); x.gk = k; if (!groups.some(g => g.k === k)) groups.push({k, first:x}); }
+  const chip = (label, on, fn) => h('button', {class:'chip' + (on ? ' on' : ''), type:'button', onclick:fn}, label);
+  const inGroup = srcs.filter(x => x.gk === cursrc.gk);
+  const sel = srcs.length ? h('div', {style:'display:flex;flex-direction:column;gap:10px'},
+    h('div', {class:'rrow', style:'flex-wrap:wrap;gap:8px'}, groups.map(g => chip(g.k, g.k === cursrc.gk, () => pickRepo(g.first.id)))),
+    inGroup.length > 1 ? h('div', {class:'rrow', style:'flex-wrap:wrap;gap:8px'}, inGroup.map(x => chip(tName(x.type), x.id === cursrc.id, () => pickRepo(x.id)))) : null)
+    : h('p', {class:'spin', style:'padding:0'}, 'No extra lists yet. Add one below.');
   const q = h('input', {class:'f', type:'search', placeholder:'Search this list…', style:'width:100%;margin-top:8px'}); q.value = repo.q;
   q.oninput = () => { repo.q = q.value; repo.show = 40; clearTimeout(renderRepo._t); renderRepo._t = setTimeout(() => { renderRepo(); const n = $('#repoBody input[type=search]'); if (n) { n.focus(); n.setSelectionRange(n.value.length, n.value.length); } }, 250); };
   const nameIn = h('input', {class:'f', placeholder:'Name (optional)', style:'flex:1;min-width:90px'}), urlIn = h('input', {class:'f', placeholder:'Link to a list (JSON)', style:'flex:2;min-width:140px', autocapitalize:'off'});
