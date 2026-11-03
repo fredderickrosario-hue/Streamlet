@@ -157,7 +157,7 @@ async function replaceAddon(uid, input, label){
 }
 
 function supports(a, res, type, id){
-  const m = a.manifest;
+  const m = (a.url && a.url.startsWith('qc://') && typeof QC_MANIFEST !== 'undefined') ? QC_MANIFEST : a.manifest;       // the built-in Québec addon always answers with its current manifest
   return (m.resources||[]).some(r => {
     const name = typeof r==='string' ? r : r.name;
     if (name !== res) return false;

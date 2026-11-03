@@ -352,7 +352,7 @@ function noStreamsMsg(type, cands){
   const pendTxt = pend.length ? " Couldn't load: " + pend.join(', ') + ' (try Sync now, or reinstall it).' : '';
   if (!withStream.length) return 'None of your installed addons provide streams.' + (pendTxt || ' Install one on the Addons tab.');
   const parts = withStream.map(a => {
-    const r = (a.manifest.resources || []).find(isStream), pre = (r && r.idPrefixes) || a.manifest.idPrefixes, ty = (r && r.types) || a.manifest.types;
+    const mf = (a.url && a.url.startsWith('qc://') && typeof QC_MANIFEST !== 'undefined') ? QC_MANIFEST : a.manifest, r = (mf.resources || []).find(isStream), pre = (r && r.idPrefixes) || mf.idPrefixes, ty = (r && r.types) || mf.types;
     return `${an(a)} (${(ty || []).join('/') || 'any type'}; ids: ${pre ? pre.join(', ') : 'any'})`;
   });
   return `No stream addon accepts this title (${type}, id ${cands.map(c => '"' + c + '"').join(' / ')}). Stream addons: ${parts.join('; ')}.` + pendTxt;
