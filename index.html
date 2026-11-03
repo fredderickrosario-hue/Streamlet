@@ -1296,7 +1296,7 @@ body:not(.tv) :is(#detail,#episode) .dhint{display:none}
       </div>
       <h2 class="sh">Québec</h2>
       <div class="addon">
-        <div class="row2" style="flex-direction:column;align-items:stretch;gap:8px"><span class="rt">TVA+ shows<small>One show page address per line (tvaplus.ca/tva/...). Add the "quebec" addon in Addons, then use it in a space</small></span>
+        <div class="row2" style="flex-direction:column;align-items:stretch;gap:8px"><span class="rt">TVA+ shows<small>One show page address per line (tvaplus.ca/tva/... or ici.tou.tv/...). Add the "quebec" addon in Addons, then use it in a space</small></span>
           <textarea id="qcShows" rows="4" class="f" style="width:100%;font:13px/1.4 monospace" spellcheck="false"></textarea><button class="btn ghost sm" id="qcSave" type="button" style="align-self:flex-start">Save shows</button></div>
       </div>
       <h2 class="sh">Backup</h2>
@@ -3672,7 +3672,7 @@ $('#fsBtn').onclick = async () => {
 };
 
 async function playStream(s, title, ctx){
-  if (s.externalUrl) { window.open(s.externalUrl,'_blank','noopener'); return; }
+  if (s.externalUrl) { if (/^https?:/i.test(s.externalUrl)) window.open(s.externalUrl,'_blank','noopener'); else { try { location.href = s.externalUrl; } catch { toast('Could not open the app.'); } } return; }
   if (s.ytId) { window.open('https://www.youtube.com/watch?v='+enc(s.ytId),'_blank','noopener'); return; }
   if (!s.url) { toast(s.infoHash ? "Torrent stream: needs a debrid service set up in that addon (so it returns direct links), or a backend." : 'This stream type is not supported.'); return; }
   if (nativePlayer()) { return playNative(s, title, ctx); }
@@ -4982,16 +4982,21 @@ $('#qcCopy').onclick = async () => { const b = $('#qcOut'); try { await navigato
    for the episode's stream when you press Play. It only works inside the Android apps (the browser blocks these requests).
    Add it like any addon: Addons -> type "quebec". */
 const QC_ACCOUNTS = ['5481942443001', '5813221784001'];
-const QC_DEFAULT_SHOWS = ['https://www.tvaplus.ca/tva/les-armes', 'https://www.tvaplus.ca/tva/indefendable'];
+const QC_DEFAULT_SHOWS = ['https://www.tvaplus.ca/tva/les-armes', 'https://www.tvaplus.ca/tva/indefendable', 'https://ici.tou.tv/stat'];
 const qcMem = new Map();                                                  // url -> {t, v}: short in-memory cache
 async function qcCached(key, ttl, fn){
   const hit = qcMem.get(key); if (hit && Date.now() - hit.t < ttl) return hit.v;
   const v = await fn(); qcMem.set(key, {t:Date.now(), v}); return v;
 }
-const qcShowList = () => {
-  const raw = lsGet('streamlet.qcshows', null), urls = Array.isArray(raw) && raw.length ? raw : QC_DEFAULT_SHOWS;
-  return urls.map(u => { const m = String(u).match(/tvaplus\.ca(\/[a-z0-9-]+\/[a-z0-9-]+)(?:[\/?#]|$)/i); return m ? m[1].toLowerCase() : null; }).filter(Boolean);
+const qcShowList = () => {                                              // [{src:'tva'|'tou', path}]
+  const raw = lsGet('streamlet.qcshows', null), urls = Array.isArray(raw) && raw.length ? raw : QC_DEFAULT_SHOWS, out = [];
+  for (const u of urls) {
+    let m = String(u).match(/tvaplus\.ca(\/[a-z0-9-]+\/[a-z0-9-]+)(?:[\/?#]|$)/i); if (m) { out.push({src:'tva', path:m[1].toLowerCase()}); continue; }
+    m = String(u).match(/tou\.tv\/([a-z0-9-]+)(?:[\/?#]|$)/i); if (m) out.push({src:'tou', path:m[1].toLowerCase()});
+  }
+  return out;
 };
+const qcShowId = e => `qc:${e.src}:${e.path}`;
 async function qcPageData(path){
   const r = await qcGet('https://www.tvaplus.ca' + path, {Accept:'text/html'});
   if (r.status !== 200) throw new Error('TVA+ answered ' + r.status);
@@ -5068,18 +5073,57 @@ async function qcStreams(id){
   }
   return [];
 }
-const QC_MANIFEST = {id:'app.streamlet.quebec', version:'1.0.0', name:'Québec', description:'TVA+ series, read straight from the site on this device',
+/* ICI TOU.TV: the site needs a login to play, so episodes open in the official app (toutv://); the lists come from the public pages */
+async function qcTouData(path){
+  const r = await qcGet('https://ici.tou.tv/' + path, {Accept:'text/html'});
+  if (r.status !== 200) throw new Error('Tou.tv answered ' + r.status);
+  const m = String(r.body).match(/<script id="__NEXT_DATA__"[^>]*>([\s\S]*?)<\/script>/);
+  if (!m) throw new Error('Tou.tv page has no data');
+  return JSON.parse(m[1]).props.pageProps.data || {};
+}
+const qcFirstUrl = o => { let f = ''; const walk = (x, d) => { if (!x || f || d > 4) return; if (typeof x === 'object') for (const [k, v] of Object.entries(x)) { if (typeof v === 'string' && k === 'url' && /^https?:/.test(v)) { f = v; return; } walk(v, d + 1); } }; walk(o, 0); return f; };
+async function qcTouShow(slug){
+  return qcCached('tou' + slug, 6 * 3600e3, async () => {
+    const d = await qcTouData(slug), h = d.header || {}, lineups = ((d.content || [])[0] || {}).lineups || [];
+    const bg = (h.background && h.background.url) || '';
+    return {src:'tou', path:slug, name:h.title || qcTitleCase(slug.replace(/-/g, ' ')), description:(d.htmlMeta && (d.htmlMeta.description || d.htmlMeta['og:description'])) || '', poster:bg, background:bg,
+      seasons:lineups.map(l => +l.seasonNumber).filter(n => n >= 0)};
+  });
+}
+async function qcTouEpisodes(slug, season){
+  return qcCached(`toueps${slug}/${season}`, 20 * 60e3, async () => {
+    const d = await qcTouData(`${slug}/s${String(season).padStart(2, '0')}`), lineups = ((d.content || [])[0] || {}).lineups || [];
+    const lu = lineups.find(l => +l.seasonNumber === season) || lineups[lineups.length - 1] || {}, out = [];
+    for (const it of lu.items || []) {
+      const m = String(it.url || it.slug || '').match(/s(\d+)e(\d+)/i); if (!m) continue;
+      out.push({id:`qc:tou:${slug}/s${m[1]}e${m[2]}`, season:+m[1], episode:+m[2], title:it.title && !/^Épisode \d+$/i.test(it.title) ? it.title : `Épisode ${+m[2]}`,
+        overview:it.description || it.synopsis || '', thumbnail:qcFirstUrl(it.images || it.image || it), released:qcDate(it), runtime:''});
+    }
+    return out;
+  });
+}
+async function qcTouMeta(slug){
+  const info = await qcTouShow(slug), seasons = info.seasons.length ? info.seasons : [1], lists = [];
+  for (let i = 0; i < seasons.length; i += 3) lists.push(...await Promise.all(seasons.slice(i, i + 3).map(n => qcTouEpisodes(slug, n).catch(() => []))));
+  const videos = lists.flat().sort((a, b) => (a.season - b.season) || (a.episode - b.episode));
+  return {id:'qc:tou:' + slug, type:'series', name:info.name, poster:info.poster, background:info.background, description:info.description, videos, releaseInfo:''};
+}
+const QC_MANIFEST = {id:'app.streamlet.quebec', version:'1.0.0', name:'Québec', description:'TVA+ and ICI TOU.TV series, read straight from the sites on this device',
   resources:['catalog', 'meta', 'stream'], types:['series'], idPrefixes:['qc:'], catalogs:[{type:'series', id:'qc-shows', name:'Séries québécoises'}]};
 async function qcRoute(url){
   if (!nativePlayer()) throw new Error('Québec only works in the Android apps');
   const path = decodeURIComponent(url.replace(/^qc:\/\/[^/]*\//, '').replace(/\.json(\?.*)?$/, ''));
   if (path === 'manifest') return QC_MANIFEST;
   if (path.startsWith('catalog/')) {
-    const metas = (await Promise.all(qcShowList().map(p => qcShowInfo(p).then(i => ({id:'qc:tva:' + p, type:'series', name:i.name, poster:i.poster, background:i.background, description:i.description})).catch(() => null)))).filter(Boolean);
+    const metas = (await Promise.all(qcShowList().map(e => (e.src === 'tou' ? qcTouShow(e.path) : qcShowInfo(e.path)).then(i => ({id:qcShowId(e), type:'series', name:i.name, poster:i.poster, background:i.background, description:i.description})).catch(() => null)))).filter(Boolean);
     return {metas};
   }
-  if (path.startsWith('meta/')) { const id = path.split('/').slice(2).join('/'); return {meta:await qcMeta(id.replace(/^qc:tva:/, ''))}; }
-  if (path.startsWith('stream/')) { const id = path.split('/').slice(2).join('/'); return {streams:await qcStreams(id)}; }
+  if (path.startsWith('meta/')) { const id = path.split('/').slice(2).join('/'); return {meta:/^qc:tou:/.test(id) ? await qcTouMeta(id.replace(/^qc:tou:/, '')) : await qcMeta(id.replace(/^qc:tva:/, ''))}; }
+  if (path.startsWith('stream/')) {
+    const id = path.split('/').slice(2).join('/');
+    if (/^qc:tou:/.test(id)) return {streams:[{name:'ICI TOU.TV', title:'Open in the ICI TOU.TV app', externalUrl:'toutv://' + id.replace(/^qc:tou:/, '')}]};
+    return {streams:await qcStreams(id)};
+  }
   throw new Error('HTTP 404');
 }
 const qcFillShows = () => { $('#qcShows').value = (lsGet('streamlet.qcshows', null) || QC_DEFAULT_SHOWS).join('\n'); };
