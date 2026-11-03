@@ -2297,10 +2297,21 @@ async function showMeta(id, s0){
   const meta = (await getJSON(`${ma.base}/meta/series/${enc(id)}.json`)).meta; meta._a = ma.uid; nuMem.set(id, {t:now, m:meta}); return meta;
 }
 const airedVids = meta => (meta.videos || []).filter(v => v && v.id && (v.season ?? 1) >= 1).sort((x, y) => ((x.season ?? 1) - (y.season ?? 1)) || ((x.episode ?? 0) - (y.episode ?? 0)));
+/* an episode you took off the watched list counts as the place you were at, so the show still offers it again */
+function removedAnchor(id, vids){
+  const rem = pget('epRemoved', {}); let best = null, bt = 0;
+  for (const [k, t] of Object.entries(rem)) {
+    if (!k.startsWith(id + '|') || t < bt || Date.now() - t > 60 * 864e5) continue;
+    const [, se, ep] = k.split('|'), i = vids.findIndex(v => (v.season ?? 1) === +se && +v.episode === +ep);
+    if (i >= 0) { best = i; bt = t; }
+  }
+  return best;
+}
 /* episodes you have not watched that are out, from the first one you watched onward (new ones and ones you skipped) */
 function countUnwatched(id, vids){
   const now = Date.now(), aired = vids.filter(v => !v.released || new Date(v.released).getTime() <= now);
-  const first = aired.findIndex(v => epDone(id, v.season ?? 1, v.episode) || (epGet(id, v.season ?? 1, v.episode) || {}).pos > 20);
+  let first = aired.findIndex(v => epDone(id, v.season ?? 1, v.episode) || (epGet(id, v.season ?? 1, v.episode) || {}).pos > 20);
+  if (first < 0) { const a = removedAnchor(id, aired); if (a !== null) first = a; }
   return first < 0 ? 0 : aired.slice(first).filter(v => !epDone(id, v.season ?? 1, v.episode)).length;
 }
 let cntBusy = false;
@@ -2322,8 +2333,9 @@ async function nextEpisodeCards(have){
       const s0 = sh[id], meta = await showMeta(id, s0); if (!meta) return;
       const vids = airedVids(meta);
       let last = -1; vids.forEach((v, i) => { if (epDone(id, v.season ?? 1, v.episode)) last = i; });
-      if (last < 0) return;
-      const nx = vids.slice(last + 1).find(v => !epDone(id, v.season ?? 1, v.episode) && (!v.released || new Date(v.released).getTime() <= now));
+      let from = last + 1;
+      if (last < 0) { const a = removedAnchor(id, vids); if (a === null) return; from = a; }
+      const nx = vids.slice(from).find(v => !epDone(id, v.season ?? 1, v.episode) && (!v.released || new Date(v.released).getTime() <= now));
       if (!nx || (epGet(id, nx.season ?? 1, nx.episode) || {}).pos > 20) return;
       out.push({k:`next|${nx.id}`, type:'series', id:nx.id, itemId:id, itemType:'series', name:meta.name || s0.n, poster:meta.poster || s0.p, background:meta.background || s0.b, addonId:meta._a || s0.a,
         ep:{season:nx.season ?? 1, episode:nx.episode, title:nx.title || nx.name}, pos:0, dur:0, t:now, upnext:true, fromShow:true});

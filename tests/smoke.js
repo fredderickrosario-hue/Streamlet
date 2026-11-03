@@ -224,6 +224,20 @@ const ok = (name, cond, extra) => { cond ? pass++ : fail++; console.log((cond ? 
       });
       ok('Poster mark: counts new and missed episodes after the first one watched', r);
     }
+    {
+      const r = await p.evaluate(async () => {
+        const id = 'tt888', old = cur;
+        cur = {id:'sp1', allHistory:true, catalogs:[], streams:[]};
+        addons.push({uid:'m.test2', url:'https://m.test2/manifest.json', base:'https://m.test2', manifest:{id:'m.test2', name:'M2', resources:[{name:'meta', types:['series'], idPrefixes:['tt']}], types:['series']}});
+        const real = getJSON; getJSON = async u => u.includes('/meta/series/') ? {meta:{id, name:'Show R', videos:[{id:id + ':1:1', season:1, episode:1, released:'2020-01-01T00:00:00Z'}, {id:id + ':1:2', season:1, episode:2, released:'2020-01-08T00:00:00Z'}]}} : real(u);
+        pset('shows', {[id]:{n:'Show R', ty:'series', sp:'sp1', t:Date.now(), a:'m.test2'}});
+        epMark(id, [{season:1, episode:2}], true); epMark(id, [{season:1, episode:2}], false); nuMem.clear();     // watched episode 2, then took it off the list
+        const a = await nextEpisodeCards(new Set());
+        getJSON = real; cur = old; addons.pop();
+        return a.length === 1 && a[0].ep.episode === 2;
+      }).catch(e => String(e));
+      ok('Continue watching: an episode taken off the watched list is offered again', r === true, r);
+    }
     ok('no errors after all of the above', errs.length === 0, errs[0]);
     await p.close();
   }
