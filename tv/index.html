@@ -4908,6 +4908,20 @@ async function qcProbe(input, out){
       } catch (e) { L('  media failed: ' + e); }
     }
   }
+  // How does Tou.tv sign people in? Look for the login addresses and client ids in the page and its scripts (names only; nothing is sent)
+  if (/tou\.tv/.test(url) && page) {
+    L('', 'TOU.TV LOGIN DISCOVERY');
+    const srcs = [...new Set([...page.matchAll(/<script[^>]+src="([^"]+\.js[^"]*)"/g)].map(m => m[1]))].map(x => x.startsWith('http') ? x : 'https://ici.tou.tv' + x);
+    L('  scripts on page: ' + srcs.length);
+    const hits = new Set(), scan = (txt, where) => {
+      for (const m of txt.matchAll(/https?:\/\/[a-z0-9.-]*(?:login|auth|oauth|b2c|identity|account|signin|sso)[a-z0-9.\/_?=&%-]{0,120}/gi)) hits.add(m[0].slice(0, 150));
+      for (const m of txt.matchAll(/(?:client_?id|clientId|policy|authority|tenant|redirect_?uri|redirectUri|scope)["']?\s*[:=]\s*["']([^"']{6,140})["']/gi)) hits.add(m[0].slice(0, 170));
+    };
+    scan(page, 'page');
+    for (const u of srcs.slice(0, 14)) { try { const r = await qcGet(u); if (r.status === 200) scan(String(r.body), u); } catch {} }
+    const list = [...hits].filter(x => !/googletagmanager|google-analytics|facebook|doubleclick|schema\.org|w3\.org/i.test(x)).slice(0, 45);
+    L(list.length ? list.map(x => '  ' + x).join('\n') : '  nothing found');
+  }
   L('', 'Done. Nothing was saved and no password was used.');
 }
 $('#qcRun').onclick = async () => {
