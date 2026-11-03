@@ -79,3 +79,5 @@ function backupImport(file){
     scheduleSync(); try { syncRibbons(); renderCW(); } catch {} toast('Backup restored');
   }).catch(() => toast('That is not a Streamlet backup'));
 }
+
+const fillTmdb = () => { $('#setTmdb').value = lsGet('streamlet.tmdb', '') || ''; };

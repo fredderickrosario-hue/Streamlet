@@ -243,3 +243,5 @@ function renderCW(){
 $('#bkOut').onclick = () => { if (profile) backupExport(); };
 $('#bkIn').onclick = () => $('#bkFile').click();
 $('#bkFile').onchange = e => { backupImport(e.target.files[0]); e.target.value = ''; };
+
+$('#setTmdb').onchange = e => { lsSet('streamlet.tmdb', e.target.value.trim()); toast(e.target.value.trim() ? 'TMDB key saved' : 'TMDB key removed'); };

@@ -1270,6 +1270,10 @@ body:not(.tv) :is(#detail,#episode) .dhint{display:none}
           <label class="row2"><span class="rt">Screensaver<small>Lets the TV's screensaver start while Streamlet is open (always on a black background). Turn off to keep the screen awake</small></span><input type="checkbox" id="setSaver"></label>
         </div>
       </div>
+      <h2 class="sh">Release dates</h2>
+      <div class="addon">
+        <div class="row2"><span class="rt">TMDB API key<small>Optional. Lets the home slideshow show confirmed new-season and new-episode dates for shows you watch</small></span><input type="text" id="setTmdb" placeholder="API key (v3)" autocomplete="off" spellcheck="false" style="width:min(46%,260px)"></div>
+      </div>
       <h2 class="sh">Backup</h2>
       <div class="addon">
         <div class="row2"><span class="rt">Watch history backup<small>Save everything this profile has watched to a file, or restore it. Restoring merges with what is already here</small></span><span style="display:flex;gap:8px"><button class="btn ghost sm" id="bkOut" type="button">Save</button><button class="btn ghost sm" id="bkIn" type="button">Restore</button></span></div>
@@ -2256,6 +2260,8 @@ function renderCW(){
 $('#bkOut').onclick = () => { if (profile) backupExport(); };
 $('#bkIn').onclick = () => $('#bkFile').click();
 $('#bkFile').onchange = e => { backupImport(e.target.files[0]); e.target.value = ''; };
+
+$('#setTmdb').onchange = e => { lsSet('streamlet.tmdb', e.target.value.trim()); toast(e.target.value.trim() ? 'TMDB key saved' : 'TMDB key removed'); };
 /* ---------- TV home: full-bleed hero that follows the focused title ---------- */
 let tvHeroCtx = null, tvHeroT = 0;
 function buildTvHero(){
@@ -2314,7 +2320,15 @@ async function heroBuild(first, extras, tok){
       const fresh = sorted.filter(v => dayOf(v.released) <= now && now - dayOf(v.released) < 30 * DAY && !epDone(m.id, v.season ?? 1, v.episode));
       const started = sorted.some(v => epDone(m.id, v.season ?? 1, v.episode)) || histGet().some(x => x.itemId === m.id);
       if (started && fresh.length) { const v = fresh[0]; return {a:ma, m, type:'series', tag:'New episode · ' + code(v), play:'▶  Play ' + code(v), rank:0}; }
-      const future = sorted.filter(v => dayOf(v.released) > now);
+      let future = sorted.filter(v => dayOf(v.released) > now);
+      const tk = lsGet('streamlet.tmdb', '');
+      if (!future.length && tk && (m.imdb_id || /^tt\d+$/.test(m.id))) {          // TMDB knows the confirmed next air date
+        try {
+          const f = await getJSON(`https://api.themoviedb.org/3/find/${m.imdb_id || m.id}?external_source=imdb_id&api_key=${encodeURIComponent(tk)}`), t = f.tv_results && f.tv_results[0];
+          const d = t && await getJSON(`https://api.themoviedb.org/3/tv/${t.id}?api_key=${encodeURIComponent(tk)}`), ne = d && d.next_episode_to_air;
+          if (ne && ne.air_date) future = [{season:ne.season_number, episode:ne.episode_number, released:ne.air_date}];
+        } catch {}
+      }
       const nx = future[0], last = sorted.filter(v => dayOf(v.released) <= now).pop();
       if (nx && (nx.episode ?? 1) === 1 && (nx.season ?? 1) > ((last && last.season) || 0))
         return {a:ma, m, type:'series', tag:`Season ${nx.season} returns ${new Date(nx.released).toLocaleDateString(undefined, {month:'short', day:'numeric', timeZone:'UTC'})}`, rank:1};
@@ -2872,7 +2886,7 @@ function loadProfileData(){
 }
 function selectProfile(p){
   profile = p; try { navAvatar(); } catch {} lsSet('streamlet.profile.last', p.id);
-  loadProfileData(); epReset(); try { epMigrate(); } catch {}
+  loadProfileData(); epReset(); try { fillTmdb(); } catch {} try { epMigrate(); } catch {}
   const last = pget('last', null);
   if (last && spaces.some(x => x.id === last)) enterSpace(last); else showLauncher();
 }
@@ -2984,6 +2998,8 @@ function backupImport(file){
     scheduleSync(); try { syncRibbons(); renderCW(); } catch {} toast('Backup restored');
   }).catch(() => toast('That is not a Streamlet backup'));
 }
+
+const fillTmdb = () => { $('#setTmdb').value = lsGet('streamlet.tmdb', '') || ''; };
 /* ---------- detail + streams ---------- */
 /* a "Continue watching" card: plays on from where it stopped (same source), no page in between */
 async function openResume(e){

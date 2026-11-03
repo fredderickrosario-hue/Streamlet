@@ -56,7 +56,15 @@ async function heroBuild(first, extras, tok){
       const fresh = sorted.filter(v => dayOf(v.released) <= now && now - dayOf(v.released) < 30 * DAY && !epDone(m.id, v.season ?? 1, v.episode));
       const started = sorted.some(v => epDone(m.id, v.season ?? 1, v.episode)) || histGet().some(x => x.itemId === m.id);
       if (started && fresh.length) { const v = fresh[0]; return {a:ma, m, type:'series', tag:'New episode · ' + code(v), play:'▶  Play ' + code(v), rank:0}; }
-      const future = sorted.filter(v => dayOf(v.released) > now);
+      let future = sorted.filter(v => dayOf(v.released) > now);
+      const tk = lsGet('streamlet.tmdb', '');
+      if (!future.length && tk && (m.imdb_id || /^tt\d+$/.test(m.id))) {          // TMDB knows the confirmed next air date
+        try {
+          const f = await getJSON(`https://api.themoviedb.org/3/find/${m.imdb_id || m.id}?external_source=imdb_id&api_key=${encodeURIComponent(tk)}`), t = f.tv_results && f.tv_results[0];
+          const d = t && await getJSON(`https://api.themoviedb.org/3/tv/${t.id}?api_key=${encodeURIComponent(tk)}`), ne = d && d.next_episode_to_air;
+          if (ne && ne.air_date) future = [{season:ne.season_number, episode:ne.episode_number, released:ne.air_date}];
+        } catch {}
+      }
       const nx = future[0], last = sorted.filter(v => dayOf(v.released) <= now).pop();
       if (nx && (nx.episode ?? 1) === 1 && (nx.season ?? 1) > ((last && last.season) || 0))
         return {a:ma, m, type:'series', tag:`Season ${nx.season} returns ${new Date(nx.released).toLocaleDateString(undefined, {month:'short', day:'numeric', timeZone:'UTC'})}`, rank:1};
