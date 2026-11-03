@@ -134,7 +134,7 @@ async function pickProfileFx(pr, tile){
     cover.animate([{opacity:0}, {opacity:1}], {duration:380, fill:'forwards', easing:'ease'});
     await animDone(f.animate([{transform:start}, {transform:mid}], {duration:480, easing:'cubic-bezier(.25,.8,.25,1)', fill:'forwards'}));
     await new Promise(r => setTimeout(r, 320));                      // hold in the middle
-    selectProfile(pr); P.style.opacity = ''; P.style.transition = '';
+    await selectProfile(pr); P.style.opacity = ''; P.style.transition = '';
     await nextFrames(3);
     let tgt = null, tr = null, prevR = null;
     for (let i = 0; i < 45 && !tgt; i++) {                            // up to ~2.5 s for the destination to exist and sit still

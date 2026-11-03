@@ -742,6 +742,13 @@ body.tv #detail,body.tv #episode{overflow:hidden}
 .pcover{position:fixed;inset:0;z-index:9997;background:#0b0b12;pointer-events:none;opacity:0}
 body.tv main{padding-bottom:90px}
 
+.spload{position:fixed;inset:0;z-index:9996;background:rgba(11,11,18,.94);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;color:#fff;animation:splin .2s ease;transition:opacity .25s}
+.spload.out{opacity:0}
+.spload .splem{font-size:46px;line-height:1}
+.spload .splnm{font-size:20px;font-weight:650;letter-spacing:.2px}
+.spload .splring{width:34px;height:34px;border-radius:50%;border:3px solid rgba(255,255,255,.18);border-top-color:var(--acc,#fff);animation:splspin .8s linear infinite}
+@keyframes splspin{to{transform:rotate(360deg)}}
+@keyframes splin{from{opacity:0}}
 /* ---- v8: chips never clip their focus ring; spaces page + editor ---- */
 body.tv .dright .srow,body.tv .dright .sfilter{padding:4px 6px 14px;margin:0 -6px}
 body.tv .dright .chip:focus-visible{outline:2px solid #fff;outline-offset:-2px;box-shadow:none;transform:none}
@@ -1471,7 +1478,9 @@ async function dataPut(url, json){
   } catch {}
 }
 /*@end*/
+const warmC = new Map();                                                       // catalogs fetched ahead of time by warmSpace (used for 2 minutes)
 async function getJSON(url){
+  const w = warmC.get(url); if (w && Date.now() - w.t < 120000) return w.j;
   if (url.startsWith('demo://sample/')) return demoRoute(url.slice('demo://sample/'.length));
   if (url.startsWith('qc://')) return qcRoute(url);
   /*@tv*/
@@ -1845,7 +1854,7 @@ function showLauncher(){
     const t = THEMES[sp.theme] || THEMES.violet;
     const nInst = sp.catalogs.filter(id => addons.find(x => x.uid === id)).length;
     const names = sp.catalogs.length ? (nInst ? nInst + (nInst === 1 ? ' addon' : ' addons') : '') : 'All addons';
-    const btn = h('button', {class:'stile', type:'button', style:`--c1:${t.acc};--c2:${t.acc2 || t.acc}`, onclick:() => { if (spEdit) editSpace(sp.id); else enterSpace(sp.id); }},
+    const btn = h('button', {class:'stile', type:'button', style:`--c1:${t.acc};--c2:${t.acc2 || t.acc}`, onclick:() => { if (spEdit) editSpace(sp.id); else openSpace(sp.id); }},
       h('span', {class:'sem'}, sp.emoji), h('span', {class:'stx'}, h('span', {class:'snm'}, sp.name), h('span', {class:'sds'}, names || 'Selected addon not installed')));
     attachLong(btn, () => editSpace(sp.id));
     return h('div', {class:'swrap'}, btn, h('span', {class:'sedit', 'aria-hidden':'true'}, PENCIL_SVG()));
@@ -2273,7 +2282,7 @@ async function pickProfileFx(pr, tile){
     cover.animate([{opacity:0}, {opacity:1}], {duration:380, fill:'forwards', easing:'ease'});
     await animDone(f.animate([{transform:start}, {transform:mid}], {duration:480, easing:'cubic-bezier(.25,.8,.25,1)', fill:'forwards'}));
     await new Promise(r => setTimeout(r, 320));                      // hold in the middle
-    selectProfile(pr); P.style.opacity = ''; P.style.transition = '';
+    await selectProfile(pr); P.style.opacity = ''; P.style.transition = '';
     await nextFrames(3);
     let tgt = null, tr = null, prevR = null;
     for (let i = 0; i < 45 && !tgt; i++) {                            // up to ~2.5 s for the destination to exist and sit still
@@ -3129,11 +3138,16 @@ function loadProfileData(){
   settings = {subLang:'off', audioLang:'any', ...pget('settings', {})};
   fillSettingsUI();
 }
-function selectProfile(p){
+async function selectProfile(p){
   profile = p; try { navAvatar(); } catch {} lsSet('streamlet.profile.last', p.id);
   loadProfileData(); epReset(); try { fillTmdb(); qcFillShows(); } catch {} try { epMigrate(); } catch {}
   const last = pget('last', null);
-  if (last && spaces.some(x => x.id === last)) enterSpace(last); else showLauncher();
+  const sp = last && spaces.find(x => x.id === last);
+  if (!sp) { showLauncher(); return; }
+  const done = (!pfx && !document.getElementById('intro') && !$('#profiles').hidden) ? warmCover(profile.name) : null;   // the boot logo / the profile animation already cover the wait
+  try { await warmSpace(sp, 8000); } catch {}
+  if (profile === p) enterSpace(sp.id);
+  if (done) done();
 }
 
 /* watch history ("continue watching"). One entry per title; newest first.
@@ -4380,7 +4394,7 @@ function bootApp(){
   booted = true;
   const lastP = profiles.find(x => x.id === lsGet('streamlet.profile.last', null)) || profiles[0];
   const upd = Date.now() - (lsGet('streamlet.upd', 0) || 0) < 20 * 60 * 1000;     // restarted while installing an update: skip the profile picker, land on Settings
-  if (upd) { lsSet('streamlet.upd', 0); selectProfile(lastP); setTimeout(() => { try { showTab('settings'); } catch {} }, 600); return; }
+  if (upd) { lsSet('streamlet.upd', 0); selectProfile(lastP).then(() => { try { showTab('settings'); } catch {} }); return; }
   if (profiles.length > 1 && localStorage.getItem('streamlet.profile.ask') !== '0') showProfiles(); else selectProfile(lastP);
 }
 async function onUser(u){
@@ -5449,6 +5463,36 @@ async function renderPersonal(box, tok){
   for (const it of picks.slice(0, Math.max(0, 14 - next.strip.children.length))) { next.strip.append(recCard(it)); nextN++; }
   if (!next.strip.children.length) next.sec.remove();
   return any2 || nextN > 0 || box.querySelector('.row') !== null;
+}
+/* ---------- warm a space before it is shown: its rows are fetched first, so Home is full the moment it appears ---------- */
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+async function warmSpace(sp, cap = 8000){
+  if (!sp || !addons.length) return;
+  const oc = cur, jobs = [];
+  cur = sp;
+  try {
+    let n = 0;
+    for (const a of spaceAddons()) for (const cat of (a.manifest.catalogs || [])) {
+      if (n >= 12 || catInfo(cat).req.length) continue; n++;
+      const url = `${a.base}/catalog/${cat.type}/${enc(cat.id)}.json`;
+      jobs.push(getJSON(url).then(j => { warmC.set(url, {j, t:Date.now()}); (j.metas || []).filter(m => m.background).slice(0, 2).forEach(m => { const i = new Image(); i.src = m.background; }); }).catch(() => {}));
+    }
+    if (profile) { try { for (const s of personalSeeds().seeds.slice(0, 6)) jobs.push(personalRecs(s).catch(() => {})); } catch {} }   // the "Because you watched / liked" rows
+  } finally { cur = oc; }
+  await Promise.race([Promise.allSettled(jobs), sleep(cap)]);
+}
+/* a small loading screen, only if it takes more than a blink */
+function warmCover(label, emoji){
+  const el = h('div', {class:'spload'}, h('div', {class:'splring'}), emoji ? h('div', {class:'splem'}, emoji) : null, h('div', {class:'splnm'}, label || ''));
+  const t = setTimeout(() => document.body.append(el), 160);
+  return () => { clearTimeout(t); if (el.isConnected) { el.classList.add('out'); setTimeout(() => el.remove(), 250); } };
+}
+let opening = false;
+async function openSpace(id){
+  const sp = spaces.find(s => s.id === id); if (!sp || opening) return;
+  opening = true; const done = warmCover(sp.name, sp.emoji);
+  try { await warmSpace(sp, 6000); } catch {}
+  enterSpace(id); done(); opening = false;
 }
 </script>
 </body>

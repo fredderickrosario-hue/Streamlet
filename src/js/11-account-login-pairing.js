@@ -309,7 +309,7 @@ function bootApp(){
   booted = true;
   const lastP = profiles.find(x => x.id === lsGet('streamlet.profile.last', null)) || profiles[0];
   const upd = Date.now() - (lsGet('streamlet.upd', 0) || 0) < 20 * 60 * 1000;     // restarted while installing an update: skip the profile picker, land on Settings
-  if (upd) { lsSet('streamlet.upd', 0); selectProfile(lastP); setTimeout(() => { try { showTab('settings'); } catch {} }, 600); return; }
+  if (upd) { lsSet('streamlet.upd', 0); selectProfile(lastP).then(() => { try { showTab('settings'); } catch {} }); return; }
   if (profiles.length > 1 && localStorage.getItem('streamlet.profile.ask') !== '0') showProfiles(); else selectProfile(lastP);
 }
 async function onUser(u){

@@ -168,3 +168,10 @@ body.tv #detail,body.tv #episode{overflow:hidden}
 .pcover{position:fixed;inset:0;z-index:9997;background:#0b0b12;pointer-events:none;opacity:0}
 body.tv main{padding-bottom:90px}
 
+.spload{position:fixed;inset:0;z-index:9996;background:rgba(11,11,18,.94);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;color:#fff;animation:splin .2s ease;transition:opacity .25s}
+.spload.out{opacity:0}
+.spload .splem{font-size:46px;line-height:1}
+.spload .splnm{font-size:20px;font-weight:650;letter-spacing:.2px}
+.spload .splring{width:34px;height:34px;border-radius:50%;border:3px solid rgba(255,255,255,.18);border-top-color:var(--acc,#fff);animation:splspin .8s linear infinite}
+@keyframes splspin{to{transform:rotate(360deg)}}
+@keyframes splin{from{opacity:0}}

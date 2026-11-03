@@ -70,7 +70,9 @@ async function dataPut(url, json){
   } catch {}
 }
 /*@end*/
+const warmC = new Map();                                                       // catalogs fetched ahead of time by warmSpace (used for 2 minutes)
 async function getJSON(url){
+  const w = warmC.get(url); if (w && Date.now() - w.t < 120000) return w.j;
   if (url.startsWith('demo://sample/')) return demoRoute(url.slice('demo://sample/'.length));
   if (url.startsWith('qc://')) return qcRoute(url);
   /*@tv*/

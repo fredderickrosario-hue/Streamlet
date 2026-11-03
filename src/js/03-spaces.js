@@ -66,7 +66,7 @@ function showLauncher(){
     const t = THEMES[sp.theme] || THEMES.violet;
     const nInst = sp.catalogs.filter(id => addons.find(x => x.uid === id)).length;
     const names = sp.catalogs.length ? (nInst ? nInst + (nInst === 1 ? ' addon' : ' addons') : '') : 'All addons';
-    const btn = h('button', {class:'stile', type:'button', style:`--c1:${t.acc};--c2:${t.acc2 || t.acc}`, onclick:() => { if (spEdit) editSpace(sp.id); else enterSpace(sp.id); }},
+    const btn = h('button', {class:'stile', type:'button', style:`--c1:${t.acc};--c2:${t.acc2 || t.acc}`, onclick:() => { if (spEdit) editSpace(sp.id); else openSpace(sp.id); }},
       h('span', {class:'sem'}, sp.emoji), h('span', {class:'stx'}, h('span', {class:'snm'}, sp.name), h('span', {class:'sds'}, names || 'Selected addon not installed')));
     attachLong(btn, () => editSpace(sp.id));
     return h('div', {class:'swrap'}, btn, h('span', {class:'sedit', 'aria-hidden':'true'}, PENCIL_SVG()));

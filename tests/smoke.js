@@ -296,6 +296,19 @@ const ok = (name, cond, extra) => { cond ? pass++ : fail++; console.log((cond ? 
       }).catch(e => String(e));
       ok('Home: personal rows (next watch, because you watched); catalogs stay on the Movies / Shows tabs', r === true, r);
     }
+    {
+      const r = await p.evaluate(async () => {
+        const oc = cur, ob = addons.slice(), og = getJSON; let hits = 0;
+        const a = {uid:'wm', base:'https://warm.test', manifest:{id:'wm', name:'W', resources:['catalog'], types:['movie'], catalogs:[{type:'movie', id:'top', name:'Top'}]}};
+        addons = [a]; warmC.clear();
+        getJSON = async u => { hits++; return {metas:[{id:'ttw', name:'W'}]}; };
+        await warmSpace({id:'spw', name:'Warm', emoji:'🔥', theme:'violet', catalogs:[]}, 3000);
+        const has = warmC.has('https://warm.test/catalog/movie/top.json');
+        getJSON = og; addons = ob; cur = oc; warmC.clear();
+        return has && hits === 1 ? true : JSON.stringify({has, hits});
+      }).catch(e => String(e));
+      ok("Warm: a space's catalogs are fetched ahead and kept for a moment", r === true, r);
+    }
     ok('no errors after all of the above', errs.length === 0, errs[0]);
     await p.close();
   }

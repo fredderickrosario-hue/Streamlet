@@ -210,11 +210,16 @@ function loadProfileData(){
   settings = {subLang:'off', audioLang:'any', ...pget('settings', {})};
   fillSettingsUI();
 }
-function selectProfile(p){
+async function selectProfile(p){
   profile = p; try { navAvatar(); } catch {} lsSet('streamlet.profile.last', p.id);
   loadProfileData(); epReset(); try { fillTmdb(); qcFillShows(); } catch {} try { epMigrate(); } catch {}
   const last = pget('last', null);
-  if (last && spaces.some(x => x.id === last)) enterSpace(last); else showLauncher();
+  const sp = last && spaces.find(x => x.id === last);
+  if (!sp) { showLauncher(); return; }
+  const done = (!pfx && !document.getElementById('intro') && !$('#profiles').hidden) ? warmCover(profile.name) : null;   // the boot logo / the profile animation already cover the wait
+  try { await warmSpace(sp, 8000); } catch {}
+  if (profile === p) enterSpace(sp.id);
+  if (done) done();
 }
 
 /* watch history ("continue watching"). One entry per title; newest first.
