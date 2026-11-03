@@ -3085,7 +3085,22 @@ async function findSimilar(a, type, meta){
   const base = String(meta.name || '').replace(/[:\-–(].*$/, '').trim(), words = normQ(base).split(' ').filter(Boolean).slice(0, 2).join(' ');
   const add = (m, ad, ty, score) => { if (!m || !m.id || m.id === self || !m.name) return; const k = (m.type || ty) + '|' + m.id, p = out.get(k); if (!p) out.set(k, {m, a:ad, type:m.type || ty, score}); else if (score > p.score) p.score = score; };
   const jobs = [];
-  if (words.length >= 3) jobs.push(searchAll(words).then(res => { for (const r of res) { const sc = simScore(words, r.m.name); if (sc >= .7 && normTitle(r.m.name) !== normTitle(meta.name) && normTitle(r.m.name).startsWith(normTitle(base))) add(r.m, r.a, r.type, 1.2 + sc * .2); } }).catch(() => {}));
+  const tk = lsGet('streamlet.tmdb', ''), imdb = meta.imdb_id || (/^tt\d+$/.test(meta.id) ? meta.id : '');
+  if (tk && imdb) jobs.push((async () => {                                  // TMDB's own "viewers also liked" list: the Netflix-style answer
+    const f = await tmdbGet(`/find/${imdb}?external_source=imdb_id`, tk), kind = type === 'movie' ? 'movie' : 'tv', t = (kind === 'tv' ? f.tv_results : f.movie_results)[0];
+    if (!t) return;
+    const rec = await tmdbGet(`/${kind}/${t.id}/recommendations`, tk), list = (rec.results || []).slice(0, 14);
+    const pa = spaceAddons().find(x => supports(x, 'meta', type, imdb)) || a;
+    await Promise.all(list.map(async (r, i) => {
+      try {
+        const ex = await tmdbGet(`/${kind}/${r.id}/external_ids`, tk); if (!ex.imdb_id) return;
+        const yr = (r.first_air_date || r.release_date || '').slice(0, 4);
+        add({id:ex.imdb_id, type, name:r.name || r.title, poster:r.poster_path ? 'https://image.tmdb.org/t/p/w342' + r.poster_path : '', background:r.backdrop_path ? 'https://image.tmdb.org/t/p/w780' + r.backdrop_path : '',
+          releaseInfo:yr, year:yr, description:r.overview, imdbRating:r.vote_average ? r.vote_average.toFixed(1) : ''}, pa, type, 5 - i * .05);
+      } catch {}
+    }));
+  })().catch(() => {}));
+  if (words.length >= 3) jobs.push(searchAll(words).then(res => { for (const r of res) { const sc = simScore(words, r.m.name); if (sc >= .7 && normTitle(r.m.name) !== normTitle(meta.name) && (normTitle(r.m.name) + ' ').startsWith(normTitle(base) + ' ')) add(r.m, r.a, r.type, 1.2 + sc * .2); } }).catch(() => {}));
   const gl = listOf(meta, 'genres', 'genres').length ? listOf(meta, 'genres', 'genres') : listOf(meta, 'genre', 'genres');
   const genres = gl.slice(0, 3), mine = new Set(genres.map(g => String(g).toLowerCase()));
   let used = 0;
@@ -3103,6 +3118,20 @@ async function findSimilar(a, type, meta){
         add(m, ad, cat.type, (shared / Math.max(1, mine.size)) * .6 + rating / 10 * .5 + near * .15 - i * .002);
       });
     }).catch(() => {}));
+  }
+  if (!used) {                                                              // no genre catalogs: rank what the plain catalogs list by genres in common
+    let plain = 0;
+    for (const ad of spaceAddons()) for (const cat of (ad.manifest.catalogs || [])) {
+      if (cat.type !== type || plain >= 3 || catInfo(cat).req.length || NEW_RE.test(cat.id)) continue;
+      plain++;
+      jobs.push(getJSON(`${ad.base}/catalog/${cat.type}/${enc(cat.id)}.json`).then(r => {
+        (r.metas || []).forEach((m, i) => {
+          if (normTitle(m.name) === normTitle(meta.name)) return;
+          const mg = (m.genres || m.genre || []).map(x => String(x).toLowerCase()), shared = mg.filter(x => mine.has(x)).length, rating = parseFloat(m.imdbRating) || 0;
+          if (shared) add(m, ad, cat.type, (shared / Math.max(1, mine.size)) * .6 + rating / 10 * .5 - i * .002);
+        });
+      }).catch(() => {}));
+    }
   }
   await Promise.all(jobs);
   const me = normTitle(meta.name) + '|' + yearOf(meta);
