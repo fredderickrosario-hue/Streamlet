@@ -4793,8 +4793,25 @@ async function qcSigned(idMedia, L){
     } catch (e) { L(`  ${dt}/${tech}: failed ${e}`); }
   }
 }
+async function qcCatalogTest(path, L){
+  const N = nativePlayer();
+  if (!N || !N.touGet) { L('Needs the updated Android app.'); return; }
+  const [show, ep] = path.toLowerCase().split('/'), ids = new Set();
+  L(`TOU.TV CATALOG (signed in) · ${show}/${ep}`);
+  for (const u of [`show/${show}/${ep}`, `show/${show}/${ep.replace(/e\d+$/, '')}`, `show/${show}`]) {
+    try {
+      const r = await N.touGet({url:`https://services.radio-canada.ca/ott/catalog/v2/toutv/${u}?device=web&tier=Member`});
+      let j = null; try { j = JSON.parse(r.body); } catch {}
+      L(`  ${u}: status ${r.status} · ${(r.body || '').length} chars${j ? '' : ' · ' + String(r.body).slice(0, 80)}`);
+      if (j) { qcOutline(j, L, 45); for (const m of String(r.body).matchAll(/"(?:idMedia|mediaId|formattedIdMedia|playbackId)"\s*:\s*"?(\d{5,})/g)) ids.add(m[1]); }
+    } catch (e) { L(`  ${u}: failed ${e}`); }
+  }
+  L('', 'media ids found: ' + ([...ids].slice(0, 6).join(', ') || 'none'));
+  if (ids.size) { L(''); await qcSigned([...ids][0], L); }
+}
 async function qcProbe(input, out){
   const L = (...t) => out.push(...t), url = String(input).trim();
+  if (/^[a-z0-9-]+\/s\d+e\d+$/i.test(url)) { await qcCatalogTest(url, L); L('', 'Done.'); return; }
   if (/^\d{5,9}$/.test(url)) { await qcSigned(url, L); L('', 'Done.'); return; }
   if (!/^https:\/\//.test(url)) { L('Paste a full https:// address of a show or episode page, or a media number for the signed-in test.'); return; }
   L(`Streamlet ${APP_BUILD} · ${nativePlayer() ? 'native' : 'browser (blocked by CORS probably)'} · ${new Date().toISOString()}`, '');
