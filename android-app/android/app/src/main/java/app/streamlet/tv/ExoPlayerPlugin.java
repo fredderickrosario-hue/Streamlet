@@ -198,7 +198,7 @@ public class ExoPlayerPlugin extends Plugin {
                 int code = c.getResponseCode();
                 InputStream in = code / 100 == 2 ? c.getInputStream() : c.getErrorStream();
                 java.io.ByteArrayOutputStream bo = new java.io.ByteArrayOutputStream();
-                byte[] buf = new byte[8192]; int n; while (in != null && (n = in.read(buf)) > 0 && bo.size() < 600000) bo.write(buf, 0, n);
+                byte[] buf = new byte[8192]; int n; while (in != null && (n = in.read(buf)) > 0 && bo.size() < 6000000) bo.write(buf, 0, n);
                 JSObject r = new JSObject(); r.put("status", code); r.put("body", bo.toString("UTF-8"));
                 call.resolve(r);
             } catch (Exception e) { call.reject(String.valueOf(e.getMessage())); }

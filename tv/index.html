@@ -4764,11 +4764,16 @@ async function qcGet(url, headers){
 }
 const qcHost = u => { try { return new URL(u).host; } catch { return '?'; } };
 async function qcPlaylist(u, L){
+  const keyInfo = t => [...new Set((t.match(/#EXT-X-(?:SESSION-)?KEY:[^\n]*/g) || []).map(x => (x.match(/METHOD=([A-Z0-9-]+)/) || [])[1] + (/KEYFORMAT="([^"]+)"/.test(x) ? ' ' + x.match(/KEYFORMAT="([^"]+)"/)[1].replace(/^urn:uuid:/, '').slice(0, 14) : '')))];
   try {
-    const r = await qcGet(String(u).replace(/^http:/, 'https:')), t = r.body || '';
-    const keys = [...new Set((t.match(/#EXT-X-(?:SESSION-)?KEY:[^\n]*/g) || []).map(x => (x.match(/METHOD=([A-Z0-9-]+)/) || [])[1] + (/KEYFORMAT="([^"]+)"/.test(x) ? ' ' + x.match(/KEYFORMAT="([^"]+)"/)[1].replace(/^urn:uuid:/, '').slice(0, 12) : '')))];
-    const res = [...t.matchAll(/RESOLUTION=(\d+x\d+)/g)].map(m => m[1]);
-    L(`    playlist: status ${r.status} · ${t.startsWith('#EXTM3U') ? 'valid HLS' : 'not HLS'} · variants ${res.length ? [...new Set(res)].join(' ') : '-'} · encryption: ${keys.length ? keys.join(', ') : 'none'} · audio tracks ${(t.match(/TYPE=AUDIO/g) || []).length} · subtitle tracks ${(t.match(/TYPE=SUBTITLES/g) || []).length}`);
+    const mu = String(u).replace(/^http:/, 'https:'), r = await qcGet(mu), t = r.body || '';
+    const res = [...t.matchAll(/RESOLUTION=(\d+x\d+)/g)].map(m => m[1]), keys = keyInfo(t);
+    L(`    playlist: status ${r.status} · ${t.startsWith('#EXTM3U') ? 'valid HLS' : 'not HLS'} · variants ${res.length ? [...new Set(res)].join(' ') : '-'} · master encryption: ${keys.length ? keys.join(', ') : 'none'} · audio ${(t.match(/TYPE=AUDIO/g) || []).length} · subtitles ${(t.match(/TYPE=SUBTITLES/g) || []).length}`);
+    const lines = t.split('\n').map(x => x.trim()), i = lines.findIndex(x => x.startsWith('#EXT-X-STREAM-INF')), vl = i >= 0 ? lines.slice(i + 1).find(x => x && !x.startsWith('#')) : null;
+    if (vl) {
+      const vu = new URL(vl, mu).toString(), v = await qcGet(vu), vt = v.body || '', vk = keyInfo(vt);
+      L(`    first variant: status ${v.status} · ${(vt.match(/#EXTINF/g) || []).length} segments · encryption: ${vk.length ? vk.join(', ') : 'none'} · discontinuities ${(vt.match(/#EXT-X-DISCONTINUITY/g) || []).length} · ${qcHost(vu)}`);
+    }
   } catch (e) { L('    playlist failed: ' + e); }
 }
 function qcOutline(obj, L, max = 120){
