@@ -4481,6 +4481,14 @@ async function qcPlaylist(u, L){
     L(`    playlist: status ${r.status} · ${t.startsWith('#EXTM3U') ? 'valid HLS' : 'not HLS'} · variants ${res.length ? [...new Set(res)].join(' ') : '-'} · encryption: ${keys.length ? keys.join(', ') : 'none'} · audio tracks ${(t.match(/TYPE=AUDIO/g) || []).length} · subtitle tracks ${(t.match(/TYPE=SUBTITLES/g) || []).length}`);
   } catch (e) { L('    playlist failed: ' + e); }
 }
+function qcOutline(obj, L, max = 120){
+  const outline = [], sh = (o, path, d) => {
+    if (!o || typeof o !== 'object' || d > 9 || outline.length > max) return;
+    if (Array.isArray(o)) { outline.push(`${path} [${o.length}]`); if (o[0]) sh(o[0], path + '[0]', d + 1); if (o.length > 1 && o[o.length - 1] && typeof o[o.length - 1] === 'object') sh(o[o.length - 1], path + '[last]', d + 1); return; }
+    for (const [k, v] of Object.entries(o)) { if (v && typeof v === 'object') sh(v, path + '.' + k, d + 1); else if (/id|slug|url|href|season|episode|media|title|name|duration|date|video|reference/i.test(k)) outline.push(`${path}.${k} = ${String(v).slice(0, 48)}`); }
+  };
+  sh(obj, '', 0); for (const t of outline.slice(0, max)) L('  ' + t);
+}
 async function qcProbe(input, out){
   const L = (...t) => out.push(...t), url = String(input).trim();
   if (!/^https:\/\//.test(url)) { L('Paste a full https:// address of a show or episode page.'); return; }
@@ -4522,6 +4530,20 @@ async function qcProbe(input, out){
   }
   const allIds = [...new Set([...(page.match(/\b\d{13}\b/g) || [])])].slice(0, 6);
   L('  13-digit numbers on page: ' + (allIds.join(', ') || 'none'));
+  // TVA+ / QUB content API: the same data the site itself loads for a show, season or episode
+  if (/tvaplus\.ca|qub\.ca/.test(url) && nd) {
+    let ent = null; try { ent = JSON.parse(nd).props.pageProps.staticEntity; } catch {}
+    const eid = ent && ent.id;
+    L('', 'CONTENT API · entity ' + (eid || 'not found'));
+    if (eid) for (const host of ['www.tvaplus.ca', 'www.qub.ca']) {
+      try {
+        const r = await qcGet(`https://${host}/proxy/pfu/content-delivery-service/v1/entities?id=${eid}`);
+        let j = null; try { j = JSON.parse(r.body); } catch {}
+        L(`  ${host}: status ${r.status} · ${(r.body || '').length} chars · ${j ? 'json' : String(r.body).slice(0, 80)}`);
+        if (j) { qcOutline(j, L, 90); break; }
+      } catch (e) { L(`  ${host}: failed ${e}`); }
+    }
+  }
   // Brightcove (TVA+)
   const acct = (page.match(/players\.brightcove\.net\/(\d{6,})\//) || page.match(/"accountId"\s*:\s*"?(\d{6,})/) || [])[1] || (/tvaplus\.ca|qub\.ca/.test(url) ? '5481942443001' : '');
   const vid0 = (page.match(/"videoId"\s*:\s*"?(\d{10,})/) || page.match(/data-video-id="(\d{10,})"/) || page.match(/videoId=(\d{10,})/) || [])[1] || (url.match(/(\d{12,})\/?$/) || [])[1];
