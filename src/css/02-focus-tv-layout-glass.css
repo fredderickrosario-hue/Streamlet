@@ -81,7 +81,9 @@ main{padding-bottom:calc(112px + env(safe-area-inset-bottom))}
 .sh{margin:22px 0 8px;font-size:15px;color:var(--mut);text-transform:uppercase;letter-spacing:.9px;font-weight:700}
 .row2{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:10px 0}
 .row2 input{width:22px;height:22px;accent-color:var(--acc)}
-#wlTabs{display:flex;gap:8px;padding:6px 16px 12px}
+#wlTabs,#mlTabs{display:flex;gap:8px;padding:6px 16px 12px;overflow-x:auto;scrollbar-width:none}
+#mlTabs::-webkit-scrollbar{display:none}
+#wlTabs[hidden]{display:none}
 .wgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(112px,1fr));gap:18px 12px;padding:4px 16px}
 .wgrid .card{flex:none;width:100%;align-self:auto}
 .wgrid .poster{width:100%;height:auto;aspect-ratio:2/3}

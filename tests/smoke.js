@@ -259,6 +259,18 @@ const ok = (name, cond, extra) => { cond ? pass++ : fail++; console.log((cond ? 
       }).catch(e => String(e));
       ok('Netflix import: shows only, episodes matched and marked watched into the chosen space', r === true, r);
     }
+    {
+      const r = await p.evaluate(async () => {
+        const old = cur; cur = {id:'sp1', allHistory:true, catalogs:[], streams:[]};
+        pset('shows', {tt321:{n:'Show L', ty:'series', sp:'sp1', t:Date.now(), a:'x', p:''}});
+        epMark('tt321', [{season:1, episode:2}], true);
+        const out = [];
+        for (const [id] of ML_TABS) { mlTab = id; renderWatch(); await new Promise(r => setTimeout(r, 30)); out.push(id + ':' + $('#wlGrid').children.length); }
+        mlTab = 'list'; cur = old;
+        return $('#watch h1').textContent === 'My List' && out[1] === 'watching:1' && out[2] === 'history:1' && out.length === 4;
+      }).catch(e => String(e));
+      ok('My List: tabs render (watchlist, watching, history, for you)', r === true, r);
+    }
     ok('no errors after all of the above', errs.length === 0, errs[0]);
     await p.close();
   }

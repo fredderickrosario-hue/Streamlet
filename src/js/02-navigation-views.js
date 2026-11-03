@@ -112,7 +112,7 @@ $('#exGo').onclick = () => {
 /* ---------- views ---------- */
 const TAB_SECTIONS = {home:'#home', search:'#search', watch:'#watch', addons:'#addons', settings:'#settings', me:'#me'};
 const TAB_BUTTONS = {home:'#tabHome', search:'#nvSearch', watch:'#tabWatch', addons:'#tabAddons', settings:'#tabSettings', me:'#tabMe'};
-const TAB_TITLES = {watch:'Watchlist', addons:'Addons', settings:'Settings', me:'Profile'};
+const TAB_TITLES = {watch:'My List', addons:'Addons', settings:'Settings', me:'Profile'};
 function movePill(){
   const nav = $('#nav'), pill = $('#navPill'), b = nav.querySelector('button.on');
   if (!b || !nav.offsetWidth) return;
