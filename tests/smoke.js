@@ -161,6 +161,23 @@ const ok = (name, cond, extra) => { cond ? pass++ : fail++; console.log((cond ? 
       ok('Québec addon: catalog, episodes, streams from mocked TVA+ pages', r === true, r);
       await p.evaluate(() => { delete window.Capacitor; });
     }
+    {
+      const r = await p.evaluate(async () => {
+        window.Capacitor = {isNativePlatform:() => true, Plugins:{ExoPlayer:{httpGet: async ({url}) => {
+          if (url.endsWith('/tele/stat/site/episodes')) return {status:200, body:'<meta property="og:title" content="STAT | ICI Télé"><meta property="og:image" content="https://img/s.jpg"> <a href="/tele/stat/site/episodes/1281067/mardi-27-octobre-2026">x</a><a href="/tele/stat/site/episodes/1281000/mardi-20-octobre-2026">y</a>'};
+          if (url.includes('/episodes/1281067/')) return {status:200, body:'<a href="/x/media-10791494/a">m</a> 1281067'};
+          if (url.includes('idMedia=10791494')) return {status:200, body:JSON.stringify({errorCode:0, url:'http://cdn/a.m3u8'})};
+          return {status:200, body:JSON.stringify({errorCode:6})};
+        }}}};
+        localStorage.setItem('streamlet.qcshows', JSON.stringify(['https://ici.radio-canada.ca/tele/stat/site/episodes']));
+        qcMem.clear();
+        const meta = (await qcRoute('qc://tva/meta/series/' + encodeURIComponent('qc:rc:stat') + '.json')).meta;
+        const st = (await qcRoute('qc://tva/stream/series/' + encodeURIComponent(meta.videos[1].id) + '.json')).streams;
+        return meta.name === 'STAT' && meta.videos.length === 2 && meta.videos[0].released.startsWith('2026-10-20') && st.length === 1 && st[0].url === 'https://cdn/a.m3u8';
+      }).catch(e => String(e));
+      ok('Québec addon: Radio-Canada episodes and stream (mocked)', r === true, r);
+      await p.evaluate(() => { delete window.Capacitor; });
+    }
     ok('no errors after all of the above', errs.length === 0, errs[0]);
     await p.close();
   }

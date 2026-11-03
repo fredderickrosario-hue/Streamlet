@@ -3,7 +3,7 @@
    for the episode's stream when you press Play. It only works inside the Android apps (the browser blocks these requests).
    Add it like any addon: Addons -> type "quebec". */
 const QC_ACCOUNTS = ['5481942443001', '5813221784001'];
-const QC_DEFAULT_SHOWS = ['https://www.tvaplus.ca/tva/les-armes', 'https://www.tvaplus.ca/tva/indefendable', 'https://ici.tou.tv/stat'];
+const QC_DEFAULT_SHOWS = ['https://www.tvaplus.ca/tva/les-armes', 'https://www.tvaplus.ca/tva/indefendable', 'https://ici.radio-canada.ca/tele/stat/site/episodes'];
 const qcMem = new Map();                                                  // url -> {t, v}: short in-memory cache
 async function qcCached(key, ttl, fn){
   const hit = qcMem.get(key); if (hit && Date.now() - hit.t < ttl) return hit.v;
@@ -13,6 +13,7 @@ const qcShowList = () => {                                              // [{src
   const raw = lsGet('streamlet.qcshows', null), urls = Array.isArray(raw) && raw.length ? raw : QC_DEFAULT_SHOWS, out = [];
   for (const u of urls) {
     let m = String(u).match(/tvaplus\.ca(\/[a-z0-9-]+\/[a-z0-9-]+)(?:[\/?#]|$)/i); if (m) { out.push({src:'tva', path:m[1].toLowerCase()}); continue; }
+    m = String(u).match(/ici\.radio-canada\.ca\/tele\/([a-z0-9-]+)/i); if (m) { out.push({src:'rc', path:m[1].toLowerCase()}); continue; }
     m = String(u).match(/tou\.tv\/([a-z0-9-]+)(?:[\/?#]|$)/i); if (m) out.push({src:'tou', path:m[1].toLowerCase()});
   }
   return out;
@@ -129,6 +130,42 @@ async function qcTouMeta(slug){
   const videos = lists.flat().sort((a, b) => (a.season - b.season) || (a.episode - b.episode));
   return {id:'qc:tou:' + slug, type:'series', name:info.name, poster:info.poster, background:info.background, description:info.description, videos, releaseInfo:''};
 }
+/* Radio-Canada's own site (ici.radio-canada.ca/tele/<show>/site/episodes): the replay videos are public, so they play in-app */
+const QC_MONTHS = {janvier:1, 'février':2, fevrier:2, mars:3, avril:4, mai:5, juin:6, juillet:7, 'août':8, aout:8, septembre:9, octobre:10, novembre:11, 'décembre':12, decembre:12};
+const qcRcDate = slug => { const m = String(slug).match(/(\d{1,2})(?:er)?-([a-zéûè]+)-(\d{4})/i), mo = m && QC_MONTHS[m[2].toLowerCase()]; return mo ? `${m[3]}-${String(mo).padStart(2, '0')}-${String(+m[1]).padStart(2, '0')}T20:00:00Z` : ''; };
+async function qcRcPage(url){
+  const r = await qcGet(url, {Accept:'text/html'});
+  if (r.status !== 200) throw new Error('Radio-Canada answered ' + r.status);
+  return String(r.body);
+}
+const qcMeta1 = (html, prop) => ((html.match(new RegExp('<meta[^>]+(?:property|name)="' + prop + '"[^>]+content="([^"]*)"', 'i')) || html.match(new RegExp('<meta[^>]+content="([^"]*)"[^>]+(?:property|name)="' + prop + '"', 'i')) || [])[1] || '').replace(/&amp;/g, '&').replace(/&#x27;|&#39;/g, "'").replace(/&quot;/g, '"');
+async function qcRcShow(slug){
+  return qcCached('rc' + slug, 6 * 3600e3, async () => {
+    const html = await qcRcPage(`https://ici.radio-canada.ca/tele/${slug}/site/episodes`), img = qcMeta1(html, 'og:image');
+    const name = (qcMeta1(html, 'og:title') || '').replace(/\s*[|\-–].*$/, '') || qcTitleCase(slug.replace(/-/g, ' '));
+    const seen = new Set(), eps = [];
+    for (const m of html.matchAll(new RegExp('/tele/' + slug + '/site/episodes/(\\d+)/([a-z0-9-]+)', 'gi'))) { if (seen.has(m[1])) continue; seen.add(m[1]); eps.push({epId:m[1], slug:m[2], released:qcRcDate(m[2])}); }
+    eps.sort((a, b) => (a.released || '').localeCompare(b.released || ''));
+    return {src:'rc', path:slug, name:name || slug, description:qcMeta1(html, 'og:description'), poster:img, background:img, eps};
+  });
+}
+async function qcRcMeta(slug){
+  const info = await qcRcShow(slug);
+  const videos = info.eps.map((e, i) => ({id:`qc:rc:${slug}/${e.epId}/${e.slug}`, season:1, episode:i + 1, title:qcTitleCase(e.slug.replace(/-/g, ' ')), overview:'', thumbnail:info.background, released:e.released, runtime:''}));
+  return {id:'qc:rc:' + slug, type:'series', name:info.name, poster:info.poster, background:info.background, description:info.description, videos, releaseInfo:''};
+}
+async function qcRcStreams(id){
+  const [slug, epId, es] = id.replace(/^qc:rc:/, '').split('/');
+  const html = await qcRcPage(`https://ici.radio-canada.ca/tele/${slug}/site/episodes/${epId}/${es}`), cand = new Set();
+  for (const re of [/"idMedia"\s*:\s*"?(\d{5,})/g, /idMedia=(\d{5,})/g, /"mediaId"\s*:\s*"?(\d{5,})/gi, /data-media-?id="(\d{5,})"/gi, /media-(\d{5,})/g]) for (const m of html.matchAll(re)) cand.add(m[1]);
+  for (const mid of [...cand].slice(0, 5)) for (const app of ['medianet', 'toutv']) {
+    try {
+      const r = await qcGet(`https://services.radio-canada.ca/media/validation/v2/?appCode=${app}&deviceType=ipad&connectionType=wifi&idMedia=${mid}&output=json`), j = JSON.parse(r.body);
+      if (j && j.errorCode === 0 && j.url && !(j.params || []).some(p => /license|drm/i.test(p.name))) return [{name:'Radio-Canada', title:'HLS · adaptive', url:String(j.url).replace(/^http:/, 'https:')}];
+    } catch {}
+  }
+  return [];
+}
 const QC_MANIFEST = {id:'app.streamlet.quebec', version:'1.0.0', name:'Québec', description:'TVA+ and ICI TOU.TV series, read straight from the sites on this device',
   resources:['catalog', 'meta', 'stream'], types:['series'], idPrefixes:['qc:'], catalogs:[{type:'series', id:'qc-shows', name:'Séries québécoises'}]};
 async function qcRoute(url){
@@ -136,12 +173,13 @@ async function qcRoute(url){
   const path = decodeURIComponent(url.replace(/^qc:\/\/[^/]*\//, '').replace(/\.json(\?.*)?$/, ''));
   if (path === 'manifest') return QC_MANIFEST;
   if (path.startsWith('catalog/')) {
-    const metas = (await Promise.all(qcShowList().map(e => (e.src === 'tou' ? qcTouShow(e.path) : qcShowInfo(e.path)).then(i => ({id:qcShowId(e), type:'series', name:i.name, poster:i.poster, background:i.background, description:i.description})).catch(() => null)))).filter(Boolean);
+    const metas = (await Promise.all(qcShowList().map(e => (e.src === 'tou' ? qcTouShow(e.path) : e.src === 'rc' ? qcRcShow(e.path) : qcShowInfo(e.path)).then(i => ({id:qcShowId(e), type:'series', name:i.name, poster:i.poster, background:i.background, description:i.description})).catch(() => null)))).filter(Boolean);
     return {metas};
   }
-  if (path.startsWith('meta/')) { const id = path.split('/').slice(2).join('/'); return {meta:/^qc:tou:/.test(id) ? await qcTouMeta(id.replace(/^qc:tou:/, '')) : await qcMeta(id.replace(/^qc:tva:/, ''))}; }
+  if (path.startsWith('meta/')) { const id = path.split('/').slice(2).join('/'); return {meta:/^qc:rc:/.test(id) ? await qcRcMeta(id.replace(/^qc:rc:/, '')) : /^qc:tou:/.test(id) ? await qcTouMeta(id.replace(/^qc:tou:/, '')) : await qcMeta(id.replace(/^qc:tva:/, ''))}; }
   if (path.startsWith('stream/')) {
     const id = path.split('/').slice(2).join('/');
+    if (/^qc:rc:/.test(id)) return {streams:await qcRcStreams(id)};
     if (/^qc:tou:/.test(id)) return {streams:[{name:'ICI TOU.TV', title:'Open in the ICI TOU.TV app', externalUrl:'toutv://' + id.replace(/^qc:tou:/, '')}]};
     return {streams:await qcStreams(id)};
   }
