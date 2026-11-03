@@ -9,8 +9,11 @@ async function qcCached(key, ttl, fn){
   const hit = qcMem.get(key); if (hit && Date.now() - hit.t < ttl) return hit.v;
   const v = await fn(); qcMem.set(key, {t:Date.now(), v}); return v;
 }
-const qcShowList = () => {                                              // [{src:'tva'|'tou', path}]
-  const raw = lsGet('streamlet.qcshows', null), urls = Array.isArray(raw) && raw.length ? raw : QC_DEFAULT_SHOWS, out = [];
+const QC_OLD_DEFAULTS = [['https://www.tvaplus.ca/tva/les-armes', 'https://www.tvaplus.ca/tva/indefendable'], ['https://www.tvaplus.ca/tva/les-armes', 'https://www.tvaplus.ca/tva/indefendable', 'https://ici.tou.tv/stat']];
+const qcShowList = () => {                                              // [{src:'tva'|'tou'|'rc', path}]
+  let raw = lsGet('streamlet.qcshows', null);
+  if (Array.isArray(raw) && QC_OLD_DEFAULTS.some(d => d.length === raw.length && d.every((u, i) => u === raw[i]))) { raw = null; lsSet('streamlet.qcshows', null); }   // a saved copy of an old default list: use the current defaults
+  const urls = Array.isArray(raw) && raw.length ? raw : QC_DEFAULT_SHOWS, out = [];
   for (const u of urls) {
     let m = String(u).match(/tvaplus\.ca(\/[a-z0-9-]+\/[a-z0-9-]+)(?:[\/?#]|$)/i); if (m) { out.push({src:'tva', path:m[1].toLowerCase()}); continue; }
     m = String(u).match(/ici\.radio-canada\.ca\/tele\/([a-z0-9-]+)/i); if (m) { out.push({src:'rc', path:m[1].toLowerCase()}); continue; }
