@@ -168,14 +168,14 @@ public class ExoPlayerPlugin extends Plugin {
             pending.reject("replaced");
             pending = null;
         }
-        Long start = call.getLong("startMs", 0L);
+        long start = call.getData().optLong("startMs", 0L);       // call.getLong() ignores numbers the JSON parser reads as Integer, so every resume started at 0
         JSArray subs = call.getArray("subtitles", new JSArray());
 
         Intent i = new Intent(getContext(), PlayerActivity.class);
         i.putExtra("url", url);
         i.putExtra("title", call.getString("title", ""));
         i.putExtra("subtitle", call.getString("subtitle", ""));
-        i.putExtra("startMs", start == null ? 0L : start);
+        i.putExtra("startMs", start);
         i.putExtra("audioLang", call.getString("audioLang"));
         i.putExtra("subLang", call.getString("subLang"));
         i.putExtra("subs", subs.toString());
@@ -190,8 +190,7 @@ public class ExoPlayerPlugin extends Plugin {
         i.putExtra("skip", call.getInt("skip", 10));
         i.putExtra("curSeason", call.getInt("curSeason", 1));
         i.putExtra("curEpisode", call.getInt("curEpisode", 0));
-        Long sd = call.getLong("subDelay", 0L);
-        i.putExtra("subDelay", sd == null ? 0L : sd);
+        i.putExtra("subDelay", call.getData().optLong("subDelay", 0L));
 
         call.setKeepAlive(true);
         pending = call;
