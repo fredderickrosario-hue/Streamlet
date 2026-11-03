@@ -514,10 +514,11 @@ body:not(.tv) .tvhero .tdots{justify-content:center}
 @keyframes kenburns{from{transform:scale(1.02) translate(0,0)}to{transform:scale(1.1) translate(-1%,-.6%)}}
 @media (prefers-reduced-motion:reduce){.tvhero .tbg img.on{animation:none;transform:scale(1.05)}}
 .tvhero{touch-action:pan-y}
-/* phone: picture fills the box a little zoomed, below the bars, drifting gently until it is centred */
+/* phone: sharp picture below the bars (a little zoomed, drifting gently to centre); a blurred copy of it fills the gaps above and below so no black shows */
 body:not(.tv) .tvhero .tbg{top:0;overflow:hidden}
-body:not(.tv) .tvhero .tbg img,body:not(.tv) .tvhero .tbg img.on{top:0;height:100%;object-fit:cover;transform:scale(1.1);transform-origin:center;object-position:44% 12%;
-  -webkit-mask-image:linear-gradient(to bottom,#000 0,#000 66%,transparent 100%);mask-image:linear-gradient(to bottom,#000 0,#000 66%,transparent 100%)}
+body:not(.tv) .tvhero .tbg::before{content:'';position:absolute;inset:-30px;background:var(--bgi) center/cover no-repeat;filter:blur(24px) saturate(1.2) brightness(.85);-webkit-mask-image:linear-gradient(to bottom,#000 78%,transparent 100%);mask-image:linear-gradient(to bottom,#000 78%,transparent 100%)}
+body:not(.tv) .tvhero .tbg img,body:not(.tv) .tvhero .tbg img.on{top:var(--ho);height:calc(100% - var(--ho) - 8%);object-fit:cover;transform:scale(1.1);transform-origin:center;object-position:44% 12%;
+  -webkit-mask-image:linear-gradient(to bottom,transparent 0,#000 14%,#000 80%,transparent 100%);mask-image:linear-gradient(to bottom,transparent 0,#000 14%,#000 80%,transparent 100%)}
 body:not(.tv) .tvhero .tbg img.on{animation:centrex 9s ease-out both}
 @keyframes centrex{from{object-position:44% 12%}to{object-position:50% 12%}}
 @media (prefers-reduced-motion:reduce){body:not(.tv) .tvhero .tbg img.on{animation:none;object-position:50% 12%}}
