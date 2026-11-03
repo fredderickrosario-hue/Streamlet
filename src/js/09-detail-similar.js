@@ -65,7 +65,9 @@ function plainIconBtn(src, path, label){
   const sync = () => { b.classList.toggle('on', src.classList.contains('on')); b.title = src.title || label; };
   b.onclick = () => { src.click(); sync(); }; sync(); return b;
 }
+const goodRating = r => { const t = String(r ?? '').trim(); return t && !/^(null|undefined|nan|n\/a|0|0\.0)$/i.test(t) ? t : ''; };
 function metaRow(parts, rating, right){
+  rating = goodRating(rating);
   const row = h('div', {class:'dmeta'});
   parts.filter(Boolean).forEach((t, i) => { if (i) row.append(h('span', {class:'dot'}, '·')); row.append(h('span', null, t)); });
   if (rating) row.append(h('span', {class:'imdb'}, true ? '★' : 'IMDb'), h('span', null, String(rating)));
