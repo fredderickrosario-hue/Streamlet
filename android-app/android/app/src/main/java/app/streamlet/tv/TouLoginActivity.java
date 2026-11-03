@@ -42,6 +42,9 @@ public class TouLoginActivity extends Activity {
         } catch (Exception e) { return "?"; }
     }
 
+    /** makes the page lay out as a desktop site: wide viewport and no touch device, like Chrome's "desktop site" switch */
+    static final String DESKTOP_JS = "(function(){try{var f=function(){var m=document.querySelector('meta[name=viewport]');if(!m){m=document.createElement('meta');m.name='viewport';(document.head||document.documentElement).appendChild(m);}if(m.getAttribute('content')!=='width=1280')m.setAttribute('content','width=1280');};f();new MutationObserver(f).observe(document.documentElement,{childList:true,subtree:true});Object.defineProperty(navigator,'maxTouchPoints',{get:function(){return 0}});}catch(e){}})();";
+
     @Override
     protected void onCreate(Bundle b) {
         super.onCreate(b);
@@ -61,6 +64,10 @@ public class TouLoginActivity extends Activity {
         CookieManager cm = CookieManager.getInstance(); cm.setAcceptCookie(true); cm.setAcceptThirdPartyCookies(wv, true);
         final SharedPreferences sp = getSharedPreferences(PREFS, Context.MODE_PRIVATE);
         wv.setWebViewClient(new WebViewClient() {
+            @Override
+            public void onPageStarted(WebView view, String url, android.graphics.Bitmap icon) { super.onPageStarted(view, url, icon); view.evaluateJavascript(DESKTOP_JS, null); }
+            @Override
+            public void onPageFinished(WebView view, String url) { super.onPageFinished(view, url); view.evaluateJavascript(DESKTOP_JS, null); }
             @Override
             public WebResourceResponse shouldInterceptRequest(WebView view, WebResourceRequest r) {
                 try {
