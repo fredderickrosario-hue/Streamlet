@@ -479,7 +479,7 @@ body.launch #profiles:not([hidden]){display:flex;flex-direction:column;justify-c
 
 /* TV nav: no pill, hero bleeds underneath, label appears on focus */
 
-.tvhero .ttag{position:absolute;z-index:3;left:132px;top:96px;padding:6px 14px;border-radius:8px;font-size:13px;font-weight:800;letter-spacing:.3px;background:var(--acc);color:#fff;text-shadow:none}
+.tvhero .ttag{display:block;width:fit-content;margin:0 auto 12px 0;padding:6px 14px;border-radius:8px;font-size:13px;font-weight:800;letter-spacing:.3px;background:var(--acc);color:#fff;text-shadow:none}
 .tvhero .tdots{display:flex;gap:7px;margin-top:16px}
 .tvhero .tdots i{display:block;width:8px;height:8px;border-radius:99px;background:rgba(255,255,255,.35);transition:width .3s,background .3s}
 .tvhero .tdots i.on{width:24px;background:#fff}
@@ -490,7 +490,7 @@ body:not(.tv) .tvhero .tdots{justify-content:center}
 .tvhero .tbg img.on{animation:kenburns 16s ease-out both;transform-origin:62% 38%}
 @keyframes kenburns{from{transform:scale(1.07) translate(0,0)}to{transform:scale(1.18) translate(-1.6%,-1.2%)}}
 @media (prefers-reduced-motion:reduce){.tvhero .tbg img.on{animation:none;transform:scale(1.07)}}
-body:not(.tv) .tvhero .ttag{left:18px;top:calc(env(safe-area-inset-top) + 82px)}
+.tvhero{touch-action:pan-y}
 /* ---- v4: TV pages, expanding nav, genre tiles, search page, intro ---- */
 /* nav: full-height transparent rail that expands with labels when focused */
 
@@ -2007,9 +2007,7 @@ function setTvHero(ctx, instant){
   const bits = [m.releaseInfo || m.year, m.runtime, ...gen].filter(Boolean);
   const title = h('div', {class:'ttitle'}, m.name);
   const logo = m.logo ? h('img', {class:'tlogo', src:m.logo, alt:m.name, onerror:e => e.target.replaceWith(title)}) : title;
-  box.querySelectorAll(':scope > .ttag').forEach(x => x.remove());
-  if (ctx.tag) box.append(h('div', {class:'ttag'}, ctx.tag));
-  tin.replaceChildren(logo,
+  tin.replaceChildren(ctx.tag ? h('div', {class:'ttag'}, ctx.tag) : null, logo,
     h('div', {class:'tmeta'}, m.imdbRating ? h('span', {class:'timdb'}, '★ ' + m.imdbRating) : null, ...bits.map(x => h('span', null, String(x)))),
     m.description ? h('p', {class:'tdesc'}, m.description) : null,
     h('div', {class:'tbtns'},
@@ -2164,6 +2162,16 @@ function renderTabs(){
 }
 
 
+
+/* phone: swipe the hero sideways for the previous / next slide */
+{ let sx = 0, sy = 0, on = false;
+  document.addEventListener('touchstart', e => { const t = e.target.closest && e.target.closest('.tvhero'); on = !!t; if (t) { sx = e.touches[0].clientX; sy = e.touches[0].clientY; } }, {passive:true});
+  document.addEventListener('touchend', e => {
+    if (!on) return; on = false;
+    const dx = e.changedTouches[0].clientX - sx, dy = e.changedTouches[0].clientY - sy;
+    if (Math.abs(dx) > 50 && Math.abs(dy) < 45 && heroSlides.length > 1) { heroPause(15000); heroGo(heroIdx + (dx < 0 ? 1 : -1)); }
+  }, {passive:true});
+}
 /* ---------- smart search: forgiving about spaces and spelling, merged across catalogs, ordered by how close each title is to what you typed ---------- */
 const normQ = s => String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, ' ').trim();
 function lev(a, b){

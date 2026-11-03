@@ -18,9 +18,7 @@ function setTvHero(ctx, instant){
   const bits = [m.releaseInfo || m.year, m.runtime, ...gen].filter(Boolean);
   const title = h('div', {class:'ttitle'}, m.name);
   const logo = m.logo ? h('img', {class:'tlogo', src:m.logo, alt:m.name, onerror:e => e.target.replaceWith(title)}) : title;
-  box.querySelectorAll(':scope > .ttag').forEach(x => x.remove());
-  if (ctx.tag) box.append(h('div', {class:'ttag'}, ctx.tag));
-  tin.replaceChildren(logo,
+  tin.replaceChildren(ctx.tag ? h('div', {class:'ttag'}, ctx.tag) : null, logo,
     h('div', {class:'tmeta'}, m.imdbRating ? h('span', {class:'timdb'}, '★ ' + m.imdbRating) : null, ...bits.map(x => h('span', null, String(x)))),
     m.description ? h('p', {class:'tdesc'}, m.description) : null,
     h('div', {class:'tbtns'},
@@ -175,3 +173,13 @@ function renderTabs(){
 }
 
 
+
+/* phone: swipe the hero sideways for the previous / next slide */
+{ let sx = 0, sy = 0, on = false;
+  document.addEventListener('touchstart', e => { const t = e.target.closest && e.target.closest('.tvhero'); on = !!t; if (t) { sx = e.touches[0].clientX; sy = e.touches[0].clientY; } }, {passive:true});
+  document.addEventListener('touchend', e => {
+    if (!on) return; on = false;
+    const dx = e.changedTouches[0].clientX - sx, dy = e.changedTouches[0].clientY - sy;
+    if (Math.abs(dx) > 50 && Math.abs(dy) < 45 && heroSlides.length > 1) { heroPause(15000); heroGo(heroIdx + (dx < 0 ? 1 : -1)); }
+  }, {passive:true});
+}
