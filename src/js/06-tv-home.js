@@ -38,6 +38,13 @@ function heroTick(){
   if (document.hidden || layersOpen.length || Date.now() < heroHold || scrollY > 200 || heroSlides.length < 2) return;
   heroGo(heroIdx + 1);
 }
+/* TMDB accepts the short v3 key (as a parameter) or the long v4 read token (as a bearer header) */
+async function tmdbGet(path, key){
+  const long = key.length > 60, url = 'https://api.themoviedb.org/3' + path + (long ? '' : (path.includes('?') ? '&' : '?') + 'api_key=' + encodeURIComponent(key));
+  const r = await fetch(url, long ? {headers:{Authorization:'Bearer ' + key}} : undefined);
+  if (!r.ok) throw new Error(r.status === 401 ? 'invalid key' : 'HTTP ' + r.status);
+  return r.json();
+}
 const dayOf = d => { const t = new Date(d); return isNaN(t) ? 0 : t.getTime(); };
 async function heroBuild(first, extras, tok){
   const out = [], now = Date.now(), DAY = 864e5, seen = new Set([first.m.id]);
@@ -60,8 +67,8 @@ async function heroBuild(first, extras, tok){
       const tk = lsGet('streamlet.tmdb', '');
       if (!future.length && tk && (m.imdb_id || /^tt\d+$/.test(m.id))) {          // TMDB knows the confirmed next air date
         try {
-          const f = await getJSON(`https://api.themoviedb.org/3/find/${m.imdb_id || m.id}?external_source=imdb_id&api_key=${encodeURIComponent(tk)}`), t = f.tv_results && f.tv_results[0];
-          const d = t && await getJSON(`https://api.themoviedb.org/3/tv/${t.id}?api_key=${encodeURIComponent(tk)}`), ne = d && d.next_episode_to_air;
+          const f = await tmdbGet(`/find/${m.imdb_id || m.id}?external_source=imdb_id`, tk), t = f.tv_results && f.tv_results[0];
+          const d = t && await tmdbGet(`/tv/${t.id}`, tk), ne = d && d.next_episode_to_air;
           if (ne && ne.air_date) future = [{season:ne.season_number, episode:ne.episode_number, released:ne.air_date}];
         } catch {}
       }

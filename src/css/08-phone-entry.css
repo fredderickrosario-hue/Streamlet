@@ -74,3 +74,7 @@ body:not(.tv) :is(#detail,#episode) .dhint{display:none}
 .ep .eseen svg{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
 .ep.seen .ethumb img{opacity:.55}
 .srow .chip.mark{background:transparent;border:1px dashed rgba(255,255,255,.35)}
+
+/* who's watching: focus ring follows the circle */
+.ptile:focus-visible .pav,body.tv .ptile:focus-visible .pav{outline:none !important}
+.ptile:focus-visible .pav .av,.ptile:focus-visible .pav.add{outline:3px solid rgba(255,255,255,.95);outline-offset:5px;border-radius:50% !important}

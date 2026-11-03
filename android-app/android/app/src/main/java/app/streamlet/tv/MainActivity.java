@@ -19,9 +19,20 @@ public class MainActivity extends BridgeActivity {
         } catch (Exception ignored) { }
     }
     /** setting "Screensaver" off = keep the screen awake while the app is open */
+    private static android.os.PowerManager.WakeLock awakeLock;
     static void applyAwake(Activity a, boolean awake) {
         try { if (awake) a.getWindow().addFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON); else a.getWindow().clearFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON); } catch (Exception ignored) { }
+        try { if (a instanceof BridgeActivity) ((BridgeActivity) a).getBridge().getWebView().setKeepScreenOn(awake); } catch (Exception ignored) { }
+        try {                                              // belt and braces: some TV builds ignore the window flag, so also hold a screen wake lock
+            if (awake) {
+                if (awakeLock == null) awakeLock = ((android.os.PowerManager) a.getSystemService(Context.POWER_SERVICE)).newWakeLock(android.os.PowerManager.SCREEN_BRIGHT_WAKE_LOCK, "streamlet:awake");
+                if (!awakeLock.isHeld()) awakeLock.acquire();
+            } else if (awakeLock != null && awakeLock.isHeld()) awakeLock.release();
+            AppLog.add("awake", awake ? "screen kept on" : "screensaver allowed");
+        } catch (Exception ignored) { }
     }
+    @Override
+    public void onPause() { super.onPause(); try { if (awakeLock != null && awakeLock.isHeld()) awakeLock.release(); } catch (Exception ignored) { } }
     private boolean blackBg() { return true; }
     private boolean keepAwake() { return getSharedPreferences("streamlet_player", Context.MODE_PRIVATE).getBoolean("keepawake", false); }
 

@@ -132,6 +132,29 @@ function moveRow(dir, list, cur){
   const cand = rows.filter(r => r.k !== mine && (dir === 'down' ? r.y > cy + 8 : r.y < cy - 8)).sort((p, q) => dir === 'down' ? p.y - q.y : q.y - p.y)[0];
   return cand ? cand.first : null;
 }
+/* any page: Up / Down goes to the nearest visual row, then to the item in it closest to where you were (rows = items sharing a line) */
+function moveVisualRow(dir, list, cur){
+  const cr = cur.getBoundingClientRect(), cy = (cr.top + cr.bottom) / 2, cx = (cr.left + cr.right) / 2, ch = cr.height;
+  let best = null, by = Infinity;
+  for (const el of list) {
+    if (el === cur) continue;
+    const r = el.getBoundingClientRect(), y = (r.top + r.bottom) / 2, mid = Math.min(ch, r.height) / 2;
+    if (Math.abs(y - cy) < mid) continue;                              // same line as where you are
+    if (dir === 'down' ? y <= cy : y >= cy) continue;
+    const d = Math.abs(y - cy); if (d < by - 2) by = d;
+  }
+  if (by === Infinity) return null;
+  let bd = Infinity;
+  for (const el of list) {
+    if (el === cur) continue;
+    const r = el.getBoundingClientRect(), y = (r.top + r.bottom) / 2, mid = Math.min(ch, r.height) / 2;
+    if (Math.abs(y - cy) < mid || (dir === 'down' ? y <= cy : y >= cy)) continue;
+    if (Math.abs(Math.abs(y - cy) - by) > Math.max(12, r.height / 2)) continue;     // not the nearest line
+    const dx = Math.abs((r.left + r.right) / 2 - cx) + (cx >= r.left && cx <= r.right ? -1e4 : 0);
+    if (dx < bd) { bd = dx; best = el; }
+  }
+  return best;
+}
 function moveFocus(dir, rep){
   const root = ctxRoot(); let list = focusables(root); const cur = document.activeElement;
   const tv = document.body.classList.contains('tv') && root === document.body, inNav = !!(tv && cur && cur.closest && cur.closest('#nav'));
@@ -153,6 +176,10 @@ function moveFocus(dir, rep){
     const t = moveRow(dir, list, cur);
     if (t) { t.focus({preventScroll:true}); if (root === document.body) revealEl(t, dir, rep, tv, null); else revealEl(t, dir, rep, false, null); return; }
     if (cur.closest(ROW_SEL)) return;                       // already on the last (or first) row: stay put
+    if (!entryTV) {
+      const v = moveVisualRow(dir, list, cur);
+      if (v) { v.focus({preventScroll:true}); if (root === document.body) revealEl(v, dir, rep, tv, null); else revealEl(v, dir, rep, false, null); return; }
+    }
   }
   const a = cur.getBoundingClientRect(), ax = (a.left + a.right) / 2, ay = (a.top + a.bottom) / 2;
   let best = null, bs = Infinity;
@@ -217,8 +244,7 @@ function scrollNested(el, edge){
       const ar = a.getBoundingClientRect(), er = el.getBoundingClientRect(), k = ar.height / (a.clientHeight || ar.height) || 1, m = 64 * k;
       if (edge === 'top') a.scrollTo({top:0, behavior:'smooth'});
       else if (edge === 'bottom') a.scrollTo({top:a.scrollHeight, behavior:'smooth'});
-      else if (er.top < ar.top + m) a.scrollTo({top:Math.max(0, a.scrollTop - (ar.top + m - er.top) / k), behavior:'smooth'});
-      else if (er.bottom > ar.bottom - m) a.scrollTo({top:a.scrollTop + (er.bottom - (ar.bottom - m)) / k, behavior:'smooth'});
+      else { const off = ((er.top + er.bottom) - (ar.top + ar.bottom)) / 2 / k; if (Math.abs(off) > 40) a.scrollTo({top:Math.max(0, a.scrollTop + off), behavior:'smooth'}); }   // keep the focused item mid-screen
       return true;
     }
   }
@@ -258,8 +284,7 @@ function revealEl(el, dir, rep, tv, edge){
         const k = sr.height / (sh.clientHeight || sr.height) || 1, mt = 96 * k, mb = 72 * k;
         if (edge === 'top') sh.scrollTop = 0;
         else if (edge === 'bottom') sh.scrollTop = 1e7;
-        else if (br.top < sr.top + mt) sh.scrollTop -= (sr.top + mt - br.top) / k;
-        else if (br.bottom > sr.bottom - mb) sh.scrollTop += (br.bottom - (sr.bottom - mb)) / k;
+        else { const off = ((br.top + br.bottom) - (sr.top + sr.bottom)) / 2 / k; if (Math.abs(off) > 40) sh.scrollTop += off; }
         return;
       }
       el.scrollIntoView({block:'nearest', inline:'nearest', behavior:'auto'}); return;
@@ -278,6 +303,7 @@ function revealEl(el, dir, rep, tv, edge){
   if (edge) window.scrollTo(0, edge === 'top' ? 0 : 1e7);                 // last item in that direction: show the whole end of the page
   else if (el.closest('.tvhero')) window.scrollTo(0, 0);
   else if (strip && (dir === 'up' || dir === 'down') && strip.parentElement) strip.parentElement.scrollIntoView({block:'center', inline:'nearest'});   // moving between rows: the row snaps to the middle of the screen
+  else if (!strip && (dir === 'up' || dir === 'down')) el.scrollIntoView({block:'center', inline:'nearest'});
   else (strip || el).scrollIntoView({block:'nearest', inline:'nearest'});
   const y1 = scrollY, x1 = strip ? strip.scrollLeft : 0;
   if (rep || (y0 === y1 && x0 === x1)) return;
