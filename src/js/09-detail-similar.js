@@ -110,7 +110,7 @@ async function findSimilar(a, type, meta){
   const base = String(meta.name || '').replace(/[:\-–(].*$/, '').trim(), words = normQ(base).split(' ').filter(Boolean).slice(0, 2).join(' ');
   const add = (m, ad, ty, score) => { if (!m || !m.id || m.id === self || !m.name) return; const k = (m.type || ty) + '|' + m.id, p = out.get(k); if (!p) out.set(k, {m, a:ad, type:m.type || ty, score}); else if (score > p.score) p.score = score; };
   const jobs = [];
-  if (words.length >= 3) jobs.push(searchAll(words).then(res => { for (const r of res) { const sc = simScore(words, r.m.name); if (sc >= .7) add(r.m, r.a, r.type, 2 + sc); } }).catch(() => {}));
+  if (words.length >= 3) jobs.push(searchAll(words).then(res => { for (const r of res) { const sc = simScore(words, r.m.name); if (sc >= .7 && normTitle(r.m.name) !== normTitle(meta.name) && normTitle(r.m.name).startsWith(normTitle(base))) add(r.m, r.a, r.type, 1.2 + sc * .2); } }).catch(() => {}));
   const gl = listOf(meta, 'genres', 'genres').length ? listOf(meta, 'genres', 'genres') : listOf(meta, 'genre', 'genres');
   const genres = gl.slice(0, 3), mine = new Set(genres.map(g => String(g).toLowerCase()));
   let used = 0;
@@ -124,13 +124,14 @@ async function findSimilar(a, type, meta){
         const mg = (m.genres || m.genre || []).map(x => String(x).toLowerCase()), shared = mg.filter(x => mine.has(x)).length;
         const rating = parseFloat(m.imdbRating) || 0, yr = parseInt(m.releaseInfo || m.year) || 0, myYr = parseInt(meta.releaseInfo || meta.year) || 0;
         const near = yr && myYr ? Math.max(0, 1 - Math.abs(yr - myYr) / 30) : 0;
-        add(m, ad, cat.type, (shared / Math.max(1, mine.size)) + rating / 10 * .25 + near * .15 - i * .002);
+        if (normTitle(m.name) === normTitle(meta.name)) return;
+        add(m, ad, cat.type, (shared / Math.max(1, mine.size)) * .6 + rating / 10 * .5 + near * .15 - i * .002);
       });
     }).catch(() => {}));
   }
   await Promise.all(jobs);
   const me = normTitle(meta.name) + '|' + yearOf(meta);
-  return dedupeList([...out.values()].filter(x => x.score >= .45 && visibleMeta(x.m, x.type)).sort((x, y) => y.score - x.score), x => x.m, x => x.type).filter(x => normTitle(x.m.name) + '|' + yearOf(x.m) !== me).slice(0, 30);
+  return dedupeList([...out.values()].filter(x => x.score >= .5 && visibleMeta(x.m, x.type)).sort((x, y) => y.score - x.score), x => x.m, x => x.type).filter(x => normTitle(x.m.name) !== normTitle(meta.name) && normTitle(x.m.name) + '|' + yearOf(x.m) !== me).slice(0, 30);
 }
 function similarPane(pane, a, type, meta){
   pane.replaceChildren(h('p', {class:'spin', style:'padding:10px 0'}, 'Finding similar titles…'));

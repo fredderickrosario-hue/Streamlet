@@ -1104,12 +1104,13 @@ body.tv #profiles .pav .pbadge{width:40px;height:40px}
 body.tv #profiles .pav .pbadge svg{width:20px;height:20px}
 
 /* ---- phone entry page: same look as the TV one. A full first screen (picture, title, facts, story, buttons), then rows you swipe sideways ---- */
-body:not(.tv) :is(#detail,#episode) .dwrap{position:relative;padding-bottom:calc(140px + env(safe-area-inset-bottom))}
-body:not(.tv) :is(#detail,#episode) .dhero{position:absolute;top:0;left:0;right:0;height:92vh;height:92svh;min-height:0;z-index:0;background-size:cover;background-position:center 18%}
+body:not(.tv) :is(#detail,#episode),body:not(.tv) :is(#detail,#episode) .dwrap{background:var(--bg)}
+body:not(.tv) :is(#detail,#episode) .dwrap{position:relative;padding-bottom:calc(90px + env(safe-area-inset-bottom))}
+body:not(.tv) :is(#detail,#episode) .dhero{position:relative;width:100%;height:auto;aspect-ratio:16/9;min-height:0;z-index:0;background-size:100% 100%;background-position:center top;background-repeat:no-repeat}
 body:not(.tv) :is(#detail,#episode) .dhero .dlogo,body:not(.tv) :is(#detail,#episode) .dhero .dtitle{display:none}
-body:not(.tv) :is(#detail,#episode) .dgrad{position:absolute;inset:0;background:linear-gradient(to bottom,rgba(7,7,12,.45) 0,rgba(7,7,12,0) 26%,rgba(7,7,12,.55) 62%,var(--bg) 100%)}
+body:not(.tv) :is(#detail,#episode) .dgrad{position:absolute;inset:0;background:linear-gradient(to bottom,rgba(7,7,12,.35) 0,rgba(7,7,12,0) 22%,rgba(7,7,12,0) 62%,var(--bg) 100%)}
 body:not(.tv) :is(#detail,#episode) .dbody{position:relative;z-index:2;padding:0;display:block;max-width:none}
-body:not(.tv) :is(#detail,#episode) .dleft{position:relative;min-height:92vh;min-height:92svh;box-sizing:border-box;display:flex;flex-direction:column;justify-content:flex-end;padding:0 20px 46px}
+body:not(.tv) :is(#detail,#episode) .dleft{position:relative;margin-top:-44px;min-height:0;box-sizing:border-box;display:flex;flex-direction:column;justify-content:flex-start;padding:0 20px 24px}
 body:not(.tv) :is(#detail,#episode) .dbt{display:block;margin:0 0 6px}
 body:not(.tv) :is(#detail,#episode) .dbt-logo{display:block;max-width:min(86%,300px);max-height:120px;width:auto;height:auto;object-fit:contain;object-position:left bottom;filter:drop-shadow(0 4px 16px rgba(0,0,0,.7))}
 body:not(.tv) :is(#detail,#episode) .dbt-title{margin:0;font-size:clamp(34px,10vw,46px);line-height:1.02;font-weight:900;letter-spacing:-.8px;text-shadow:0 4px 24px rgba(0,0,0,.7)}
@@ -1164,6 +1165,8 @@ body:not(.tv) :is(#detail,#episode) .dp2 .dpane{display:block}
 body:not(.tv) :is(#detail,#episode) .dp2 .dsim .card{flex:0 0 120px;scroll-snap-align:start}
 body:not(.tv) :is(#detail,#episode) .dp2 .dsim .card .t{font-size:13px}
 body:not(.tv) :is(#detail,#episode) .dtop>.ibtn ~ .ibtn{display:none}
+
+body:not(.tv) :is(#detail,#episode) .dhint{display:none}
 </style>
 </head>
 <body>
@@ -2945,7 +2948,7 @@ async function findSimilar(a, type, meta){
   const base = String(meta.name || '').replace(/[:\-–(].*$/, '').trim(), words = normQ(base).split(' ').filter(Boolean).slice(0, 2).join(' ');
   const add = (m, ad, ty, score) => { if (!m || !m.id || m.id === self || !m.name) return; const k = (m.type || ty) + '|' + m.id, p = out.get(k); if (!p) out.set(k, {m, a:ad, type:m.type || ty, score}); else if (score > p.score) p.score = score; };
   const jobs = [];
-  if (words.length >= 3) jobs.push(searchAll(words).then(res => { for (const r of res) { const sc = simScore(words, r.m.name); if (sc >= .7) add(r.m, r.a, r.type, 2 + sc); } }).catch(() => {}));
+  if (words.length >= 3) jobs.push(searchAll(words).then(res => { for (const r of res) { const sc = simScore(words, r.m.name); if (sc >= .7 && normTitle(r.m.name) !== normTitle(meta.name) && normTitle(r.m.name).startsWith(normTitle(base))) add(r.m, r.a, r.type, 1.2 + sc * .2); } }).catch(() => {}));
   const gl = listOf(meta, 'genres', 'genres').length ? listOf(meta, 'genres', 'genres') : listOf(meta, 'genre', 'genres');
   const genres = gl.slice(0, 3), mine = new Set(genres.map(g => String(g).toLowerCase()));
   let used = 0;
@@ -2959,13 +2962,14 @@ async function findSimilar(a, type, meta){
         const mg = (m.genres || m.genre || []).map(x => String(x).toLowerCase()), shared = mg.filter(x => mine.has(x)).length;
         const rating = parseFloat(m.imdbRating) || 0, yr = parseInt(m.releaseInfo || m.year) || 0, myYr = parseInt(meta.releaseInfo || meta.year) || 0;
         const near = yr && myYr ? Math.max(0, 1 - Math.abs(yr - myYr) / 30) : 0;
-        add(m, ad, cat.type, (shared / Math.max(1, mine.size)) + rating / 10 * .25 + near * .15 - i * .002);
+        if (normTitle(m.name) === normTitle(meta.name)) return;
+        add(m, ad, cat.type, (shared / Math.max(1, mine.size)) * .6 + rating / 10 * .5 + near * .15 - i * .002);
       });
     }).catch(() => {}));
   }
   await Promise.all(jobs);
   const me = normTitle(meta.name) + '|' + yearOf(meta);
-  return dedupeList([...out.values()].filter(x => x.score >= .45 && visibleMeta(x.m, x.type)).sort((x, y) => y.score - x.score), x => x.m, x => x.type).filter(x => normTitle(x.m.name) + '|' + yearOf(x.m) !== me).slice(0, 30);
+  return dedupeList([...out.values()].filter(x => x.score >= .5 && visibleMeta(x.m, x.type)).sort((x, y) => y.score - x.score), x => x.m, x => x.type).filter(x => normTitle(x.m.name) !== normTitle(meta.name) && normTitle(x.m.name) + '|' + yearOf(x.m) !== me).slice(0, 30);
 }
 function similarPane(pane, a, type, meta){
   pane.replaceChildren(h('p', {class:'spin', style:'padding:10px 0'}, 'Finding similar titles…'));
