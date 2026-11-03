@@ -141,6 +141,26 @@ const ok = (name, cond, extra) => { cond ? pass++ : fail++; console.log((cond ? 
       });
       ok('per-episode store: progress, next episode, mark season', r);
     }
+    {
+      const r = await p.evaluate(async () => {
+        const page = ent => ({status:200, body:`<script id="__NEXT_DATA__" type="application/json">${JSON.stringify({props:{pageProps:{staticEntity:ent}}})}</script> /tva/show-x/saison-1 /tva/show-x/saison-2`});
+        window.Capacitor = {isNativePlatform:() => true, Plugins:{ExoPlayer:{httpGet: async ({url}) => {
+          if (url.endsWith('/tva/show-x')) return page({name:'Show X', longDescription:'d', thumbnailImage:{url:'https://img/x.jpg'}});
+          if (/saison-\d\/tous-les-episodes/.test(url)) { const s = url.match(/saison-(\d)/)[1]; return page({associatedEntities:[{slug:`/tva/show-x/saison-${s}/episode-1-le-debut-123`, seasonNumber:+s, episodeNumber:1, mainImage:{url:'https://img/e.jpg'}}]}); }
+          if (/episode-1-le-debut/.test(url)) return page({name:'Le début', videoId:'999', longDescription:'resume', durationMillis:2400000, startDate:'2026-10-30T20:00:00Z'});
+          if (url.includes('index.min.js')) return {status:200, body:'x policyKey:"BCpk123" y'};
+          if (url.includes('/videos/999')) return {status:200, body:JSON.stringify({sources:[{type:'application/x-mpegURL', src:'http://m/a.m3u8'}, {container:'MP4', src:'http://m/a.mp4', height:1080}]})};
+          return {status:404, body:''};
+        }}}};
+        localStorage.setItem('streamlet.qcshows', JSON.stringify(['https://www.tvaplus.ca/tva/show-x']));
+        const man = await qcRoute('qc://tva/manifest.json'), cat = await qcRoute('qc://tva/catalog/series/qc-shows.json');
+        const mr = await qcRoute('qc://tva/meta/series/' + encodeURIComponent('qc:tva:/tva/show-x') + '.json'); if (!mr.meta) return 'no meta: ' + JSON.stringify(mr).slice(0, 200); const meta = mr.meta;
+        const st = (await qcRoute('qc://tva/stream/series/' + encodeURIComponent(meta.videos[1].id) + '.json')).streams;
+        return man.name === 'Québec' && cat.metas[0].name === 'Show X' && meta.videos.length === 2 && meta.videos[1].season === 2 && meta.videos[1].title === 'Le début' && meta.videos[1].released.startsWith('2026-10-30') && st.length === 2 && st[0].url.startsWith('https://') && /1080p/.test(st[1].title);
+      }).catch(e => String(e));
+      ok('Québec addon: catalog, episodes, streams from mocked TVA+ pages', r === true, r);
+      await p.evaluate(() => { delete window.Capacitor; });
+    }
     ok('no errors after all of the above', errs.length === 0, errs[0]);
     await p.close();
   }

@@ -72,6 +72,7 @@ async function dataPut(url, json){
 /*@end*/
 async function getJSON(url){
   if (url.startsWith('demo://sample/')) return demoRoute(url.slice('demo://sample/'.length));
+  if (url.startsWith('qc://')) return qcRoute(url);
   /*@tv*/
   const hit = await dataGet(url);
   if (hit) { if (hit.age > DFRESH) fetchJSON(url).then(j => dataPut(url, j)).catch(() => {}); return hit.json; }
@@ -97,8 +98,9 @@ function parseAddonUrl(input){
   let u = input.trim();
   if (!u) throw new Error('Paste an addon URL first.');
   if (u.toLowerCase()==='demo') u = 'demo://sample';
+  if (/^(qu[eé]bec|qc)$/i.test(u)) u = 'qc://tva';
   u = u.replace(/^stremio:\/\//i, 'https://');
-  if (!/^(https?|demo):\/\//i.test(u)) u = 'https://' + u;
+  if (!/^(https?|demo|qc):\/\//i.test(u)) u = 'https://' + u;
   if (!/manifest\.json(\?.*)?$/.test(u)) u = u.replace(/\/+$/,'') + '/manifest.json';
   return { url:u, base:u.replace(/\/manifest\.json(\?.*)?$/,'') };
 }

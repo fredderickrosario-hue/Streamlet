@@ -95,6 +95,11 @@
       <div class="addon">
         <div class="row2"><span class="rt">TMDB API key<small>Optional. Lets the home slideshow show confirmed new-season and new-episode dates for shows you watch</small></span><input type="text" id="setTmdb" placeholder="API key (v3)" autocomplete="off" spellcheck="false" style="width:min(40%,240px)"><button class="btn ghost sm" id="tmdbChk" type="button">Verify</button></div>
       </div>
+      <h2 class="sh">Québec</h2>
+      <div class="addon">
+        <div class="row2" style="flex-direction:column;align-items:stretch;gap:8px"><span class="rt">TVA+ shows<small>One show page address per line (tvaplus.ca/tva/...). Add the "quebec" addon in Addons, then use it in a space</small></span>
+          <textarea id="qcShows" rows="4" class="f" style="width:100%;font:13px/1.4 monospace" spellcheck="false"></textarea><button class="btn ghost sm" id="qcSave" type="button" style="align-self:flex-start">Save shows</button></div>
+      </div>
       <h2 class="sh">Backup</h2>
       <div class="addon">
         <div class="row2"><span class="rt">Watch history backup<small>Save everything this profile has watched to a file, or restore it. Restoring merges with what is already here</small></span><span style="display:flex;gap:8px"><button class="btn ghost sm" id="bkOut" type="button">Save</button><button class="btn ghost sm" id="bkIn" type="button">Restore</button></span></div>
