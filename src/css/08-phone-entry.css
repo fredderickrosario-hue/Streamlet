@@ -1,0 +1,69 @@
+
+/* manage profiles: the pencil badge sits on the avatar's corner, in our accent color */
+.pav:not(.add){width:fit-content;height:auto;border-radius:0;box-shadow:none}
+.pav .pbadge{right:0;bottom:0;width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,var(--acc),var(--acc2));color:#fff;border:3px solid var(--bg);box-shadow:0 4px 12px rgba(0,0,0,.4);display:flex;align-items:center;justify-content:center;box-sizing:content-box}
+.pav .pbadge svg{width:16px;height:16px;stroke:#fff;fill:none}
+body.tv #profiles .pav .pbadge{width:40px;height:40px}
+body.tv #profiles .pav .pbadge svg{width:20px;height:20px}
+
+/* ---- phone entry page: same look as the TV one. A full first screen (picture, title, facts, story, buttons), then rows you swipe sideways ---- */
+body:not(.tv) :is(#detail,#episode) .dwrap{position:relative;padding-bottom:calc(140px + env(safe-area-inset-bottom))}
+body:not(.tv) :is(#detail,#episode) .dhero{position:absolute;top:0;left:0;right:0;height:92vh;height:92svh;min-height:0;z-index:0;background-size:cover;background-position:center 18%}
+body:not(.tv) :is(#detail,#episode) .dhero .dlogo,body:not(.tv) :is(#detail,#episode) .dhero .dtitle{display:none}
+body:not(.tv) :is(#detail,#episode) .dgrad{position:absolute;inset:0;background:linear-gradient(to bottom,rgba(7,7,12,.45) 0,rgba(7,7,12,0) 26%,rgba(7,7,12,.55) 62%,var(--bg) 100%)}
+body:not(.tv) :is(#detail,#episode) .dbody{position:relative;z-index:2;padding:0;display:block;max-width:none}
+body:not(.tv) :is(#detail,#episode) .dleft{position:relative;min-height:92vh;min-height:92svh;box-sizing:border-box;display:flex;flex-direction:column;justify-content:flex-end;padding:0 20px 46px}
+body:not(.tv) :is(#detail,#episode) .dbt{display:block;margin:0 0 6px}
+body:not(.tv) :is(#detail,#episode) .dbt-logo{display:block;max-width:min(86%,300px);max-height:120px;width:auto;height:auto;object-fit:contain;object-position:left bottom;filter:drop-shadow(0 4px 16px rgba(0,0,0,.7))}
+body:not(.tv) :is(#detail,#episode) .dbt-title{margin:0;font-size:clamp(34px,10vw,46px);line-height:1.02;font-weight:900;letter-spacing:-.8px;text-shadow:0 4px 24px rgba(0,0,0,.7)}
+body:not(.tv) :is(#detail,#episode) .dep{font-size:13px;font-weight:700;color:#c5c8d6;margin:0 0 6px}
+body:not(.tv) :is(#detail,#episode) .dmeta{margin:12px 0 10px;gap:8px;font-size:14px;font-weight:600;color:#d8dbe6;flex-wrap:wrap}
+body:not(.tv) :is(#detail,#episode) .dmeta .imdb{background:none;padding:0;color:#f5c518;font-size:18px;margin-right:-3px}
+body:not(.tv) :is(#detail,#episode) .dmeta .imdb + span{font-size:18px;font-weight:800;color:#fff}
+body:not(.tv) :is(#detail,#episode) .dmeta .sp,body:not(.tv) :is(#detail,#episode) .dmeta .ibtn{display:none}
+body:not(.tv) :is(#detail,#episode) .ddesc{margin:0;font-size:14.5px;line-height:1.55;color:#d6d9e3;display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;overflow:hidden}
+body:not(.tv) :is(#detail,#episode) .dacts2{display:flex;align-items:center;gap:6px;margin:20px 0 0}
+body:not(.tv) :is(#detail,#episode) .dacts2 .hb.p{flex:0 0 auto;min-width:150px;height:50px;padding:0 30px;border-radius:999px;background:#fff;color:#0d0d14;box-shadow:none;font-size:16px;font-weight:800;display:inline-flex;align-items:center;justify-content:center;margin-right:8px}
+body:not(.tv) :is(#detail,#episode) .dacts2 .pib,body:not(.tv) :is(#detail,#episode) .dacts2 .ibtn{width:48px;height:48px;padding:0;border:0;background:none;box-shadow:none;color:#fff;display:inline-grid;place-items:center;opacity:.92}
+body:not(.tv) :is(#detail,#episode) .dacts2 .pib svg,body:not(.tv) :is(#detail,#episode) .dacts2 .ibtn svg{width:28px;height:28px;stroke:currentColor;fill:none;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+body:not(.tv) :is(#detail,#episode) .dacts2 .pib.on,body:not(.tv) :is(#detail,#episode) .dacts2 .ibtn.on{color:var(--acc);opacity:1}
+body:not(.tv) :is(#detail,#episode) .dacts2 .pib.on svg,body:not(.tv) :is(#detail,#episode) .dacts2 .ibtn.on svg{fill:color-mix(in srgb,var(--acc) 45%,transparent)}
+body:not(.tv) :is(#detail,#episode) .dinfo,body:not(.tv) :is(#detail,#episode) .dgen,body:not(.tv) :is(#detail,#episode) .dphone{display:none}
+body:not(.tv) :is(#detail,#episode) .relbadge{align-self:flex-start;margin:0 0 10px}
+body:not(.tv) :is(#detail,#episode) .dhint{position:absolute;left:50%;bottom:14px;margin-left:-14px;width:28px;height:28px;color:rgba(255,255,255,.7);animation:dhint 1.8s ease-in-out infinite}
+body:not(.tv) :is(#detail,#episode) .dhint svg{width:28px;height:28px;stroke:currentColor;fill:none;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+body:not(.tv) .dnav{display:none}
+/* the rows */
+body:not(.tv) :is(#detail,#episode) .dp2{position:relative;background:var(--bg);padding:6px 0 0 20px}
+body:not(.tv) :is(#detail,#episode) .drow{margin:0 0 28px}
+body:not(.tv) :is(#detail,#episode) .drt{margin:0 0 12px;font-size:18px;font-weight:800;color:#fff}
+body:not(.tv) :is(#detail,#episode) .dp2 .srow,body:not(.tv) :is(#detail,#episode) .dp2 .sfilter{display:flex;gap:8px;padding:2px 20px 14px 0;overflow-x:auto;scrollbar-width:none}
+body:not(.tv) :is(#detail,#episode) .dp2 .srow::-webkit-scrollbar,body:not(.tv) :is(#detail,#episode) .dp2 .sfilter::-webkit-scrollbar{display:none}
+body:not(.tv) :is(#detail,#episode) .dp2 .chip{flex:0 0 auto;padding:8px 18px;font-size:14px;background:rgba(255,255,255,.1);border:0;color:#d5d8e3;border-radius:999px;box-shadow:none}
+body:not(.tv) :is(#detail,#episode) .dp2 .chip.on{background:#fff;color:#0d0d14}
+body:not(.tv) :is(#detail,#episode) .dp2 .dbox{display:block}
+body:not(.tv) :is(#detail,#episode) .dp2 .dbox>.dsec{display:none}
+body:not(.tv) :is(#detail,#episode) .dp2 .eplist,body:not(.tv) :is(#detail,#episode) .dp2 .slist,body:not(.tv) :is(#detail,#episode) .dp2 .dsim{display:flex;gap:14px;overflow-x:auto;overflow-y:hidden;padding:4px 20px 8px 0;scrollbar-width:none;scroll-snap-type:x proximity}
+body:not(.tv) :is(#detail,#episode) .dp2 .eplist::-webkit-scrollbar,body:not(.tv) :is(#detail,#episode) .dp2 .slist::-webkit-scrollbar,body:not(.tv) :is(#detail,#episode) .dp2 .dsim::-webkit-scrollbar{display:none}
+body:not(.tv) :is(#detail,#episode) .dp2 .ep{flex:0 0 min(64vw,250px);display:block;padding:0;margin:0;background:none;border:0;text-align:left;scroll-snap-align:start}
+body:not(.tv) :is(#detail,#episode) .dp2 .ep .ethumb{width:100%;flex:none;aspect-ratio:16/9;border-radius:12px;overflow:hidden;position:relative;background:rgba(255,255,255,.08)}
+body:not(.tv) :is(#detail,#episode) .dp2 .ep .einfo{padding:8px 2px 0}
+body:not(.tv) :is(#detail,#episode) .dp2 .ep .etop{display:block}
+body:not(.tv) :is(#detail,#episode) .dp2 .ep .etitle{display:block;font-size:14px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+body:not(.tv) :is(#detail,#episode) .dp2 .ep .edate{font-size:12px;color:#9ea2b3}
+body:not(.tv) :is(#detail,#episode) .dp2 .ep .eover{display:none}
+body:not(.tv) :is(#detail,#episode) .dp2 .scard{flex:0 0 min(78vw,300px);display:flex;align-items:flex-start;gap:12px;padding:14px 16px;margin:0;background:rgba(255,255,255,.1);border:0;border-radius:14px;text-align:left;scroll-snap-align:start}
+body:not(.tv) :is(#detail,#episode) .dp2 .scard .sname{font-size:15px;display:block;margin:0 0 4px}
+body:not(.tv) :is(#detail,#episode) .dp2 .scard .sinfo{font-size:13px;color:#b4b8c6}
+body:not(.tv) :is(#detail,#episode) .dp2 .scard .stxt,body:not(.tv) :is(#detail,#episode) .dp2 .scard .slall{display:none}
+body:not(.tv) :is(#detail,#episode) .dp2 .manualbtn{margin:0 0 12px}
+body:not(.tv) :is(#detail,#episode) .dp2 .dpl{display:block}
+body:not(.tv) :is(#detail,#episode) .dp2 .dpl .dsec{margin:0 0 12px}
+body:not(.tv) :is(#detail,#episode) .dp2 .dpl h4{display:block;margin:0 0 8px;font-size:12px;font-weight:800;letter-spacing:.8px;text-transform:uppercase;color:#9ea2b3}
+body:not(.tv) :is(#detail,#episode) .dp2 .cchips{display:flex;flex-wrap:nowrap;gap:8px;overflow-x:auto;padding:2px 20px 4px 0;scrollbar-width:none}
+body:not(.tv) :is(#detail,#episode) .dp2 .cchips::-webkit-scrollbar{display:none}
+body:not(.tv) :is(#detail,#episode) .dp2 .pillx{flex:0 0 auto;white-space:nowrap;padding:8px 16px;font-size:14px;background:rgba(255,255,255,.1);border:0;color:#e4e6ef}
+body:not(.tv) :is(#detail,#episode) .dp2 .dpane{display:block}
+body:not(.tv) :is(#detail,#episode) .dp2 .dsim .card{flex:0 0 120px;scroll-snap-align:start}
+body:not(.tv) :is(#detail,#episode) .dp2 .dsim .card .t{font-size:13px}
+body:not(.tv) :is(#detail,#episode) .dtop>.ibtn ~ .ibtn{display:none}

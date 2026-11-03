@@ -68,7 +68,7 @@ function plainIconBtn(src, path, label){
 function metaRow(parts, rating, right){
   const row = h('div', {class:'dmeta'});
   parts.filter(Boolean).forEach((t, i) => { if (i) row.append(h('span', {class:'dot'}, '·')); row.append(h('span', null, t)); });
-  if (rating) row.append(h('span', {class:'imdb'}, isTVui() ? '★' : 'IMDb'), h('span', null, String(rating)));
+  if (rating) row.append(h('span', {class:'imdb'}, true ? '★' : 'IMDb'), h('span', null, String(rating)));
   row.append(h('span', {class:'sp'}), ...(right || []).filter(Boolean));
   return row;
 }
@@ -97,7 +97,7 @@ function titleMini(meta){
 }
 function bindScroll(sheet, top){
   const hero = sheet.querySelector('.dhero');
-  const on = () => top.classList.toggle('scrolled', sheet.scrollTop > (hero ? hero.offsetHeight : 300) - 100);
+  const on = () => top.classList.toggle('scrolled', sheet.scrollTop > (hero ? Math.min(hero.offsetHeight - 100, innerHeight * .5) : 300));
   sheet.onscroll = on; on();
 }
 function trailerOf(meta){
@@ -197,7 +197,7 @@ function openEpisode(addon, type, meta, v, sorted, again){
   const streamsBox = h('div', {class:'dbox'});
   const saved = histGet().find(x => x.k === `${type}|${v.id}`);
   const etop = h('div', {class:'dtop'}, iconBtn(IC.back, 'Back', () => popLayer('episode')), titleMini(meta), h('span', {class:'dtep'}, `S${sn} E${v.episode ?? ''} · ${title}`));
-  if (isTVui()) {                                                      // TV: same two-half page as a movie, for this episode
+  if (true) {                                                      // TV: same two-half page as a movie, for this episode
     const hist = saved && !saved.upnext && saved.pos > 20;
     const play = h('button', {class:'hb p', type:'button', onclick:async () => {
       if (autoPickOn()) { if (!(await autoPlay(type, v.id, meta.name, base))) { const b = ed.querySelector('.manualbtn'); if (b) b.click(); } return; }
@@ -216,6 +216,11 @@ function openEpisode(addon, type, meta, v, sorted, again){
         tvRowsFor(addon, type, meta, 'Sources', [streamsBox], {sim:false, rows:[h('section', {class:'drow'}, h('h3', {class:'drt'}, 'Season ' + sn), others)]}))));
     const at = sorted.indexOf(v);
     ed._step = d => { const t = sorted[at + d]; if (t) openEpisode(addon, type, meta, t, sorted, true); };       // Left / Right on the top half
+    if (!isTVui()) {                                                       // phone: swipe the top half sideways for the previous / next episode
+      let sx = 0, sy = 0;
+      ed.ontouchstart = e => { sx = e.touches[0].clientX; sy = e.touches[0].clientY; };
+      ed.ontouchend = e => { if (ed.scrollTop > innerHeight * .5 || e.target.closest('.dp2')) return; const dx = e.changedTouches[0].clientX - sx, dy = e.changedTouches[0].clientY - sy; if (Math.abs(dx) > 80 && Math.abs(dy) < 50) ed._step(dx < 0 ? 1 : -1); };
+    }
     for (const [cls, ok, label] of [['l', at > 0, '‹'], ['r', at >= 0 && at < sorted.length - 1, '›']]) if (ok) ed.append(h('div', {class:'dnav ' + cls, 'aria-hidden':'true'}, label));
     manualSources(streamsBox, () => loadStreams(type, v.id, streamsBox, meta.name, base));
     return;
@@ -252,9 +257,9 @@ async function openDetail(addon, type, item, opts = {}){
     const acts = h('div', {class:'dacts2'});
     const body = h('div', {class:'dbody'}, h('div', {class:'dleft'},
       titleBlock(meta), relBadgeEl(meta, type),
-      metaRow([meta.runtime, isTVui() ? genres.slice(0, 3).join(', ') : null, meta.year || meta.releaseInfo], meta.imdbRating, [ico.seen]),
+      metaRow([meta.runtime, true ? genres.slice(0, 3).join(', ') : null, meta.year || meta.releaseInfo], meta.imdbRating, [ico.seen]),
       meta.description ? h('p', {class:'ddesc'}, meta.description) : null,
-      acts, infoPanel(meta, genres), isTVui() ? hintEl() : null,
+      acts, infoPanel(meta, genres), true ? hintEl() : null,
       ph(genres.length ? h('div', {class:'dgen'}, genres.map(g => h('button', {class:'pillx', type:'button', onclick:() => searchFor(g)}, g))) : null),
       ph(chipsSection('Cast', listOf(meta, 'cast', 'cast'))), ph(chipsSection('Director', listOf(meta, 'director', 'director'))), ph(chipsSection('Writer', listOf(meta, 'writer', 'writer')))));
     const tvRows = (title, els) => tvRowsFor(addon, type, meta, title, els);
@@ -270,10 +275,10 @@ async function openDetail(addon, type, item, opts = {}){
           return epCard(addon, type, meta, v, sorted, soon, th, hist);
         }));
       };
-      draw(); body.append(isTVui() ? tvRows('Episodes', [srow, list]) : h('div', {class:'dsec dright'}, ...rightTabs('Episodes', [srow, list], pane => similarPane(pane, addon, type, meta))));
+      draw(); body.append(true ? tvRows('Episodes', [srow, list]) : h('div', {class:'dsec dright'}, ...rightTabs('Episodes', [srow, list], pane => similarPane(pane, addon, type, meta))));
     } else if (withStreams) {                                              // ---- movie / single title: streams right here
       const box = h('div', {class:'dbox'}), saved = histGet().find(x => x.k === `${type}|${meta.id}`);
-      body.append(isTVui() ? tvRows('Sources', [box]) : h('div', {class:'dsec dright'}, ...rightTabs('Sources', [resumeButton(saved, base), box], pane => similarPane(pane, addon, type, meta))));
+      body.append(true ? tvRows('Sources', [box]) : h('div', {class:'dsec dright'}, ...rightTabs('Sources', [resumeButton(saved, base), box], pane => similarPane(pane, addon, type, meta))));
       manualSources(box, () => loadStreams(type, meta.id, box, meta.name, base));
       if (autoPickOn() && type === 'movie' && recentRelease(meta)) collectStreams(type, meta.id, base, 2500).then(o => { if (o) noteTheaters(base.info.item, o); }).catch(() => {});
     }
@@ -291,8 +296,8 @@ async function openDetail(addon, type, item, opts = {}){
       else { const rb = d.querySelector('.dright .resbtn'); if (rb) { rb.click(); return; } const t = d.querySelector('.dright .scard:not(.dis), .dp2 .scard:not(.dis)'); if (t) t.focus({preventScroll:true}); else toast('Loading sources…'); }
     }}, playLabel());
     playSync = () => { playEl.textContent = playLabel(); };
-    const restart = type === 'movie' ? (isTVui() ? (() => { const b = h('button', {class:'pib', type:'button', 'aria-label':'Start from the beginning', title:'Start from the beginning'}); b.innerHTML = `<svg viewBox="0 0 24 24">${IC.restart}</svg>`; b.onclick = () => { if (soon()) { toast('Not out yet.'); return; } autoPlay(type, meta.id, meta.name, {...base, fresh:true}); }; return b; })() : iconBtn(IC.restart, 'Start from the beginning', () => { if (soon()) { toast('Not out yet.'); return; } autoPlay(type, meta.id, meta.name, {...base, fresh:true}); })) : null;
-    acts.append(playEl, ...(isTVui() ? [plainIconBtn(ico.wl, IC.mark, 'Watchlist'), plainIconBtn(ico.seen, IC.seen, 'Watched'), restart] : [mirrorBtn(ico.wl, IC.mark, 'Watchlist'), mirrorBtn(ico.seen, IC.seen, 'Watched'), restart]));
+    const restart = type === 'movie' ? (true ? (() => { const b = h('button', {class:'pib', type:'button', 'aria-label':'Start from the beginning', title:'Start from the beginning'}); b.innerHTML = `<svg viewBox="0 0 24 24">${IC.restart}</svg>`; b.onclick = () => { if (soon()) { toast('Not out yet.'); return; } autoPlay(type, meta.id, meta.name, {...base, fresh:true}); }; return b; })() : iconBtn(IC.restart, 'Start from the beginning', () => { if (soon()) { toast('Not out yet.'); return; } autoPlay(type, meta.id, meta.name, {...base, fresh:true}); })) : null;
+    acts.append(playEl, ...(true ? [plainIconBtn(ico.wl, IC.mark, 'Watchlist'), plainIconBtn(ico.seen, IC.seen, 'Watched'), restart] : [mirrorBtn(ico.wl, IC.mark, 'Watchlist'), mirrorBtn(ico.seen, IC.seen, 'Watched'), restart]));
     d.replaceChildren(top, h('div', {class:'dwrap'}, heroBlock(meta), body));
     d.scrollTop = keep; bindScroll(d, top);
     return {sorted};

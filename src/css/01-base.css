@@ -126,7 +126,7 @@ select.chip{padding-right:10px;text-overflow:ellipsis}
 .ptile{background:none;border:0;width:96px;color:var(--text)}
 .pav{position:relative;width:88px;height:88px;border-radius:50%;margin:0 auto 8px;display:flex;align-items:center;justify-content:center;font-size:42px;box-shadow:0 6px 18px #0007}
 .pav.add{background:var(--panel2);color:var(--mut);font-size:40px}
-.pav .pe{position:absolute;right:-2px;bottom:-2px;width:28px;height:28px;border-radius:50%;background:#000c;font-size:14px;display:flex;align-items:center;justify-content:center}
+.pav .pbadge{position:absolute;right:-2px;bottom:-2px;width:28px;height:28px;border-radius:50%;background:#000c;font-size:14px;display:flex;align-items:center;justify-content:center}
 .emojis{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0}
 .emojis button{background:var(--panel2);border:0;border-radius:10px;font-size:24px;width:44px;height:44px}
 .pill{display:flex;justify-content:space-between;align-items:center;gap:10px}
