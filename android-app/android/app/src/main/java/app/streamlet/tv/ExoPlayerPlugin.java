@@ -152,13 +152,15 @@ public class ExoPlayerPlugin extends Plugin {
         new Thread(() -> {
             try {
                 HttpURLConnection c = (HttpURLConnection) new URL(url).openConnection();
-                c.setConnectTimeout(4000); c.setReadTimeout(4000);
+                c.setConnectTimeout(8000); c.setReadTimeout(8000);
                 c.setRequestProperty("Accept", "application/json");
+                JSObject hd = call.getObject("headers");                       // optional extra request headers (used by the Québec test)
+                if (hd != null) { java.util.Iterator<String> it = hd.keys(); while (it.hasNext()) { String k = it.next(); c.setRequestProperty(k, hd.getString(k)); } }
                 int code = c.getResponseCode();
                 InputStream in = code / 100 == 2 ? c.getInputStream() : c.getErrorStream();
                 java.io.ByteArrayOutputStream bo = new java.io.ByteArrayOutputStream();
                 byte[] buf = new byte[8192]; int n; while (in != null && (n = in.read(buf)) > 0) bo.write(buf, 0, n);
-                JSObject r = new JSObject(); r.put("status", code); r.put("body", bo.toString("UTF-8"));
+                JSObject r = new JSObject(); r.put("status", code); r.put("body", bo.toString("UTF-8")); r.put("url", c.getURL().toString());
                 call.resolve(r);
             } catch (Exception e) { call.reject(String.valueOf(e.getMessage())); }
         }).start();
