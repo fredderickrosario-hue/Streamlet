@@ -127,6 +127,7 @@ function editSpace(id){
     h('button', {type:'button', class:'sw' + (s.theme === k ? ' on' : ''), title:t.n, 'aria-label':t.n, style:`background:linear-gradient(135deg,${t.acc},${t.acc2 || t.acc})`, onclick:() => { s.theme = k; applyTheme(k); if (s.tabs === undefined) tabsCb.checked = !!THEMES[k].tabs; swDraw(); paintPrev(); }})));
   swDraw(); paintEg(); paintPrev();
   const tgl = (cb, title, sub) => h('label', {class:'tgl'}, h('span', null, h('b', null, title), sub ? h('small', null, sub) : null), cb);
+  const langRow = (title, key, first) => { const sel = h('select', {class:'sel'}, h('option', {value:''}, 'Same as Settings'), h('option', {value:first[0]}, first[1]), ...LANGS.map(l => h('option', {value:l.c[0]}, l.n))); sel.value = s[key] || ''; sel.onchange = () => { s[key] = sel.value; }; return h('label', {class:'tgl'}, h('span', null, h('b', null, title)), sel); };
   ed.replaceChildren(
     h('div', {class:'bar', style:'padding-left:0;padding-right:0'}, h('button', {class:'btn ghost sm', onclick:close}, '← Cancel')),
     h('div', {class:'sedwrap'},
@@ -136,6 +137,7 @@ function editSpace(id){
         h('div', {class:'sedcol'},
           h('div', {class:'lbl'}, 'Theme'), sw,
           h('div', {class:'lbl'}, 'Options'), tgl(tabsCb, 'Browse tabs', 'Home, Movies, Shows and genre tiles'),
+          h('div', {class:'lbl'}, 'Language in this space'), langRow('Audio', 'audio', ['any', 'Any']), langRow('Subtitles', 'subs', ['off', 'Off']), h('p', {class:'spin hint2'}, 'For example anime: Japanese audio with English subtitles.'),
           h('div', {class:'lbl'}, 'Catalog addons'),
           withCats.length ? h('div', null, boxes.map(({a, cb}) => tgl(cb, an(a)))) : h('p', {class:'spin', style:'padding:0'}, 'No catalog addons installed yet.'),
           h('p', {class:'spin hint2'}, 'Leave all off to use every installed addon.'),

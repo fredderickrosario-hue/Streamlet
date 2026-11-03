@@ -32,9 +32,9 @@ function renderSettings(){
   const snd = $('#setSnd'); snd.checked = u.sound !== false;
   snd.onchange = () => { lsSet('streamlet.ui', {...lsGet('streamlet.ui', {}), sound:snd.checked}); if (snd.checked) sfx.select(); };
   $('#setPlay').hidden = !nativePlayer();
-  for (const [id, k, d] of [['#setHw', 'hw', true], ['#setFps', 'fps', true], ['#setTun', 'tunnel', false], ['#setPass', 'pass', true], ['#setBlack', 'blackBg', true]]) {
+  for (const [id, k, d] of [['#setHw', 'hw', true], ['#setFps', 'fps', true], ['#setTun', 'tunnel', false], ['#setPass', 'pass', true], ['#setSaver', 'saver', true]]) {
     const el = $(id); el.checked = u[k] === undefined ? d : u[k] !== false && !!u[k];
-    el.onchange = () => { lsSet('streamlet.ui', {...lsGet('streamlet.ui', {}), [k]:el.checked}); if (k === 'blackBg') { try { const N = nativePlayer(); if (N && N.setBlackBg) N.setBlackBg({on:el.checked}); } catch {} } };
+    el.onchange = () => { lsSet('streamlet.ui', {...lsGet('streamlet.ui', {}), [k]:el.checked}); if (k === 'saver') { try { const N = nativePlayer(); if (N && N.setKeepAwake) N.setKeepAwake({on:!el.checked}); } catch {} } };
   }
   $('#verLine').textContent = 'Streamlet · web version';
   { const N = nativePlayer(); if (N && N.appVersion) N.appVersion().then(r => { $('#verLine').textContent = `Streamlet · ${vName(r.code)} · Android app`; }).catch(() => {}); }

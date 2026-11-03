@@ -14,17 +14,22 @@ public class MainActivity extends BridgeActivity {
     /** pure black behind everything (setting "Pure black background"): no grey flash when the app comes back from the system screensaver */
     static void applyBg(Activity a, boolean on) {
         try {
-            a.getWindow().setBackgroundDrawable(new ColorDrawable(on ? Color.BLACK : 0xFF0B0B13));
-            if (a instanceof BridgeActivity) { WebView wv = ((BridgeActivity) a).getBridge().getWebView(); wv.setBackgroundColor(on ? Color.BLACK : Color.TRANSPARENT); wv.invalidate(); }
+            a.getWindow().setBackgroundDrawable(new ColorDrawable(Color.BLACK));
+            if (a instanceof BridgeActivity) { WebView wv = ((BridgeActivity) a).getBridge().getWebView(); wv.setBackgroundColor(Color.BLACK); wv.invalidate(); }
         } catch (Exception ignored) { }
     }
-    private boolean blackBg() { return getSharedPreferences("streamlet_player", Context.MODE_PRIVATE).getBoolean("blackbg", true); }
+    /** setting "Screensaver" off = keep the screen awake while the app is open */
+    static void applyAwake(Activity a, boolean awake) {
+        try { if (awake) a.getWindow().addFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON); else a.getWindow().clearFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON); } catch (Exception ignored) { }
+    }
+    private boolean blackBg() { return true; }
+    private boolean keepAwake() { return getSharedPreferences("streamlet_player", Context.MODE_PRIVATE).getBoolean("keepawake", false); }
 
     @Override
-    public void onResume() { super.onResume(); applyBg(this, blackBg()); }
+    public void onResume() { super.onResume(); applyBg(this, true); applyAwake(this, keepAwake()); }
 
     @Override
-    public void onWindowFocusChanged(boolean hasFocus) { super.onWindowFocusChanged(hasFocus); if (hasFocus) applyBg(this, blackBg()); }
+    public void onWindowFocusChanged(boolean hasFocus) { super.onWindowFocusChanged(hasFocus); if (hasFocus) { applyBg(this, true); applyAwake(this, keepAwake()); } }
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -42,7 +47,7 @@ public class MainActivity extends BridgeActivity {
             wv.setHorizontalScrollBarEnabled(false);
             wv.setVerticalScrollBarEnabled(false);
             wv.setLayerType(View.LAYER_TYPE_HARDWARE, null);
-            applyBg(this, blackBg());
+            applyBg(this, true); applyAwake(this, keepAwake());
         } catch (Exception ignored) { }
     }
 }

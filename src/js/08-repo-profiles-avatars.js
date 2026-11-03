@@ -164,6 +164,8 @@ const PROFILE_COLORS = ['#7c5cff','#ff5c93','#25b9ff','#2fd18b','#ffb020','#ec1d
 const PROFILE_EMOJIS = ['😎','🦊','🐼','🐯','🦄','🐸','🚀','👑','🎮','🍕'];
 let profiles = [], profile = null;
 let settings = {subLang:'off', audioLang:'any'};
+const effAudio = () => (cur && cur.audio) || settings.audioLang;      // a space can have its own audio / subtitle language (anime: Japanese + English subs)
+const effSub = () => (cur && cur.subs) || settings.subLang;
 const lsGet = (k, d) => { try { const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch { return d; } };
 const lsSet = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} };
 const plsGet = (id, k, d) => lsGet(`streamlet.p.${id}.${k}`, d);

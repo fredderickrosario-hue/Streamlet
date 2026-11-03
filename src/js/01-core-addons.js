@@ -202,4 +202,4 @@ function noteTheaters(item, streams){
 }
 const relLabel = st => st === 'upcoming' ? 'Upcoming' : st === 'theaters' ? 'In theaters' : '';
 function relBadgeEl(meta, type){ const st = relState(meta, type), e = h('span', {class:'relbadge' + (st ? ' ' + st : ''), 'data-id':meta.id, 'data-up':st === 'upcoming' ? '1' : ''}, relLabel(st)); e.hidden = !st; return e; }
-function refreshRelBadges(id){ document.querySelectorAll('.relbadge[data-id="' + String(id).replace(/"/g, '') + '"]').forEach(e => { const t = theatersMap()[id] ? 'theaters' : (e.dataset.up === '1' ? 'upcoming' : null); e.className = 'relbadge' + (t ? ' ' + t : ''); e.textContent = relLabel(t); e.hidden = !t; }); }
+function refreshRelBadges(id){ document.querySelectorAll('.relbadge[data-id="' + String(id).replace(/"/g, '') + '"]').forEach(e => { const t = theatersMap()[id] ? 'theaters' : (e.dataset.up === '1' ? 'upcoming' : null); e.className = 'relbadge' + (t ? ' ' + t : ''); e.textContent = relLabel(t); e.hidden = !t; }); try { if (typeof playSync === 'function' && playSync) playSync(); } catch {} }

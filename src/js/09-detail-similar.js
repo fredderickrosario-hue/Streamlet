@@ -15,15 +15,16 @@ async function openResume(e){
     const sorted = meta.videos.filter(v => v && v.id).sort((x, y) => ((x.season ?? 1) - (y.season ?? 1)) || ((x.episode ?? 0) - (y.episode ?? 0))), v = sorted.find(x => x.id === e.id);
     if (v) base = episodeBase(a, e.itemType, meta, v, sorted);
   }
-  if (e.stream && e.stream.url && !e.upnext) { await hideLoading(); playStream(e.stream, e.name, {type:e.type, id:e.id, ...base}); return; }
-  if (!(await autoPlay(e.type, e.id, e.name, base))) openDetail(a, e.itemType, item, {resume:e});
+  if (e.stream && e.stream.url && !e.upnext) { await hideLoading(); await playStream(e.stream, e.name, {type:e.type, id:e.id, ...base}); backToEntry(a, e.itemType, item); return; }
+  if (!(await autoPlay(e.type, e.id, e.name, base))) openDetail(a, e.itemType, item, {resume:e}); else backToEntry(a, e.itemType, item);
 }
 const IC = {
   back:'<path d="M15 5l-7 7 7 7"/>',
   share:'<circle cx="18" cy="5.5" r="2.6"/><circle cx="6" cy="12" r="2.6"/><circle cx="18" cy="18.5" r="2.6"/><path d="M8.3 10.8l7.4-4.1M8.3 13.2l7.4 4.1"/>',
   clap:'<rect x="3.5" y="9.5" width="17" height="10.5" rx="1.6"/><path d="M3.5 9.5l1.6-4.4 14.6 3-.5 1.4M8.4 6.1l1.6 3.4M13.6 7.2l1.6 3.4"/>',
   mark:'<path d="M6.5 3.5h11v17l-5.5-4.2-5.5 4.2z"/>',
-  seen:'<path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>'
+  seen:'<path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>',
+  restart:'<path d="M4 12a8 8 0 1 0 2.6-5.9"/><path d="M4 4v4.6h4.6"/>'
 };
 function iconBtn(path, label, onclick, cls = ''){
   const b = h('button', {class:'ibtn ' + cls, type:'button', 'aria-label':label, title:label, onclick});
@@ -159,6 +160,7 @@ function episodeBase(addon, type, meta, v, sorted){
     rest: sorted.slice(i + 2, i + 6).map(x => ({id:x.id, season:x.season ?? 1, episode:x.episode, title:x.title || x.name})),
     eps: sorted.map(x => ({id:x.id, season:x.season ?? 1, episode:x.episode, title:x.title || x.name, thumb:x.thumbnail || ''}))};
 }
+let playSync = null;
 function hintEl(){ const e = h('div', {class:'dhint', 'aria-hidden':'true'}); e.innerHTML = '<svg viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>'; return e; }
 function epCard(addon, type, meta, v, sorted, soon, th, hist, again){
   return h('button', {class:'ep' + (soon ? ' soon' : ''), type:'button', onclick:() => openEpisode(addon, type, meta, v, sorted, again)},
@@ -194,7 +196,7 @@ function openEpisode(addon, type, meta, v, sorted, again){
   const when = v.released ? fmtDate(v.released) : '';
   const streamsBox = h('div', {class:'dbox'});
   const saved = histGet().find(x => x.k === `${type}|${v.id}`);
-  const etop = h('div', {class:'dtop'}, iconBtn(IC.back, 'Back', () => popLayer('episode')), titleMini(meta));
+  const etop = h('div', {class:'dtop'}, iconBtn(IC.back, 'Back', () => popLayer('episode')), titleMini(meta), h('span', {class:'dtep'}, `S${sn} E${v.episode ?? ''} · ${title}`));
   if (isTVui()) {                                                      // TV: same two-half page as a movie, for this episode
     const hist = saved && !saved.upnext && saved.pos > 20;
     const play = h('button', {class:'hb p', type:'button', onclick:async () => {
@@ -276,15 +278,21 @@ async function openDetail(addon, type, item, opts = {}){
       if (autoPickOn() && type === 'movie' && recentRelease(meta)) collectStreams(type, meta.id, base, 2500).then(o => { if (o) noteTheaters(base.info.item, o); }).catch(() => {});
     }
     const rs0 = histGet().find(x => x.itemId === meta.id && !x.upnext);
-    acts.append(h('button', {class:'hb p', type:'button', onclick:async () => {
+    const soon = () => { const st = relState(meta, type); return st === 'upcoming' || st === 'theaters'; };       // not out yet: Play becomes Trailer
+    const playLabel = () => soon() ? '▶  Trailer' : (rs0 ? '▶  Continue' : '▶  Play');
+    const playEl = h('button', {class:'hb p', type:'button', onclick:async () => {
+      if (soon()) { const yt = trailerOf(meta); if (yt) playStream({ytId:yt}, meta.name); else toast('No trailer yet.'); return; }
       if (sorted.length) {
         const rv = (rs0 && sorted.find(v => v.id === rs0.id)) || sorted.find(v => (v.season ?? 1) >= 1) || sorted[0];
         if (autoPickOn()) { if (!(await autoPlay(type, rv.id, meta.name, episodeBase(addon, type, meta, rv, sorted)))) openEpisode(addon, type, meta, rv, sorted); return; }
         openEpisode(addon, type, meta, rv, sorted);
       }
-      else if (autoPickOn() && !d.querySelector('.dright .resbtn')) { if (!(await autoPlay(type, meta.id, meta.name, base))) { const b = d.querySelector('.dright .manualbtn'); if (b) b.click(); } }
-      else { const rb = d.querySelector('.dright .resbtn'); if (rb) { rb.click(); return; } const t = d.querySelector('.dright .scard:not(.dis)'); if (t) t.focus({preventScroll:true}); else toast('Loading sources…'); }
-    }}, rs0 ? '▶  Continue' : '▶  Play'), ...(isTVui() ? [plainIconBtn(ico.wl, IC.mark, 'Watchlist'), plainIconBtn(ico.seen, IC.seen, 'Watched')] : [mirrorBtn(ico.wl, IC.mark, 'Watchlist'), mirrorBtn(ico.seen, IC.seen, 'Watched')]));
+      else if (autoPickOn() && !d.querySelector('.dright .resbtn')) { if (!(await autoPlay(type, meta.id, meta.name, base))) { const b = d.querySelector('.manualbtn'); if (b) b.click(); } }
+      else { const rb = d.querySelector('.dright .resbtn'); if (rb) { rb.click(); return; } const t = d.querySelector('.dright .scard:not(.dis), .dp2 .scard:not(.dis)'); if (t) t.focus({preventScroll:true}); else toast('Loading sources…'); }
+    }}, playLabel());
+    playSync = () => { playEl.textContent = playLabel(); };
+    const restart = type === 'movie' ? (isTVui() ? (() => { const b = h('button', {class:'pib', type:'button', 'aria-label':'Start from the beginning', title:'Start from the beginning'}); b.innerHTML = `<svg viewBox="0 0 24 24">${IC.restart}</svg>`; b.onclick = () => { if (soon()) { toast('Not out yet.'); return; } autoPlay(type, meta.id, meta.name, {...base, fresh:true}); }; return b; })() : iconBtn(IC.restart, 'Start from the beginning', () => { if (soon()) { toast('Not out yet.'); return; } autoPlay(type, meta.id, meta.name, {...base, fresh:true}); })) : null;
+    acts.append(playEl, ...(isTVui() ? [plainIconBtn(ico.wl, IC.mark, 'Watchlist'), plainIconBtn(ico.seen, IC.seen, 'Watched'), restart] : [mirrorBtn(ico.wl, IC.mark, 'Watchlist'), mirrorBtn(ico.seen, IC.seen, 'Watched'), restart]));
     d.replaceChildren(top, h('div', {class:'dwrap'}, heroBlock(meta), body));
     d.scrollTop = keep; bindScroll(d, top);
     return {sorted};
@@ -333,7 +341,7 @@ function orderStreams(ss, itemId){                                    // the sou
 const autoPickOn = () => lsGet('streamlet.ui', {}).autoPick !== false;
 const resOf = st => { const t = String((st.name || '') + ' ' + (st.title || '') + ' ' + (st.description || '')); return /\b(2160p|4k|uhd)\b/i.test(t) ? 2160 : /\b1440p\b/i.test(t) ? 1440 : /\b1080p\b/i.test(t) ? 1080 : /\b720p\b/i.test(t) ? 720 : /\b(480p|576p|sd)\b/i.test(t) ? 480 : 0; };
 function rankStreams(all, itemId){                                    // best first: what worked before, your audio language, quality up to your limit, ready-to-stream links, seeds
-  const cap = Number(lsGet('streamlet.ui', {}).maxQ) || 99999, pref = prefOf(itemId), pc = settings.audioLang === 'any' ? null : code2(settings.audioLang);
+  const cap = Number(lsGet('streamlet.ui', {}).maxQ) || 99999, pref = prefOf(itemId), pc = effAudio() === 'any' ? null : code2(effAudio());
   const lang = x => { if (!pc) return 0; const l = streamLangs(x); return l.includes(pc) ? 0 : l.includes('multi') ? 1 : 2; };
   const key = x => {
     const r = resOf(x), t = String(x.name || '') + ' ' + String(x.title || ''), seeds = Number((/\u{1F464}\s*(\d+)/u.exec(t) || [])[1]) || 0;
@@ -361,9 +369,11 @@ async function autoPlay(type, id, title, base){
   const ranked = rankStreams(sortByLang(out), base.info && base.info.item.id);
   await hideLoading();
   if (!ranked.length) { toast('No playable source found.'); return false; }
-  playStream(ranked[0], title, {type, id, ...base, _list:ranked});
+  await playStream(ranked[0], title, {type, id, ...base, _list:ranked});
   return true;
 }
+/* after a video started from the home page or a Continue card, Back lands on that title's page */
+function backToEntry(addon, type, item){ if (nativePlayer() && !layersOpen.includes('detail')) openDetail(addon, type, item); }
 /* the hero's Play button: with auto-pick on it starts the best source straight away (More info opens the page) */
 async function quickPlay(addon, type, item){
   if (!autoPickOn() || !profile) return openDetail(addon, type, item);
@@ -380,11 +390,11 @@ async function quickPlay(addon, type, item){
     const ep = (rs0 && sorted.find(v => v.id === rs0.id)) || sorted.find(v => (v.season ?? 1) >= 1) || sorted[0];
     base = episodeBase(addon, type, meta, ep, sorted); id = ep.id;
   }
-  if (!(await autoPlay(type, id, meta.name, base))) openDetail(addon, type, item);
+  if (!(await autoPlay(type, id, meta.name, base))) openDetail(addon, type, item); else backToEntry(addon, type, item);
 }
 function sortByLang(ss){
-  if (settings.audioLang === 'any') return ss;
-  const pc = code2(settings.audioLang), score = x => { const l = streamLangs(x); return l.includes(pc) ? 0 : l.includes('multi') ? 1 : 2; };
+  if (effAudio() === 'any') return ss;
+  const pc = code2(effAudio()), score = x => { const l = streamLangs(x); return l.includes(pc) ? 0 : l.includes('multi') ? 1 : 2; };
   return ss.map((x, i) => [x, i]).sort((a, b) => score(a[0]) - score(b[0]) || a[1] - b[1]).map(x => x[0]);
 }
 function streamCard(st, title, ctx){

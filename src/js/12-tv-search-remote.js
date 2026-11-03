@@ -99,6 +99,7 @@ function moveFocus(dir, rep){
   if ((dir === 'up' || dir === 'down') && !inNav && document.body.classList.contains('tv')) {
     const t = moveRow(dir, list, cur);
     if (t) { t.focus({preventScroll:true}); if (root === document.body) revealEl(t, dir, rep, tv, null); else revealEl(t, dir, rep, false, null); return; }
+    if (cur.closest(ROW_SEL)) return;                       // already on the last (or first) row: stay put
   }
   const a = cur.getBoundingClientRect(), ax = (a.left + a.right) / 2, ay = (a.top + a.bottom) / 2;
   let best = null, bs = Infinity;
@@ -193,6 +194,7 @@ function revealEl(el, dir, rep, tv, edge){
       }
       el.scrollIntoView({block:'nearest', inline:'nearest', behavior:'auto'}); return;
     } el.scrollIntoView({block: dir === 'up' || dir === 'down' ? 'center' : 'nearest', inline: dir === 'left' || dir === 'right' ? 'center' : 'nearest', behavior: rep ? 'auto' : 'smooth'}); return; }
+  cancelAnimationFrame(scrollAnim);                                         // an old slide must never fight a newer key press
   const strip = el.closest('.strip'), y0 = scrollY, x0 = strip ? strip.scrollLeft : 0;
   if (strip) {
     const item = el.closest('.strip > *') || el, sr = strip.getBoundingClientRect(), br = item.getBoundingClientRect();

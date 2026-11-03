@@ -55,12 +55,36 @@ public class ExoPlayerPlugin extends Plugin {
         } catch (Exception e) { call.reject(String.valueOf(e.getMessage())); }
     }
 
+    private void openInstaller(File out) {
+        Uri uri = FileProvider.getUriForFile(getContext(), getContext().getPackageName() + ".fileprovider", out);
+        Intent i = new Intent(Intent.ACTION_VIEW);
+        i.setDataAndType(uri, "application/vnd.android.package-archive");
+        i.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_ACTIVITY_NEW_TASK);
+        getContext().startActivity(i);
+    }
+
+    /** opens the installer for the APK downloaded earlier (installApk with install:false) */
+    @PluginMethod
+    public void installDownloaded(PluginCall call) {
+        File out = new File(new File(getContext().getCacheDir(), "updates"), "Streamlet.apk");
+        if (!out.exists()) { call.reject("nofile"); return; }
+        if (Build.VERSION.SDK_INT >= 26 && !getContext().getPackageManager().canRequestPackageInstalls()) {
+            Intent s = new Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES, Uri.parse("package:" + getContext().getPackageName()));
+            s.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            getContext().startActivity(s);
+            call.reject("permission");
+            return;
+        }
+        try { openInstaller(out); call.resolve(); } catch (Exception e) { call.reject(String.valueOf(e.getMessage())); }
+    }
+
     /** Download an APK into the app cache (emits "updateProgress" {percent}) and open the system installer. */
     @PluginMethod
     public void installApk(final PluginCall call) {
         final String url = call.getString("url");
         if (url == null || url.isEmpty()) { call.reject("url required"); return; }
-        if (Build.VERSION.SDK_INT >= 26 && !getContext().getPackageManager().canRequestPackageInstalls()) {
+        final boolean installNow = call.getBoolean("install", true);                       // false: only download, install later with installDownloaded
+        if (installNow && Build.VERSION.SDK_INT >= 26 && !getContext().getPackageManager().canRequestPackageInstalls()) {
             Intent s = new Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES, Uri.parse("package:" + getContext().getPackageName()));
             s.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
             getContext().startActivity(s);
@@ -93,11 +117,7 @@ public class ExoPlayerPlugin extends Plugin {
                         if (pct != last) { last = pct; JSObject p = new JSObject(); p.put("percent", pct); notifyListeners("updateProgress", p); }
                     }
                 }
-                Uri uri = FileProvider.getUriForFile(getContext(), getContext().getPackageName() + ".fileprovider", out);
-                Intent i = new Intent(Intent.ACTION_VIEW);
-                i.setDataAndType(uri, "application/vnd.android.package-archive");
-                i.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_ACTIVITY_NEW_TASK);
-                getContext().startActivity(i);
+                if (installNow) openInstaller(out);
                 call.resolve();
             } catch (Exception e) { call.reject(String.valueOf(e.getMessage())); }
         }).start();
@@ -116,12 +136,12 @@ public class ExoPlayerPlugin extends Plugin {
         });
     }
 
-    /** setting "Pure black background" */
+    /** setting "Screensaver": off keeps the screen awake while the app is open */
     @PluginMethod
-    public void setBlackBg(final PluginCall call) {
-        final boolean on = call.getBoolean("on", true);
-        getContext().getSharedPreferences("streamlet_player", Context.MODE_PRIVATE).edit().putBoolean("blackbg", on).apply();
-        getActivity().runOnUiThread(() -> { MainActivity.applyBg(getActivity(), on); call.resolve(); });
+    public void setKeepAwake(final PluginCall call) {
+        final boolean on = call.getBoolean("on", false);
+        getContext().getSharedPreferences("streamlet_player", Context.MODE_PRIVATE).edit().putBoolean("keepawake", on).apply();
+        getActivity().runOnUiThread(() -> { MainActivity.applyAwake(getActivity(), on); call.resolve(); });
     }
 
     @PluginMethod

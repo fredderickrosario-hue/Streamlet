@@ -62,6 +62,9 @@ import androidx.media3.common.TrackSelectionParameters;
 import androidx.media3.datasource.DefaultDataSource;
 import androidx.media3.datasource.DefaultHttpDataSource;
 import androidx.media3.exoplayer.DefaultRenderersFactory;
+import androidx.media3.exoplayer.audio.AudioCapabilities;
+import androidx.media3.exoplayer.audio.AudioSink;
+import androidx.media3.exoplayer.audio.DefaultAudioSink;
 import androidx.media3.exoplayer.ExoPlayer;
 import androidx.media3.exoplayer.trackselection.DefaultTrackSelector;
 import androidx.media3.exoplayer.mediacodec.MediaCodecInfo;
@@ -155,6 +158,7 @@ public class PlayerActivity extends Activity {
     private boolean controlsOn = false, menuOn = false, seekPending = false;
     private float speed = 1f;
     private boolean phone = false;
+    private boolean allowPassthrough = true;
     private int skipMs = 10000;
     private String epsJson = "";
     private int curS = 1, curE = 0;
@@ -334,7 +338,16 @@ public class PlayerActivity extends Activity {
                 .setReadTimeoutMs(25000);
         DefaultExtractorsFactory ex = new DefaultExtractorsFactory();
         if (compat) ex.setMatroskaExtractorFlags(MatroskaExtractor.FLAG_DISABLE_SEEK_FOR_CUES);
-        DefaultRenderersFactory rf = new DefaultRenderersFactory(this).setEnableDecoderFallback(true);
+        DefaultRenderersFactory rf = new DefaultRenderersFactory(this) {
+            @Override protected AudioSink buildAudioSink(Context ctx, boolean enableFloatOutput, boolean enableAudioTrackPlaybackParams) {
+                // speed changes need decoded sound: with Dolby/DTS passed straight to the TV the speed would stay 1x
+                return new DefaultAudioSink.Builder(ctx)
+                        .setAudioCapabilities(allowPassthrough ? AudioCapabilities.getCapabilities(ctx) : AudioCapabilities.DEFAULT_AUDIO_CAPABILITIES)
+                        .setEnableFloatOutput(enableFloatOutput)
+                        .setEnableAudioTrackPlaybackParams(true)
+                        .build();
+            }
+        }.setEnableDecoderFallback(true);
         if (!optHw) rf.setMediaCodecSelector(new MediaCodecSelector() {          // software decoders first
             @Override public List<MediaCodecInfo> getDecoderInfos(String mime, boolean secure, boolean tunneling) throws MediaCodecUtil.DecoderQueryException {
                 List<MediaCodecInfo> l = new ArrayList<>(MediaCodecUtil.getDecoderInfos(mime, secure, tunneling));
@@ -575,9 +588,47 @@ public class PlayerActivity extends Activity {
 
     private String speedLabel() { return speed == 1f ? "1\u00d7" : (speed + "\u00d7"); }
 
+    private boolean audioIsPassthroughType() {
+        try {
+            for (Tracks.Group g : player.getCurrentTracks().getGroups()) {
+                if (g.getType() != C.TRACK_TYPE_AUDIO || !g.isSelected()) continue;
+                for (int i = 0; i < g.length; i++) {
+                    if (!g.isTrackSelected(i)) continue;
+                    String m = g.getTrackFormat(i).sampleMimeType;
+                    if (MimeTypes.AUDIO_AC3.equals(m) || MimeTypes.AUDIO_E_AC3.equals(m) || MimeTypes.AUDIO_E_AC3_JOC.equals(m) || MimeTypes.AUDIO_TRUEHD.equals(m)
+                            || MimeTypes.AUDIO_DTS.equals(m) || MimeTypes.AUDIO_DTS_HD.equals(m) || MimeTypes.AUDIO_DTS_EXPRESS.equals(m)) return true;
+                }
+            }
+        } catch (Exception ignored) { }
+        return false;
+    }
+
+    /** a new player with the audio path switched (decoded sound can change speed, passed-through Dolby cannot); keeps position, tracks and speed */
+    private void rebuildPlayer(boolean passthrough, float newSpeed) {
+        if (player == null || mediaItem == null) return;
+        long pos = Math.max(0L, player.getCurrentPosition());
+        boolean playing = player.getPlayWhenReady();
+        try { player.removeListener(playerListener); } catch (Exception ignored) { }
+        player.release();
+        allowPassthrough = passthrough;
+        player = makePlayer(false);
+        view.setPlayer(player);
+        if (trackParams != null) player.setTrackSelectionParameters(trackParams);
+        if (optTunnel && tsel != null) tsel.setParameters(tsel.buildUponParameters().setTunnelingEnabled(true));
+        player.addListener(playerListener);
+        player.setMediaItem(mediaItem, pos);
+        player.prepare();
+        player.setPlaybackParameters(new androidx.media3.common.PlaybackParameters(newSpeed, 1f));
+        player.setPlayWhenReady(playing);
+        AppLog.add("SPEED", "player rebuilt, passthrough=" + passthrough + ", speed=" + newSpeed);
+    }
+
     private void setSpeed(float v) {
         speed = v;
-        if (player != null) player.setPlaybackParameters(new androidx.media3.common.PlaybackParameters(v, 1f));
+        if (player == null) return;
+        if (v != 1f && allowPassthrough && audioIsPassthroughType()) rebuildPlayer(false, v);
+        else if (v == 1f && !allowPassthrough) rebuildPlayer(true, v);
+        else player.setPlaybackParameters(new androidx.media3.common.PlaybackParameters(v, 1f));
         flash(v == 1f ? "Normal speed" : "Speed " + speedLabel());
     }
 
@@ -672,7 +723,7 @@ public class PlayerActivity extends Activity {
         hs.setClipChildren(false); hs.setClipToPadding(false);
         final LinearLayout srow = new LinearLayout(this);
         srow.setOrientation(LinearLayout.HORIZONTAL);
-        srow.setPadding(dp(2), dp(6), dp(2), dp(10));
+        srow.setPadding(dp(8), dp(10), dp(8), dp(12));
         srow.setClipChildren(false);
         hs.addView(srow);
         panel.addView(hs);

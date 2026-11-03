@@ -55,7 +55,7 @@ async function loadSubs(){
   }));
   if (pl.id !== myId) return;
   pl.loading = false;
-  if (settings.subLang !== 'off') { const m = pl.subs.find(x => sameLang(x.lang, settings.subLang)); if (m) { await applySub(m); return; } }
+  if (effSub() !== 'off') { const m = pl.subs.find(x => sameLang(x.lang, effSub())); if (m) { await applySub(m); return; } }
   renderPanel();
 }
 
@@ -68,8 +68,8 @@ function audioTracks(){
   return [];
 }
 function autoAudio(){
-  if (settings.audioLang === 'any') return;
-  const t = audioTracks(), i = t.findIndex(x => x.lang && sameLang(x.lang, settings.audioLang));
+  if (effAudio() === 'any') return;
+  const t = audioTracks(), i = t.findIndex(x => x.lang && sameLang(x.lang, effAudio()));
   if (i >= 0 && !t[i].on) { t[i].pick(); renderPanel(); }
 }
 
@@ -77,7 +77,7 @@ function renderPanel(){
   const pn = $('#ppanel'); if (pn.hidden) return;
   const byLang = {};
   for (const x of pl.subs) (byLang[langName(x.lang)] ||= []).push(x);
-  const pref = settings.subLang !== 'off' ? langName(settings.subLang) : null;
+  const pref = effSub() !== 'off' ? langName(effSub()) : null;
   const names = Object.keys(byLang).sort((a,b) => (b===pref) - (a===pref) || a.localeCompare(b));
   const subUI = [];
   if (!pl.nSrc) subUI.push(h('p', {class:'spin', style:'padding:0'}, 'No subtitle addon supports this title.'),
@@ -161,17 +161,21 @@ async function checkUpdate(){
   const latest = m ? +m[1] : 0;
   return (updInfo = {cur, latest, newer: latest > cur});
 }
+/* one button: "Download v1.0.N" -> progress inside the button -> "Install" */
 async function runUpdate(){
   const N = nativePlayer(), msg = $('#apkMsg'), btn = $('#apkInstall');
-  if (btn.dataset.busy) return; btn.dataset.busy = '1'; msg.textContent = 'Downloading…';   // not 'disabled': that would take the remote's focus away
-  lsSet('streamlet.upd', Date.now());                                    // if the system restarts the app while installing, come back to Settings
-  const hd = await N.addListener('updateProgress', e => { if (e.percent >= 0) msg.textContent = `Downloading… ${e.percent}%`; });
-  try { await N.installApk({url:UPD_APK}); msg.textContent = 'Tap Install in the window that opened.'; }
-  catch (e) {
-    msg.textContent = String(e.message || e) === 'permission'
-      ? 'Allow Streamlet to install apps in the settings screen that just opened, come back and tap again.'
-      : "Couldn't download the update (" + (e.message || e) + ').';
+  if (btn.dataset.busy) return;                                           // not 'disabled': that would take the remote's focus away
+  const permMsg = 'Allow Streamlet to install apps in the settings screen that just opened, come back and press Install again.';
+  if (btn.dataset.ready) {
+    lsSet('streamlet.upd', Date.now());                                    // if the system restarts the app while installing, come back to Settings
+    try { await N.installDownloaded(); msg.textContent = 'Confirm Install in the window that opened.'; }
+    catch (e) { msg.textContent = String(e.message || e) === 'permission' ? permMsg : "Couldn't start the install (" + (e.message || e) + ').'; }
+    return;
   }
+  btn.dataset.busy = '1'; btn.classList.add('dl'); const setP = p => { btn.style.setProperty('--p', p + '%'); btn.textContent = 'Downloading ' + p + '%'; }; setP(0);
+  const hd = await N.addListener('updateProgress', e => { if (e.percent >= 0) setP(e.percent); });
+  try { await N.installApk({url:UPD_APK, install:false}); btn.dataset.ready = '1'; btn.classList.remove('dl'); btn.textContent = 'Install'; msg.textContent = 'Downloaded. Press Install.'; }
+  catch (e) { btn.classList.remove('dl'); btn.textContent = `Download ${vName(updInfo ? updInfo.latest : '')}`; msg.textContent = "Couldn't download the update (" + (e.message || e) + ').'; }
   try { hd.remove(); } catch {}
   delete btn.dataset.busy;
 }
@@ -180,7 +184,7 @@ function showUpdState(){
   if (!updInfo) return;
   $('#tabSettings').classList.toggle('upd', !!updInfo.newer);
   inst.hidden = !updInfo.newer;
-  if (updInfo.newer) { inst.textContent = `Install ${vName(updInfo.latest)}`; inst.onclick = runUpdate; msg.textContent = `Installed: ${vName(updInfo.cur)}. ${vName(updInfo.latest)} is available.`; }
+  if (updInfo.newer) { if (!inst.dataset.ready && !inst.dataset.busy) inst.textContent = `Download ${vName(updInfo.latest)}`; inst.onclick = runUpdate; msg.textContent = `Installed: ${vName(updInfo.cur)}. ${vName(updInfo.latest)} is available.`; }
   else msg.textContent = `You're up to date (${vName(updInfo.cur)}).`;
 }
 async function manualCheck(){
@@ -215,7 +219,7 @@ async function playNative(s, title, ctx){
   let subs = [];
   if (ctx) { try { subs = await withTimeout(collectSubs(ctx), 5000); } catch {} }
   for (const sub of (s.subtitles || [])) subs.push({url:sub.url, lang:sub.lang || 'eng'});
-  const pref = settings.subLang !== 'off' ? settings.subLang : null;
+  const pref = effSub() !== 'off' ? effSub() : null;
   subs.sort((a, b) => (pref && sameLang(b.lang, pref) ? 1 : 0) - (pref && sameLang(a.lang, pref) ? 1 : 0));
   const seen = {}, picked = [];
   for (const x of subs) {                      // preferred language: up to 6 options, others: up to 2 each
@@ -224,13 +228,13 @@ async function playNative(s, title, ctx){
     if (seen[n] < cap && picked.length < 24) { seen[n]++; picked.push({url:x.url, lang:code2(x.lang) || String(x.lang), label:n + (seen[n] > 1 ? ' ' + seen[n] : '')}); }
   }
   const saved = ctx && histGet().find(x => x.k === `${ctx.type}|${ctx.id}`);
-  const startMs = saved && !saved.upnext && saved.pos > 20 ? Math.round(saved.pos * 1000) : 0;
+  const startMs = ctx && ctx.fresh ? 0 : saved && !saved.upnext && saved.pos > 20 ? Math.round(saved.pos * 1000) : 0;
   const stream = {url:s.url, name:s.name, title:s.title};
   const handle = await N.addListener('progress', e => recordProgress(ctx, stream, e.position / 1000, e.duration / 1000));
   try {
     const epLine = ctx && ctx.ep ? `S${ctx.ep.season ?? 1}:E${ctx.ep.episode ?? ''}` + (ctx.ep.title ? ' · ' + ctx.ep.title : '') : '';
     const itemId = ctx && ctx.info && ctx.info.item.id, nextTitle = ctx && ctx.next ? `S${ctx.next.season ?? 1}:E${ctx.next.episode ?? ''}` + (ctx.next.title ? ' · ' + ctx.next.title : '') : '';
-    const r = await N.play({nextTitle, episode:!!(ctx && ctx.ep), subDelay:(mapGet('streamlet.subdelay')[itemId] || 0), url:s.url, title:title || '', hw:uiPlay('hw', true), fps:uiPlay('fps', true), tunnel:uiPlay('tunnel', false), pass:uiPlay('pass', true), skip:Number(lsGet('streamlet.ui', {}).skip) || 10, eps:(ctx && ctx.eps && ctx.ep ? JSON.stringify(ctx.eps.map(x => ({s:x.season, e:x.episode, t:x.title || '', th:x.thumb || ''}))) : ''), curSeason:(ctx && ctx.ep ? ctx.ep.season ?? 1 : 1), curEpisode:(ctx && ctx.ep ? ctx.ep.episode ?? 0 : 0), subtitle:epLine, accent:(getComputedStyle(document.documentElement).getPropertyValue('--acc') || '').trim(), startMs, subtitles:picked, audioLang:code2(settings.audioLang) || null, subLang:pref ? (code2(pref) || pref) : null});
+    const r = await N.play({nextTitle, episode:!!(ctx && ctx.ep), subDelay:(mapGet('streamlet.subdelay')[itemId] || 0), url:s.url, title:title || '', hw:uiPlay('hw', true), fps:uiPlay('fps', true), tunnel:uiPlay('tunnel', false), pass:uiPlay('pass', true), skip:Number(lsGet('streamlet.ui', {}).skip) || 10, eps:(ctx && ctx.eps && ctx.ep ? JSON.stringify(ctx.eps.map(x => ({s:x.season, e:x.episode, t:x.title || '', th:x.thumb || ''}))) : ''), curSeason:(ctx && ctx.ep ? ctx.ep.season ?? 1 : 1), curEpisode:(ctx && ctx.ep ? ctx.ep.episode ?? 0 : 0), subtitle:epLine, accent:(getComputedStyle(document.documentElement).getPropertyValue('--acc') || '').trim(), startMs, subtitles:picked, audioLang:code2(effAudio()) || null, subLang:pref ? (code2(pref) || pref) : null});
     if (r && r.failed) {
       badStreams.add(s); badSet(s); logErr(title, s, r.error); const el = streamEls.get(s); if (el) el.classList.add('bad');
       const list = (ctx && ctx._list) || [], i = list.indexOf(s);

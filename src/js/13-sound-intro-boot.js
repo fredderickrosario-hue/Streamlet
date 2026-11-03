@@ -129,7 +129,8 @@ document.addEventListener('keydown', e => {
   if (e.key === 'Backspace' && !typing) { e.preventDefault(); history.back(); return; }
   if (/^Arrow(Up|Down|Left|Right)$/.test(e.key)) {
     if (typing && (e.key === 'ArrowLeft' || e.key === 'ArrowRight')) return;
-    e.preventDefault(); const before = document.activeElement; moveFocus(e.key.slice(5).toLowerCase(), e.repeat); if (document.activeElement !== before) sfx.tick();
+    e.preventDefault(); if (e.repeat) { const n = performance.now(); if (n - (window.__lastNav || 0) < 85) return; window.__lastNav = n; } else window.__lastNav = performance.now();   // held keys move at a steady pace
+    const before = document.activeElement; moveFocus(e.key.slice(5).toLowerCase(), e.repeat); if (document.activeElement !== before) sfx.tick();
   }
 }, true);
 
@@ -224,7 +225,7 @@ $('#pseek').addEventListener('click', e => { const v = $('#vid'), r = e.currentT
 
 /* ---------- boot ---------- */
 history.replaceState({guard:true}, '');
-try { const N = nativePlayer(); if (N && N.setBlackBg) N.setBlackBg({on:lsGet('streamlet.ui', {}).blackBg !== false}); } catch {}
+try { const N = nativePlayer(); if (N && N.setKeepAwake) N.setKeepAwake({on:lsGet('streamlet.ui', {}).saver === false}); } catch {}
 initProfiles();
 startAuth();
 if ('serviceWorker' in navigator && /^https?:/.test(location.protocol)) navigator.serviceWorker.register('sw.js').catch(()=>{});

@@ -131,3 +131,26 @@ body.tv :is(#detail,#episode) .dp2 .chip:focus-visible{box-shadow:inset 0 0 0 5p
 body.tv :is(#detail,#episode) .dp2 .chip.on:focus-visible{background:var(--acc);color:var(--btnt,#fff)}
 body.tv .chip:focus-visible,body.tv .pillx:focus-visible,body.tv .hb:focus-visible{outline:3px solid #fff;outline-offset:-3px;transform:none}
 body.tv .hb.p:focus-visible{outline-offset:3px;box-shadow:0 0 0 1px rgba(0,0,0,.4)}
+
+/* v3f: the badge hugs its text, quiet episode title in the top bar, restart icon like the other icons */
+.relbadge{align-self:flex-start;width:max-content;max-width:100%;font-size:11px;padding:3px 10px}
+body.tv :is(#detail,#episode) .dtep{display:none;margin-left:14px;font-size:14px;font-weight:600;color:rgba(255,255,255,.55);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:46vw}
+body.tv #episode.p2 .dtep{display:inline-block}
+body:not(.tv) .dtep{display:none}
+
+/* update button: progress fills inside the button */
+#apkInstall.dl{background:linear-gradient(90deg,var(--acc) var(--p,0%),rgba(255,255,255,.16) var(--p,0%)) !important;color:#fff;box-shadow:none}
+
+/* TV: watchlist, addons, settings and profile keep their title fixed; only the content scrolls (like the phone) */
+body.tv.pgfix:not(.launch){overflow:hidden}
+body.tv.pgfix:not(.launch) main{padding:0 0 0 132px}
+body.tv.pgfix:not(.launch) main>section:not([hidden]){display:flex;flex-direction:column;height:calc(var(--vh,1vh) * 100);overflow:hidden;box-sizing:border-box}
+body.tv.pgfix:not(.launch) .pagehead{flex:0 0 auto;padding:calc(var(--vh,1vh) * 4) 40px 8px 0}
+body.tv.pgfix:not(.launch) #wlTabs,body.tv.pgfix:not(.launch) #adSeg,body.tv.pgfix:not(.launch) #addBox{flex:0 0 auto}
+body.tv.pgfix:not(.launch) #settings>.pad,body.tv.pgfix:not(.launch) #me>.pad,body.tv.pgfix:not(.launch) #wlGrid,body.tv.pgfix:not(.launch) #adBrowse:not([hidden]),body.tv.pgfix:not(.launch) #adInstalled #list{flex:1 1 auto;min-height:0;overflow-y:auto;overscroll-behavior:contain;padding:10px 40px calc(var(--vh,1vh) * 10) 8px;margin:0 -8px 0 -8px;scrollbar-width:none}
+body.tv.pgfix:not(.launch) #adInstalled:not([hidden]){flex:1 1 auto;min-height:0;display:flex;flex-direction:column;padding-bottom:0}
+body.tv.pgfix:not(.launch) :is(#settings>.pad,#me>.pad,#wlGrid,#adBrowse,#adInstalled #list)::-webkit-scrollbar{display:none}
+/* TV side menu: the profile picture is as wide as the other icons, so nothing slides when the menu opens */
+body.tv nav .navav{width:26px;height:26px}
+body.tv nav .navav .av{width:26px !important;height:26px !important}
+body.tv.pgfix:not(.launch) :is(#settings>.pad,#me>.pad,#wlGrid,#adBrowse,#adInstalled #list){-webkit-mask-image:linear-gradient(to bottom,transparent 0,#000 16px);mask-image:linear-gradient(to bottom,transparent 0,#000 16px)}

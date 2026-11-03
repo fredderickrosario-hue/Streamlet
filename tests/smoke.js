@@ -110,6 +110,9 @@ const ok = (name, cond, extra) => { cond ? pass++ : fail++; console.log((cond ? 
     });
     ok('same movie from two addons shows once (poster wins)', dd.n === 2 && dd.first === 'p.jpg', JSON.stringify(dd));
     ok('upcoming and in-theater labels (recordings do not count as released)', dd.fut === 'upcoming' && dd.old === null && dd.th === 'theaters' && dd.gone === null && dd.hidden === false, JSON.stringify(dd));
+    // a space can have its own languages
+    const lg = await p.evaluate(() => { settings = { subLang: 'off', audioLang: 'any' }; const before = [effAudio(), effSub()]; cur = { ...cur, audio: 'jpn', subs: 'eng' }; const after = [effAudio(), effSub()]; cur = { ...cur, audio: '', subs: '' }; return { before, after, back: [effAudio(), effSub()] }; });
+    ok('space languages override the Settings ones', JSON.stringify(lg.before) === '["any","off"]' && JSON.stringify(lg.after) === '["jpn","eng"]' && JSON.stringify(lg.back) === '["any","off"]', JSON.stringify(lg));
     // spaces page
     const sp = await p.evaluate(() => { spaces = [{ id: 'a', name: 'A', emoji: '🍿', theme: 'violet', catalogs: [] }, { id: 'b', name: 'B', emoji: '🎌', theme: 'rose', catalogs: [] }]; showLauncher(); return document.querySelectorAll('.stile:not(.new)').length; });
     ok('spaces page shows every space', sp === 2, sp);
