@@ -126,3 +126,8 @@ body.tv .tvhero .tbg{left:0;-webkit-mask-image:linear-gradient(to right,rgba(0,0
 .tvhero .tdots i.on{width:24px;background:#fff}
 body:not(.tv) .tvhero .tdots{justify-content:center}
 .tvhero .tbg img{transition:opacity .9s ease}
+/* slow drift on the hero picture, a little zoomed in */
+.tvhero .tbg{overflow:hidden}
+.tvhero .tbg img.on{animation:kenburns 16s ease-out both;transform-origin:62% 38%}
+@keyframes kenburns{from{transform:scale(1.07) translate(0,0)}to{transform:scale(1.18) translate(-1.6%,-1.2%)}}
+@media (prefers-reduced-motion:reduce){.tvhero .tbg img.on{animation:none;transform:scale(1.07)}}

@@ -167,9 +167,9 @@ async function renderHome(query = $('#q').value.trim(), target){
       shown++; loading.remove();
       if (!heroDone && !query && heroBox.isConnected) {
         heroDone = true;
-        const hm = metas.find(x => x.background) || metas[0], ht = hm.type || cat.type;
+        const bgs = metas.filter(x => x.background).slice(0, 10), hm = bgs.length ? bgs[Math.floor(Math.random() * bgs.length)] : metas[0], ht = hm.type || cat.type;
         heroSlides = []; heroIdx = 0; heroBox.replaceChildren(buildTvHero()); setTvHero({a, m:hm, type:ht}, true);
-        if (profile && !(view.genre)) { const tk = ++heroTok, ex = metas.filter(x => x.background && x !== hm).slice(0, 5).map(x => ({a, m:x, type:x.type || cat.type})); heroBuild({a, m:hm, type:ht}, ex, tk).catch(() => {}); }
+        if (profile && !(view.genre)) { const tk = ++heroTok, ex = metas.filter(x => x.background && x !== hm).sort(() => Math.random() - .5).slice(0, 5).map(x => ({a, m:x, type:x.type || cat.type})); heroBuild({a, m:hm, type:ht}, ex, tk).catch(() => {}); }
       }
       for (const m of metas) {
         const btn = h('button', {class:'card', onclick:()=>openDetail(a, m.type||cat.type, m)}, posterEl(m), h('div', {class:'t'}, m.name), h('div', {class:'s'}, m.releaseInfo || m.year || ''));

@@ -31,7 +31,7 @@ function syncRibbons(){
 function watchedAdd(e){
   if (!profile) return;
   const rt = pget('wdRemoved', {})[e.itemId] || 0;
-  pset('watched', [{itemId:e.itemId, type:e.type, name:e.name, t:Math.max(Date.now(), rt + 1)}, ...wdGet().filter(x => x.itemId !== e.itemId)].slice(0, 3000));
+  pset('watched', [{itemId:e.itemId, type:e.type, name:e.name, space:cur && cur.id, t:Math.max(Date.now(), rt + 1)}, ...wdGet().filter(x => x.itemId !== e.itemId)].slice(0, 3000));
   for (const x of histGet().filter(h_ => h_.itemId === e.itemId)) histRemove(x.k);   // watched titles leave "Continue watching"
   scheduleSync(); syncRibbons();
 }

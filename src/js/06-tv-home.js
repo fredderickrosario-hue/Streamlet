@@ -28,7 +28,7 @@ function setTvHero(ctx, instant){
 }
 /* ---------- hero slideshow: new episodes of what you watch, confirmed new seasons, then recommendations ---------- */
 let heroSlides = [], heroIdx = 0, heroTimer = 0, heroHold = 0, heroTok = 0;
-const heroPause = (ms = 25000) => { heroHold = Date.now() + ms; };
+const heroPause = (ms = 12000) => { heroHold = Date.now() + ms; };
 function heroGo(i){
   if (!heroSlides.length || !$('#rows .tvhero')) return;
   heroIdx = (i + heroSlides.length) % heroSlides.length; setTvHero(heroSlides[heroIdx]);
@@ -49,11 +49,12 @@ const dayOf = d => { const t = new Date(d); return isNaN(t) ? 0 : t.getTime(); }
 async function heroBuild(first, extras, tok){
   const out = [], now = Date.now(), DAY = 864e5, seen = new Set([first.m.id]);
   const shows = [], ids = new Set();
-  for (const e of [...histGet(), ...wdGet().map(x => ({itemId:x.itemId, itemType:x.type, name:x.name}))]) {
+  const mine = x => allHist() || x.space === (cur && cur.id), wlIds = new Set(wlHere().map(x => x.itemId));
+  for (const e of [...histForSpace(), ...wlHere().map(x => ({itemId:x.itemId, itemType:x.type, name:x.name})), ...wdGet().filter(mine).map(x => ({itemId:x.itemId, itemType:x.type, name:x.name}))]) {
     const ty = e.itemType || e.type; if (ty !== 'series' || ids.has(e.itemId) || ids.size >= 8) continue; ids.add(e.itemId); shows.push(e);
   }
-  const addonFor = e => addons.find(x => x.uid === e.addonId && supports(x, 'meta', 'series', e.itemId)) || addons.find(x => supports(x, 'meta', 'series', e.itemId));
-  const found = (await Promise.all(shows.map(async e => {
+  const pool = spaceAddons(), addonFor = e => pool.find(x => x.uid === e.addonId && supports(x, 'meta', 'series', e.itemId)) || pool.find(x => supports(x, 'meta', 'series', e.itemId));
+  const found = (await Promise.all(shows.map(e => Promise.race([(async () => {
     try {
       const ma = addonFor(e); if (!ma) return null;
       const r = await getJSON(`${ma.base}/meta/series/${enc(e.itemId)}.json`), m = {...r.meta, type:'series'};
@@ -77,21 +78,21 @@ async function heroBuild(first, extras, tok){
         return {a:ma, m, type:'series', tag:`Season ${nx.season} returns ${new Date(nx.released).toLocaleDateString(undefined, {month:'short', day:'numeric', timeZone:'UTC'})}`, rank:1};
     } catch {}
     return null;
-  }))).filter(Boolean).sort((x, y) => x.rank - y.rank);
+  })(), new Promise(r => setTimeout(() => r(null), 5000))])))).filter(Boolean);
   if (tok !== heroTok) return;
-  for (const f of found) if (!seen.has(f.m.id) && (f.m.background || f.m.poster)) { seen.add(f.m.id); out.push(f); }
-  for (const x of extras) if (!seen.has(x.m.id) && x.m.background && out.length < 8) { seen.add(x.m.id); out.push({...x, tag:'Recommended'}); }
-  heroSlides = [{...first, tag:first.tag || (out.length ? 'Recommended' : '')}, ...out].slice(0, 8);
-  // the hero starts on the most relevant slide: something new from your shows
-  heroIdx = 0; if (found.length) { const i = heroSlides.findIndex(x => x.tag && /^New episode|^Season/.test(x.tag)); if (i > 0) heroIdx = i; }
-  if (heroSlides.length > 1) { setTvHero(heroSlides[heroIdx], true); if (!heroTimer) heroTimer = setInterval(heroTick, 8000); }
+  const rest = [];
+  for (const f of found) if (!seen.has(f.m.id) && (f.m.background || f.m.poster)) { seen.add(f.m.id); rest.push(f); }
+  for (const x of extras) if (!seen.has(x.m.id) && x.m.background) { seen.add(x.m.id); rest.push({...x, tag:'Recommended'}); }
+  for (let i = rest.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [rest[i], rest[j]] = [rest[j], rest[i]]; }   // a different order every visit
+  heroSlides = [first, ...rest].slice(0, 8); heroIdx = 0;
+  if (heroSlides.length > 1) { setTvHero(heroSlides[0], true); if (!heroTimer) heroTimer = setInterval(heroTick, 6000); }
 }
-for (const ev of ['keydown', 'touchstart', 'pointerdown']) document.addEventListener(ev, () => heroPause(20000), {passive:true});
+for (const ev of ['keydown', 'touchstart', 'pointerdown']) document.addEventListener(ev, () => heroPause(10000), {passive:true});
 document.addEventListener('focusin', e => {
   if (!document.body.classList.contains('tv')) return;
   const c = e.target.closest && e.target.closest('button.card');
   if (!c || !c._hero || !c._hero.m || c._hero.m === (tvHeroCtx || {}).m) return;
-  heroPause(30000); clearTimeout(tvHeroT); tvHeroT = setTimeout(() => setTvHero(c._hero), 170);
+  heroPause(12000); clearTimeout(tvHeroT); tvHeroT = setTimeout(() => setTvHero(c._hero), 170);
 });
 addEventListener('scroll', () => document.body.classList.toggle('scr', scrollY > 30), {passive:true});
 /*@phone*/
