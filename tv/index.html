@@ -4801,9 +4801,13 @@ async function qcCatalogTest(path, L){
   for (const u of [`show/${show}/${ep}`, `show/${show}/${ep.replace(/e\d+$/, '')}`, `show/${show}`]) {
     try {
       const r = await N.touGet({url:`https://services.radio-canada.ca/ott/catalog/v2/toutv/${u}?device=web&tier=Member`});
-      let j = null; try { j = JSON.parse(r.body); } catch {}
-      L(`  ${u}: status ${r.status} · ${(r.body || '').length} chars${j ? '' : ' · ' + String(r.body).slice(0, 80)}`);
-      if (j) { qcOutline(j, L, 45); for (const m of String(r.body).matchAll(/"(?:idMedia|mediaId|formattedIdMedia|playbackId)"\s*:\s*"?(\d{5,})/g)) ids.add(m[1]); }
+      const body = String(r.body || ''); let j = null, perr = ''; try { j = JSON.parse(body); } catch (e) { perr = String(e.message).slice(0, 90); }
+      L(`  ${u}: status ${r.status} · ${body.length} chars · ${j ? 'json' : 'not json: ' + perr}`);
+      if (!j) { L('    starts: ' + body.slice(0, 260).replace(/\s+/g, ' ')); L('    ends: ' + body.slice(-120).replace(/\s+/g, ' ')); }
+      const keys = new Map(); for (const m of body.matchAll(/"([A-Za-z]*(?:[Mm]edia|[Pp]layback|[Pp]lay)[A-Za-z]*)"\s*:\s*("[^"]{0,50}"|\d+)/g)) if (!keys.has(m[1]) && keys.size < 14) keys.set(m[1], m[2]);
+      L('    media-like keys: ' + ([...keys].map(([k, v]) => k + '=' + v).join(' · ') || 'none'));
+      if (j) qcOutline(j, L, 45);
+      for (const m of body.matchAll(/"(?:idMedia|mediaId|formattedIdMedia|playbackId)"\s*:\s*"?(\d{5,})/g)) ids.add(m[1]);
     } catch (e) { L(`  ${u}: failed ${e}`); }
   }
   L('', 'media ids found: ' + ([...ids].slice(0, 6).join(', ') || 'none'));
