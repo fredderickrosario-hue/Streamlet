@@ -9,6 +9,7 @@ function setTvHero(ctx, instant){
   const m = ctx.m, tbg = box.querySelector('.tbg'), tin = box.querySelector('.tin');
   const src = m.background || m.poster;
   if (src && !(tbg.lastChild && tbg.lastChild.dataset.src === src)) {
+    tbg.style.setProperty('--bgi', `url("${String(src).replace(/"/g, '%22')}")`);
     const img = h('img', {alt:'', 'data-src':src}); img.onerror = () => img.remove();
     img.onload = () => { requestAnimationFrame(() => img.classList.add('on')); setTimeout(() => { for (const o of [...tbg.children]) if (o !== img && o !== tbg.lastChild) o.remove(); }, 800); };
     img.src = src; tbg.append(img);

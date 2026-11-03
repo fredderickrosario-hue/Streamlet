@@ -494,13 +494,11 @@ body:not(.tv) .tvhero .tdots{justify-content:center}
 @media (prefers-reduced-motion:reduce){.tvhero .tbg img.on{animation:none;transform:scale(1.05)}}
 .tvhero{touch-action:pan-y}
 /* phone: the picture pans slowly left to right, so the whole wide image gets seen */
-body:not(.tv) .tvhero .tbg img.on{animation:panx 8.4s linear both;transform:scale(1.1);transform-origin:center;object-position:0% 12%}
-@keyframes panx{from{object-position:0% 12%}to{object-position:100% 12%}}
-@media (prefers-reduced-motion:reduce){body:not(.tv) .tvhero .tbg img.on{animation:none;object-position:center 12%}}
-
-/* phone: the picture starts below the top bar and tabs instead of sitting behind them */
-body:not(.tv) .tvhero .tbg{top:var(--ho)}
-body:not(.tv) .tvhero .tbg img{-webkit-mask-image:linear-gradient(to bottom,transparent 0,#000 12%,#000 62%,transparent 100%);mask-image:linear-gradient(to bottom,transparent 0,#000 12%,#000 62%,transparent 100%)}
+/* phone: the whole picture, full width and still, with a soft blurred copy of it bleeding up behind the top bar */
+body:not(.tv) .tvhero .tbg{top:0;overflow:hidden}
+body:not(.tv) .tvhero .tbg::before{content:'';position:absolute;inset:0;background:var(--bgi) center top/cover no-repeat;filter:blur(26px) saturate(1.15);transform:scale(1.3);opacity:.8;-webkit-mask-image:linear-gradient(to bottom,#000 55%,transparent 100%);mask-image:linear-gradient(to bottom,#000 55%,transparent 100%)}
+body:not(.tv) .tvhero .tbg img,body:not(.tv) .tvhero .tbg img.on{animation:none;transform:none;top:var(--ho);height:calc(100% - var(--ho));object-fit:contain;object-position:center top;
+  -webkit-mask-image:linear-gradient(to bottom,transparent 0,#000 14%,#000 100%);mask-image:linear-gradient(to bottom,transparent 0,#000 14%,#000 100%)}
 /* ---- v4: TV pages, expanding nav, genre tiles, search page, intro ---- */
 /* nav: full-height transparent rail that expands with labels when focused */
 
@@ -2008,6 +2006,7 @@ function setTvHero(ctx, instant){
   const m = ctx.m, tbg = box.querySelector('.tbg'), tin = box.querySelector('.tin');
   const src = m.background || m.poster;
   if (src && !(tbg.lastChild && tbg.lastChild.dataset.src === src)) {
+    tbg.style.setProperty('--bgi', `url("${String(src).replace(/"/g, '%22')}")`);
     const img = h('img', {alt:'', 'data-src':src}); img.onerror = () => img.remove();
     img.onload = () => { requestAnimationFrame(() => img.classList.add('on')); setTimeout(() => { for (const o of [...tbg.children]) if (o !== img && o !== tbg.lastChild) o.remove(); }, 800); };
     img.src = src; tbg.append(img);
