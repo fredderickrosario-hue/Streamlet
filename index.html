@@ -4934,6 +4934,41 @@ async function qcProbe(input, out){
       } catch (e) { L(`  ${id} ${app}: failed ${e}`); }
     }
   }
+  // Tou.tv catalog service: ask for the episode itself (guessing the endpoint names used by Radio-Canada's apps)
+  const tt = url.match(/tou\.tv\/([a-z0-9-]+)\/(s\d+e\d+)/i);
+  if (tt) {
+    const [, show, ep] = tt, id = `${show}/${show}/${ep}`.toLowerCase();
+    L('', `TOU.TV CATALOG · ${show} ${ep}`);
+    const found = new Set();
+    for (const u of [
+      `https://services.radio-canada.ca/ott/catalog/v2/toutv/content/${show}/${show}/${ep}?device=web&version=4`,
+      `https://services.radio-canada.ca/ott/catalog/v2/toutv/content/${show}/${ep}?device=web&version=4`,
+      `https://services.radio-canada.ca/ott/catalog/v2/toutv/show/${show}?device=web&version=4`,
+      `https://services.radio-canada.ca/ott/catalog/v2/toutv/episode/${show}/${ep}?device=web&version=4`,
+      `https://services.radio-canada.ca/ott/toutv-api/v2/assets/${show}/${ep}`,
+      `https://services.radio-canada.ca/ott/tou-tv-api/v2/assets/${show}/${ep}`,
+      `https://services.radio-canada.ca/ott/catalog/v2/toutv/assets/${show}/${ep}`,
+      `https://ici.tou.tv/_next/data/${(page.match(/"buildId":"([^"]+)"/) || [])[1] || 'x'}/${show}/${ep}.json`]) {
+      try {
+        const r = await qcGet(u), body = String(r.body || '');
+        let j = null; try { j = JSON.parse(body); } catch {}
+        L(`  ${u.replace('https://', '').slice(0, 96)} → ${r.status} ${j ? 'json ' + body.length : body.slice(0, 70).replace(/\s+/g, ' ')}`);
+        if (j && r.status === 200) {
+          qcOutline(j, L, 40);
+          for (const m of body.matchAll(/"(?:idMedia|mediaId|formattedIdMedia)"\s*:\s*"?(\d{5,})/g)) found.add(m[1]);
+          const ps = body.match(/"playSession"\s*:\s*\{[^}]*\}/); if (ps) L('  playSession: ' + ps[0].replace(/https?:\/\/[^"]+/g, u2 => qcHost(u2)).slice(0, 160));
+        }
+      } catch (e) { L('  failed ' + u.slice(8, 60) + ': ' + e); }
+    }
+    for (const id2 of [...found].slice(0, 4)) {
+      try {
+        const r = await qcGet(`https://services.radio-canada.ca/media/validation/v2/?appCode=toutv&deviceType=ipad&connectionType=wifi&idMedia=${id2}&output=json`);
+        let j = null; try { j = JSON.parse(r.body); } catch {}
+        L(`  media ${id2}: errorCode ${j && j.errorCode} · ${String(j && j.message || '').slice(0, 80)} · url ${j && j.url ? qcHost(j.url) : 'none'}`);
+        if (j && j.url) await qcPlaylist(j.url, L);
+      } catch (e) { L('  media failed: ' + e); }
+    }
+  }
   L('', 'Done. Nothing was saved and no password was used.');
 }
 $('#qcRun').onclick = async () => {
