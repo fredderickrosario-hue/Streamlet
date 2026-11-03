@@ -129,12 +129,17 @@ async function renderHome(query = $('#q').value.trim(), target){
   }
   if (query) { await renderResults(query, box, tok); return; }
   const tabs = spaceTabs() && !query;
+  const skipP = personalSkip; personalSkip = false;
+  const personal = !skipP && !query && !target && !(tabs && view.genre) && (!tabs || view.tab === 'home') && personalSeeds().any;
+  const hideCats = personal && tabs;                                            // with tabs, the catalogs live in Movies / Shows as discoveries
   const heroBox = h('div'); if (!query && !(tabs && view.genre)) box.append(heroBox); else if (!target) box.append(h('div', {class:'tspace'}));
   if (tabs && !target) box.append(genreStrip());
   if (!target) { box.append(h('div', {id:'cwBox'})); renderCW(); }
+  if (personal) { const pbox = h('div', {id:'pBox'}); box.append(pbox); renderPersonal(pbox, tok).then(ok => { if (!ok && hideCats && tok === homeTok) { personalSkip = true; renderHome(query, target); } }).catch(() => { if (hideCats && tok === homeTok) { personalSkip = true; renderHome(query, target); } }); }
   let heroDone = false, shown = 0;
   const jobs = [];
   for (const a of spaceAddons()) for (const cat of (a.manifest.catalogs||[])) {
+    if (hideCats && jobs.length >= 2) break;                                    // only needed for the hero picture
     const info = catInfo(cat), ge = genreExtra(cat);
     let path, title = cat.name || cat.id;
     if (query) {
@@ -159,11 +164,12 @@ async function renderHome(query = $('#q').value.trim(), target){
     const strip = h('div', {class:'strip'});
     const sec = h('div', {class:'row'}, h('h2', null, title, ' ', h('small', null, '· ' + [an(a), TYPE_LABEL[cat.type]].filter(Boolean).join(' · '))), strip);
     const loading = h('div', {class:'spin'}, 'Loading…');
-    sec.append(loading); box.append(sec);
+    sec.append(loading); if (!hideCats) box.append(sec);
     jobs.push(getJSON(`${a.base}/${path}`).then(r => {
       if (tok!==homeTok) return;
       const metas = (r.metas||[]).filter(x => visibleMeta(x, x.type || cat.type));
       if (!metas.length) { sec.remove(); return; }
+      if (hideCats && heroDone) return;
       shown++; loading.remove();
       if (!heroDone && !query && heroBox.isConnected) {
         heroDone = true;
@@ -171,6 +177,7 @@ async function renderHome(query = $('#q').value.trim(), target){
         heroSlides = []; heroIdx = 0; heroBox.replaceChildren(buildTvHero()); setTvHero({a, m:hm, type:ht}, true);
         if (profile && !(view.genre)) { const tk = ++heroTok, ex = metas.filter(x => x.background && x !== hm).sort(() => Math.random() - .5).slice(0, 5).map(x => ({a, m:x, type:x.type || cat.type})); heroBuild({a, m:hm, type:ht}, ex, tk).catch(() => {}); }
       }
+      if (hideCats) return;
       for (const m of metas) {
         const btn = h('button', {class:'card', onclick:()=>openDetail(a, m.type||cat.type, m)}, posterEl(m), h('div', {class:'t'}, m.name), h('div', {class:'s'}, m.releaseInfo || m.year || ''));
         attachHold(btn, {itemId:m.id, type:m.type||cat.type, name:m.name, poster:m.poster, background:m.background, addonId:a.uid, _item:m});
@@ -183,8 +190,8 @@ async function renderHome(query = $('#q').value.trim(), target){
     : (tabs && view.genre) ? 'No catalogs offer this category here.'
     : (tabs && view.tab === 'new') ? 'None of your addons have a "new releases" catalog for this space.'
     : tabs ? 'No catalogs of this kind in this space.' : 'Your installed addons have no browsable catalogs.';
-  if (!jobs.length) box.append(h('div', {class:'empty'}, none));
-  else Promise.all(jobs).then(() => { if (tok===homeTok && !shown && !box.querySelector('.spin')) box.append(h('div',{class:'empty'}, query ? 'No results.' : none)); });
+  if (!jobs.length) { if (!personal) box.append(h('div', {class:'empty'}, none)); }
+  else if (!hideCats) Promise.all(jobs).then(() => { if (tok===homeTok && !shown && !box.querySelector('.spin')) box.append(h('div',{class:'empty'}, query ? 'No results.' : none)); });
 }
 
 const maskUrl = u => String(u).replace(/((?:real|all)?debrid(?:link)?|premiumize|torbox|offcloud|easydebrid|putio|apikey|api_key|token|key|password)=([^|/&?]+)/gi, '$1=••••••');

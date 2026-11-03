@@ -111,6 +111,7 @@ function mergeProfile(id, R){
   const wout = Object.values(wmap).filter(e => (e.t || 0) > (wrem[e.itemId] || 0)).sort((a, b) => b.t - a.t);
   if (JSON.stringify(wout) !== JSON.stringify(wlocal)) { plsSet(id, 'watchlist', wout); changed = true; }
   plsSet(id, 'wlRemoved', wrem);
+  if (mergeColl(id, 'likes', 'likeRemoved', R.likes, R.likeremoved, 1000)) changed = true;
   if (mergeColl(id, 'watched', 'wdRemoved', R.wd, R.wdremoved, 3000)) changed = true;
   if (mergeColl(id, 'eps', 'epRemoved', R.eps, R.epremoved, 3000, 'k')) { changed = true; epReset(); }
   return changed;
@@ -127,8 +128,8 @@ async function pushAll(){
   for (const p of profiles) {
     const hist = plsGet(p.id, 'history', []), removed = plsGet(p.id, 'removed', {}), sT = plsGet(p.id, 'settingsT', 0);
     const wl = plsGet(p.id, 'watchlist', []), wlrem = plsGet(p.id, 'wlRemoved', {});
-    const wdp = packColl(p.id, 'watched', 'wdRemoved', deleteField), epp = packColl(p.id, 'eps', 'epRemoved', deleteField, 'k');
-    if (!hist.length && !Object.keys(removed).length && !sT && !wl.length && !Object.keys(wlrem).length && !wdp.any && !epp.any) continue;
+    const wdp = packColl(p.id, 'watched', 'wdRemoved', deleteField), epp = packColl(p.id, 'eps', 'epRemoved', deleteField, 'k'), lkp = packColl(p.id, 'likes', 'likeRemoved', deleteField);
+    if (!hist.length && !Object.keys(removed).length && !sT && !wl.length && !Object.keys(wlrem).length && !wdp.any && !epp.any && !lkp.any) continue;
     const entries = {}, rem = {};
     for (const e of hist) entries[ek(e.itemId)] = e;
     for (const [k, t] of Object.entries(removed)) { rem[ek(k)] = t; if (!entries[ek(k)]) entries[ek(k)] = deleteField(); }
@@ -139,7 +140,7 @@ async function pushAll(){
     for (const [k, t] of Object.entries(wlrem)) { wremP[ek(k)] = t; if (!wentries[ek(k)]) wentries[ek(k)] = deleteField(); }
     payload.watch = {}; payload.wremoved = clean(wremP);
     for (const [k, v] of Object.entries(wentries)) payload.watch[k] = (v && v._methodName) ? v : clean(v);
-    payload.wd = wdp.entries; payload.wdremoved = wdp.rem; payload.eps = epp.entries; payload.epremoved = epp.rem;
+    payload.wd = wdp.entries; payload.wdremoved = wdp.rem; payload.likes = lkp.entries; payload.likeremoved = lkp.rem; payload.eps = epp.entries; payload.epremoved = epp.rem;
     if (sT) { payload.settings = plsGet(p.id, 'settings', {}); payload.settingsT = sT; }
     await setDoc(doc(db, ...base, 'profiles', p.id), payload, {merge:true});
   }

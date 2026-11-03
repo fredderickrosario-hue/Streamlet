@@ -997,6 +997,7 @@ body.tv :is(#detail,#episode) .dacts2 .pib{width:46px;height:46px;padding:0;bord
 body.tv :is(#detail,#episode) .dacts2 .pib svg{width:30px;height:30px;stroke:currentColor;fill:none;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
 body.tv :is(#detail,#episode) .dacts2 .pib.on{color:var(--acc);opacity:1}
 body.tv :is(#detail,#episode) .dacts2 .pib.on svg{fill:color-mix(in srgb,var(--acc) 45%,transparent)}
+body.tv :is(#detail,#episode) .dacts2 .pib.on svg{fill:color-mix(in srgb,var(--acc) 45%,transparent)}
 body.tv :is(#detail,#episode) .dacts2 .pib:focus-visible{outline:0;transform:scale(1.3);opacity:1;filter:drop-shadow(0 0 8px rgba(255,255,255,.75))}
 body.tv #episode .dep{font-size:15px;font-weight:700;letter-spacing:.3px;color:#b9bdcc;margin:0 0 8px}
 body.tv #episode .dbt-title{font-size:clamp(34px,4vw,60px)}
@@ -1955,6 +1956,20 @@ function wlRemove(itemId){
   const r = pget('wlRemoved', {}); r[itemId] = Date.now();
   pset('wlRemoved', Object.fromEntries(Object.entries(r).sort((a, b) => b[1] - a[1]).slice(0, 200))); scheduleSync();
 }
+/* ---------- liked (the heart) ---------- */
+const likeGet = () => pget('likes', []);
+const likeHas = id => !!profile && likeGet().some(x => x.itemId === id);
+function likeAdd(e){
+  if (!profile) return;
+  const rt = pget('likeRemoved', {})[e.itemId] || 0;
+  pset('likes', [{itemId:e.itemId, type:e.type, name:e.name, poster:e.poster, addonId:e.addonId, t:Math.max(Date.now(), rt + 1)}, ...likeGet().filter(x => x.itemId !== e.itemId)].slice(0, 1000)); scheduleSync();
+}
+function likeRemove(id){
+  if (!profile) return;
+  pset('likes', likeGet().filter(x => x.itemId !== id));
+  const r = pget('likeRemoved', {}); r[id] = Date.now();
+  pset('likeRemoved', Object.fromEntries(Object.entries(r).sort((a, b) => b[1] - a[1]).slice(0, 400))); scheduleSync();
+}
 /* ---------- watched ---------- */
 const wdGet = () => pget('watched', []);
 const watchedHas = id => !!profile && wdGet().some(x => x.itemId === id);
@@ -2775,12 +2790,17 @@ async function renderHome(query = $('#q').value.trim(), target){
   }
   if (query) { await renderResults(query, box, tok); return; }
   const tabs = spaceTabs() && !query;
+  const skipP = personalSkip; personalSkip = false;
+  const personal = !skipP && !query && !target && !(tabs && view.genre) && (!tabs || view.tab === 'home') && personalSeeds().any;
+  const hideCats = personal && tabs;                                            // with tabs, the catalogs live in Movies / Shows as discoveries
   const heroBox = h('div'); if (!query && !(tabs && view.genre)) box.append(heroBox); else if (!target) box.append(h('div', {class:'tspace'}));
   if (tabs && !target) box.append(genreStrip());
   if (!target) { box.append(h('div', {id:'cwBox'})); renderCW(); }
+  if (personal) { const pbox = h('div', {id:'pBox'}); box.append(pbox); renderPersonal(pbox, tok).then(ok => { if (!ok && hideCats && tok === homeTok) { personalSkip = true; renderHome(query, target); } }).catch(() => { if (hideCats && tok === homeTok) { personalSkip = true; renderHome(query, target); } }); }
   let heroDone = false, shown = 0;
   const jobs = [];
   for (const a of spaceAddons()) for (const cat of (a.manifest.catalogs||[])) {
+    if (hideCats && jobs.length >= 2) break;                                    // only needed for the hero picture
     const info = catInfo(cat), ge = genreExtra(cat);
     let path, title = cat.name || cat.id;
     if (query) {
@@ -2805,11 +2825,12 @@ async function renderHome(query = $('#q').value.trim(), target){
     const strip = h('div', {class:'strip'});
     const sec = h('div', {class:'row'}, h('h2', null, title, ' ', h('small', null, '· ' + [an(a), TYPE_LABEL[cat.type]].filter(Boolean).join(' · '))), strip);
     const loading = h('div', {class:'spin'}, 'Loading…');
-    sec.append(loading); box.append(sec);
+    sec.append(loading); if (!hideCats) box.append(sec);
     jobs.push(getJSON(`${a.base}/${path}`).then(r => {
       if (tok!==homeTok) return;
       const metas = (r.metas||[]).filter(x => visibleMeta(x, x.type || cat.type));
       if (!metas.length) { sec.remove(); return; }
+      if (hideCats && heroDone) return;
       shown++; loading.remove();
       if (!heroDone && !query && heroBox.isConnected) {
         heroDone = true;
@@ -2817,6 +2838,7 @@ async function renderHome(query = $('#q').value.trim(), target){
         heroSlides = []; heroIdx = 0; heroBox.replaceChildren(buildTvHero()); setTvHero({a, m:hm, type:ht}, true);
         if (profile && !(view.genre)) { const tk = ++heroTok, ex = metas.filter(x => x.background && x !== hm).sort(() => Math.random() - .5).slice(0, 5).map(x => ({a, m:x, type:x.type || cat.type})); heroBuild({a, m:hm, type:ht}, ex, tk).catch(() => {}); }
       }
+      if (hideCats) return;
       for (const m of metas) {
         const btn = h('button', {class:'card', onclick:()=>openDetail(a, m.type||cat.type, m)}, posterEl(m), h('div', {class:'t'}, m.name), h('div', {class:'s'}, m.releaseInfo || m.year || ''));
         attachHold(btn, {itemId:m.id, type:m.type||cat.type, name:m.name, poster:m.poster, background:m.background, addonId:a.uid, _item:m});
@@ -2829,8 +2851,8 @@ async function renderHome(query = $('#q').value.trim(), target){
     : (tabs && view.genre) ? 'No catalogs offer this category here.'
     : (tabs && view.tab === 'new') ? 'None of your addons have a "new releases" catalog for this space.'
     : tabs ? 'No catalogs of this kind in this space.' : 'Your installed addons have no browsable catalogs.';
-  if (!jobs.length) box.append(h('div', {class:'empty'}, none));
-  else Promise.all(jobs).then(() => { if (tok===homeTok && !shown && !box.querySelector('.spin')) box.append(h('div',{class:'empty'}, query ? 'No results.' : none)); });
+  if (!jobs.length) { if (!personal) box.append(h('div', {class:'empty'}, none)); }
+  else if (!hideCats) Promise.all(jobs).then(() => { if (tok===homeTok && !shown && !box.querySelector('.spin')) box.append(h('div',{class:'empty'}, query ? 'No results.' : none)); });
 }
 
 const maskUrl = u => String(u).replace(/((?:real|all)?debrid(?:link)?|premiumize|torbox|offcloud|easydebrid|putio|apikey|api_key|token|key|password)=([^|/&?]+)/gi, '$1=••••••');
@@ -3248,6 +3270,7 @@ const IC = {
   share:'<circle cx="18" cy="5.5" r="2.6"/><circle cx="6" cy="12" r="2.6"/><circle cx="18" cy="18.5" r="2.6"/><path d="M8.3 10.8l7.4-4.1M8.3 13.2l7.4 4.1"/>',
   clap:'<rect x="3.5" y="9.5" width="17" height="10.5" rx="1.6"/><path d="M3.5 9.5l1.6-4.4 14.6 3-.5 1.4M8.4 6.1l1.6 3.4M13.6 7.2l1.6 3.4"/>',
   mark:'<path d="M6.5 3.5h11v17l-5.5-4.2-5.5 4.2z"/>',
+  heart:'<path d="M12 20.5s-7.5-4.6-7.5-10.2C4.5 7.2 6.6 5.5 8.8 5.5c1.5 0 2.7.8 3.2 2 .5-1.2 1.7-2 3.2-2 2.2 0 4.3 1.7 4.3 4.8 0 5.6-7.5 10.2-7.5 10.2z"/>',
   seen:'<path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>',
   restart:'<path d="M4 12a8 8 0 1 0 2.6-5.9"/><path d="M4 4v4.6h4.6"/>'
 };
@@ -3307,13 +3330,14 @@ function chipsSection(title, names){
   return h('div', {class:'dsec'}, h('h4', null, title), h('div', {class:'cchips'}, names.map(n => h('button', {class:'pillx', type:'button', onclick:() => searchFor(n)}, n))));
 }
 function toggleIcons(addon, type, meta){
-  if (!profile) return {wl:null, seen:null};
+  if (!profile) return {wl:null, seen:null, like:null};
   const e = entryOf(addon, type, meta);
-  const wl = iconBtn(IC.mark, 'Watchlist', null, 'fill'), seen = iconBtn(IC.seen, 'Watched', null);
-  const paint = () => { const w = wlHas(e.itemId), v = watchedHas(e.itemId); wl.classList.toggle('on', w); wl.title = w ? 'Remove from watchlist' : 'Add to watchlist'; seen.classList.toggle('on', v); seen.title = v ? 'Mark as unwatched' : 'Mark as watched'; };
+  const wl = iconBtn(IC.mark, 'Watchlist', null, 'fill'), seen = iconBtn(IC.seen, 'Watched', null), like = iconBtn(IC.heart, 'Like', null, 'fill');
+  const paint = () => { const w = wlHas(e.itemId), v = watchedHas(e.itemId); wl.classList.toggle('on', w); wl.title = w ? 'Remove from watchlist' : 'Add to watchlist'; like.classList.toggle('on', likeHas(e.itemId)); like.title = likeHas(e.itemId) ? 'Unlike' : 'Like'; seen.classList.toggle('on', v); seen.title = v ? 'Mark as unwatched' : 'Mark as watched'; };
   wl.onclick = () => { if (wlHas(e.itemId)) { wlRemove(e.itemId); toast('Removed from watchlist'); } else { wlAdd({...e}); toast('Added to watchlist'); } paint(); };
+  like.onclick = () => { if (likeHas(e.itemId)) { likeRemove(e.itemId); toast('Removed your like'); } else { likeAdd({...e}); toast('Liked. You will get more like this on Home'); } paint(); };
   seen.onclick = () => { if (watchedHas(e.itemId)) { watchedRemove(e.itemId); toast('Marked as unwatched'); } else { watchedAdd(e); toast('Marked as watched'); } paint(); };
-  paint(); return {wl, seen};
+  paint(); return {wl, seen, like};
 }
 function titleMini(meta){
   return h('div', {class:'dtlogo'}, meta.logo
@@ -3559,7 +3583,7 @@ async function openDetail(addon, type, item, opts = {}){
     }}, playLabel());
     playSync = () => { playEl.textContent = playLabel(); };
     const restart = type === 'movie' ? (true ? (() => { const b = h('button', {class:'pib', type:'button', 'aria-label':'Start from the beginning', title:'Start from the beginning'}); b.innerHTML = `<svg viewBox="0 0 24 24">${IC.restart}</svg>`; b.onclick = () => { if (soon()) { toast('Not out yet.'); return; } autoPlay(type, meta.id, meta.name, {...base, fresh:true}); }; return b; })() : iconBtn(IC.restart, 'Start from the beginning', () => { if (soon()) { toast('Not out yet.'); return; } autoPlay(type, meta.id, meta.name, {...base, fresh:true}); })) : null;
-    acts.append(playEl, ...(true ? [plainIconBtn(ico.wl, IC.mark, 'Watchlist'), plainIconBtn(ico.seen, IC.seen, 'Watched'), restart] : [mirrorBtn(ico.wl, IC.mark, 'Watchlist'), mirrorBtn(ico.seen, IC.seen, 'Watched'), restart]).filter(Boolean));
+    acts.append(playEl, ...(true ? [plainIconBtn(ico.wl, IC.mark, 'Watchlist'), plainIconBtn(ico.like, IC.heart, 'Like'), plainIconBtn(ico.seen, IC.seen, 'Watched'), restart] : [mirrorBtn(ico.wl, IC.mark, 'Watchlist'), mirrorBtn(ico.like, IC.heart, 'Like'), mirrorBtn(ico.seen, IC.seen, 'Watched'), restart]).filter(Boolean));
     d.replaceChildren(top, h('div', {class:'dwrap'}, heroBlock(meta), body));
     d.scrollTop = keep; bindScroll(d, top);
     return {sorted};
@@ -4158,6 +4182,7 @@ function mergeProfile(id, R){
   const wout = Object.values(wmap).filter(e => (e.t || 0) > (wrem[e.itemId] || 0)).sort((a, b) => b.t - a.t);
   if (JSON.stringify(wout) !== JSON.stringify(wlocal)) { plsSet(id, 'watchlist', wout); changed = true; }
   plsSet(id, 'wlRemoved', wrem);
+  if (mergeColl(id, 'likes', 'likeRemoved', R.likes, R.likeremoved, 1000)) changed = true;
   if (mergeColl(id, 'watched', 'wdRemoved', R.wd, R.wdremoved, 3000)) changed = true;
   if (mergeColl(id, 'eps', 'epRemoved', R.eps, R.epremoved, 3000, 'k')) { changed = true; epReset(); }
   return changed;
@@ -4174,8 +4199,8 @@ async function pushAll(){
   for (const p of profiles) {
     const hist = plsGet(p.id, 'history', []), removed = plsGet(p.id, 'removed', {}), sT = plsGet(p.id, 'settingsT', 0);
     const wl = plsGet(p.id, 'watchlist', []), wlrem = plsGet(p.id, 'wlRemoved', {});
-    const wdp = packColl(p.id, 'watched', 'wdRemoved', deleteField), epp = packColl(p.id, 'eps', 'epRemoved', deleteField, 'k');
-    if (!hist.length && !Object.keys(removed).length && !sT && !wl.length && !Object.keys(wlrem).length && !wdp.any && !epp.any) continue;
+    const wdp = packColl(p.id, 'watched', 'wdRemoved', deleteField), epp = packColl(p.id, 'eps', 'epRemoved', deleteField, 'k'), lkp = packColl(p.id, 'likes', 'likeRemoved', deleteField);
+    if (!hist.length && !Object.keys(removed).length && !sT && !wl.length && !Object.keys(wlrem).length && !wdp.any && !epp.any && !lkp.any) continue;
     const entries = {}, rem = {};
     for (const e of hist) entries[ek(e.itemId)] = e;
     for (const [k, t] of Object.entries(removed)) { rem[ek(k)] = t; if (!entries[ek(k)]) entries[ek(k)] = deleteField(); }
@@ -4186,7 +4211,7 @@ async function pushAll(){
     for (const [k, t] of Object.entries(wlrem)) { wremP[ek(k)] = t; if (!wentries[ek(k)]) wentries[ek(k)] = deleteField(); }
     payload.watch = {}; payload.wremoved = clean(wremP);
     for (const [k, v] of Object.entries(wentries)) payload.watch[k] = (v && v._methodName) ? v : clean(v);
-    payload.wd = wdp.entries; payload.wdremoved = wdp.rem; payload.eps = epp.entries; payload.epremoved = epp.rem;
+    payload.wd = wdp.entries; payload.wdremoved = wdp.rem; payload.likes = lkp.entries; payload.likeremoved = lkp.rem; payload.eps = epp.entries; payload.epremoved = epp.rem;
     if (sT) { payload.settings = plsGet(p.id, 'settings', {}); payload.settingsT = sT; }
     await setDoc(doc(db, ...base, 'profiles', p.id), payload, {merge:true});
   }
@@ -5367,6 +5392,64 @@ $('#nfFile').onchange = async e => {
     st.textContent = ''; nfSheet(list);
   } catch (err) { st.textContent = String(err.message || err); }
 };
+/* ---------- Home: rows made for you (Your next watch · Because you watched · Because you liked) ---------- */
+let personalSkip = false;                                                    // set once when personal rows came out empty, so Home falls back to the catalogs
+function personalSeeds(){
+  const sp = cur && cur.id, wl = wlHere(), shows = mlShows(), sh = pget('shows', {});
+  const done = new Map(); for (const r of epAll()) if (r.done && r.itemId) done.set(r.itemId, (done.get(r.itemId) || 0) + 1);
+  const movies = wdGet().filter(m => m.type === 'movie' && mlHere(m.space)).sort((x, y) => (y.t || 0) - (x.t || 0));
+  const used = new Set(), out = [], push = (kind, it) => { if (!it.id || used.has(it.id)) return; used.add(it.id); out.push({kind, ...it}); };
+  const watched = [...shows.map(s => ({id:s.id, type:'series', name:s.n, addonId:s.a, t:s.t || 0})), ...movies.map(m => ({id:m.itemId, type:'movie', name:m.name, addonId:m.addonId, t:m.t || 0}))].sort((x, y) => y.t - x.t);
+  const liked = [...likeGet().map(e => ({id:e.itemId, type:e.type, name:e.name, addonId:e.addonId, t:(e.t || 0) + 1e13})), ...wl.map(e => ({id:e.itemId, type:e.type, name:e.name, addonId:e.addonId, t:e.t || 0})), ...shows.filter(s => (done.get(s.id) || 0) >= 3).map(s => ({id:s.id, type:'series', name:s.n, addonId:s.a, t:s.t || 0}))].sort((x, y) => y.t - x.t);
+  // alternate: the latest watched, the latest liked, the next watched, ...
+  const A = watched.slice(), B = liked.slice();
+  while ((A.length || B.length) && out.length < 6) { const a = A.shift(); if (a) push('watched', a); if (out.length >= 6) break; const b = B.shift(); if (b) push('liked', b); }
+  return {seeds: out, any: !!(watched.length || liked.length), wl, mine: new Set([...likeGet().map(e => e.itemId), ...Object.keys(sh), ...wdGet().map(m => m.itemId), ...wlGet().map(e => e.itemId)])};
+}
+async function personalRecs(s){
+  let list = recsCache.get(s.id);
+  if (!list) {
+    const a = addons.find(x => x.uid === s.addonId || x.manifest.id === s.addonId) || spaceAddons()[0] || addons[0];
+    const ma = a && (supports(a, 'meta', s.type, s.id) ? a : addons.find(x => supports(x, 'meta', s.type, s.id)));
+    let meta = {id:s.id, type:s.type, name:s.name}; if (ma) { const r = await getJSON(`${ma.base}/meta/${s.type}/${enc(s.id)}.json`); meta = {...meta, ...r.meta}; }
+    list = (await findSimilar(a, s.type, meta)).slice(0, 14); recsCache.set(s.id, list);
+  }
+  return list;
+}
+function recCard(it){
+  const {m, a, type} = it, btn = h('button', {class:'card', type:'button', onclick:() => openDetail(a, type, m)}, posterEl(m), h('div', {class:'t'}, m.name), h('div', {class:'s'}, m.releaseInfo || m.year || ''));
+  attachHold(btn, {itemId:m.id, type, name:m.name, poster:m.poster, background:m.background, addonId:a.uid, _item:m});
+  btn._hero = {a, m, type};
+  return btn;
+}
+async function renderPersonal(box, tok){
+  const {seeds, any, wl, mine} = personalSeeds();
+  if (!any) return false;
+  const mk = title => { const strip = h('div', {class:'strip'}), sec = h('div', {class:'row'}, h('h2', null, title), strip); return {sec, strip}; };
+  const next = mk('Your next watch'), rows = seeds.map(s => ({s, ...mk((s.kind === 'liked' ? 'Because you liked ' : 'Because you watched ') + s.name)}));
+  box.append(next.sec, ...rows.map(r => r.sec));
+  // saved but not started yet come first
+  const sh = pget('shows', {}), started = new Set([...Object.keys(sh), ...wdGet().map(m => m.itemId)]);
+  for (const e of wl.filter(x => !started.has(x.itemId))) {
+    const b = h('button', {class:'card', type:'button', onclick:() => openWL(e)}, posterEl(e), h('div', {class:'t'}, e.name), h('div', {class:'s'}, 'On your list'));
+    attachHold(b, {...e}); next.strip.append(b);
+  }
+  const lists = await Promise.all(rows.map(r => personalRecs(r.s).catch(() => [])));
+  if (tok !== homeTok) return true;
+  const seen = new Set(); let any2 = false, nextN = 0;
+  rows.forEach((r, i) => {
+    const items = (lists[i] || []).filter(it => it.m && !mine.has(it.m.id) && it.m.id !== r.s.id);
+    const fresh = items.filter(it => !seen.has(it.m.id)).slice(0, 12);
+    if (fresh.length < 3) { r.sec.remove(); return; }
+    for (const it of fresh) { seen.add(it.m.id); r.strip.append(recCard(it)); }
+    any2 = true;
+  });
+  // your next watch: the best match of each row, interleaved after the saved titles
+  const picks = []; for (let k = 0; k < 3; k++) for (const l of lists) { const it = (l || []).filter(x => x.m && !mine.has(x.m.id))[k]; if (it && !picks.some(p => p.m.id === it.m.id)) picks.push(it); }
+  for (const it of picks.slice(0, Math.max(0, 14 - next.strip.children.length))) { next.strip.append(recCard(it)); nextN++; }
+  if (!next.strip.children.length) next.sec.remove();
+  return any2 || nextN > 0 || box.querySelector('.row') !== null;
+}
 </script>
 </body>
 </html>

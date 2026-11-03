@@ -17,6 +17,20 @@ function wlRemove(itemId){
   const r = pget('wlRemoved', {}); r[itemId] = Date.now();
   pset('wlRemoved', Object.fromEntries(Object.entries(r).sort((a, b) => b[1] - a[1]).slice(0, 200))); scheduleSync();
 }
+/* ---------- liked (the heart) ---------- */
+const likeGet = () => pget('likes', []);
+const likeHas = id => !!profile && likeGet().some(x => x.itemId === id);
+function likeAdd(e){
+  if (!profile) return;
+  const rt = pget('likeRemoved', {})[e.itemId] || 0;
+  pset('likes', [{itemId:e.itemId, type:e.type, name:e.name, poster:e.poster, addonId:e.addonId, t:Math.max(Date.now(), rt + 1)}, ...likeGet().filter(x => x.itemId !== e.itemId)].slice(0, 1000)); scheduleSync();
+}
+function likeRemove(id){
+  if (!profile) return;
+  pset('likes', likeGet().filter(x => x.itemId !== id));
+  const r = pget('likeRemoved', {}); r[id] = Date.now();
+  pset('likeRemoved', Object.fromEntries(Object.entries(r).sort((a, b) => b[1] - a[1]).slice(0, 400))); scheduleSync();
+}
 /* ---------- watched ---------- */
 const wdGet = () => pget('watched', []);
 const watchedHas = id => !!profile && wdGet().some(x => x.itemId === id);

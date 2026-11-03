@@ -281,6 +281,21 @@ const ok = (name, cond, extra) => { cond ? pass++ : fail++; console.log((cond ? 
       }).catch(e => String(e));
       ok('My List: the Watching tab does not redraw itself in a loop', r === true, r);
     }
+    {
+      const r = await p.evaluate(async () => {
+        const oc = cur, ofs = findSimilar, rj = getJSON, ot = view;
+        cur = {id:'sp1', allHistory:true, tabs:true, catalogs:[], streams:[]};
+        pset('shows', {tt777:{n:'Show P', ty:'series', sp:'sp1', t:Date.now(), a:addons[0].uid, p:''}});
+        recsCache.clear();
+        findSimilar = async () => [1, 2, 3, 4].map(i => ({a:addons[0], type:'series', m:{id:'ttr' + i, name:'Rec ' + i, type:'series'}}));
+        const heads = async tab => { view = {tab, genre:''}; await renderHome(''); await new Promise(r => setTimeout(r, 500)); return [...document.querySelectorAll('#rows .row h2')].map(x => x.textContent); };
+        likeAdd({itemId:'ttL1', type:'movie', name:'Liked Movie', addonId:addons[0].uid}); const lk = likeHas('ttL1'); pset('likes', []);
+        const home = await heads('home'), shows = await heads('series');
+        findSimilar = ofs; cur = oc; view = ot; pset('shows', {});
+        return lk && home.some(x => x === 'Because you watched Show P') && home.includes('Your next watch') && !shows.some(x => /Because you/.test(x)) ? true : JSON.stringify({home, shows});
+      }).catch(e => String(e));
+      ok('Home: personal rows (next watch, because you watched); catalogs stay on the Movies / Shows tabs', r === true, r);
+    }
     ok('no errors after all of the above', errs.length === 0, errs[0]);
     await p.close();
   }

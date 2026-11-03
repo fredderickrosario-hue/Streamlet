@@ -23,6 +23,7 @@ const IC = {
   share:'<circle cx="18" cy="5.5" r="2.6"/><circle cx="6" cy="12" r="2.6"/><circle cx="18" cy="18.5" r="2.6"/><path d="M8.3 10.8l7.4-4.1M8.3 13.2l7.4 4.1"/>',
   clap:'<rect x="3.5" y="9.5" width="17" height="10.5" rx="1.6"/><path d="M3.5 9.5l1.6-4.4 14.6 3-.5 1.4M8.4 6.1l1.6 3.4M13.6 7.2l1.6 3.4"/>',
   mark:'<path d="M6.5 3.5h11v17l-5.5-4.2-5.5 4.2z"/>',
+  heart:'<path d="M12 20.5s-7.5-4.6-7.5-10.2C4.5 7.2 6.6 5.5 8.8 5.5c1.5 0 2.7.8 3.2 2 .5-1.2 1.7-2 3.2-2 2.2 0 4.3 1.7 4.3 4.8 0 5.6-7.5 10.2-7.5 10.2z"/>',
   seen:'<path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>',
   restart:'<path d="M4 12a8 8 0 1 0 2.6-5.9"/><path d="M4 4v4.6h4.6"/>'
 };
@@ -82,13 +83,14 @@ function chipsSection(title, names){
   return h('div', {class:'dsec'}, h('h4', null, title), h('div', {class:'cchips'}, names.map(n => h('button', {class:'pillx', type:'button', onclick:() => searchFor(n)}, n))));
 }
 function toggleIcons(addon, type, meta){
-  if (!profile) return {wl:null, seen:null};
+  if (!profile) return {wl:null, seen:null, like:null};
   const e = entryOf(addon, type, meta);
-  const wl = iconBtn(IC.mark, 'Watchlist', null, 'fill'), seen = iconBtn(IC.seen, 'Watched', null);
-  const paint = () => { const w = wlHas(e.itemId), v = watchedHas(e.itemId); wl.classList.toggle('on', w); wl.title = w ? 'Remove from watchlist' : 'Add to watchlist'; seen.classList.toggle('on', v); seen.title = v ? 'Mark as unwatched' : 'Mark as watched'; };
+  const wl = iconBtn(IC.mark, 'Watchlist', null, 'fill'), seen = iconBtn(IC.seen, 'Watched', null), like = iconBtn(IC.heart, 'Like', null, 'fill');
+  const paint = () => { const w = wlHas(e.itemId), v = watchedHas(e.itemId); wl.classList.toggle('on', w); wl.title = w ? 'Remove from watchlist' : 'Add to watchlist'; like.classList.toggle('on', likeHas(e.itemId)); like.title = likeHas(e.itemId) ? 'Unlike' : 'Like'; seen.classList.toggle('on', v); seen.title = v ? 'Mark as unwatched' : 'Mark as watched'; };
   wl.onclick = () => { if (wlHas(e.itemId)) { wlRemove(e.itemId); toast('Removed from watchlist'); } else { wlAdd({...e}); toast('Added to watchlist'); } paint(); };
+  like.onclick = () => { if (likeHas(e.itemId)) { likeRemove(e.itemId); toast('Removed your like'); } else { likeAdd({...e}); toast('Liked. You will get more like this on Home'); } paint(); };
   seen.onclick = () => { if (watchedHas(e.itemId)) { watchedRemove(e.itemId); toast('Marked as unwatched'); } else { watchedAdd(e); toast('Marked as watched'); } paint(); };
-  paint(); return {wl, seen};
+  paint(); return {wl, seen, like};
 }
 function titleMini(meta){
   return h('div', {class:'dtlogo'}, meta.logo
@@ -334,7 +336,7 @@ async function openDetail(addon, type, item, opts = {}){
     }}, playLabel());
     playSync = () => { playEl.textContent = playLabel(); };
     const restart = type === 'movie' ? (true ? (() => { const b = h('button', {class:'pib', type:'button', 'aria-label':'Start from the beginning', title:'Start from the beginning'}); b.innerHTML = `<svg viewBox="0 0 24 24">${IC.restart}</svg>`; b.onclick = () => { if (soon()) { toast('Not out yet.'); return; } autoPlay(type, meta.id, meta.name, {...base, fresh:true}); }; return b; })() : iconBtn(IC.restart, 'Start from the beginning', () => { if (soon()) { toast('Not out yet.'); return; } autoPlay(type, meta.id, meta.name, {...base, fresh:true}); })) : null;
-    acts.append(playEl, ...(true ? [plainIconBtn(ico.wl, IC.mark, 'Watchlist'), plainIconBtn(ico.seen, IC.seen, 'Watched'), restart] : [mirrorBtn(ico.wl, IC.mark, 'Watchlist'), mirrorBtn(ico.seen, IC.seen, 'Watched'), restart]).filter(Boolean));
+    acts.append(playEl, ...(true ? [plainIconBtn(ico.wl, IC.mark, 'Watchlist'), plainIconBtn(ico.like, IC.heart, 'Like'), plainIconBtn(ico.seen, IC.seen, 'Watched'), restart] : [mirrorBtn(ico.wl, IC.mark, 'Watchlist'), mirrorBtn(ico.like, IC.heart, 'Like'), mirrorBtn(ico.seen, IC.seen, 'Watched'), restart]).filter(Boolean));
     d.replaceChildren(top, h('div', {class:'dwrap'}, heroBlock(meta), body));
     d.scrollTop = keep; bindScroll(d, top);
     return {sorted};
