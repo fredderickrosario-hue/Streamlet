@@ -167,50 +167,6 @@ public class ExoPlayerPlugin extends Plugin {
         }).start();
     }
 
-    /** ICI TOU.TV sign-in window (see TouLoginActivity) and what it has noted so far, without exposing the secrets */
-    @PluginMethod
-    public void openTouLogin(PluginCall call) { getActivity().startActivity(new Intent(getActivity(), TouLoginActivity.class)); call.resolve(); }
-    @PluginMethod
-    public void touStatus(PluginCall call) {
-        SharedPreferences sp = getContext().getSharedPreferences(TouLoginActivity.PREFS, Context.MODE_PRIVATE);
-        JSObject r = new JSObject(); long t = sp.getLong("authT", 0);
-        r.put("signedIn", sp.getString("auth", null) != null); r.put("ageMin", t == 0 ? -1 : (System.currentTimeMillis() - t) / 60000);
-        r.put("sawValidation", sp.getString("lastValidation", null) != null); r.put("claims", sp.getString("claims", null) != null);
-        call.resolve(r);
-    }
-    /** GET to a Radio-Canada address with the saved sign-in (the secrets stay on this side and never go to the page) */
-    @PluginMethod
-    public void touGet(final PluginCall call) {
-        final String url = call.getString("url");
-        if (url == null || !url.startsWith("https://services.radio-canada.ca/")) { call.reject("Radio-Canada services only"); return; }
-        new Thread(() -> {
-            try {
-                SharedPreferences sp = getContext().getSharedPreferences(TouLoginActivity.PREFS, Context.MODE_PRIVATE);
-                HttpURLConnection c = (HttpURLConnection) new URL(url).openConnection();
-                c.setConnectTimeout(8000); c.setReadTimeout(10000);
-                c.setRequestProperty("Accept", "application/json, text/plain, */*");
-                c.setRequestProperty("User-Agent", TouLoginActivity.UA);
-                c.setRequestProperty("Origin", "https://ici.tou.tv"); c.setRequestProperty("Referer", "https://ici.tou.tv/");
-                c.setRequestProperty("X-Requested-With", "XMLHttpRequest");
-                String a = sp.getString("auth", null), cl = sp.getString("claims", null);
-                if (a != null) c.setRequestProperty("Authorization", a);
-                if (cl != null) c.setRequestProperty("x-claims-token", cl);
-                int code = c.getResponseCode();
-                InputStream in = code / 100 == 2 ? c.getInputStream() : c.getErrorStream();
-                java.io.ByteArrayOutputStream bo = new java.io.ByteArrayOutputStream();
-                byte[] buf = new byte[8192]; int n; while (in != null && (n = in.read(buf)) > 0 && bo.size() < 6000000) bo.write(buf, 0, n);
-                JSObject r = new JSObject(); r.put("status", code); r.put("body", bo.toString("UTF-8"));
-                call.resolve(r);
-            } catch (Exception e) { call.reject(String.valueOf(e.getMessage())); }
-        }).start();
-    }
-    @PluginMethod
-    public void touForget(PluginCall call) {
-        getContext().getSharedPreferences(TouLoginActivity.PREFS, Context.MODE_PRIVATE).edit().clear().apply();
-        try { android.webkit.CookieManager.getInstance().removeAllCookies(null); } catch (Exception ignored) { }
-        call.resolve();
-    }
-
     @PluginMethod
     public void clearLog(PluginCall call) { AppLog.clear(); call.resolve(); }
 

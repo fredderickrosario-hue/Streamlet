@@ -2,6 +2,7 @@ package app.streamlet.tv;
 
 import android.app.Activity;
 import android.content.Context;
+import android.content.SharedPreferences;
 import android.graphics.Color;
 import android.graphics.drawable.ColorDrawable;
 import android.os.Bundle;
@@ -45,6 +46,10 @@ public class MainActivity extends BridgeActivity {
     @Override
     public void onCreate(Bundle savedInstanceState) {
         AppLog.init(getApplicationContext());
+        try {                                                  // the removed ICI TOU.TV sign-in: wipe any session it saved on this device
+            SharedPreferences tou = getSharedPreferences("streamlet_tou", Context.MODE_PRIVATE);
+            if (!tou.getAll().isEmpty()) { tou.edit().clear().apply(); android.webkit.CookieManager.getInstance().removeAllCookies(null); }
+        } catch (Exception ignored) { }
         registerPlugin(ExoPlayerPlugin.class);
         super.onCreate(savedInstanceState);
         try {

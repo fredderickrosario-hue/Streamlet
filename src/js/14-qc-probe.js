@@ -28,54 +28,9 @@ function qcOutline(obj, L, max = 120){
   };
   sh(obj, '', 0); for (const t of outline.slice(0, max)) L('  ' + t);
 }
-async function qcSigned(idMedia, L){
-  const N = nativePlayer();
-  if (!N || !N.touGet) { L('Needs the updated Android app.'); return; }
-  L(`SIGNED-IN TEST · media ${idMedia}`);
-  for (const [dt, tech] of [['ipad', 'hls'], ['multiams', 'dash'], ['desktop', 'hls'], ['androidtv', 'hls']]) {
-    try {
-      const r = await N.touGet({url:`https://services.radio-canada.ca/media/validation/v2/?appCode=toutv&connectionType=hd&deviceType=${dt}&idMedia=${idMedia}&multibitrate=true&output=json&tech=${tech}&manifestVersion=2`});
-      let j = null; try { j = JSON.parse(r.body); } catch {}
-      const prot = j ? (j.protectionType || ((j.params || []).find(p => /protect|drm|license/i.test(p.name)) || {}).name || '-') : '-';
-      L(`  ${dt}/${tech}: status ${r.status}` + (j ? ` · errorCode ${j.errorCode ?? '-'} · ${String(j.message || '').slice(0, 80)} · url ${j.url ? qcHost(j.url) : 'none'} · protection ${prot}` : ` · ${String(r.body).slice(0, 100)}`));
-      if (j && j.params && tech === 'dash') {
-        const dp = j.params.find(p => p.name === 'dfpDesktopStreamUrl'), mask = t => String(t).replace(/[A-Za-z0-9_%=.-]{40,}/g, m => '<' + m.length + ' chars>');
-        if (dp) {
-          L('    DAI request address: ' + mask(dp.value));
-          try { const d = await qcGet(String(dp.value)); L(`    DAI answer: status ${d.status} · ${String(d.body).length} chars · ${mask(String(d.body).slice(0, 400)).replace(/\s+/g, ' ')}`); } catch (e) { L('    DAI answer failed: ' + e); }
-        }
-        L('    content address: ' + mask(j.url));
-      }
-      if (j && j.params) for (const p of j.params) L(`      · ${p.name} = ${/token|key|secret|auth/i.test(p.name) ? '<' + String(p.value || '').length + ' chars>' : /^https?:/.test(String(p.value)) ? qcHost(p.value) + ' (' + String(p.value).length + ' chars)' : String(p.value).slice(0, 40)}`);
-      if (j && j.url && /m3u8|hls/i.test(j.url + tech)) await qcPlaylist(j.url, L);
-    } catch (e) { L(`  ${dt}/${tech}: failed ${e}`); }
-  }
-}
-async function qcCatalogTest(path, L){
-  const N = nativePlayer();
-  if (!N || !N.touGet) { L('Needs the updated Android app.'); return; }
-  const [show, ep] = path.toLowerCase().split('/'), ids = new Set();
-  L(`TOU.TV CATALOG (signed in) · ${show}/${ep}`);
-  for (const u of [`show/${show}/${ep}`, `show/${show}/${ep.replace(/e\d+$/, '')}`, `show/${show}`]) {
-    try {
-      const r = await N.touGet({url:`https://services.radio-canada.ca/ott/catalog/v2/toutv/${u}?device=web&tier=Member`});
-      const body = String(r.body || ''); let j = null, perr = ''; try { j = JSON.parse(body); } catch (e) { perr = String(e.message).slice(0, 90); }
-      L(`  ${u}: status ${r.status} · ${body.length} chars · ${j ? 'json' : 'not json: ' + perr}`);
-      if (!j) { L('    starts: ' + body.slice(0, 260).replace(/\s+/g, ' ')); L('    ends: ' + body.slice(-120).replace(/\s+/g, ' ')); }
-      const keys = new Map(); for (const m of body.matchAll(/"([A-Za-z]*(?:[Mm]edia|[Pp]layback|[Pp]lay)[A-Za-z]*)"\s*:\s*("[^"]{0,50}"|\d+)/g)) if (!keys.has(m[1]) && keys.size < 14) keys.set(m[1], m[2]);
-      L('    media-like keys: ' + ([...keys].map(([k, v]) => k + '=' + v).join(' · ') || 'none'));
-      if (j) qcOutline(j, L, 45);
-      for (const m of body.matchAll(/"(?:idMedia|mediaId|formattedIdMedia|playbackId)"\s*:\s*"?(\d{5,})/g)) ids.add(m[1]);
-    } catch (e) { L(`  ${u}: failed ${e}`); }
-  }
-  L('', 'media ids found: ' + ([...ids].slice(0, 6).join(', ') || 'none'));
-  if (ids.size) { L(''); await qcSigned([...ids][0], L); }
-}
 async function qcProbe(input, out){
   const L = (...t) => out.push(...t), url = String(input).trim();
-  if (/^[a-z0-9-]+\/s\d+e\d+$/i.test(url)) { await qcCatalogTest(url, L); L('', 'Done.'); return; }
-  if (/^\d{5,9}$/.test(url)) { await qcSigned(url, L); L('', 'Done.'); return; }
-  if (!/^https:\/\//.test(url)) { L('Paste a full https:// address of a show or episode page, or a media number for the signed-in test.'); return; }
+  if (!/^https:\/\//.test(url)) { L('Paste a full https:// address of a show or episode page.'); return; }
   L(`Streamlet ${APP_BUILD} · ${nativePlayer() ? 'native' : 'browser (blocked by CORS probably)'} · ${new Date().toISOString()}`, '');
   L('PAGE ' + qcHost(url));
   let page = '';

@@ -222,18 +222,3 @@ async function qcRoute(url){
 }
 const qcFillShows = () => { $('#qcShows').value = (lsGet('streamlet.qcshows', null) || QC_DEFAULT_SHOWS).join('\n'); };
 $('#qcSave').onclick = () => { const urls = $('#qcShows').value.split(/\s+/).filter(Boolean); lsSet('streamlet.qcshows', urls); qcMem.clear(); toast('Saved. Reopen the Québec space to refresh'); };
-
-/* ICI TOU.TV sign-in (Android apps): opens the real site in a window, keeps the session on this device */
-async function touRefresh(){
-  const N = nativePlayer(), el = $('#touState'); if (!el) return;
-  if (!N || !N.touStatus) { el.textContent = 'Needs the Android app'; return; }
-  try {
-    const r = await N.touStatus();
-    el.textContent = r.signedIn ? `Signed in${r.ageMin >= 0 ? ' · session seen ' + (r.ageMin < 90 ? r.ageMin + ' min' : Math.round(r.ageMin / 60) + ' h') + ' ago' : ''}${r.sawValidation ? ' · video request seen' : ''}${r.claims ? ' · access token saved' : ''}` : 'Not signed in. Tap Sign in, log in, open an episode and press play, then press Done';
-  } catch { el.textContent = 'Could not read the sign-in state'; }
-}
-$('#touIn').onclick = async () => { const N = nativePlayer(); if (!N || !N.openTouLogin) { toast('Needs the Android app (update it first)'); return; } try { await N.openTouLogin(); } catch { toast('Could not open the sign-in window'); } };
-$('#touOut').onclick = async () => { const N = nativePlayer(); try { if (N && N.touForget) await N.touForget(); toast('Signed out of ICI TOU.TV'); } catch {} touRefresh(); };
-document.addEventListener('visibilitychange', () => { if (!document.hidden) touRefresh(); });
-setTimeout(touRefresh, 1200);
-for (const a of addons) if (a.url && a.url.startsWith('qc://')) a.manifest = QC_MANIFEST;          // built-in: always use the current manifest, no reinstall needed
