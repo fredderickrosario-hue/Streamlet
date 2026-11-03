@@ -4919,16 +4919,19 @@ async function qcProbe(input, out){
   }
   // Radio-Canada
   if (/tou\.tv|radio-canada/.test(url)) {
-    const id = (page.match(/"idMedia"\s*:\s*"?(\d{5,})/) || page.match(/idMedia=(\d{5,})/) || page.match(/media-(\d{5,})/) || url.match(/media-(\d{5,})/) || [])[1];
-    L('', 'RADIO-CANADA ' + (id ? 'media ' + id : 'no media id found in the page'));
-    if (id) for (const app of ['toutv', 'medianet']) {
+    const cand = new Set();
+    for (const re of [/"idMedia"\s*:\s*"?(\d{5,})/g, /idMedia=(\d{5,})/g, /"mediaId"\s*:\s*"?(\d{5,})/gi, /data-media-?id="(\d{5,})"/gi, /media-(\d{5,})/g, /"idMedia\\?":\\?"?(\d{5,})/g]) for (const m of page.matchAll(re)) cand.add(m[1]);
+    for (const m of url.matchAll(/(?:media-|episodes?\/|\/)(\d{5,})/g)) cand.add(m[1]);
+    L('', 'RADIO-CANADA candidate media ids: ' + ([...cand].slice(0, 6).join(', ') || 'none'));
+    let shown = 0;
+    for (const id of [...cand].slice(0, 5)) for (const app of ['toutv', 'medianet']) {
       try {
         const r = await qcGet(`https://services.radio-canada.ca/media/validation/v2/?appCode=${app}&deviceType=ipad&connectionType=wifi&idMedia=${id}&output=json`);
         let j = null; try { j = JSON.parse(r.body); } catch {}
         const prot = j ? (j.protectionType || ((j.params || []).find(p => /protect|drm/i.test(p.name)) || {}).value || '-') : '-';
-        L(`  ${app}: status ${r.status}` + (j ? ` · errorCode ${j.errorCode ?? '-'} · ${String(j.message || '').slice(0, 90)} · url ${j.url ? qcHost(j.url) : 'none'} · protection ${prot}` : ` · ${String(r.body).slice(0, 100)}`));
-        if (j && j.url) await qcPlaylist(j.url, L);
-      } catch (e) { L(`  ${app}: failed ${e}`); }
+        L(`  ${id} ${app}: status ${r.status}` + (j ? ` · errorCode ${j.errorCode ?? '-'} · ${String(j.message || '').slice(0, 80)} · url ${j.url ? qcHost(j.url) : 'none'} · protection ${prot}` : ` · ${String(r.body).slice(0, 80)}`));
+        if (j && j.url && shown < 2) { shown++; await qcPlaylist(j.url, L); }
+      } catch (e) { L(`  ${id} ${app}: failed ${e}`); }
     }
   }
   L('', 'Done. Nothing was saved and no password was used.');
