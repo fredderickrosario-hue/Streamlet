@@ -36,6 +36,14 @@ async function qcSigned(idMedia, L){
       let j = null; try { j = JSON.parse(r.body); } catch {}
       const prot = j ? (j.protectionType || ((j.params || []).find(p => /protect|drm|license/i.test(p.name)) || {}).name || '-') : '-';
       L(`  ${dt}/${tech}: status ${r.status}` + (j ? ` · errorCode ${j.errorCode ?? '-'} · ${String(j.message || '').slice(0, 80)} · url ${j.url ? qcHost(j.url) : 'none'} · protection ${prot}` : ` · ${String(r.body).slice(0, 100)}`));
+      if (j && j.params && tech === 'dash') {
+        const dp = j.params.find(p => p.name === 'dfpDesktopStreamUrl'), mask = t => String(t).replace(/[A-Za-z0-9_%=.-]{40,}/g, m => '<' + m.length + ' chars>');
+        if (dp) {
+          L('    DAI request address: ' + mask(dp.value));
+          try { const d = await qcGet(String(dp.value)); L(`    DAI answer: status ${d.status} · ${String(d.body).length} chars · ${mask(String(d.body).slice(0, 400)).replace(/\s+/g, ' ')}`); } catch (e) { L('    DAI answer failed: ' + e); }
+        }
+        L('    content address: ' + mask(j.url));
+      }
       if (j && j.params) for (const p of j.params) L(`      · ${p.name} = ${/token|key|secret|auth/i.test(p.name) ? '<' + String(p.value || '').length + ' chars>' : /^https?:/.test(String(p.value)) ? qcHost(p.value) + ' (' + String(p.value).length + ' chars)' : String(p.value).slice(0, 40)}`);
       if (j && j.url && /m3u8|hls/i.test(j.url + tech)) await qcPlaylist(j.url, L);
     } catch (e) { L(`  ${dt}/${tech}: failed ${e}`); }
