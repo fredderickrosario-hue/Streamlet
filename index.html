@@ -1494,7 +1494,7 @@ function parseAddonUrl(input){
   if (!u) throw new Error('Paste an addon URL first.');
   if (u.toLowerCase()==='demo') u = 'demo://sample';
   if (/^(qu[eé]bec|qc)$/i.test(u)) u = 'qc://tva';
-  u = u.replace(/^stremio:\/\//i, 'https://');
+  u = u.replace(/^stremio:\/\//i, 'https://').replace(/^https?:\/\/(qc:\/\/)/i, '$1');      // 'https://qc://tva' was saved by an older build: repair it
   if (!/^(https?|demo|qc):\/\//i.test(u)) u = 'https://' + u;
   if (!/manifest\.json(\?.*)?$/.test(u)) u = u.replace(/\/+$/,'') + '/manifest.json';
   return { url:u, base:u.replace(/\/manifest\.json(\?.*)?$/,'') };
