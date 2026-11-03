@@ -209,7 +209,17 @@ async function qcRoute(url){
   const path = decodeURIComponent(url.replace(/^qc:\/\/[^/]*\//, '').replace(/\.json(\?.*)?$/, ''));
   if (path === 'manifest') return QC_MANIFEST;
   if (path.startsWith('catalog/')) {
-    const metas = (await Promise.all(qcShowList().map(e => (e.src === 'tou' ? qcTouShow(e.path) : e.src === 'rc' ? qcRcShow(e.path) : qcShowInfo(e.path)).then(i => ({id:qcCinemetaId(e), type:'series', name:i.name, poster:i.poster, background:i.background, description:i.description})).catch(() => null)))).filter(Boolean);
+    const metas = await Promise.all(qcShowList().map(async e => {
+      const id = qcCinemetaId(e), fallback = {id, type:'series', name:qcTitleCase(e.path.split('/').pop().replace(/-/g, ' ')), poster:'', background:'', description:''};
+      try {
+        if (/^tt\d+$/.test(id)) {                                            // known to Cinemeta: use its name and pictures, the site page is not needed
+          const cm = (await qcCached('cinemeta' + id, 6 * 3600e3, async () => JSON.parse((await qcGet(`https://v3-cinemeta.strem.io/meta/series/${id}.json`, {Accept:'application/json'})).body))).meta || {};
+          return {id, type:'series', name:cm.name || fallback.name, poster:cm.poster || '', background:cm.background || cm.poster || '', description:cm.description || ''};
+        }
+        const i = await (e.src === 'tou' ? qcTouShow(e.path) : e.src === 'rc' ? qcRcShow(e.path) : qcShowInfo(e.path));
+        return {id, type:'series', name:i.name, poster:i.poster, background:i.background, description:i.description};
+      } catch { return fallback; }                                           // never drop a show just because its page did not load
+    }));
     return {metas};
   }
   if (path.startsWith('meta/')) { const id = path.split('/').slice(2).join('/'); return {meta:/^qc:rc:/.test(id) ? await qcRcMeta(id.replace(/^qc:rc:/, '')) : /^qc:tou:/.test(id) ? await qcTouMeta(id.replace(/^qc:tou:/, '')) : await qcMeta(id.replace(/^qc:tva:/, ''))}; }
