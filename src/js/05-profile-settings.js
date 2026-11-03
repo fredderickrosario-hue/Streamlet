@@ -53,6 +53,9 @@ async function renderLog(){
   for (const e of play.slice(0, 15)) lines.push(`${when(e.t)} · ${e.title || 'Unknown'} · ${e.src || 'source'}${e.code ? ' · ' + e.code : ''}`);
   lines.push('', 'APP ERRORS' + (sys.length ? '' : ': none'));
   for (const e of sys.slice(0, 20)) lines.push(`${when(e.t)} · ${e.k} · ${e.m}${e.n > 1 ? ' (x' + e.n + ')' : ''}`);
+  if (profile) { const sh = pget('shows', {}), rem = pget('epRemoved', {}), eps = epAll();
+    lines.push('', 'CONTINUE WATCHING (this profile)', `space: ${cur ? cur.id : '-'} · shows remembered: ${Object.keys(sh).map(i => i.slice(0, 28) + '@' + sh[i].sp).join(', ') || 'none'}`,
+      `episode records: ${eps.length} · shows in them: ${[...new Set(eps.map(r => r.itemId.slice(0, 28)))].join(', ') || 'none'} · taken off: ${Object.keys(rem).slice(0, 6).map(k => k.slice(-34)).join(', ') || 'none'}`, ...cwDiag.map(x => '  ' + x)); }
   const ls = lsGet('streamlet.lastsearch', null);
   if (ls && ls.rows) { lines.push('', `LAST SEARCH: "${ls.q}" at ${when(ls.t)}`); for (const r of ls.rows.slice(0, 40)) lines.push(r); }
   if (N) lines.push('', 'ANDROID LOG' + (native.trim() ? '' : ': empty'), ...native.trim().split('\n').slice(-40));
@@ -279,18 +282,20 @@ async function refreshCounts(){
     if (changed) syncRibbons();
   } finally { cntBusy = false; }
 }
+let cwDiag = [];
 async function nextEpisodeCards(have){
-  const sh = pget('shows', {}), now = Date.now(), out = [];
+  const sh = pget('shows', {}), now = Date.now(), out = []; cwDiag = [];
   const ids = Object.keys(sh).filter(id => sh[id].ty === 'series' && !have.has(id) && now - (sh[id].t || 0) < 150 * 864e5 && (allHist() || sh[id].sp === (cur && cur.id)));
   await Promise.all(ids.slice(0, 12).map(async id => {
     try {
-      const s0 = sh[id], meta = await showMeta(id, s0); if (!meta) return;
+      const s0 = sh[id], meta = await showMeta(id, s0); if (!meta) { cwDiag.push(`${id}: no addon can describe it`); return; }
       const vids = airedVids(meta);
       let last = -1; vids.forEach((v, i) => { if (epDone(id, v.season ?? 1, v.episode)) last = i; });
       let from = last + 1;
-      if (last < 0) { const a = removedAnchor(id, vids); if (a === null) return; from = a; }
+      if (last < 0) { const a = removedAnchor(id, vids); if (a === null) { cwDiag.push(`${id}: no watched episode and none removed`); return; } from = a; }
       const nx = vids.slice(from).find(v => !epDone(id, v.season ?? 1, v.episode) && (!v.released || new Date(v.released).getTime() <= now));
-      if (!nx || (epGet(id, nx.season ?? 1, nx.episode) || {}).pos > 20) return;
+      if (!nx || (epGet(id, nx.season ?? 1, nx.episode) || {}).pos > 20) { cwDiag.push(`${id}: nothing new to offer (${vids.length} episodes, last watched #${last})`); return; }
+      cwDiag.push(`${id}: offering S${nx.season ?? 1}E${nx.episode}`);
       out.push({k:`next|${nx.id}`, type:'series', id:nx.id, itemId:id, itemType:'series', name:meta.name || s0.n, poster:meta.poster || s0.p, background:meta.background || s0.b, addonId:meta._a || s0.a,
         ep:{season:nx.season ?? 1, episode:nx.episode, title:nx.title || nx.name}, pos:0, dur:0, t:now, upnext:true, fromShow:true});
     } catch {}
@@ -306,12 +311,16 @@ function renderCW(){
   const hist = histForSpace(), tok = ++cwTok, strip = h('div', {class:'strip'});
   const row = h('div', {class:'row'}, h('h2', null, 'Continue watching'), strip);
   for (const e of hist) strip.append(cwCard(e));
-  if (hist.length) box.append(row);
+  const saved = (pget('nextcards', []) || []).filter(e => !hist.some(h2 => h2.itemId === e.itemId) && (allHist() || e.sp === cur.id));
+  for (const e of saved.slice().reverse()) { const c = cwCard(e); c._next = true; strip.prepend(c); }
+  if (hist.length || saved.length) box.append(row);
   refreshCounts();
   nextEpisodeCards(new Set(hist.map(e => e.itemId))).then(extra => {
-    if (tok !== cwTok || !extra.length) return;
-    for (const e of extra.reverse()) strip.prepend(cwCard(e));
-    if (!row.isConnected) box.append(row);
+    if (tok !== cwTok) return;
+    pset('nextcards', extra.map(e => ({...e, sp:cur.id})));                       // next time the row shows these at once
+    strip.querySelectorAll('.cwc').forEach(c => { if (c._next) c.remove(); });
+    for (const e of extra.slice().reverse()) { const c = cwCard(e); c._next = true; strip.prepend(c); }
+    if (extra.length && !row.isConnected) box.append(row); else if (!strip.children.length && row.isConnected) row.remove();
   }).catch(() => {});
 }
 

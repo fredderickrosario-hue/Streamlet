@@ -222,6 +222,7 @@ function resumeButton(rs, base){
 
 /* the page of a single episode: its own backdrop, overview and the streams */
 function openEpisode(addon, type, meta, v, sorted, again){
+  if (profile && type === 'series' && (epAll().some(r => r.itemId === meta.id) || Object.keys(pget('epRemoved', {})).some(k => k.startsWith(meta.id + '|')))) showNote(meta.id, meta.name, meta.poster, meta.background, addon.uid);
   const ed = $('#episode'); ed.hidden = false; ed.scrollTop = 0; ed.classList.remove('p2'); if (!again) pushLayer('episode');
   const base = episodeBase(addon, type, meta, v, sorted);
   const sn = v.season ?? 1, code = `S${String(sn).padStart(2, '0')}E${String(v.episode ?? 0).padStart(2, '0')}`;
