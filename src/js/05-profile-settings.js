@@ -273,14 +273,15 @@ function countUnwatched(id, vids){
 }
 let cntBusy = false;
 async function refreshCounts(){
-  if (cntBusy || !profile || !cur) return; cntBusy = true;
+  if (cntBusy || !profile || !cur) return false; cntBusy = true;
+  let changed = false;
   try {
     const sh = pget('shows', {}), now = Date.now();
     const ids = Object.keys(sh).filter(id => sh[id].ty === 'series' && now - (sh[id].t || 0) < 150 * 864e5 && (allHist() || sh[id].sp === cur.id)).slice(0, 12);
-    let changed = false;
     await Promise.all(ids.map(async id => { try { const meta = await showMeta(id, sh[id]); if (!meta) return; const n = countUnwatched(id, airedVids(meta)); if (cntMem.get(id) !== n) { cntMem.set(id, n); changed = true; } } catch {} }));
     if (changed) syncRibbons();
   } finally { cntBusy = false; }
+  return changed;
 }
 let cwDiag = [];
 async function nextEpisodeCards(have){

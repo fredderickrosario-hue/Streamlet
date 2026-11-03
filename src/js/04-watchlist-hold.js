@@ -122,7 +122,7 @@ function mlShows(){                                                          // 
   const sh = pget('shows', {});
   return Object.keys(sh).filter(id => sh[id].ty === 'series' && mlHere(sh[id].sp)).map(id => ({id, ...sh[id]})).sort((x, y) => (y.t || 0) - (x.t || 0));
 }
-function renderWatch(){
+function renderWatch(noRefresh){
   if (!profile) return;
   const tok = ++mlTok, grid = $('#wlGrid'), wl = wlHere();
   $('#mlTabs').replaceChildren(...ML_TABS.map(([id, label]) => h('button', {class:'chip' + (mlTab === id ? ' on' : ''), type:'button', onclick:() => { mlTab = id; renderWatch(); }}, label)));
@@ -140,7 +140,7 @@ function renderWatch(){
     const shows = mlShows();
     if (!shows.length) { grid.replaceChildren(mlEmpty('Nothing in progress', 'Shows you are watching appear here once you have played an episode.')); return; }
     grid.replaceChildren(...shows.map(s => { const n = unwatchedOf(s.id); return mlCard({itemId:s.id, type:'series', name:s.n, poster:s.p, background:s.b, addonId:s.a}, n > 0 ? `${n} to watch` : 'Caught up'); }));
-    try { refreshCounts().then(() => { if (tok === mlTok && mlTab === 'watching' && !$('#watch').hidden) renderWatch(); }); } catch {}
+    if (!noRefresh) { try { refreshCounts().then(ch => { if (ch && tok === mlTok && mlTab === 'watching' && !$('#watch').hidden) renderWatch(true); }); } catch {} }      // redraw once if the counts changed (never in a loop)
     return;
   }
   if (mlTab === 'history') {

@@ -271,6 +271,16 @@ const ok = (name, cond, extra) => { cond ? pass++ : fail++; console.log((cond ? 
       }).catch(e => String(e));
       ok('My List: tabs render (watchlist, watching, history, for you)', r === true, r);
     }
+    {
+      const r = await p.evaluate(async () => {
+        const old = cur, rw = renderWatch; let n = 0; cur = {id:'sp1', allHistory:true, catalogs:[], streams:[]};
+        renderWatch = (...a) => { n++; return rw(...a); };
+        mlTab = 'watching'; renderWatch(); await new Promise(r => setTimeout(r, 400));
+        renderWatch = rw; mlTab = 'list'; cur = old;
+        return n < 5 ? true : 'renderWatch ran ' + n + ' times';
+      }).catch(e => String(e));
+      ok('My List: the Watching tab does not redraw itself in a loop', r === true, r);
+    }
     ok('no errors after all of the above', errs.length === 0, errs[0]);
     await p.close();
   }
