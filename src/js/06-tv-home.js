@@ -19,7 +19,7 @@ function setTvHero(ctx, instant){
   const title = h('div', {class:'ttitle'}, m.name);
   const logo = m.logo ? h('img', {class:'tlogo', src:m.logo, alt:m.name, onerror:e => e.target.replaceWith(title)}) : title;
   tin.replaceChildren(ctx.tag ? h('div', {class:'ttag'}, ctx.tag) : null, logo,
-    h('div', {class:'tmeta'}, goodRating(m.imdbRating) ? h('span', {class:'timdb'}, '★ ' + goodRating(m.imdbRating)) : null, ...bits.map(x => h('span', null, String(x)))),
+    h('div', {class:'tmeta'}, m.imdbRating ? h('span', {class:'timdb'}, '★ ' + m.imdbRating) : null, ...bits.map(x => h('span', null, String(x)))),
     m.description ? h('p', {class:'tdesc'}, m.description) : null,
     h('div', {class:'tbtns'},
       h('button', {class:'hb p', type:'button', onclick:() => quickPlay(ctx.a, ctx.type, m)}, ctx.play || '▶  Play'),

@@ -65,9 +65,7 @@ function plainIconBtn(src, path, label){
   const sync = () => { b.classList.toggle('on', src.classList.contains('on')); b.title = src.title || label; };
   b.onclick = () => { src.click(); sync(); }; sync(); return b;
 }
-const goodRating = r => { const t = String(r ?? '').trim(); return t && !/^(null|undefined|nan|n\/a|0|0\.0)$/i.test(t) ? t : ''; };
 function metaRow(parts, rating, right){
-  rating = goodRating(rating);
   const row = h('div', {class:'dmeta'});
   parts.filter(Boolean).forEach((t, i) => { if (i) row.append(h('span', {class:'dot'}, '·')); row.append(h('span', null, t)); });
   if (rating) row.append(h('span', {class:'imdb'}, true ? '★' : 'IMDb'), h('span', null, String(rating)));
@@ -334,7 +332,7 @@ async function openDetail(addon, type, item, opts = {}){
     }}, playLabel());
     playSync = () => { playEl.textContent = playLabel(); };
     const restart = type === 'movie' ? (true ? (() => { const b = h('button', {class:'pib', type:'button', 'aria-label':'Start from the beginning', title:'Start from the beginning'}); b.innerHTML = `<svg viewBox="0 0 24 24">${IC.restart}</svg>`; b.onclick = () => { if (soon()) { toast('Not out yet.'); return; } autoPlay(type, meta.id, meta.name, {...base, fresh:true}); }; return b; })() : iconBtn(IC.restart, 'Start from the beginning', () => { if (soon()) { toast('Not out yet.'); return; } autoPlay(type, meta.id, meta.name, {...base, fresh:true}); })) : null;
-    acts.append(playEl, ...(true ? [plainIconBtn(ico.wl, IC.mark, 'Watchlist'), plainIconBtn(ico.seen, IC.seen, 'Watched'), restart] : [mirrorBtn(ico.wl, IC.mark, 'Watchlist'), mirrorBtn(ico.seen, IC.seen, 'Watched'), restart]));
+    acts.append(playEl, ...(true ? [plainIconBtn(ico.wl, IC.mark, 'Watchlist'), plainIconBtn(ico.seen, IC.seen, 'Watched'), restart] : [mirrorBtn(ico.wl, IC.mark, 'Watchlist'), mirrorBtn(ico.seen, IC.seen, 'Watched'), restart]).filter(Boolean));
     d.replaceChildren(top, h('div', {class:'dwrap'}, heroBlock(meta), body));
     d.scrollTop = keep; bindScroll(d, top);
     return {sorted};
