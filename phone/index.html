@@ -4497,6 +4497,8 @@ async function qcPlaylist(u, L){
     const mu = String(u).replace(/^http:/, 'https:'), r = await qcGet(mu), t = r.body || '';
     const res = [...t.matchAll(/RESOLUTION=(\d+x\d+)/g)].map(m => m[1]), keys = keyInfo(t);
     L(`    playlist: status ${r.status} · ${t.startsWith('#EXTM3U') ? 'valid HLS' : 'not HLS'} · variants ${res.length ? [...new Set(res)].join(' ') : '-'} · master encryption: ${keys.length ? keys.join(', ') : 'none'} · audio ${(t.match(/TYPE=AUDIO/g) || []).length} · subtitles ${(t.match(/TYPE=SUBTITLES/g) || []).length}`);
+    const media = t.split('\n').filter(x => x.startsWith('#EXT-X-MEDIA')).map(x => `${(x.match(/TYPE=([A-Z-]+)/) || [])[1]}/${(x.match(/LANGUAGE="([^"]*)"/) || [])[1] || '-'}/${((x.match(/NAME="([^"]*)"/) || [])[1] || '').slice(0, 20)}${/URI=/.test(x) ? ' uri' : ''}`);
+    L('    media lines: ' + (media.join(' | ') || 'none') + ' · closed-captions attr: ' + ((t.match(/CLOSED-CAPTIONS=("[^"]*"|NONE)/) || [])[1] || 'none'));
     const lines = t.split('\n').map(x => x.trim()), i = lines.findIndex(x => x.startsWith('#EXT-X-STREAM-INF')), vl = i >= 0 ? lines.slice(i + 1).find(x => x && !x.startsWith('#')) : null;
     if (vl) {
       const vu = new URL(vl, mu).toString(), v = await qcGet(vu), vt = v.body || '', vk = keyInfo(vt);
@@ -4646,6 +4648,7 @@ async function qcProbe(input, out){
         const r = await qcGet(`https://services.radio-canada.ca/media/validation/v2/?appCode=${app}&deviceType=ipad&connectionType=wifi&idMedia=${id}&output=json`);
         let j = null; try { j = JSON.parse(r.body); } catch {}
         const prot = j ? (j.protectionType || ((j.params || []).find(p => /protect|drm/i.test(p.name)) || {}).value || '-') : '-';
+        if (j) L(`  ${id} ${app} validation keys: ${Object.keys(j).join(',')}${j.params ? ' · params: ' + j.params.map(p => p.name).join(',') : ''}`);
         L(`  ${id} ${app}: status ${r.status}` + (j ? ` · errorCode ${j.errorCode ?? '-'} · ${String(j.message || '').slice(0, 80)} · url ${j.url ? qcHost(j.url) : 'none'} · protection ${prot}` : ` · ${String(r.body).slice(0, 80)}`));
         if (j && j.url && shown < 2) { shown++; await qcPlaylist(j.url, L); }
       } catch (e) { L(`  ${id} ${app}: failed ${e}`); }
