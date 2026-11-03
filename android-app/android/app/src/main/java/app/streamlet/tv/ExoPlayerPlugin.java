@@ -3,6 +3,7 @@ package app.streamlet.tv;
 import android.app.UiModeManager;
 import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.content.res.Configuration;
 import android.net.Uri;
 import android.os.Build;
@@ -164,6 +165,24 @@ public class ExoPlayerPlugin extends Plugin {
                 call.resolve(r);
             } catch (Exception e) { call.reject(String.valueOf(e.getMessage())); }
         }).start();
+    }
+
+    /** ICI TOU.TV sign-in window (see TouLoginActivity) and what it has noted so far, without exposing the secrets */
+    @PluginMethod
+    public void openTouLogin(PluginCall call) { getActivity().startActivity(new Intent(getActivity(), TouLoginActivity.class)); call.resolve(); }
+    @PluginMethod
+    public void touStatus(PluginCall call) {
+        SharedPreferences sp = getContext().getSharedPreferences(TouLoginActivity.PREFS, Context.MODE_PRIVATE);
+        JSObject r = new JSObject(); long t = sp.getLong("authT", 0);
+        r.put("signedIn", sp.getString("auth", null) != null); r.put("ageMin", t == 0 ? -1 : (System.currentTimeMillis() - t) / 60000);
+        r.put("sawValidation", sp.getString("lastValidation", null) != null);
+        call.resolve(r);
+    }
+    @PluginMethod
+    public void touForget(PluginCall call) {
+        getContext().getSharedPreferences(TouLoginActivity.PREFS, Context.MODE_PRIVATE).edit().clear().apply();
+        try { android.webkit.CookieManager.getInstance().removeAllCookies(null); } catch (Exception ignored) { }
+        call.resolve();
     }
 
     @PluginMethod
