@@ -85,7 +85,7 @@ async function heroBuild(first, extras, tok){
   for (const x of extras) if (!seen.has(x.m.id) && x.m.background) { seen.add(x.m.id); rest.push(x); }
   for (let i = rest.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [rest[i], rest[j]] = [rest[j], rest[i]]; }   // a different order every visit
   heroSlides = [first, ...rest].slice(0, 8); heroIdx = 0;
-  if (heroSlides.length > 1) { setTvHero(heroSlides[0], true); if (!heroTimer) heroTimer = setInterval(heroTick, 6000); }
+  if (heroSlides.length > 1) { setTvHero(heroSlides[0], true); if (!heroTimer) heroTimer = setInterval(heroTick, 7500); }
 }
 for (const ev of ['keydown', 'touchstart', 'pointerdown']) document.addEventListener(ev, () => heroPause(10000), {passive:true});
 document.addEventListener('focusin', e => {
