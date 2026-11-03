@@ -407,7 +407,9 @@ body.onhome.scr:not(.launch) #tabsBar{opacity:0;visibility:hidden}
 .tvhero::before{content:'';position:absolute;inset:0 0 auto 0;height:150px;background:linear-gradient(to bottom,rgba(0,0,0,.55),transparent);z-index:1;pointer-events:none}
 /* phone portrait: edge-to-edge hero, text centred like Netflix mobile */
 body:not(.tv){--tvl:0px}
-body:not(.tv) .tvhero{height:calc(var(--vh,1vh) * 45);min-height:330px;margin:0 0 calc(var(--vh,1vh) * -5)}
+body:not(.tv){--ho:calc(env(safe-area-inset-top) + 74px)}
+body:not(.tv):has(#tabsBar:not([hidden])){--ho:calc(env(safe-area-inset-top) + 124px)}
+body:not(.tv) .tvhero{height:calc(var(--vh,1vh) * 45 + var(--ho));min-height:calc(330px + var(--ho));margin:0 0 calc(var(--vh,1vh) * -5)}
 body:not(.tv) .tvhero .tbg{left:0;-webkit-mask-image:none;mask-image:none}
 body:not(.tv) .tvhero .tbg img{object-position:center 12%;-webkit-mask-image:linear-gradient(to bottom,#000 62%,transparent 100%);mask-image:linear-gradient(to bottom,#000 62%,transparent 100%)}
 body:not(.tv) .tvhero .tin{left:18px;right:18px;width:auto;bottom:calc(var(--vh,1vh) * 9);text-align:center}
@@ -495,6 +497,10 @@ body:not(.tv) .tvhero .tdots{justify-content:center}
 body:not(.tv) .tvhero .tbg img.on{animation:panx 8.4s linear both;transform:scale(1.1);transform-origin:center;object-position:0% 12%}
 @keyframes panx{from{object-position:0% 12%}to{object-position:100% 12%}}
 @media (prefers-reduced-motion:reduce){body:not(.tv) .tvhero .tbg img.on{animation:none;object-position:center 12%}}
+
+/* phone: the picture starts below the top bar and tabs instead of sitting behind them */
+body:not(.tv) .tvhero .tbg{top:var(--ho)}
+body:not(.tv) .tvhero .tbg img{-webkit-mask-image:linear-gradient(to bottom,transparent 0,#000 12%,#000 62%,transparent 100%);mask-image:linear-gradient(to bottom,transparent 0,#000 12%,#000 62%,transparent 100%)}
 /* ---- v4: TV pages, expanding nav, genre tiles, search page, intro ---- */
 /* nav: full-height transparent rail that expands with labels when focused */
 
