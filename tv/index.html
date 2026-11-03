@@ -447,7 +447,7 @@ body.onhome.scr:not(.launch) #tabsBar{opacity:0;visibility:hidden}
 .tvhero::before{content:'';position:absolute;inset:0 0 auto 0;height:150px;background:linear-gradient(to bottom,rgba(0,0,0,.55),transparent);z-index:1;pointer-events:none}
 /* phone portrait: edge-to-edge hero, text centred like Netflix mobile */
 body:not(.tv){--tvl:0px}
-body:not(.tv) .tvhero{height:calc(var(--vh,1vh) * 54);min-height:380px;margin:0 0 calc(var(--vh,1vh) * -5)}
+body:not(.tv) .tvhero{height:calc(var(--vh,1vh) * 45);min-height:330px;margin:0 0 calc(var(--vh,1vh) * -5)}
 body:not(.tv) .tvhero .tbg{left:0;-webkit-mask-image:none;mask-image:none}
 body:not(.tv) .tvhero .tbg img{object-position:center 12%;-webkit-mask-image:linear-gradient(to bottom,#000 62%,transparent 100%);mask-image:linear-gradient(to bottom,#000 62%,transparent 100%)}
 body:not(.tv) .tvhero .tin{left:18px;right:18px;width:auto;bottom:calc(var(--vh,1vh) * 9);text-align:center}
@@ -513,7 +513,7 @@ body:not(.tv) .tvhero .tdots{justify-content:center}
 @media (prefers-reduced-motion:reduce){.tvhero .tbg img.on{animation:none;transform:scale(1.07)}}
 .tvhero{touch-action:pan-y}
 /* phone: the picture pans slowly left to right, so the whole wide image gets seen */
-body:not(.tv) .tvhero .tbg img.on{animation:panx 7.5s ease-in-out both;transform:none;object-position:0% 12%}
+body:not(.tv) .tvhero .tbg img.on{animation:panx 8.4s linear both;transform:none;object-position:0% 12%}
 @keyframes panx{from{object-position:0% 12%}to{object-position:100% 12%}}
 @media (prefers-reduced-motion:reduce){body:not(.tv) .tvhero .tbg img.on{animation:none;object-position:center 12%}}
 /* ---- v4: TV pages, expanding nav, genre tiles, search page, intro ---- */
@@ -2316,7 +2316,7 @@ async function heroBuild(first, extras, tok){
   for (const x of extras) if (!seen.has(x.m.id) && x.m.background) { seen.add(x.m.id); rest.push(x); }
   for (let i = rest.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [rest[i], rest[j]] = [rest[j], rest[i]]; }   // a different order every visit
   heroSlides = [first, ...rest].slice(0, 8); heroIdx = 0;
-  if (heroSlides.length > 1) { setTvHero(heroSlides[0], true); if (!heroTimer) heroTimer = setInterval(heroTick, 7500); }
+  if (heroSlides.length > 1) { setTvHero(heroSlides[0], true); if (!heroTimer) heroTimer = setInterval(heroTick, 9000); }
 }
 for (const ev of ['keydown', 'touchstart', 'pointerdown']) document.addEventListener(ev, () => heroPause(10000), {passive:true});
 document.addEventListener('focusin', e => {
