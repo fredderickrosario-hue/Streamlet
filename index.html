@@ -4805,7 +4805,7 @@ if ('serviceWorker' in navigator && /^https?:/.test(location.protocol)) navigato
 /* ---------- Québec test: what do TVA+ and ICI Tou.tv give back for a show? (read-only, no login, nothing is stored) ---------- */
 async function qcGet(url, headers){
   const N = nativePlayer();
-  if (N && N.httpGet) { const r = await N.httpGet({url, headers:{'User-Agent':'Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 Chrome/124 Mobile Safari/537.36', 'Accept-Language':'fr-CA,fr;q=0.9', ...(headers || {})}}); return r; }
+  if (N && N.httpGet) { const r = await N.httpGet({url, headers:{'User-Agent':'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36', 'Accept-Language':'fr-CA,fr;q=0.9', ...(headers || {})}}); return r; }
   const r = await fetch(url, {headers}); return {status:r.status, body:await r.text(), url:r.url};
 }
 const qcHost = u => { try { return new URL(u).host; } catch { return '?'; } };
@@ -4821,11 +4821,33 @@ async function qcProbe(input, out){
     const has = re => (page.match(re) || []).length;
     L(`  next-data:${has(/__NEXT_DATA__/g)} · brightcove:${has(/brightcove/gi)} · m3u8:${has(/\.m3u8/g)} · drm/widevine:${has(/widevine|drm\b/gi)} · protectionType:${has(/protectionType/g)} · login words:${has(/connexion|se connecter|log ?in/gi)}`);
   } catch (e) { L('  failed: ' + e); }
+  // what the page's own data says about videos (key names and ids only, no personal data)
+  const nd = (page.match(/<script id="__NEXT_DATA__"[^>]*>([\s\S]*?)<\/script>/) || [])[1];
+  const ids = new Set(), hits = [];
+  if (nd) {
+    try {
+      const walk = (o, path, d) => {
+        if (!o || d > 14 || hits.length > 40) return;
+        if (Array.isArray(o)) { o.slice(0, 3).forEach((x, i) => walk(x, path + '[' + i + ']', d + 1)); return; }
+        if (typeof o === 'object') for (const [k, v] of Object.entries(o)) {
+          if (/brightcove|videoId|mediaId|playback|drm|entitle|premium|auth|subscri|geo|stream|source/i.test(k) && (typeof v !== 'object' || v === null)) hits.push(`${path}.${k} = ${String(v).slice(0, 60)}`);
+          if (/^(brightcoveId|videoId|mediaId|referenceId)$/i.test(k) && v) ids.add(String(v));
+          walk(v, path + '.' + k, d + 1);
+        }
+      };
+      walk(JSON.parse(nd), '', 0);
+    } catch (e) { L('  next-data parse failed: ' + e); }
+    L('', 'PAGE DATA (' + nd.length + ' chars) · candidate video ids: ' + ([...ids].slice(0, 8).join(', ') || 'none'));
+    for (const t of hits.slice(0, 30)) L('  ' + t);
+  }
+  const allIds = [...new Set([...(page.match(/\b\d{13}\b/g) || [])])].slice(0, 6);
+  L('  13-digit numbers on page: ' + (allIds.join(', ') || 'none'));
   // Brightcove (TVA+)
   const acct = (page.match(/players\.brightcove\.net\/(\d{6,})\//) || page.match(/"accountId"\s*:\s*"?(\d{6,})/) || [])[1] || (/tvaplus\.ca|qub\.ca/.test(url) ? '5481942443001' : '');
-  const vid = (page.match(/"videoId"\s*:\s*"?(\d{10,})/) || page.match(/data-video-id="(\d{10,})"/) || page.match(/videoId=(\d{10,})/) || [])[1] || (url.match(/(\d{12,})\/?$/) || [])[1];
-  L('', 'BRIGHTCOVE ' + (acct ? `account ${acct}` : 'not found') + (vid ? ` · video ${vid}` : ' · no video id in the page'));
-  if (acct && vid) {
+  const vid0 = (page.match(/"videoId"\s*:\s*"?(\d{10,})/) || page.match(/data-video-id="(\d{10,})"/) || page.match(/videoId=(\d{10,})/) || [])[1] || (url.match(/(\d{12,})\/?$/) || [])[1];
+  L('', 'BRIGHTCOVE ' + (acct ? `account ${acct}` : 'not found') + (vid0 ? ` · first video ${vid0}` : ' · no video id in the page'));
+  for (const vid of [...new Set([vid0, ...ids, ...allIds].filter(Boolean))].slice(0, 4)) if (acct) {
+    L('  trying video ' + vid);
     try {
       const js = (await qcGet(`https://players.brightcove.net/${acct}/default_default/index.min.js`)).body || '';
       const pk = (js.match(/policyKey\s*:\s*"(BC[^"]+)"/) || [])[1];
