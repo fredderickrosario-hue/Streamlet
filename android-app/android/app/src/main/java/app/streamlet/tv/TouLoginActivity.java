@@ -43,12 +43,19 @@ public class TouLoginActivity extends Activity {
     }
 
     /** makes the page lay out as a desktop site: wide viewport and no touch device, like Chrome's "desktop site" switch */
-    static final String DESKTOP_JS = "(function(){try{var f=function(){var m=document.querySelector('meta[name=viewport]');if(!m){m=document.createElement('meta');m.name='viewport';(document.head||document.documentElement).appendChild(m);}if(m.getAttribute('content')!=='width=1280')m.setAttribute('content','width=1280');};f();new MutationObserver(f).observe(document.documentElement,{childList:true,subtree:true});Object.defineProperty(navigator,'maxTouchPoints',{get:function(){return 0}});}catch(e){}})();";
+    static final String DESKTOP_JS = "(function(){try{"
+        + "var f=function(){var m=document.querySelector('meta[name=viewport]');if(!m){m=document.createElement('meta');m.name='viewport';(document.head||document.documentElement).appendChild(m);}if(m.getAttribute('content')!=='width=1280')m.setAttribute('content','width=1280');};f();new MutationObserver(f).observe(document.documentElement,{childList:true,subtree:true});"
+        + "var d=function(o,k,v){try{Object.defineProperty(o,k,{get:function(){return v},configurable:true})}catch(e){}};"
+        + "d(navigator,'maxTouchPoints',0);d(navigator,'platform','Linux x86_64');d(navigator,'vendor','Google Inc.');"
+        + "d(navigator,'userAgentData',{mobile:false,platform:'Linux',brands:[{brand:'Chromium',version:'124'},{brand:'Google Chrome',version:'124'}],getHighEntropyValues:function(){return Promise.resolve({platform:'Linux',mobile:false})}});"
+        + "try{delete window.ontouchstart;}catch(e){}"
+        + "if(!window.__mmw){window.__mmw=1;var mm=window.matchMedia.bind(window);window.matchMedia=function(q){var r=mm(q);if(/pointer:\\s*coarse|hover:\\s*none|any-pointer:\\s*coarse/.test(q))return Object.assign(Object.create(r),{matches:false,media:q,addListener:function(){},removeListener:function(){},addEventListener:function(){},removeEventListener:function(){}});return r;};}"
+        + "}catch(e){}})();";
 
     @Override
     protected void onCreate(Bundle b) {
         super.onCreate(b);
-        LinearLayout root = new LinearLayout(this); root.setOrientation(LinearLayout.VERTICAL); root.setBackgroundColor(Color.BLACK);
+        LinearLayout root = new LinearLayout(this); root.setFitsSystemWindows(true); root.setOrientation(LinearLayout.VERTICAL); root.setBackgroundColor(Color.BLACK);
         LinearLayout bar = new LinearLayout(this); bar.setOrientation(LinearLayout.HORIZONTAL); bar.setGravity(Gravity.CENTER_VERTICAL); bar.setBackgroundColor(Color.parseColor("#111111"));
         bar.setPadding(24, 16, 24, 16);
         TextView t = new TextView(this); t.setText("ICI TOU.TV · sign in, then press Done"); t.setTextColor(Color.WHITE); t.setTextSize(14);
