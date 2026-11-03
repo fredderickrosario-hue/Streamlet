@@ -244,6 +244,6 @@ $('#bkOut').onclick = () => { if (profile) backupExport(); };
 $('#bkIn').onclick = () => $('#bkFile').click();
 $('#bkFile').onchange = e => { backupImport(e.target.files[0]); e.target.value = ''; };
 
-$('#setTmdb').onchange = e => { lsSet('streamlet.tmdb', e.target.value.trim()); toast(e.target.value.trim() ? 'TMDB key saved' : 'TMDB key removed'); };
+$('#setTmdb').onchange = e => { lsSet('streamlet.tmdb', e.target.value.trim()); stamp('tmdbT'); toast(e.target.value.trim() ? 'TMDB key saved' : 'TMDB key removed'); };
 
-$('#tmdbChk').onclick = async () => { const k = $('#setTmdb').value.trim(); if (!k) { toast('Paste your TMDB key first'); return; } lsSet('streamlet.tmdb', k); const b = $('#tmdbChk'); b.disabled = true; try { await tmdbGet('/configuration', k); toast('TMDB key works'); } catch (e) { toast(String(e.message) === 'invalid key' ? 'TMDB rejected that key' : 'Could not reach TMDB'); } b.disabled = false; };
+$('#tmdbChk').onclick = async () => { const k = $('#setTmdb').value.trim(); if (!k) { toast('Paste your TMDB key first'); return; } lsSet('streamlet.tmdb', k); stamp('tmdbT'); const b = $('#tmdbChk'); b.disabled = true; try { await tmdbGet('/configuration', k); toast('TMDB key works'); } catch (e) { toast(String(e.message) === 'invalid key' ? 'TMDB rejected that key' : 'Could not reach TMDB'); } b.disabled = false; };

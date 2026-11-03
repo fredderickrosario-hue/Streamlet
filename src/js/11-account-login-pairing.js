@@ -64,6 +64,8 @@ async function mergeFamily(R){
     }
   } else if (addons.length && !m.addonsT) m.addonsT = Date.now();
   if (R.repos && (R.reposT || 0) > (m.reposT || 0)) { lsSet('streamlet.repos', R.repos); m.reposT = R.reposT; }
+  if (!m.tmdbT && lsGet('streamlet.tmdb', '')) m.tmdbT = 1;                      // a key entered before this synced: push it unless the account already has a newer one
+  if (typeof R.tmdb === 'string' && (R.tmdbT || 0) > (m.tmdbT || 0)) { lsSet('streamlet.tmdb', R.tmdb); m.tmdbT = R.tmdbT; try { fillTmdb(); } catch {} }
   lsSet('streamlet.meta', m);
   return changed;
 }
@@ -120,6 +122,7 @@ async function pushAll(){
   if (m.spacesT) { fam.spaces = spaces; fam.spacesT = m.spacesT; }
   if (m.addonsT) { fam.addons = addons.map(a => ({url:a.url, uid:a.uid, label:a.label || null})); fam.addonsT = m.addonsT; }
   if (m.reposT) { fam.repos = reposGet(); fam.reposT = m.reposT; }
+  if (m.tmdbT) { fam.tmdb = lsGet('streamlet.tmdb', '') || ''; fam.tmdbT = m.tmdbT; }
   if (Object.keys(fam).length) await setDoc(doc(db, ...base, 'sync', 'family'), clean(fam), {merge:true});
   for (const p of profiles) {
     const hist = plsGet(p.id, 'history', []), removed = plsGet(p.id, 'removed', {}), sT = plsGet(p.id, 'settingsT', 0);
