@@ -313,6 +313,7 @@ public class PlayerActivity extends Activity {
                         }
                     }
                 }
+                defaultRegularAudio();
                 updateAvLabel();
             }
 
@@ -1160,6 +1161,26 @@ public class PlayerActivity extends Activity {
     /* ---- quick audio/subtitle presets + the full picker ---- */
     private static class Combo { int a, t; String label; boolean sel; }
 
+    /** audio-description ("described video") tracks, such as Radio-Canada's audio0_frdv: kept out of the quick buttons */
+    private static boolean isDescribed(String l) {
+        if (l == null) return false;
+        String x = l.toLowerCase(Locale.ROOT);
+        return x.endsWith("dv") || x.contains("description") || x.contains("described") || x.contains("audiodesc");
+    }
+    private boolean avDefaulted = false;
+    /** first time the tracks are known: if the stream has a described-video track, start on the regular one with subtitles on */
+    private void defaultRegularAudio() {
+        if (avDefaulted || player == null) return;
+        List<TrackRef> aud = tracksOf(C.TRACK_TYPE_AUDIO), txt = tracksOf(C.TRACK_TYPE_TEXT);
+        if (aud.size() < 2) return;
+        int reg = -1; boolean hasDesc = false;
+        for (int i = 0; i < aud.size(); i++) { if (isDescribed(aud.get(i).label)) hasDesc = true; else if (reg < 0) reg = i; }
+        if (!hasDesc || reg < 0) return;
+        avDefaulted = true;
+        Combo c = new Combo(); c.a = reg; c.t = txt.isEmpty() ? -1 : 0;
+        applyCombo(c);
+    }
+
     private static String shortLabel(String l) { int i = l.indexOf(" \u00b7 "); return i > 0 ? l.substring(0, i) : l; }
 
     private void updateAvLabel() {
@@ -1174,12 +1195,14 @@ public class PlayerActivity extends Activity {
         for (int k = 0; k < nA && ps.size() < 2; k++) {
             int a = (Math.max(curA, 0) + k) % nA;
             String l = shortLabel(aud.get(a).label);
+            if (isDescribed(aud.get(a).label) && a != curA) continue;
             if (!seen.add(l)) continue;
             Combo c = new Combo(); c.a = a; c.t = -1; c.label = l; c.sel = a == curA && curT < 0;
             ps.add(c);
         }
         if (!txt.isEmpty()) {
             int a = nA > 0 ? Math.max(curA, 0) : -1;
+            if (a >= 0 && isDescribed(aud.get(a).label)) for (int i = 0; i < nA; i++) if (!isDescribed(aud.get(i).label)) { a = i; break; }
             int t = curT >= 0 ? curT : 0;
             if (curT < 0 && a >= 0) for (int j = 0; j < txt.size(); j++) if (txt.get(j).label.equalsIgnoreCase(shortLabel(aud.get(a).label))) { t = j; break; }
             Combo c = new Combo(); c.a = a; c.t = t;
