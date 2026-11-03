@@ -5,6 +5,14 @@ async function qcGet(url, headers){
   const r = await fetch(url, {headers}); return {status:r.status, body:await r.text(), url:r.url};
 }
 const qcHost = u => { try { return new URL(u).host; } catch { return '?'; } };
+async function qcPlaylist(u, L){
+  try {
+    const r = await qcGet(u), t = r.body || '';
+    const keys = [...new Set((t.match(/#EXT-X-(?:SESSION-)?KEY:[^\n]*/g) || []).map(x => (x.match(/METHOD=([A-Z0-9-]+)/) || [])[1] + (/KEYFORMAT="([^"]+)"/.test(x) ? ' ' + x.match(/KEYFORMAT="([^"]+)"/)[1].replace(/^urn:uuid:/, '').slice(0, 12) : '')))];
+    const res = [...t.matchAll(/RESOLUTION=(\d+x\d+)/g)].map(m => m[1]);
+    L(`    playlist: status ${r.status} · ${t.startsWith('#EXTM3U') ? 'valid HLS' : 'not HLS'} · variants ${res.length ? [...new Set(res)].join(' ') : '-'} · encryption: ${keys.length ? keys.join(', ') : 'none'} · audio tracks ${(t.match(/TYPE=AUDIO/g) || []).length} · subtitle tracks ${(t.match(/TYPE=SUBTITLES/g) || []).length}`);
+  } catch (e) { L('    playlist failed: ' + e); }
+}
 async function qcProbe(input, out){
   const L = (...t) => out.push(...t), url = String(input).trim();
   if (!/^https:\/\//.test(url)) { L('Paste a full https:// address of a show or episode page.'); return; }
@@ -33,6 +41,14 @@ async function qcProbe(input, out){
       };
       walk(JSON.parse(nd), '', 0);
     } catch (e) { L('  next-data parse failed: ' + e); }
+    try {                                                                  // shape of the data: key names and list sizes only
+      const outline = [], sh = (o, path, d) => {
+        if (!o || typeof o !== 'object' || d > 5 || outline.length > 70) return;
+        if (Array.isArray(o)) { outline.push(`${path} [${o.length}]`); if (o[0]) sh(o[0], path + '[0]', d + 1); return; }
+        for (const [k, v] of Object.entries(o)) { if (v && typeof v === 'object') sh(v, path + '.' + k, d + 1); else if (/id|slug|url|href|season|episode|media|title|name/i.test(k)) outline.push(`${path}.${k} = ${String(v).slice(0, 48)}`); }
+      };
+      sh(JSON.parse(nd), '', 0); L('', 'PAGE SHAPE'); for (const t of outline.slice(0, 70)) L('  ' + t.replace(/^\.props\.pageProps/, '~'));
+    } catch {}
     L('', 'PAGE DATA (' + nd.length + ' chars) · candidate video ids: ' + ([...ids].slice(0, 8).join(', ') || 'none'));
     for (const t of hits.slice(0, 30)) L('  ' + t);
   }
@@ -42,24 +58,23 @@ async function qcProbe(input, out){
   const acct = (page.match(/players\.brightcove\.net\/(\d{6,})\//) || page.match(/"accountId"\s*:\s*"?(\d{6,})/) || [])[1] || (/tvaplus\.ca|qub\.ca/.test(url) ? '5481942443001' : '');
   const vid0 = (page.match(/"videoId"\s*:\s*"?(\d{10,})/) || page.match(/data-video-id="(\d{10,})"/) || page.match(/videoId=(\d{10,})/) || [])[1] || (url.match(/(\d{12,})\/?$/) || [])[1];
   L('', 'BRIGHTCOVE ' + (acct ? `account ${acct}` : 'not found') + (vid0 ? ` · first video ${vid0}` : ' · no video id in the page'));
-  for (const vid of [...new Set([vid0, ...ids, ...allIds].filter(Boolean))].slice(0, 4)) if (acct) {
-    L('  trying video ' + vid);
+  const accts = [...new Set([acct, ...allIds.filter(x => /^(5481942443001|5813221784001)$/.test(x) || (page.match(new RegExp('brightcove[^\\n]{0,80}' + x)) || []).length)])].filter(Boolean).slice(0, 3);
+  const vids = [...new Set([vid0, ...ids, ...allIds].filter(x => x && !accts.includes(x)))].slice(0, 4);
+  for (const ac of accts) for (const vd of vids) {
+    L(`  trying account ${ac} · video ${vd}`);
     try {
-      const js = (await qcGet(`https://players.brightcove.net/${acct}/default_default/index.min.js`)).body || '';
+      const js = (await qcGet(`https://players.brightcove.net/${ac}/default_default/index.min.js`)).body || '';
       const pk = (js.match(/policyKey\s*:\s*"(BC[^"]+)"/) || [])[1];
-      L('  policy key: ' + (pk ? 'found' : 'not found'));
-      if (pk) {
-        const r = await qcGet(`https://edge.api.brightcove.com/playback/v1/accounts/${acct}/videos/${vid}`, {Accept:'application/json;pk=' + pk});
-        L(`  playback api: status ${r.status}`);
-        let j = null; try { j = JSON.parse(r.body); } catch {}
-        if (Array.isArray(j)) L('  error: ' + (j[0] && (j[0].error_subcode || j[0].message) || r.body.slice(0, 120)));
-        else if (j) {
-          const src = j.sources || [];
-          L(`  title: ${j.name || '?'} · duration ${Math.round((j.duration || 0) / 60000)} min · ${src.length} sources`);
-          for (const s of src.slice(0, 8)) L(`   - ${s.type || s.container || '?'} · ${qcHost(s.src || '')} · ${s.key_systems ? 'DRM: ' + Object.keys(s.key_systems).join(',') : 'no DRM'}`);
-        }
-      }
-    } catch (e) { L('  failed: ' + e); }
+      if (!pk) { L('    no policy key'); continue; }
+      const r = await qcGet(`https://edge.api.brightcove.com/playback/v1/accounts/${ac}/videos/${vd}`, {Accept:'application/json;pk=' + pk});
+      let j = null; try { j = JSON.parse(r.body); } catch {}
+      if (Array.isArray(j)) { L(`    status ${r.status} · ${j[0] && (j[0].error_subcode || j[0].message)}`); continue; }
+      const src = (j && j.sources) || [];
+      L(`    status ${r.status} · ${j && j.name || '?'} · ${Math.round(((j && j.duration) || 0) / 60000)} min · ${src.length} sources`);
+      for (const x of src.slice(0, 8)) L(`     - ${x.type || x.container || '?'} · ${qcHost(x.src || '')} · ${x.key_systems ? 'DRM: ' + Object.keys(x.key_systems).join(',') : 'no DRM'}`);
+      const hls = src.find(x => /mpegurl/i.test(x.type || '') && x.src && !x.key_systems);
+      if (hls) await qcPlaylist(hls.src, L);
+    } catch (e) { L('    failed: ' + e); }
   }
   // Radio-Canada
   if (/tou\.tv|radio-canada/.test(url)) {
@@ -71,6 +86,7 @@ async function qcProbe(input, out){
         let j = null; try { j = JSON.parse(r.body); } catch {}
         const prot = j ? (j.protectionType || ((j.params || []).find(p => /protect|drm/i.test(p.name)) || {}).value || '-') : '-';
         L(`  ${app}: status ${r.status}` + (j ? ` · errorCode ${j.errorCode ?? '-'} · ${String(j.message || '').slice(0, 90)} · url ${j.url ? qcHost(j.url) : 'none'} · protection ${prot}` : ` · ${String(r.body).slice(0, 100)}`));
+        if (j && j.url) await qcPlaylist(j.url, L);
       } catch (e) { L(`  ${app}: failed ${e}`); }
     }
   }
