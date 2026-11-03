@@ -5191,7 +5191,10 @@ async function qcRcShow(slug){
     const name = (qcMeta1(html, 'og:title') || '').replace(/\s*[|\-–].*$/, '') || qcTitleCase(slug.replace(/-/g, ' '));
     const seen = new Set(), eps = [];
     for (const m of html.matchAll(new RegExp('/tele/' + slug + '/site/episodes/(\\d+)/([a-z0-9-]+)', 'gi'))) { if (seen.has(m[1])) continue; seen.add(m[1]); eps.push({epId:m[1], slug:m[2], released:qcRcDate(m[2])}); }
+    const keep = lsGet('streamlet.qcseen.' + slug, []);                    // the site only shows the newest episode(s): remember every one seen so the list builds up
+    for (const k of keep) if (!seen.has(k.epId)) { seen.add(k.epId); eps.push(k); }
     eps.sort((a, b) => (a.released || '').localeCompare(b.released || ''));
+    lsSet('streamlet.qcseen.' + slug, eps.slice(-80));
     return {src:'rc', path:slug, name:name || slug, description:qcMeta1(html, 'og:description'), poster:img, background:img, eps};
   });
 }
