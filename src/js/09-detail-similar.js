@@ -279,6 +279,7 @@ async function openDetail(addon, type, item, opts = {}){
   const close = () => popLayer('detail');
   const build = withStreams => {
     const keep = d.scrollTop;
+    if (profile && type === 'series' && (epAll().some(r => r.itemId === meta.id) || Object.keys(pget('epRemoved', {})).some(k => k.startsWith(meta.id + '|')))) showNote(meta.id, meta.name, meta.poster, meta.background, addon.uid);      // a show you have watched from: remember it in this space
     const vids = type === 'series' && Array.isArray(meta.videos) ? meta.videos.filter(v => v && v.id) : [];
     const sorted = [...vids].sort((x, y) => ((x.season ?? 1) - (y.season ?? 1)) || ((x.episode ?? 0) - (y.episode ?? 0)));
     const base = {info:{item:{id:meta.id, type, name:meta.name, poster:meta.poster, background:meta.background, released:meta.released, releaseInfo:meta.releaseInfo}, addonId:addon.uid},

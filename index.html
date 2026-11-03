@@ -2290,10 +2290,16 @@ function cwCard(e){
 }
 /* shows being watched whose next episode is out (and not started) join the row as "Next episode", found from the shows remembered on this device */
 const nuMem = new Map();
+/* remember a series you are watching, and in which space, so Continue watching and the poster numbers can follow it */
+function showNote(id, name, poster, background, addonId){
+  if (!profile || !cur) return;
+  const sh = pget('shows', {}); sh[id] = {n:name, p:poster, b:background, a:addonId, ty:'series', sp:cur.id, t:Date.now()};
+  pset('shows', Object.fromEntries(Object.entries(sh).sort((x, y) => y[1].t - x[1].t).slice(0, 60)));
+}
 async function showMeta(id, s0){
   const now = Date.now(), hit = nuMem.get(id);
   if (hit && now - hit.t < 30 * 60e3) return hit.m;
-  const ma = addons.find(x => x.uid === s0.a && supports(x, 'meta', 'series', id)) || spaceAddons().find(x => supports(x, 'meta', 'series', id)); if (!ma) return null;
+  const ma = addons.find(x => x.uid === s0.a && supports(x, 'meta', 'series', id)) || spaceAddons().find(x => supports(x, 'meta', 'series', id)) || addons.find(x => supports(x, 'meta', 'series', id)); if (!ma) return null;      // the space may only have a stream addon: any installed addon can describe the show
   const meta = (await getJSON(`${ma.base}/meta/series/${enc(id)}.json`)).meta; meta._a = ma.uid; nuMem.set(id, {t:now, m:meta}); return meta;
 }
 const airedVids = meta => (meta.videos || []).filter(v => v && v.id && (v.season ?? 1) >= 1).sort((x, y) => ((x.season ?? 1) - (y.season ?? 1)) || ((x.episode ?? 0) - (y.episode ?? 0)));
@@ -3416,6 +3422,7 @@ async function openDetail(addon, type, item, opts = {}){
   const close = () => popLayer('detail');
   const build = withStreams => {
     const keep = d.scrollTop;
+    if (profile && type === 'series' && (epAll().some(r => r.itemId === meta.id) || Object.keys(pget('epRemoved', {})).some(k => k.startsWith(meta.id + '|')))) showNote(meta.id, meta.name, meta.poster, meta.background, addon.uid);      // a show you have watched from: remember it in this space
     const vids = type === 'series' && Array.isArray(meta.videos) ? meta.videos.filter(v => v && v.id) : [];
     const sorted = [...vids].sort((x, y) => ((x.season ?? 1) - (y.season ?? 1)) || ((x.episode ?? 0) - (y.episode ?? 0)));
     const base = {info:{item:{id:meta.id, type, name:meta.name, poster:meta.poster, background:meta.background, released:meta.released, releaseInfo:meta.releaseInfo}, addonId:addon.uid},
@@ -3930,7 +3937,7 @@ function recordProgress(c, stream, pos, dur){
   const it = c.info.item, key = `${c.type}|${c.id}`;
   const es = c.ep ? (c.ep.season ?? 1) : 0, ee = c.ep ? (c.ep.episode ?? 0) : 0, fin = pos / dur >= 0.92;
   epPut(it.id, es, ee, fin ? {pos:0, dur, done:true} : {pos, dur, done:false});
-  if (it.type === 'series' || c.ep) { const sh = pget('shows', {}); sh[it.id] = {n:it.name, p:it.poster, b:it.background, a:c.info.addonId, ty:'series', sp:cur && cur.id, t:Date.now()}; pset('shows', Object.fromEntries(Object.entries(sh).sort((x, y) => y[1].t - x[1].t).slice(0, 60))); }
+  if (it.type === 'series' || c.ep) showNote(it.id, it.name, it.poster, it.background, c.info.addonId);
   if (fin) {                       // finished: drop it, queue the next episode
     histRemove(key);
     if (it.type === 'movie') watchedAdd({itemId:it.id, type:it.type, name:it.name});     // a series is never marked watched just because its newest episode ended

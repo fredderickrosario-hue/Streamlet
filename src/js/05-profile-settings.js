@@ -238,10 +238,16 @@ function cwCard(e){
 }
 /* shows being watched whose next episode is out (and not started) join the row as "Next episode", found from the shows remembered on this device */
 const nuMem = new Map();
+/* remember a series you are watching, and in which space, so Continue watching and the poster numbers can follow it */
+function showNote(id, name, poster, background, addonId){
+  if (!profile || !cur) return;
+  const sh = pget('shows', {}); sh[id] = {n:name, p:poster, b:background, a:addonId, ty:'series', sp:cur.id, t:Date.now()};
+  pset('shows', Object.fromEntries(Object.entries(sh).sort((x, y) => y[1].t - x[1].t).slice(0, 60)));
+}
 async function showMeta(id, s0){
   const now = Date.now(), hit = nuMem.get(id);
   if (hit && now - hit.t < 30 * 60e3) return hit.m;
-  const ma = addons.find(x => x.uid === s0.a && supports(x, 'meta', 'series', id)) || spaceAddons().find(x => supports(x, 'meta', 'series', id)); if (!ma) return null;
+  const ma = addons.find(x => x.uid === s0.a && supports(x, 'meta', 'series', id)) || spaceAddons().find(x => supports(x, 'meta', 'series', id)) || addons.find(x => supports(x, 'meta', 'series', id)); if (!ma) return null;      // the space may only have a stream addon: any installed addon can describe the show
   const meta = (await getJSON(`${ma.base}/meta/series/${enc(id)}.json`)).meta; meta._a = ma.uid; nuMem.set(id, {t:now, m:meta}); return meta;
 }
 const airedVids = meta => (meta.videos || []).filter(v => v && v.id && (v.season ?? 1) >= 1).sort((x, y) => ((x.season ?? 1) - (y.season ?? 1)) || ((x.episode ?? 0) - (y.episode ?? 0)));

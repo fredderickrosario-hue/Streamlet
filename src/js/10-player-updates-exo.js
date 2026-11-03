@@ -302,7 +302,7 @@ function recordProgress(c, stream, pos, dur){
   const it = c.info.item, key = `${c.type}|${c.id}`;
   const es = c.ep ? (c.ep.season ?? 1) : 0, ee = c.ep ? (c.ep.episode ?? 0) : 0, fin = pos / dur >= 0.92;
   epPut(it.id, es, ee, fin ? {pos:0, dur, done:true} : {pos, dur, done:false});
-  if (it.type === 'series' || c.ep) { const sh = pget('shows', {}); sh[it.id] = {n:it.name, p:it.poster, b:it.background, a:c.info.addonId, ty:'series', sp:cur && cur.id, t:Date.now()}; pset('shows', Object.fromEntries(Object.entries(sh).sort((x, y) => y[1].t - x[1].t).slice(0, 60))); }
+  if (it.type === 'series' || c.ep) showNote(it.id, it.name, it.poster, it.background, c.info.addonId);
   if (fin) {                       // finished: drop it, queue the next episode
     histRemove(key);
     if (it.type === 'movie') watchedAdd({itemId:it.id, type:it.type, name:it.name});     // a series is never marked watched just because its newest episode ended
