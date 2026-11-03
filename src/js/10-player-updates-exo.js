@@ -305,7 +305,7 @@ function recordProgress(c, stream, pos, dur){
   if (it.type === 'series' || c.ep) { const sh = pget('shows', {}); sh[it.id] = {n:it.name, p:it.poster, b:it.background, a:c.info.addonId, ty:'series', sp:cur && cur.id, t:Date.now()}; pset('shows', Object.fromEntries(Object.entries(sh).sort((x, y) => y[1].t - x[1].t).slice(0, 60))); }
   if (fin) {                       // finished: drop it, queue the next episode
     histRemove(key);
-    if (it.type === 'movie' || (c.ep && !c.next)) watchedAdd({itemId:it.id, type:it.type, name:it.name});
+    if (it.type === 'movie') watchedAdd({itemId:it.id, type:it.type, name:it.name});     // a series is never marked watched just because its newest episode ended
     if (c.next) histPut({k:`${c.type}|${c.next.id}`, type:c.type, id:c.next.id, itemId:it.id, itemType:it.type, name:it.name, poster:it.poster, background:it.background,
       addonId:c.info.addonId, ep:{season:c.next.season, episode:c.next.episode, title:c.next.title}, pos:0, dur:0, t:Date.now(), space:cur && cur.id, upnext:true});
     return;

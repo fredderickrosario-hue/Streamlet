@@ -22,10 +22,11 @@ const wdGet = () => pget('watched', []);
 const watchedHas = id => !!profile && wdGet().some(x => x.itemId === id);
 function syncRibbons(){
   if (!profile) return;
-  const set = new Set(wdGet().map(x => x.itemId));
   document.querySelectorAll('.poster[data-iid]').forEach(p => {
-    const on = set.has(p.dataset.iid), r = p.querySelector(':scope > .rib');
-    if (on && !r) p.append(h('span', {class:'rib'})); else if (!on && r) r.remove();
+    const want = ribEl(p.dataset.iid), r = p.querySelector(':scope > .rib');
+    if (!want) { if (r) r.remove(); return; }
+    if (r && r.className === want.className && r.dataset.n === want.dataset.n) return;
+    if (r) r.replaceWith(want); else p.append(want);
   });
 }
 function watchedAdd(e){

@@ -213,6 +213,17 @@ const ok = (name, cond, extra) => { cond ? pass++ : fail++; console.log((cond ? 
       }).catch(e => String(e));
       ok('Continue watching: next aired episode of a started show, none when only future ones remain', r === true, r);
     }
+    {
+      const r = await p.evaluate(() => {
+        const id = 'tt777', v = (e, rel) => ({id:`${id}:1:${e}`, season:1, episode:e, released:rel || '2020-01-01T00:00:00Z'}), vids = [v(1), v(2), v(3), v(4), v(5, '2999-01-01T00:00:00Z')];
+        const none = countUnwatched(id, vids);
+        epMark(id, [vids[1]], true); const a = countUnwatched(id, vids);                  // watched 2: episodes 3 and 4 are new, 1 is before the first watched
+        epMark(id, [vids[3]], true); const b = countUnwatched(id, vids);                  // watched 2 and 4: 3 is missed
+        cntMem.set(id, 3); const el = ribEl(id); const ok = el && el.dataset.n === '3' && el.className === 'rib cnt'; cntMem.delete(id);
+        return none === 0 && a === 2 && b === 1 && ok;
+      });
+      ok('Poster mark: counts new and missed episodes after the first one watched', r);
+    }
     ok('no errors after all of the above', errs.length === 0, errs[0]);
     await p.close();
   }

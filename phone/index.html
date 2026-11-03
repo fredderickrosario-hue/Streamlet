@@ -322,6 +322,9 @@ nav button.on>svg{transform:none}
 .stxt{white-space:pre-line;color:var(--mut);font-size:14px;line-height:1.45;overflow-wrap:anywhere}
 .resbtn{width:100%;margin:2px 0 12px}
 
+
+/* episode counter on a poster corner instead of the eye */
+.rib.cnt::after{content:attr(data-n);top:5px;right:6px;width:auto;height:auto;background:none;-webkit-mask:none;mask:none;color:var(--btnt);font-weight:900;font-size:14px;line-height:1}
 /* ---- v3 tweaks ---- */
 /* nav: no box on the current tab; the icon fills in and the label turns white */
 .navpill{display:none}
@@ -1676,10 +1679,11 @@ const wdGet = () => pget('watched', []);
 const watchedHas = id => !!profile && wdGet().some(x => x.itemId === id);
 function syncRibbons(){
   if (!profile) return;
-  const set = new Set(wdGet().map(x => x.itemId));
   document.querySelectorAll('.poster[data-iid]').forEach(p => {
-    const on = set.has(p.dataset.iid), r = p.querySelector(':scope > .rib');
-    if (on && !r) p.append(h('span', {class:'rib'})); else if (!on && r) r.remove();
+    const want = ribEl(p.dataset.iid), r = p.querySelector(':scope > .rib');
+    if (!want) { if (r) r.remove(); return; }
+    if (r && r.className === want.className && r.dataset.n === want.dataset.n) return;
+    if (r) r.replaceWith(want); else p.append(want);
   });
 }
 function watchedAdd(e){
@@ -1972,11 +1976,19 @@ function editProfile(id){
         h('div', {class:'lbl'}, 'Or use an emoji'), emojis)));
 }
 
+/* corner mark on a poster: a number = episodes you have not watched yet (new or missed), an eye = watched */
+const cntMem = new Map();
+const unwatchedOf = id => cntMem.get(id) || 0;
+function ribEl(iid){
+  const n = unwatchedOf(iid);
+  if (n > 0) return h('span', {class:'rib cnt', 'data-n':n > 99 ? '99+' : String(n)});
+  return watchedHas(iid) ? h('span', {class:'rib'}) : null;
+}
 function posterEl(meta){
   const p = h('div', {class:'poster'}, (meta.name||'?').trim().charAt(0).toUpperCase());
   if (meta.poster) p.append(h('img', {src:meta.poster, loading:'lazy', decoding:'async', alt:'', onerror:e=>e.target.remove()}));
   const iid = meta.itemId || meta.id;
-  if (iid) { p.dataset.iid = iid; if (watchedHas(iid)) p.append(h('span', {class:'rib'})); }
+  if (iid) { p.dataset.iid = iid; const rb = ribEl(iid); if (rb) p.append(rb); }
   const rs = relState(meta, meta.type); if (rs) p.append(h('span', {class:'rtag ' + rs}, relLabel(rs)));
   return p;
 }
@@ -1991,18 +2003,37 @@ function cwCard(e){
 }
 /* shows being watched whose next episode is out (and not started) join the row as "Next episode", found from the shows remembered on this device */
 const nuMem = new Map();
+async function showMeta(id, s0){
+  const now = Date.now(), hit = nuMem.get(id);
+  if (hit && now - hit.t < 30 * 60e3) return hit.m;
+  const ma = addons.find(x => x.uid === s0.a && supports(x, 'meta', 'series', id)) || spaceAddons().find(x => supports(x, 'meta', 'series', id)); if (!ma) return null;
+  const meta = (await getJSON(`${ma.base}/meta/series/${enc(id)}.json`)).meta; meta._a = ma.uid; nuMem.set(id, {t:now, m:meta}); return meta;
+}
+const airedVids = meta => (meta.videos || []).filter(v => v && v.id && (v.season ?? 1) >= 1).sort((x, y) => ((x.season ?? 1) - (y.season ?? 1)) || ((x.episode ?? 0) - (y.episode ?? 0)));
+/* episodes you have not watched that are out, from the first one you watched onward (new ones and ones you skipped) */
+function countUnwatched(id, vids){
+  const now = Date.now(), aired = vids.filter(v => !v.released || new Date(v.released).getTime() <= now);
+  const first = aired.findIndex(v => epDone(id, v.season ?? 1, v.episode) || (epGet(id, v.season ?? 1, v.episode) || {}).pos > 20);
+  return first < 0 ? 0 : aired.slice(first).filter(v => !epDone(id, v.season ?? 1, v.episode)).length;
+}
+let cntBusy = false;
+async function refreshCounts(){
+  if (cntBusy || !profile || !cur) return; cntBusy = true;
+  try {
+    const sh = pget('shows', {}), now = Date.now();
+    const ids = Object.keys(sh).filter(id => sh[id].ty === 'series' && now - (sh[id].t || 0) < 150 * 864e5 && (allHist() || sh[id].sp === cur.id)).slice(0, 12);
+    let changed = false;
+    await Promise.all(ids.map(async id => { try { const meta = await showMeta(id, sh[id]); if (!meta) return; const n = countUnwatched(id, airedVids(meta)); if (cntMem.get(id) !== n) { cntMem.set(id, n); changed = true; } } catch {} }));
+    if (changed) syncRibbons();
+  } finally { cntBusy = false; }
+}
 async function nextEpisodeCards(have){
   const sh = pget('shows', {}), now = Date.now(), out = [];
   const ids = Object.keys(sh).filter(id => sh[id].ty === 'series' && !have.has(id) && now - (sh[id].t || 0) < 150 * 864e5 && (allHist() || sh[id].sp === (cur && cur.id)));
   await Promise.all(ids.slice(0, 12).map(async id => {
     try {
-      const s0 = sh[id], hit = nuMem.get(id);
-      let meta = hit && now - hit.t < 30 * 60e3 ? hit.m : null;
-      if (!meta) {
-        const ma = addons.find(x => x.uid === s0.a && supports(x, 'meta', 'series', id)) || spaceAddons().find(x => supports(x, 'meta', 'series', id)); if (!ma) return;
-        meta = (await getJSON(`${ma.base}/meta/series/${enc(id)}.json`)).meta; meta._a = ma.uid; nuMem.set(id, {t:now, m:meta});
-      }
-      const vids = (meta.videos || []).filter(v => v && v.id && (v.season ?? 1) >= 1).sort((x, y) => ((x.season ?? 1) - (y.season ?? 1)) || ((x.episode ?? 0) - (y.episode ?? 0)));
+      const s0 = sh[id], meta = await showMeta(id, s0); if (!meta) return;
+      const vids = airedVids(meta);
       let last = -1; vids.forEach((v, i) => { if (epDone(id, v.season ?? 1, v.episode)) last = i; });
       if (last < 0) return;
       const nx = vids.slice(last + 1).find(v => !epDone(id, v.season ?? 1, v.episode) && (!v.released || new Date(v.released).getTime() <= now));
@@ -2023,6 +2054,7 @@ function renderCW(){
   const row = h('div', {class:'row'}, h('h2', null, 'Continue watching'), strip);
   for (const e of hist) strip.append(cwCard(e));
   if (hist.length) box.append(row);
+  refreshCounts();
   nextEpisodeCards(new Set(hist.map(e => e.itemId))).then(extra => {
     if (tok !== cwTok || !extra.length) return;
     for (const e of extra.reverse()) strip.prepend(cwCard(e));
@@ -3602,7 +3634,7 @@ function recordProgress(c, stream, pos, dur){
   if (it.type === 'series' || c.ep) { const sh = pget('shows', {}); sh[it.id] = {n:it.name, p:it.poster, b:it.background, a:c.info.addonId, ty:'series', sp:cur && cur.id, t:Date.now()}; pset('shows', Object.fromEntries(Object.entries(sh).sort((x, y) => y[1].t - x[1].t).slice(0, 60))); }
   if (fin) {                       // finished: drop it, queue the next episode
     histRemove(key);
-    if (it.type === 'movie' || (c.ep && !c.next)) watchedAdd({itemId:it.id, type:it.type, name:it.name});
+    if (it.type === 'movie') watchedAdd({itemId:it.id, type:it.type, name:it.name});     // a series is never marked watched just because its newest episode ended
     if (c.next) histPut({k:`${c.type}|${c.next.id}`, type:c.type, id:c.next.id, itemId:it.id, itemType:it.type, name:it.name, poster:it.poster, background:it.background,
       addonId:c.info.addonId, ep:{season:c.next.season, episode:c.next.episode, title:c.next.title}, pos:0, dur:0, t:Date.now(), space:cur && cur.id, upnext:true});
     return;

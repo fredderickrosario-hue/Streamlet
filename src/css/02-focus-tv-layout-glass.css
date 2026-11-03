@@ -204,3 +204,6 @@ body.tv .dbody{max-width:1100px;margin:0 auto}
 body.tv .dhero{height:clamp(320px,56vh,520px)}
 body.tv .dtop{padding-left:150px}
 
+
+/* episode counter on a poster corner instead of the eye */
+.rib.cnt::after{content:attr(data-n);top:5px;right:6px;width:auto;height:auto;background:none;-webkit-mask:none;mask:none;color:var(--btnt);font-weight:900;font-size:14px;line-height:1}
