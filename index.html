@@ -4857,7 +4857,8 @@ async function qcSigned(idMedia, L){
       const r = await N.touGet({url:`https://services.radio-canada.ca/media/validation/v2/?appCode=toutv&connectionType=hd&deviceType=${dt}&idMedia=${idMedia}&multibitrate=true&output=json&tech=${tech}&manifestVersion=2`});
       let j = null; try { j = JSON.parse(r.body); } catch {}
       const prot = j ? (j.protectionType || ((j.params || []).find(p => /protect|drm|license/i.test(p.name)) || {}).name || '-') : '-';
-      L(`  ${dt}/${tech}: status ${r.status}` + (j ? ` · errorCode ${j.errorCode ?? '-'} · ${String(j.message || '').slice(0, 80)} · url ${j.url ? qcHost(j.url) : 'none'} · protection ${prot}${j.params ? ' · params: ' + j.params.map(p => p.name).slice(0, 8).join(',') : ''}` : ` · ${String(r.body).slice(0, 100)}`));
+      L(`  ${dt}/${tech}: status ${r.status}` + (j ? ` · errorCode ${j.errorCode ?? '-'} · ${String(j.message || '').slice(0, 80)} · url ${j.url ? qcHost(j.url) : 'none'} · protection ${prot}` : ` · ${String(r.body).slice(0, 100)}`));
+      if (j && j.params) for (const p of j.params) L(`      · ${p.name} = ${/token|key|secret|auth/i.test(p.name) ? '<' + String(p.value || '').length + ' chars>' : /^https?:/.test(String(p.value)) ? qcHost(p.value) + ' (' + String(p.value).length + ' chars)' : String(p.value).slice(0, 40)}`);
       if (j && j.url && /m3u8|hls/i.test(j.url + tech)) await qcPlaylist(j.url, L);
     } catch (e) { L(`  ${dt}/${tech}: failed ${e}`); }
   }
