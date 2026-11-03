@@ -560,11 +560,11 @@ body:not(.tv) .tvhero .tdots{justify-content:center}
 @media (prefers-reduced-motion:reduce){.tvhero .tbg img.on{animation:none;transform:scale(1.05)}}
 .tvhero{touch-action:pan-y}
 /* phone: picture fills the box a little zoomed, below the bars, drifting gently until it is centred */
-body:not(.tv) .tvhero .tbg{top:var(--ho);overflow:hidden}
-body:not(.tv) .tvhero .tbg img,body:not(.tv) .tvhero .tbg img.on{top:0;height:100%;object-fit:cover;transform:scale(1.1);transform-origin:center;object-position:36% 12%;
-  -webkit-mask-image:linear-gradient(to bottom,transparent 0,#000 12%,#000 62%,transparent 100%);mask-image:linear-gradient(to bottom,transparent 0,#000 12%,#000 62%,transparent 100%)}
+body:not(.tv) .tvhero .tbg{top:0;overflow:hidden}
+body:not(.tv) .tvhero .tbg img,body:not(.tv) .tvhero .tbg img.on{top:0;height:100%;object-fit:cover;transform:scale(1.1);transform-origin:center;object-position:44% 12%;
+  -webkit-mask-image:linear-gradient(to bottom,#000 0,#000 66%,transparent 100%);mask-image:linear-gradient(to bottom,#000 0,#000 66%,transparent 100%)}
 body:not(.tv) .tvhero .tbg img.on{animation:centrex 9s ease-out both}
-@keyframes centrex{from{object-position:36% 12%}to{object-position:50% 12%}}
+@keyframes centrex{from{object-position:44% 12%}to{object-position:50% 12%}}
 @media (prefers-reduced-motion:reduce){body:not(.tv) .tvhero .tbg img.on{animation:none;object-position:50% 12%}}
 /* ---- v4: TV pages, expanding nav, genre tiles, search page, intro ---- */
 body.tv header{display:none}
