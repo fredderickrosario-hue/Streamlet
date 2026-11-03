@@ -4779,9 +4779,24 @@ function qcOutline(obj, L, max = 120){
   };
   sh(obj, '', 0); for (const t of outline.slice(0, max)) L('  ' + t);
 }
+async function qcSigned(idMedia, L){
+  const N = nativePlayer();
+  if (!N || !N.touGet) { L('Needs the updated Android app.'); return; }
+  L(`SIGNED-IN TEST · media ${idMedia}`);
+  for (const [dt, tech] of [['ipad', 'hls'], ['multiams', 'dash'], ['desktop', 'hls'], ['androidtv', 'hls']]) {
+    try {
+      const r = await N.touGet({url:`https://services.radio-canada.ca/media/validation/v2/?appCode=toutv&connectionType=hd&deviceType=${dt}&idMedia=${idMedia}&multibitrate=true&output=json&tech=${tech}&manifestVersion=2`});
+      let j = null; try { j = JSON.parse(r.body); } catch {}
+      const prot = j ? (j.protectionType || ((j.params || []).find(p => /protect|drm|license/i.test(p.name)) || {}).name || '-') : '-';
+      L(`  ${dt}/${tech}: status ${r.status}` + (j ? ` · errorCode ${j.errorCode ?? '-'} · ${String(j.message || '').slice(0, 80)} · url ${j.url ? qcHost(j.url) : 'none'} · protection ${prot}${j.params ? ' · params: ' + j.params.map(p => p.name).slice(0, 8).join(',') : ''}` : ` · ${String(r.body).slice(0, 100)}`));
+      if (j && j.url && /m3u8|hls/i.test(j.url + tech)) await qcPlaylist(j.url, L);
+    } catch (e) { L(`  ${dt}/${tech}: failed ${e}`); }
+  }
+}
 async function qcProbe(input, out){
   const L = (...t) => out.push(...t), url = String(input).trim();
-  if (!/^https:\/\//.test(url)) { L('Paste a full https:// address of a show or episode page.'); return; }
+  if (/^\d{5,9}$/.test(url)) { await qcSigned(url, L); L('', 'Done.'); return; }
+  if (!/^https:\/\//.test(url)) { L('Paste a full https:// address of a show or episode page, or a media number for the signed-in test.'); return; }
   L(`Streamlet ${APP_BUILD} · ${nativePlayer() ? 'native' : 'browser (blocked by CORS probably)'} · ${new Date().toISOString()}`, '');
   L('PAGE ' + qcHost(url));
   let page = '';
@@ -5088,7 +5103,7 @@ async function touRefresh(){
   if (!N || !N.touStatus) { el.textContent = 'Needs the Android app'; return; }
   try {
     const r = await N.touStatus();
-    el.textContent = r.signedIn ? `Signed in${r.ageMin >= 0 ? ' · session seen ' + (r.ageMin < 90 ? r.ageMin + ' min' : Math.round(r.ageMin / 60) + ' h') + ' ago' : ''}${r.sawValidation ? ' · video request seen' : ''}` : 'Not signed in. Tap Sign in, log in, open an episode and press play, then press Done';
+    el.textContent = r.signedIn ? `Signed in${r.ageMin >= 0 ? ' · session seen ' + (r.ageMin < 90 ? r.ageMin + ' min' : Math.round(r.ageMin / 60) + ' h') + ' ago' : ''}${r.sawValidation ? ' · video request seen' : ''}${r.claims ? ' · access token saved' : ''}` : 'Not signed in. Tap Sign in, log in, open an episode and press play, then press Done';
   } catch { el.textContent = 'Could not read the sign-in state'; }
 }
 $('#touIn').onclick = async () => { const N = nativePlayer(); if (!N || !N.openTouLogin) { toast('Needs the Android app (update it first)'); return; } try { await N.openTouLogin(); } catch { toast('Could not open the sign-in window'); } };

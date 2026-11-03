@@ -156,7 +156,7 @@ async function touRefresh(){
   if (!N || !N.touStatus) { el.textContent = 'Needs the Android app'; return; }
   try {
     const r = await N.touStatus();
-    el.textContent = r.signedIn ? `Signed in${r.ageMin >= 0 ? ' · session seen ' + (r.ageMin < 90 ? r.ageMin + ' min' : Math.round(r.ageMin / 60) + ' h') + ' ago' : ''}${r.sawValidation ? ' · video request seen' : ''}` : 'Not signed in. Tap Sign in, log in, open an episode and press play, then press Done';
+    el.textContent = r.signedIn ? `Signed in${r.ageMin >= 0 ? ' · session seen ' + (r.ageMin < 90 ? r.ageMin + ' min' : Math.round(r.ageMin / 60) + ' h') + ' ago' : ''}${r.sawValidation ? ' · video request seen' : ''}${r.claims ? ' · access token saved' : ''}` : 'Not signed in. Tap Sign in, log in, open an episode and press play, then press Done';
   } catch { el.textContent = 'Could not read the sign-in state'; }
 }
 $('#touIn').onclick = async () => { const N = nativePlayer(); if (!N || !N.openTouLogin) { toast('Needs the Android app (update it first)'); return; } try { await N.openTouLogin(); } catch { toast('Could not open the sign-in window'); } };

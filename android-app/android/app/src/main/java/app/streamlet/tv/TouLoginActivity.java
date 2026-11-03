@@ -79,14 +79,17 @@ public class TouLoginActivity extends Activity {
             public WebResourceResponse shouldInterceptRequest(WebView view, WebResourceRequest r) {
                 try {
                     String url = r.getUrl().toString(), host = r.getUrl().getHost();
-                    if (host != null && (host.endsWith("radio-canada.ca") || host.endsWith("tou.tv")) && !url.matches(".*\\.(png|jpg|jpeg|webp|svg|css|woff2?|ico|js)(\\?.*)?$")) {
+                    if (host != null && (host.endsWith("radio-canada.ca") || host.endsWith("tou.tv")) && !host.startsWith("logstash") && !host.startsWith("stats.") && !url.contains("/metrie/") && !url.matches(".*\\.(png|jpg|jpeg|webp|svg|css|woff2?|ico|js)(\\?.*)?$") && !"OPTIONS".equals(r.getMethod())) {
                         Map<String, String> h = r.getRequestHeaders();
                         StringBuilder names = new StringBuilder();
                         for (Map.Entry<String, String> e : h.entrySet()) {
                             String k = e.getKey(), lk = k.toLowerCase();
                             if (lk.equals("authorization") && e.getValue() != null) {
                                 names.append(k).append("(").append(e.getValue().length()).append(" chars) ");
-                                if (host.endsWith("radio-canada.ca")) sp.edit().putString("auth", e.getValue()).putLong("authT", System.currentTimeMillis()).apply();
+                                if (host.endsWith("radio-canada.ca") && e.getValue().length() > 500) sp.edit().putString("auth", e.getValue()).putLong("authT", System.currentTimeMillis()).apply();
+                            } else if (lk.equals("x-claims-token") && e.getValue() != null) {
+                                names.append(k).append("(").append(e.getValue().length()).append(" chars) ");
+                                if (host.endsWith("radio-canada.ca") && e.getValue().length() > 100) sp.edit().putString("claims", e.getValue()).putLong("claimsT", System.currentTimeMillis()).apply();
                             } else if (lk.startsWith("x-") || lk.equals("content-type")) names.append(k).append(' ');
                         }
                         if (url.contains("/media/validation/")) sp.edit().putString("lastValidation", url).putLong("valT", System.currentTimeMillis()).apply();
