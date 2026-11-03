@@ -173,9 +173,27 @@ const ok = (name, cond, extra) => { cond ? pass++ : fail++; console.log((cond ? 
         qcMem.clear();
         const meta = (await qcRoute('qc://tva/meta/series/' + encodeURIComponent('qc:rc:stat') + '.json')).meta;
         const st = (await qcRoute('qc://tva/stream/series/' + encodeURIComponent(meta.videos[1].id) + '.json')).streams;
+        window.__cm = true;
         return meta.name === 'STAT' && meta.videos.length === 2 && meta.videos[0].released.startsWith('2026-10-20') && st.length === 1 && st[0].url === 'https://cdn/a.m3u8';
       }).catch(e => String(e));
       ok('Québec addon: Radio-Canada episodes and stream (mocked)', r === true, r);
+      await p.evaluate(() => { delete window.Capacitor; });
+    }
+    {
+      const r = await p.evaluate(async () => {
+        window.Capacitor = {isNativePlatform:() => true, Plugins:{ExoPlayer:{httpGet: async ({url}) => {
+          if (url.includes('cinemeta')) return {status:200, body:JSON.stringify({meta:{videos:[{season:5, episode:7, released:'2026-10-28T00:00:00.000Z'}, {season:5, episode:6, released:'2026-10-21T00:00:00.000Z'}]}})};
+          if (url.endsWith('/tele/stat/site/episodes')) return {status:200, body:'<meta property="og:title" content="STAT"> <a href="/tele/stat/site/episodes/1281067/mardi-27-octobre-2026">x</a>'};
+          if (url.includes('/episodes/1281067/')) return {status:200, body:'media-10791494'};
+          if (url.includes('idMedia=10791494')) return {status:200, body:JSON.stringify({errorCode:0, url:'https://cdn/a.m3u8'})};
+          return {status:200, body:JSON.stringify({errorCode:6})};
+        }}}};
+        qcMem.clear(); localStorage.removeItem('streamlet.qcseen.stat');
+        const m = await qcRoute('qc://tva/manifest.json');
+        const ok7 = (await qcRoute('qc://tva/stream/series/' + encodeURIComponent('tt22037002:5:7') + '.json')).streams, ok6 = (await qcRoute('qc://tva/stream/series/' + encodeURIComponent('tt22037002:5:6') + '.json')).streams;
+        return supports({manifest:m}, 'stream', 'series', 'tt22037002:5:7') && !supports({manifest:m}, 'stream', 'series', 'tt999:1:1') && ok7.length === 1 && ok6.length === 0;
+      }).catch(e => String(e));
+      ok('Québec addon: a Cinemeta episode of Stat gets the matching Radio-Canada stream', r === true, r);
       await p.evaluate(() => { delete window.Capacitor; });
     }
     ok('no errors after all of the above', errs.length === 0, errs[0]);

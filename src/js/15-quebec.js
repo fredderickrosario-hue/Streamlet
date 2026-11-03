@@ -169,8 +169,21 @@ async function qcRcStreams(id){
   }
   return [];
 }
+/* Shows people find through Cinemeta (IMDb ids) that have no stream source: the Québec addon matches the episode by air date to what Radio-Canada has online */
+const QC_IMDB = {tt22037002:{src:'rc', path:'stat'}};
+async function qcMappedStreams(tt, season, episode){
+  const ent = QC_IMDB[tt]; if (!ent) return [];
+  const cm = await qcCached('cinemeta' + tt, 6 * 3600e3, async () => JSON.parse((await qcGet(`https://v3-cinemeta.strem.io/meta/series/${tt}.json`, {Accept:'application/json'})).body));
+  const v = ((cm.meta || {}).videos || []).find(x => +x.season === season && +x.episode === episode);
+  const when = v && (v.released || v.firstAired) ? new Date(v.released || v.firstAired).getTime() : 0;
+  if (!when) return [];
+  const info = await qcRcShow(ent.path);
+  let best = null, bd = 1.6 * 864e5;
+  for (const e of info.eps) { const t = e.released ? new Date(e.released).getTime() : 0; if (t && Math.abs(t - when) < bd) { bd = Math.abs(t - when); best = e; } }
+  return best ? qcRcStreams(`qc:rc:${ent.path}/${best.epId}/${best.slug}`) : [];
+}
 const QC_MANIFEST = {id:'app.streamlet.quebec', version:'1.0.0', name:'Québec', description:'TVA+ and ICI TOU.TV series, read straight from the sites on this device',
-  resources:['catalog', 'meta', 'stream'], types:['series'], idPrefixes:['qc:'], catalogs:[{type:'series', id:'qc-shows', name:'Séries québécoises'}]};
+  resources:['catalog', {name:'meta', types:['series'], idPrefixes:['qc:']}, {name:'stream', types:['series'], idPrefixes:['qc:', ...Object.keys(QC_IMDB).map(k => k + ':')]}], types:['series'], idPrefixes:['qc:'], catalogs:[{type:'series', id:'qc-shows', name:'Séries québécoises'}]};
 async function qcRoute(url){
   if (!nativePlayer()) throw new Error('Québec only works in the Android apps');
   const path = decodeURIComponent(url.replace(/^qc:\/\/[^/]*\//, '').replace(/\.json(\?.*)?$/, ''));
@@ -182,6 +195,7 @@ async function qcRoute(url){
   if (path.startsWith('meta/')) { const id = path.split('/').slice(2).join('/'); return {meta:/^qc:rc:/.test(id) ? await qcRcMeta(id.replace(/^qc:rc:/, '')) : /^qc:tou:/.test(id) ? await qcTouMeta(id.replace(/^qc:tou:/, '')) : await qcMeta(id.replace(/^qc:tva:/, ''))}; }
   if (path.startsWith('stream/')) {
     const id = path.split('/').slice(2).join('/');
+    const tm = id.match(/^(tt\d+):(\d+):(\d+)$/); if (tm) return {streams:await qcMappedStreams(tm[1], +tm[2], +tm[3])};
     if (/^qc:rc:/.test(id)) return {streams:await qcRcStreams(id)};
     if (/^qc:tou:/.test(id)) return {streams:[{name:'ICI TOU.TV', title:'Open in the ICI TOU.TV app', externalUrl:'toutv://' + id.replace(/^qc:tou:/, '')}]};
     return {streams:await qcStreams(id)};
@@ -204,3 +218,4 @@ $('#touIn').onclick = async () => { const N = nativePlayer(); if (!N || !N.openT
 $('#touOut').onclick = async () => { const N = nativePlayer(); try { if (N && N.touForget) await N.touForget(); toast('Signed out of ICI TOU.TV'); } catch {} touRefresh(); };
 document.addEventListener('visibilitychange', () => { if (!document.hidden) touRefresh(); });
 setTimeout(touRefresh, 1200);
+for (const a of addons) if (a.url && a.url.startsWith('qc://')) a.manifest = QC_MANIFEST;          // built-in: always use the current manifest, no reinstall needed
