@@ -18,7 +18,9 @@ function setTvHero(ctx, instant){
   const bits = [m.releaseInfo || m.year, m.runtime, ...gen].filter(Boolean);
   const title = h('div', {class:'ttitle'}, m.name);
   const logo = m.logo ? h('img', {class:'tlogo', src:m.logo, alt:m.name, onerror:e => e.target.replaceWith(title)}) : title;
-  tin.replaceChildren(ctx.tag ? h('div', {class:'ttag'}, ctx.tag) : null, logo,
+  box.querySelectorAll(':scope > .ttag').forEach(x => x.remove());
+  if (ctx.tag) box.append(h('div', {class:'ttag'}, ctx.tag));
+  tin.replaceChildren(logo,
     h('div', {class:'tmeta'}, m.imdbRating ? h('span', {class:'timdb'}, '★ ' + m.imdbRating) : null, ...bits.map(x => h('span', null, String(x)))),
     m.description ? h('p', {class:'tdesc'}, m.description) : null,
     h('div', {class:'tbtns'},
@@ -82,7 +84,7 @@ async function heroBuild(first, extras, tok){
   if (tok !== heroTok) return;
   const rest = [];
   for (const f of found) if (!seen.has(f.m.id) && (f.m.background || f.m.poster)) { seen.add(f.m.id); rest.push(f); }
-  for (const x of extras) if (!seen.has(x.m.id) && x.m.background) { seen.add(x.m.id); rest.push({...x, tag:'Recommended'}); }
+  for (const x of extras) if (!seen.has(x.m.id) && x.m.background) { seen.add(x.m.id); rest.push(x); }
   for (let i = rest.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [rest[i], rest[j]] = [rest[j], rest[i]]; }   // a different order every visit
   heroSlides = [first, ...rest].slice(0, 8); heroIdx = 0;
   if (heroSlides.length > 1) { setTvHero(heroSlides[0], true); if (!heroTimer) heroTimer = setInterval(heroTick, 6000); }

@@ -120,7 +120,7 @@ body.tv .tvhero{margin-left:-104px}
 body.tv .tvhero .tin{left:132px}
 body.tv .tvhero .tbg{left:0;-webkit-mask-image:linear-gradient(to right,rgba(0,0,0,.34) 0,rgba(0,0,0,.2) 24%,#000 62%);mask-image:linear-gradient(to right,rgba(0,0,0,.34) 0,rgba(0,0,0,.2) 24%,#000 62%)}
 
-.tvhero .ttag{display:inline-block;margin-bottom:10px;padding:5px 12px;border-radius:8px;font-size:13px;font-weight:800;letter-spacing:.3px;background:var(--acc);color:#fff;text-shadow:none}
+.tvhero .ttag{position:absolute;z-index:3;left:132px;top:96px;padding:6px 14px;border-radius:8px;font-size:13px;font-weight:800;letter-spacing:.3px;background:var(--acc);color:#fff;text-shadow:none}
 .tvhero .tdots{display:flex;gap:7px;margin-top:16px}
 .tvhero .tdots i{display:block;width:8px;height:8px;border-radius:99px;background:rgba(255,255,255,.35);transition:width .3s,background .3s}
 .tvhero .tdots i.on{width:24px;background:#fff}
@@ -131,3 +131,5 @@ body:not(.tv) .tvhero .tdots{justify-content:center}
 .tvhero .tbg img.on{animation:kenburns 16s ease-out both;transform-origin:62% 38%}
 @keyframes kenburns{from{transform:scale(1.07) translate(0,0)}to{transform:scale(1.18) translate(-1.6%,-1.2%)}}
 @media (prefers-reduced-motion:reduce){.tvhero .tbg img.on{animation:none;transform:scale(1.07)}}
+body:not(.tv) .tvhero .ttag{left:18px;top:calc(env(safe-area-inset-top) + 82px)}
+body.tv .tvhero .ttag{left:132px;top:88px}
