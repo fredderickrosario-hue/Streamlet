@@ -46,9 +46,11 @@ function dedupeList(list, getM, getType){
 const rankResults = items => dedupeList([...items.values()].filter(x => x.score >= .36 || (x.exact && x.score >= .25)).filter(x => visibleMeta(x.m, x.type)).sort((x, y) => (y.score - x.score) || (x.rank - y.rank)), x => x.m, x => x.type);
 const peopleOf = m => [].concat(m.cast || [], m.director || [], m.writer || [], (m.links || []).filter(l => /^(cast|director|writers?)$/i.test(l.category || '')).map(l => l.name))
   .flatMap(x => typeof x === 'string' ? x.split(/\s*,\s*/) : []).map(normQ).filter(Boolean);
+const shortQuery = q => { const n = normQ(q); return n.length > 0 && n.length <= 3 && !n.includes(' '); };
 function relevance(query, m){                                             // title closeness, or a person / genre match for names and tags
   const qn = normQ(query), qt = qn.split(' ');
   let sc = simScore(query, m.name);
+  if (shortQuery(query)) sc = normQ(m.name).split(' ').some(w => w.startsWith(qn)) ? .78 : 0;       // first letters only: titles with a word starting with them (the popular ones first), not every title containing them
   if (qn.length >= 3 && peopleOf(m).some(p => p === qn || (qt.length > 1 && qt.every(w => p.split(' ').includes(w))))) sc = Math.max(sc, .8);
   const gs = [].concat(m.genres || m.genre || []).map(normQ);
   if (qn && gs.includes(qn)) sc = Math.max(sc, .66);
@@ -62,7 +64,7 @@ function runSearch(query, items, onHit){                                   // as
     (r.metas || []).forEach((m, i) => {
       if (!m || !m.id || !m.name) return;
       const key = (m.type || cat.type) + '|' + m.id, rank = (vi ? 1000 : 0) + i, prev = items.get(key);
-      const sc = Math.max(relevance(query, m), vi === 0 ? Math.max(.62, floor - Math.min(.04, i * .001)) : 0);   // whatever the addon returns for exactly what was typed is kept near the top
+      const sc = Math.max(relevance(query, m), vi === 0 && !shortQuery(query) ? Math.max(.62, floor - Math.min(.04, i * .001)) : 0) + (parseFloat(m.imdbRating) || 0) / 200;       // a little extra for well-rated titles: popular ones come first   // whatever the addon returns for exactly what was typed is kept near the top
       if (!prev) items.set(key, {m, a, type:m.type || cat.type, rank, score:sc, exact:vi === 0});
       else { if (rank < prev.rank) prev.rank = rank; if (vi === 0) prev.exact = true; prev.score = Math.max(prev.score, sc); }
     });
@@ -104,7 +106,7 @@ async function renderResults(query, box, tok){
     const list = rankResults(items); grid.replaceChildren(); let sep = false;
     for (const it of list) {
       if (!sep && it.score < .62 && grid.children.length) { sep = true; grid.append(h('div', {class:'rsep'}, 'Similar titles')); }
-      const {m, a, type} = it, btn = h('button', {class:'card', type:'button', onclick:() => openDetail(a, type, m)}, posterEl(m), h('div', {class:'t'}, m.name), h('div', {class:'s'}, m.releaseInfo || m.year || ''));
+      const {m, a, type} = it, btn = h('button', {class:'card', type:'button', onclick:() => { recentAdd(query); openDetail(a, type, m); }}, posterEl(m), h('div', {class:'t'}, m.name), h('div', {class:'s'}, m.releaseInfo || m.year || ''));
       attachHold(btn, {itemId:m.id, type, name:m.name, poster:m.poster, background:m.background, addonId:a.uid, _item:m});
       btn._hero = {a, m, type};
       grid.append(btn);

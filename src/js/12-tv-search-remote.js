@@ -2,11 +2,63 @@
 let sQuery = '', sT = 0;
 const KEYS = 'abcdefghijklmnopqrstuvwxyz1234567890'.split('');
 function sPaint(){ const t = $('#stext'); t.textContent = sQuery; t.classList.toggle('ph', !sQuery); if (!sQuery) t.textContent = 'Search ' + (cur ? cur.name : '') + '…'; }
+
+/* recent searches (per profile) */
+const recentKey = () => 'streamlet.recent.' + (profile ? profile.id : 'x');
+const recentGet = () => { const v = lsGet(recentKey(), []); return Array.isArray(v) ? v : []; };
+function recentAdd(q){
+  q = String(q || '').trim(); if (q.length < 2) return;
+  lsSet(recentKey(), [q, ...recentGet().filter(x => x.toLowerCase() !== q.toLowerCase())].slice(0, 10));
+  if (!$('#search').hidden) srPaint();
+}
+function srPaint(){
+  const box = $('#srecent'), list = recentGet(); box.replaceChildren();
+  if (!list.length) return;
+  box.append(h('div', {class:'srhead'}, h('span', null, 'Recent searches'), h('button', {class:'srclear', type:'button', onclick:() => { lsSet(recentKey(), []); srPaint(); }}, 'Clear')));
+  for (const q of list) box.append(h('button', {class:'srq', type:'button', onclick:() => { sQuery = q; sPaint(); clearTimeout(sT); renderHome(q, $('#sres')); }}, h('i', {class:'srico', 'aria-hidden':'true'}), h('span', null, q)));
+}
+/* what to watch next, from what has been watched: titles like your last few */
+const recsCache = new Map();
+async function renderRecs(box, tok){
+  box.replaceChildren(h('h2', {class:'rhead'}, 'Recommended for you'), h('p', {class:'hint'}, 'Looking for titles you might like…'));
+  const seeds = []; const seen = new Set();
+  for (const e of [...histGet(), ...wdGet().map(x => ({itemId:x.itemId, itemType:x.type, name:x.name}))]) {
+    const id = e.itemId; if (!id || seen.has(id)) continue; seen.add(id); seeds.push(e); if (seeds.length >= 3) break;
+  }
+  if (!seeds.length) { box.replaceChildren(h('div', {class:'empty', style:'padding-top:8vh'}, 'Type to search your addons. Recommendations appear here once you have watched something.')); return; }
+  const sections = [];
+  await Promise.all(seeds.map(async (e, i) => {
+    try {
+      const key = e.itemId; let list = recsCache.get(key);
+      if (!list) {
+        const a = addons.find(x => x.uid === e.addonId || x.manifest.id === e.addonId) || spaceAddons()[0] || addons[0], type = e.itemType || e.type;
+        const ma = a && (supports(a, 'meta', type, e.itemId) ? a : addons.find(x => supports(x, 'meta', type, e.itemId)));
+        let meta = {id:e.itemId, type, name:e.name}; if (ma) { const r = await getJSON(`${ma.base}/meta/${type}/${enc(e.itemId)}.json`); meta = {...meta, ...r.meta}; }
+        list = (await findSimilar(a, type, meta)).slice(0, 12); recsCache.set(key, list);
+      }
+      sections[i] = {name:e.name, list};
+    } catch {}
+  }));
+  if (tok !== sTok) return;
+  const out = [h('h2', {class:'rhead'}, 'Recommended for you')];
+  for (const sec of sections) {
+    if (!sec || !sec.list.length) continue;
+    const grid = h('div', {class:'rgrid'});
+    for (const it of sec.list) {
+      const {m, a, type} = it, btn = h('button', {class:'card', type:'button', onclick:() => openDetail(a, type, m)}, posterEl(m), h('div', {class:'t'}, m.name), h('div', {class:'s'}, m.releaseInfo || m.year || ''));
+      attachHold(btn, {itemId:m.id, type, name:m.name, poster:m.poster, background:m.background, addonId:a.uid, _item:m});
+      grid.append(btn);
+    }
+    out.push(h('div', {class:'rsep'}, 'Because you watched ' + sec.name), grid);
+  }
+  box.replaceChildren(...(out.length > 1 ? out : [h('div', {class:'empty', style:'padding-top:8vh'}, 'Type to search your addons.')]));
+}
+let sTok = 0;
 function sRun(){
-  clearTimeout(sT);
+  clearTimeout(sT); const tok = ++sTok;
   sT = setTimeout(() => {
     const box = $('#sres');
-    if (!sQuery.trim()) { homeTok++; box.replaceChildren(h('div', {class:'empty', style:'padding-top:8vh'}, 'Type to search your addons.')); return; }
+    if (!sQuery.trim()) { homeTok++; renderRecs(box, tok); return; }
     renderHome(sQuery.trim(), box);
   }, 450);
 }
@@ -20,7 +72,7 @@ function renderSearch(){
              h('button', {class:'kkey wide', type:'button', onclick:sBack}, '⌫ delete'),
              h('button', {class:'kkey wide', type:'button', onclick:() => { sQuery = ''; sPaint(); sRun(); }}, 'clear'));
   }
-  sPaint(); sRun();
+  sPaint(); srPaint(); sRun();
 }
 function navAvatar(){
   const b = $('#tabMe'); if (!b || !profile) return;
@@ -55,6 +107,7 @@ function ctxRoot(){
 function focusables(root){
   return [...root.querySelectorAll(FOCUSABLE)].filter(el => {
     if (el.tabIndex < 0 || el.closest('.off,[hidden]') || el.closest('#vid')) return false;
+    const dt = el.closest('details'); if (dt && !dt.open && !(el.tagName === 'SUMMARY' && el.parentElement === dt)) return false;      // content of a closed <details> is not reachable
     if (el.style.visibility === 'hidden') return false;
     const r = el.getBoundingClientRect(); return r.width > 2 && r.height > 2;
   });
@@ -156,7 +209,24 @@ function tvEntryReveal(el, lock){
     else if (br.left < sr.left + m) hs.scrollTo({left:hs.scrollLeft - (sr.left + m - br.left) / kk, behavior:'smooth'});
   }
 }
+/* pages whose title stays fixed (watchlist, addons, settings, profile, search): only their own scroller moves */
+function scrollNested(el, edge){
+  for (let a = el.parentElement; a && a !== document.body; a = a.parentElement) {
+    const c = getComputedStyle(a);
+    if ((c.overflowY === 'auto' || c.overflowY === 'scroll') && a.scrollHeight > a.clientHeight + 4) {
+      const ar = a.getBoundingClientRect(), er = el.getBoundingClientRect(), k = ar.height / (a.clientHeight || ar.height) || 1, m = 64 * k;
+      if (edge === 'top') a.scrollTo({top:0, behavior:'smooth'});
+      else if (edge === 'bottom') a.scrollTo({top:a.scrollHeight, behavior:'smooth'});
+      else if (er.top < ar.top + m) a.scrollTo({top:Math.max(0, a.scrollTop - (ar.top + m - er.top) / k), behavior:'smooth'});
+      else if (er.bottom > ar.bottom - m) a.scrollTo({top:a.scrollTop + (er.bottom - (ar.bottom - m)) / k, behavior:'smooth'});
+      return true;
+    }
+  }
+  return false;
+}
 function revealEl(el, dir, rep, tv, edge){
+  if (document.body.classList.contains('tv') && el.closest('.pecol-r') && scrollNested(el, edge)) return;
+  if (document.body.classList.contains('tv') && (document.body.classList.contains('pgfix') || document.body.classList.contains('srchpg')) && !el.closest('#detail,#episode,.sheet') && scrollNested(el, edge)) return;
   if (!tv) {
     if (document.body.classList.contains('tv')) {
       const lock = el.closest('#detail,#episode');

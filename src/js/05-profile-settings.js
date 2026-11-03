@@ -171,11 +171,11 @@ function editProfile(id){
                    : JSON.parse(JSON.stringify(profiles.find(x => x.id === id)));
   const ed = $('#profEd'); ed.hidden = false; ed.scrollTop = 0; pushLayer('pedit');
   const close = () => popLayer('pedit');
-  const name = h('input', {class:'f', placeholder:'Name', maxlength:'16', style:'width:100%;font-size:18px'}); name.value = pr.name;
+  const name = h('input', {class:'f pe-input', placeholder:'Name', maxlength:'16'}); name.value = pr.name;
   const prev = h('div', {class:'avprev'});
   const grid = h('div', {class:'avgrid'});
   const paint = () => {
-    prev.replaceChildren(avatarEl(pr, 104));
+    prev.replaceChildren(avatarEl(pr, 132));
     grid.replaceChildren(...Array.from({length:AV_COUNT}, (_, i) => h('button', {type:'button', class:'avb' + (pr.avatar === 'a:' + i ? ' on' : ''), 'aria-label':'Avatar ' + (i + 1), onclick:() => { pr.avatar = 'a:' + i; paint(); }}, avatarEl({avatar:'a:' + i}, 64))));
   };
   paint();
@@ -189,22 +189,26 @@ function editProfile(id){
     if (profile && profile.id === pr.id) profile = null;
     launcherDirty = true; close();
   };
+  const save = h('button', {class:'btn', type:'button', onclick:() => {
+    if (!name.value.trim()) { toast('Give it a name.'); name.focus(); return; }
+    pr.name = name.value.trim();
+    const i = profiles.findIndex(x => x.id === pr.id); if (i >= 0) profiles[i] = pr; else profiles.push(pr);
+    if (profile && profile.id === pr.id) profile = pr;
+    saveProfiles(); launcherDirty = true; close();
+  }}, isNew ? 'Create profile' : 'Save');
+  const liveName = h('div', {class:'pe-name'}, pr.name || 'New profile');
+  name.oninput = () => { liveName.textContent = name.value.trim() || 'New profile'; };
   ed.replaceChildren(
     h('div', {class:'bar', style:'padding-left:0;padding-right:0'}, h('button', {class:'btn ghost sm', onclick:close}, '← Cancel')),
-    h('div', {style:'padding:0 16px 40px'},
-      h('h2', {style:'margin:6px 0 12px'}, isNew ? 'New profile' : 'Edit profile'),
-      prev, h('div', {class:'lbl'}, 'Name'), name,
-      h('div', {class:'lbl'}, 'Choose an avatar'), grid,
-      h('div', {class:'lbl'}, 'Or use an emoji'), emojis,
-      h('div', {style:'display:flex;gap:10px;margin-top:20px'},
-        h('button', {class:'btn', type:'button', onclick:() => {
-          if (!name.value.trim()) { toast('Give it a name.'); return; }
-          pr.name = name.value.trim();
-          const i = profiles.findIndex(x => x.id === pr.id); if (i >= 0) profiles[i] = pr; else profiles.push(pr);
-          if (profile && profile.id === pr.id) profile = pr;
-          saveProfiles(); launcherDirty = true; close();
-        }}, 'Save'),
-        isNew ? null : del)));
+    h('div', {class:'pe'},
+      h('div', {class:'pecol pecol-l'},
+        h('h2', {class:'sedh'}, isNew ? 'New profile' : 'Edit profile'),
+        h('div', {class:'pe-prev'}, prev, liveName),
+        h('div', {class:'lbl'}, 'Name'), name,
+        h('div', {class:'pe-act'}, save, isNew ? null : del)),
+      h('div', {class:'pecol pecol-r'},
+        h('div', {class:'lbl', style:'margin-top:0'}, 'Choose an avatar'), grid,
+        h('div', {class:'lbl'}, 'Or use an emoji'), emojis)));
 }
 
 function posterEl(meta){

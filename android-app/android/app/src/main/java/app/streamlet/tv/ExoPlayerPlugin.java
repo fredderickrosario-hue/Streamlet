@@ -144,6 +144,26 @@ public class ExoPlayerPlugin extends Plugin {
         getActivity().runOnUiThread(() -> { MainActivity.applyAwake(getActivity(), on); call.resolve(); });
     }
 
+    /** plain GET from the native side (no browser cross-origin rules): used for the intro database */
+    @PluginMethod
+    public void httpGet(final PluginCall call) {
+        final String url = call.getString("url");
+        if (url == null || !url.startsWith("https://")) { call.reject("https only"); return; }
+        new Thread(() -> {
+            try {
+                HttpURLConnection c = (HttpURLConnection) new URL(url).openConnection();
+                c.setConnectTimeout(4000); c.setReadTimeout(4000);
+                c.setRequestProperty("Accept", "application/json");
+                int code = c.getResponseCode();
+                InputStream in = code / 100 == 2 ? c.getInputStream() : c.getErrorStream();
+                java.io.ByteArrayOutputStream bo = new java.io.ByteArrayOutputStream();
+                byte[] buf = new byte[8192]; int n; while (in != null && (n = in.read(buf)) > 0) bo.write(buf, 0, n);
+                JSObject r = new JSObject(); r.put("status", code); r.put("body", bo.toString("UTF-8"));
+                call.resolve(r);
+            } catch (Exception e) { call.reject(String.valueOf(e.getMessage())); }
+        }).start();
+    }
+
     @PluginMethod
     public void clearLog(PluginCall call) { AppLog.clear(); call.resolve(); }
 
@@ -188,6 +208,7 @@ public class ExoPlayerPlugin extends Plugin {
         i.putExtra("episode", call.getBoolean("episode", false));
         i.putExtra("eps", call.getString("eps", ""));
         i.putExtra("skip", call.getInt("skip", 10));
+        i.putExtra("segs", call.getString("segs", ""));
         i.putExtra("curSeason", call.getInt("curSeason", 1));
         i.putExtra("curEpisode", call.getInt("curEpisode", 0));
         i.putExtra("subDelay", call.getData().optLong("subDelay", 0L));

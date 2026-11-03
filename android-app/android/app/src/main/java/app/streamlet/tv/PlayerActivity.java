@@ -139,7 +139,11 @@ public class PlayerActivity extends Activity {
     private boolean isEpisode = false, nextOn = false, skipDone = false, overDone = false, delayInit = false;
     private long startMsIn = 0;
     private boolean resumeChecked = false;
-    private TextView overChip, skipChip, nextCount;
+    private TextView overChip, nextCount, segBtn;
+    private long[] segIntro, segRecap, segOutro;
+    private int segMode = 0;
+    private long segTarget = 0, creditsShownAt = 0;
+    private boolean creditsDismissed = false;
     private FrameLayout nextLayer;
     private int nextSecs = 0;
     private final Runnable nextTick = new Runnable() { @Override public void run() {
@@ -158,6 +162,7 @@ public class PlayerActivity extends Activity {
     private boolean controlsOn = false, menuOn = false, seekPending = false;
     private float speed = 1f;
     private boolean phone = false;
+    private boolean tapHid = false;
     private boolean allowPassthrough = true;
     private int skipMs = 10000;
     private String epsJson = "";
@@ -214,6 +219,13 @@ public class PlayerActivity extends Activity {
         long startMs = in.getLongExtra("startMs", 0L);
         String nt = in.getStringExtra("nextTitle"); nextTitle = nt == null ? "" : nt;
         isEpisode = in.getBooleanExtra("episode", false);
+        try {                                                                  // intro / recap / credits times from the intro database
+            String sg = in.getStringExtra("segs");
+            if (sg != null && !sg.isEmpty()) {
+                JSONObject so = new JSONObject(sg);
+                segIntro = seg(so.optJSONArray("intro")); segRecap = seg(so.optJSONArray("recap")); segOutro = seg(so.optJSONArray("outro"));
+            }
+        } catch (Exception ignored) { }
         String ej = in.getStringExtra("eps"); epsJson = ej == null ? "" : ej;
         skipMs = Math.max(1, in.getIntExtra("skip", 10)) * 1000;
         curS = in.getIntExtra("curSeason", 1); curE = in.getIntExtra("curEpisode", 0);
@@ -327,7 +339,7 @@ public class PlayerActivity extends Activity {
         player.play();
         handler.postDelayed(ticker, 5000);
         handler.post(uiTick);
-        showControls(playBtn);
+        controls.setVisibility(View.GONE); controls.setAlpha(0f); controlsOn = false;           // the video starts clean: no controls until you press OK or tap
     }
 
     private ExoPlayer makePlayer(boolean compat) {
@@ -787,6 +799,32 @@ public class PlayerActivity extends Activity {
         panel.animate().translationX(0).setDuration(220).start();
     }
 
+    private static long[] seg(JSONArray a) { return a != null && a.length() == 2 && a.optLong(1) > a.optLong(0) ? new long[]{a.optLong(0), a.optLong(1)} : null; }
+
+    /** the floating Skip intro / Skip recap / Next episode button, only while the real segment plays */
+    private void updateSegments(long cp) {
+        if (segBtn == null || (segIntro == null && segRecap == null && segOutro == null)) return;
+        int mode = 0; String label = null; long target = 0;
+        if (segIntro != null && cp >= segIntro[0] - 500 && cp < segIntro[1] - 1500) { mode = 1; label = "Skip intro"; target = segIntro[1]; }
+        else if (segRecap != null && cp >= segRecap[0] - 500 && cp < segRecap[1] - 1500) { mode = 2; label = "Skip recap"; target = segRecap[1]; }
+        else if (segOutro != null && !nextTitle.isEmpty() && cp >= segOutro[0] && !creditsDismissed) {
+            mode = 3; label = "Next episode  \u25B6";
+            if (creditsShownAt == 0) creditsShownAt = System.currentTimeMillis();
+            else if (System.currentTimeMillis() - creditsShownAt > 15000) { creditsDismissed = true; mode = 0; }      // not taken: stay out of the way
+        }
+        if (mode == segMode && target == segTarget) return;
+        segMode = mode; segTarget = target;
+        if (mode == 0 || errOn || nextOn) { segBtn.setVisibility(View.GONE); segMode = 0; return; }
+        segBtn.setText(label);
+        segBtn.setVisibility(View.VISIBLE);
+        if (!controlsOn && !menuOn) segBtn.requestFocus();
+    }
+
+    private void doSegment() {
+        if (segMode == 1 || segMode == 2) { if (player != null) player.seekTo(segTarget); flash(segMode == 1 ? "Intro skipped" : "Recap skipped"); segBtn.setVisibility(View.GONE); segMode = 0; }
+        else if (segMode == 3) { ExoPlayerPlugin.autoNext = true; finishWith(true); }
+    }
+
     private void buildControls(String title) {
         controls = new FrameLayout(this);
         int pad = dp(36);
@@ -874,14 +912,7 @@ public class PlayerActivity extends Activity {
         ctl.addView(presetBox);
         overChip = chip("Start over", false, v -> { if (player != null) player.seekTo(0); overDone = true; overChip.setVisibility(View.GONE); flash("From the beginning"); presetBox.requestFocus(); });
         overChip.setVisibility(startMsIn > 20000 ? View.VISIBLE : View.GONE);
-        skipChip = chip("Skip intro", false, v -> { seekBy(85000); skipDone = true; skipChip.setVisibility(View.GONE); });
-        skipChip.setVisibility(isEpisode ? View.VISIBLE : View.GONE);
-        LinearLayout above = new LinearLayout(this);                          // right-aligned, just above the time bar
-        above.setOrientation(LinearLayout.HORIZONTAL);
-        above.setGravity(Gravity.END);
-        ((LinearLayout.LayoutParams) skipChip.getLayoutParams()).bottomMargin = dp(10);
-        above.addView(skipChip);
-        bottom.addView(above, 0, new LinearLayout.LayoutParams(-1, -2));
+
         final TextView other = chip("Other\u2026", false, null);
         other.setOnClickListener(v -> openOther(other));
         ctl.addView(other);
@@ -958,12 +989,24 @@ public class PlayerActivity extends Activity {
         nextLayer = new FrameLayout(this);
         nextLayer.setVisibility(View.GONE);
         root.addView(nextLayer, new FrameLayout.LayoutParams(-1, -1));
+        segBtn = new TextView(this);
+        segBtn.setTextColor(0xFF12121C); segBtn.setTextSize(phone ? 15 : 17); segBtn.setTypeface(Typeface.DEFAULT_BOLD);
+        segBtn.setGravity(Gravity.CENTER); segBtn.setPadding(dp(26), dp(13), dp(26), dp(13));
+        segBtn.setBackground(fillBg(0xF2FFFFFF, 0xFFFFFFFF, 14, false));
+        segBtn.setFocusable(true); segBtn.setClickable(true);
+        segBtn.setOnFocusChangeListener((v, f) -> segBtn.setBackground(shape(false, f ? 0xFFFFFFFF : 0xE6FFFFFF, f ? 0xFF8B5CFF : 0, f ? dp(3) : 0, 14)));
+        segBtn.setOnClickListener(v -> doSegment());
+        segBtn.setVisibility(View.GONE);
+        FrameLayout.LayoutParams sbp = new FrameLayout.LayoutParams(-2, -2, Gravity.BOTTOM | Gravity.END);
+        sbp.rightMargin = dp(48); sbp.bottomMargin = dp(phone ? 110 : 150);
+        root.addView(segBtn, sbp);
 
         final android.view.GestureDetector gd = new android.view.GestureDetector(this, new android.view.GestureDetector.SimpleOnGestureListener() {
             @Override public boolean onDown(MotionEvent e) { return true; }
-            @Override public boolean onSingleTapUp(MotionEvent e) { if (controlsOn && !menuOn) { hideControls(); return true; } return false; }
-            @Override public boolean onSingleTapConfirmed(MotionEvent e) { if (!controlsOn && !menuOn && !errOn && !nextOn) showControls(playBtn); return true; }
+            @Override public boolean onSingleTapUp(MotionEvent e) { if (controlsOn && !menuOn) { hideControls(); tapHid = true; return true; } return false; }
+            @Override public boolean onSingleTapConfirmed(MotionEvent e) { if (tapHid) { tapHid = false; return true; } if (!controlsOn && !menuOn && !errOn && !nextOn) showControls(playBtn); return true; }
             @Override public boolean onDoubleTap(MotionEvent e) {                // controls hidden: double tap the left / right side to skip back / forward
+                tapHid = false;
                 if (controlsOn || menuOn || errOn || nextOn) return false;
                 float x = e.getX() / Math.max(1, root.getWidth());
                 if (x < .4f) seekBy(-skipMs); else if (x > .6f) seekBy(skipMs); else togglePlay();
@@ -1009,7 +1052,7 @@ public class PlayerActivity extends Activity {
         posTx.setText(fmt(player.getCurrentPosition()));
         long cp = player.getCurrentPosition();
         if (overChip != null && !overDone && cp > startMsIn + 90000) { overDone = true; overChip.setVisibility(View.GONE); }
-        if (skipChip != null && !skipDone && cp > 300000) { skipDone = true; skipChip.setVisibility(View.GONE); }
+        updateSegments(cp);
     }
 
     private void flash(String t) {
@@ -1642,6 +1685,7 @@ public class PlayerActivity extends Activity {
                 case KeyEvent.KEYCODE_DPAD_CENTER:
                 case KeyEvent.KEYCODE_ENTER:
                 case KeyEvent.KEYCODE_SPACE:
+                    if (segMode != 0) { doSegment(); return true; }              // Skip intro / Skip recap / Next episode takes the OK button while it is shown
                     togglePlay(); showControls(playBtn); return true;
                 case KeyEvent.KEYCODE_DPAD_LEFT: seekBy(-skipMs); showControls(seek); return true;
                 case KeyEvent.KEYCODE_DPAD_RIGHT: seekBy(skipMs); showControls(seek); return true;

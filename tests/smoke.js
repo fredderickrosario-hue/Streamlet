@@ -113,6 +113,13 @@ const ok = (name, cond, extra) => { cond ? pass++ : fail++; console.log((cond ? 
     // a space can have its own languages
     const lg = await p.evaluate(() => { settings = { subLang: 'off', audioLang: 'any' }; const before = [effAudio(), effSub()]; cur = { ...cur, audio: 'jpn', subs: 'eng' }; const after = [effAudio(), effSub()]; cur = { ...cur, audio: '', subs: '' }; return { before, after, back: [effAudio(), effSub()] }; });
     ok('space languages override the Settings ones', JSON.stringify(lg.before) === '["any","off"]' && JSON.stringify(lg.after) === '["jpn","eng"]' && JSON.stringify(lg.back) === '["any","off"]', JSON.stringify(lg));
+    // first letters: titles with a word starting with them, popular first, no "contains" matches
+    const sh = await p.evaluate(() => {
+      const mk = (name, r) => ({ id: name, type: 'movie', name, imdbRating: r });
+      const items = new Map(); for (const [n, r] of [['Gojo Stories', '5'], ['Joker', '8.4'], ['Jolt', '6.1'], ['Ajo Blanco', '4.8'], ['Jobs', '7']]) items.set('m|' + n, { m: mk(n, r), a: {}, type: 'movie', rank: 0, score: relevance('jo', mk(n, r)) + parseFloat(r) / 200, exact: true });
+      return rankResults(items).map(x => x.m.name);
+    });
+    ok('short search shows prefix titles, popular first', JSON.stringify(sh) === JSON.stringify(['Joker', 'Jobs', 'Jolt']), JSON.stringify(sh));
     // spaces page
     const sp = await p.evaluate(() => { spaces = [{ id: 'a', name: 'A', emoji: '🍿', theme: 'violet', catalogs: [] }, { id: 'b', name: 'B', emoji: '🎌', theme: 'rose', catalogs: [] }]; showLauncher(); return document.querySelectorAll('.stile:not(.new)').length; });
     ok('spaces page shows every space', sp === 2, sp);

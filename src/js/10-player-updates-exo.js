@@ -214,10 +214,29 @@ async function collectSubs(ctx){
   return out;
 }
 const uiPlay = (k, d) => { const v = lsGet('streamlet.ui', {})[k]; return v === undefined ? d : !!v; };
+/* intro, recap and credits times from the community database IntroDB (by IMDb id, season and episode); nothing is guessed */
+const segCache = new Map();
+async function fetchSegments(ctx){
+  try {
+    if (!ctx || !ctx.ep) return null;
+    const first = x => String(x || '').split(':')[0];
+    const imdb = [ctx.alt && ctx.alt[0], ctx.info && ctx.info.item && ctx.info.item.id].map(first).find(x => /^tt\d+$/.test(x));
+    if (!imdb) return null;
+    const key = `${imdb}:${ctx.ep.season ?? 1}:${ctx.ep.episode}`;
+    if (segCache.has(key)) return segCache.get(key);
+    const url = `https://api.introdb.app/segments?imdb_id=${imdb}&season=${ctx.ep.season ?? 1}&episode=${ctx.ep.episode}`, N = nativePlayer();
+    const j = N && N.httpGet ? JSON.parse((await N.httpGet({url})).body) : await (await fetch(url)).json();
+    const seg = x => x && x.start_ms != null && x.end_ms > x.start_ms ? [Math.round(x.start_ms), Math.round(x.end_ms)] : null;
+    const out = {intro:seg(j.intro), recap:seg(j.recap), outro:seg(j.outro)};
+    segCache.set(key, out); return out;
+  } catch { return null; }
+}
 async function playNative(s, title, ctx){
   const N = nativePlayer();
   let subs = [];
+  const segP = withTimeout(fetchSegments(ctx), 2500).catch(() => null);
   if (ctx) { try { subs = await withTimeout(collectSubs(ctx), 5000); } catch {} }
+  const segs = await segP;
   for (const sub of (s.subtitles || [])) subs.push({url:sub.url, lang:sub.lang || 'eng'});
   const pref = effSub() !== 'off' ? effSub() : null;
   subs.sort((a, b) => (pref && sameLang(b.lang, pref) ? 1 : 0) - (pref && sameLang(a.lang, pref) ? 1 : 0));
@@ -234,7 +253,7 @@ async function playNative(s, title, ctx){
   try {
     const epLine = ctx && ctx.ep ? `S${ctx.ep.season ?? 1}:E${ctx.ep.episode ?? ''}` + (ctx.ep.title ? ' · ' + ctx.ep.title : '') : '';
     const itemId = ctx && ctx.info && ctx.info.item.id, nextTitle = ctx && ctx.next ? `S${ctx.next.season ?? 1}:E${ctx.next.episode ?? ''}` + (ctx.next.title ? ' · ' + ctx.next.title : '') : '';
-    const r = await N.play({nextTitle, episode:!!(ctx && ctx.ep), subDelay:(mapGet('streamlet.subdelay')[itemId] || 0), url:s.url, title:title || '', hw:uiPlay('hw', true), fps:uiPlay('fps', true), tunnel:uiPlay('tunnel', false), pass:uiPlay('pass', true), skip:Number(lsGet('streamlet.ui', {}).skip) || 10, eps:(ctx && ctx.eps && ctx.ep ? JSON.stringify(ctx.eps.map(x => ({s:x.season, e:x.episode, t:x.title || '', th:x.thumb || ''}))) : ''), curSeason:(ctx && ctx.ep ? ctx.ep.season ?? 1 : 1), curEpisode:(ctx && ctx.ep ? ctx.ep.episode ?? 0 : 0), subtitle:epLine, accent:(getComputedStyle(document.documentElement).getPropertyValue('--acc') || '').trim(), startMs, subtitles:picked, audioLang:code2(effAudio()) || null, subLang:pref ? (code2(pref) || pref) : null});
+    const r = await N.play({nextTitle, episode:!!(ctx && ctx.ep), subDelay:(mapGet('streamlet.subdelay')[itemId] || 0), url:s.url, title:title || '', hw:uiPlay('hw', true), fps:uiPlay('fps', true), tunnel:uiPlay('tunnel', false), pass:uiPlay('pass', true), skip:Number(lsGet('streamlet.ui', {}).skip) || 10, segs:segs ? JSON.stringify(segs) : '', eps:(ctx && ctx.eps && ctx.ep ? JSON.stringify(ctx.eps.map(x => ({s:x.season, e:x.episode, t:x.title || '', th:x.thumb || ''}))) : ''), curSeason:(ctx && ctx.ep ? ctx.ep.season ?? 1 : 1), curEpisode:(ctx && ctx.ep ? ctx.ep.episode ?? 0 : 0), subtitle:epLine, accent:(getComputedStyle(document.documentElement).getPropertyValue('--acc') || '').trim(), startMs, subtitles:picked, audioLang:code2(effAudio()) || null, subLang:pref ? (code2(pref) || pref) : null});
     if (r && r.failed) {
       badStreams.add(s); badSet(s); logErr(title, s, r.error); const el = streamEls.get(s); if (el) el.classList.add('bad');
       const list = (ctx && ctx._list) || [], i = list.indexOf(s);

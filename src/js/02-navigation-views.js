@@ -125,7 +125,7 @@ function showTab(name){
   navAvatar();
   for (const [k, sel] of Object.entries(TAB_SECTIONS)) { $(sel).hidden = k !== name; $(TAB_BUTTONS[k]).classList.toggle('on', k === name); }
   $('#spaceBtn').replaceChildren(cur ? cur.emoji+' '+cur.name : 'Spaces', h('i',null,'⇄'));
-  $('#q').hidden = name !== 'home'; $('#pageTitle').hidden = true; document.body.classList.toggle('onhome', name === 'home'); document.body.classList.toggle('pgfix', ['watch', 'addons', 'settings', 'me'].includes(name));
+  $('#q').hidden = name !== 'home'; $('#pageTitle').hidden = true; document.body.classList.toggle('onhome', name === 'home'); document.body.classList.toggle('pgfix', ['watch', 'addons', 'settings', 'me'].includes(name)); document.body.classList.toggle('srchpg', name === 'search');
   $('#q').placeholder = cur ? 'Search '+cur.name+'…' : 'Search…';
   if (name === 'home') renderHome($('#q').value.trim());
   else if (name === 'search') renderSearch();
