@@ -19,6 +19,8 @@ const qcShowList = () => {                                              // [{src
   return out;
 };
 const qcShowId = e => `qc:${e.src}:${e.path}`;
+/* shows that Cinemeta knows (full seasons and episodes) open through Cinemeta; this addon then supplies the streams */
+const qcCinemetaId = e => { const tt = Object.keys(QC_IMDB).find(k => QC_IMDB[k].src === e.src && QC_IMDB[k].path === e.path); return tt && addons.some(a => supports(a, 'meta', 'series', tt)) ? tt : qcShowId(e); };
 async function qcPageData(path){
   const r = await qcGet('https://www.tvaplus.ca' + path, {Accept:'text/html'});
   if (r.status !== 200) throw new Error('TVA+ answered ' + r.status);
@@ -207,7 +209,7 @@ async function qcRoute(url){
   const path = decodeURIComponent(url.replace(/^qc:\/\/[^/]*\//, '').replace(/\.json(\?.*)?$/, ''));
   if (path === 'manifest') return QC_MANIFEST;
   if (path.startsWith('catalog/')) {
-    const metas = (await Promise.all(qcShowList().map(e => (e.src === 'tou' ? qcTouShow(e.path) : e.src === 'rc' ? qcRcShow(e.path) : qcShowInfo(e.path)).then(i => ({id:qcShowId(e), type:'series', name:i.name, poster:i.poster, background:i.background, description:i.description})).catch(() => null)))).filter(Boolean);
+    const metas = (await Promise.all(qcShowList().map(e => (e.src === 'tou' ? qcTouShow(e.path) : e.src === 'rc' ? qcRcShow(e.path) : qcShowInfo(e.path)).then(i => ({id:qcCinemetaId(e), type:'series', name:i.name, poster:i.poster, background:i.background, description:i.description})).catch(() => null)))).filter(Boolean);
     return {metas};
   }
   if (path.startsWith('meta/')) { const id = path.split('/').slice(2).join('/'); return {meta:/^qc:rc:/.test(id) ? await qcRcMeta(id.replace(/^qc:rc:/, '')) : /^qc:tou:/.test(id) ? await qcTouMeta(id.replace(/^qc:tou:/, '')) : await qcMeta(id.replace(/^qc:tva:/, ''))}; }
