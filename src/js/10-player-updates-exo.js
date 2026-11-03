@@ -300,7 +300,9 @@ function recordProgress(c, stream, pos, dur){
   if (!c || !c.info || !profile) return;
   if (!isFinite(dur) || dur < 60 || pos < 15) return;
   const it = c.info.item, key = `${c.type}|${c.id}`;
-  if (pos / dur >= 0.92) {                       // finished: drop it, queue the next episode
+  const es = c.ep ? (c.ep.season ?? 1) : 0, ee = c.ep ? (c.ep.episode ?? 0) : 0, fin = pos / dur >= 0.92;
+  epPut(it.id, es, ee, fin ? {pos:0, dur, done:true} : {pos, dur, done:false});
+  if (fin) {                       // finished: drop it, queue the next episode
     histRemove(key);
     if (it.type === 'movie' || (c.ep && !c.next)) watchedAdd({itemId:it.id, type:it.type, name:it.name});
     if (c.next) histPut({k:`${c.type}|${c.next.id}`, type:c.type, id:c.next.id, itemId:it.id, itemType:it.type, name:it.name, poster:it.poster, background:it.background,

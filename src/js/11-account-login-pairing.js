@@ -67,21 +67,21 @@ async function mergeFamily(R){
   lsSet('streamlet.meta', m);
   return changed;
 }
-function mergeColl(id, key, remKey, rEntries, rRemoved, cap){
+function mergeColl(id, key, remKey, rEntries, rRemoved, cap, kf = 'itemId'){
   const rem = {...plsGet(id, remKey, {})};
   for (const [k, t] of Object.entries(rRemoved || {})) { const kk = decodeURIComponent(k); if ((rem[kk] || 0) < t) rem[kk] = t; }
   const map = {}, local = plsGet(id, key, []);
-  for (const e of local) map[e.itemId] = e;
-  for (const e of Object.values(rEntries || {})) if (e && e.itemId && (!map[e.itemId] || (map[e.itemId].t || 0) < (e.t || 0))) map[e.itemId] = e;
-  let out = Object.values(map).filter(e => (e.t || 0) > (rem[e.itemId] || 0)).sort((a, b) => b.t - a.t);
+  for (const e of local) map[e[kf]] = e;
+  for (const e of Object.values(rEntries || {})) if (e && e[kf] && (!map[e[kf]] || (map[e[kf]].t || 0) < (e.t || 0))) map[e[kf]] = e;
+  let out = Object.values(map).filter(e => (e.t || 0) > (rem[e[kf]] || 0)).sort((a, b) => b.t - a.t);
   if (cap) out = out.slice(0, cap);
   plsSet(id, remKey, rem);
   if (JSON.stringify(out) !== JSON.stringify(local)) { plsSet(id, key, out); return true; }
   return false;
 }
-function packColl(id, key, remKey, deleteField){
+function packColl(id, key, remKey, deleteField, kf = 'itemId'){
   const list = plsGet(id, key, []), rem = plsGet(id, remKey, {}), entries = {}, remP = {};
-  for (const e of list) entries[ek(e.itemId)] = e;
+  for (const e of list) entries[ek(e[kf])] = e;
   for (const [k, t] of Object.entries(rem)) { remP[ek(k)] = t; if (!entries[ek(k)]) entries[ek(k)] = deleteField(); }
   const out = {}; for (const [k, v] of Object.entries(entries)) out[k] = (v && v._methodName) ? v : clean(v);
   return {entries:out, rem:clean(remP), any:list.length > 0 || Object.keys(rem).length > 0};
@@ -110,6 +110,7 @@ function mergeProfile(id, R){
   if (JSON.stringify(wout) !== JSON.stringify(wlocal)) { plsSet(id, 'watchlist', wout); changed = true; }
   plsSet(id, 'wlRemoved', wrem);
   if (mergeColl(id, 'watched', 'wdRemoved', R.wd, R.wdremoved, 3000)) changed = true;
+  if (mergeColl(id, 'eps', 'epRemoved', R.eps, R.epremoved, 3000, 'k')) { changed = true; epReset(); }
   return changed;
 }
 async function pushAll(){
@@ -123,8 +124,8 @@ async function pushAll(){
   for (const p of profiles) {
     const hist = plsGet(p.id, 'history', []), removed = plsGet(p.id, 'removed', {}), sT = plsGet(p.id, 'settingsT', 0);
     const wl = plsGet(p.id, 'watchlist', []), wlrem = plsGet(p.id, 'wlRemoved', {});
-    const wdp = packColl(p.id, 'watched', 'wdRemoved', deleteField);
-    if (!hist.length && !Object.keys(removed).length && !sT && !wl.length && !Object.keys(wlrem).length && !wdp.any) continue;
+    const wdp = packColl(p.id, 'watched', 'wdRemoved', deleteField), epp = packColl(p.id, 'eps', 'epRemoved', deleteField, 'k');
+    if (!hist.length && !Object.keys(removed).length && !sT && !wl.length && !Object.keys(wlrem).length && !wdp.any && !epp.any) continue;
     const entries = {}, rem = {};
     for (const e of hist) entries[ek(e.itemId)] = e;
     for (const [k, t] of Object.entries(removed)) { rem[ek(k)] = t; if (!entries[ek(k)]) entries[ek(k)] = deleteField(); }
@@ -135,7 +136,7 @@ async function pushAll(){
     for (const [k, t] of Object.entries(wlrem)) { wremP[ek(k)] = t; if (!wentries[ek(k)]) wentries[ek(k)] = deleteField(); }
     payload.watch = {}; payload.wremoved = clean(wremP);
     for (const [k, v] of Object.entries(wentries)) payload.watch[k] = (v && v._methodName) ? v : clean(v);
-    payload.wd = wdp.entries; payload.wdremoved = wdp.rem;
+    payload.wd = wdp.entries; payload.wdremoved = wdp.rem; payload.eps = epp.entries; payload.epremoved = epp.rem;
     if (sT) { payload.settings = plsGet(p.id, 'settings', {}); payload.settingsT = sT; }
     await setDoc(doc(db, ...base, 'profiles', p.id), payload, {merge:true});
   }

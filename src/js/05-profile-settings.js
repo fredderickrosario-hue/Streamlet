@@ -239,3 +239,7 @@ function renderCW(){
   box.append(h('div', {class:'row'}, h('h2', null, 'Continue watching'), strip));
 }
 
+
+$('#bkOut').onclick = () => { if (profile) backupExport(); };
+$('#bkIn').onclick = () => $('#bkFile').click();
+$('#bkFile').onchange = e => { backupImport(e.target.files[0]); e.target.value = ''; };

@@ -204,7 +204,7 @@ function loadProfileData(){
 }
 function selectProfile(p){
   profile = p; try { navAvatar(); } catch {} lsSet('streamlet.profile.last', p.id);
-  loadProfileData();
+  loadProfileData(); epReset(); try { epMigrate(); } catch {}
   const last = pget('last', null);
   if (last && spaces.some(x => x.id === last)) enterSpace(last); else showLauncher();
 }

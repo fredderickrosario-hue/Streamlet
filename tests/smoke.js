@@ -130,6 +130,17 @@ const ok = (name, cond, extra) => { cond ? pass++ : fail++; console.log((cond ? 
       const c = await p.evaluate(async () => { document.body.classList.add('tv'); const u = 'https://mock.test/catalog/movie/top.json'; await getJSON(u); await new Promise(r => setTimeout(r, 300)); return (await caches.keys()).includes('streamlet-data'); });
       ok('TV remembers catalog rows', c);
     }
+    {
+      const r = await p.evaluate(() => {
+        const id = 'tt999', sorted = [1, 2, 3].map(e => ({id:`${id}:1:${e}`, season:1, episode:e}));
+        epPut(id, 1, 1, {pos:100, dur:1000, done:false}); const a = epNext(id, sorted);
+        epPut(id, 1, 1, {pos:0, dur:1000, done:true}); const b = epNext(id, sorted);
+        epMark(id, sorted, true); const c = epDone(id, 1, 3);
+        epMark(id, sorted, false); const d = epDone(id, 1, 2);
+        return a.resume && a.v.episode === 1 && !b.resume && b.v.episode === 2 && c && !d;
+      });
+      ok('per-episode store: progress, next episode, mark season', r);
+    }
     ok('no errors after all of the above', errs.length === 0, errs[0]);
     await p.close();
   }
