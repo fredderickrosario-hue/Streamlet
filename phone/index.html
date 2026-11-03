@@ -3162,7 +3162,8 @@ function rankStreams(all, itemId){                                    // best fi
     const r = resOf(x), t = String(x.name || '') + ' ' + String(x.title || ''), seeds = Number((/\u{1F464}\s*(\d+)/u.exec(t) || [])[1]) || 0;
     return [pref && sigOf(x) === pref ? 0 : 1, lang(x), r > cap ? 1 : 0, r === 0 ? 1 : 0, -Math.min(r, cap), /\[[A-Z]{2}\+\]|cached|\u26A1/i.test(t) ? 0 : 1, -seeds];
   };
-  return all.filter(x => x && x.url && !isBadStream(x)).map((x, i) => [x, key(x), i]).sort((a, b) => { for (let k = 0; k < a[1].length; k++) if (a[1][k] !== b[1][k]) return a[1][k] - b[1][k]; return a[2] - b[2]; }).map(x => x[0]);
+  const ok = all.filter(x => x && x.url), good = ok.filter(x => !isBadStream(x));          // a source flagged bad earlier is only skipped when something else is available
+  return (good.length ? good : ok).map((x, i) => [x, key(x), i]).sort((a, b) => { for (let k = 0; k < a[1].length; k++) if (a[1][k] !== b[1][k]) return a[1][k] - b[1][k]; return a[2] - b[2]; }).map(x => x[0]);
 }
 /* asks every stream addon; waits up to 4 s for the slow ones once something has arrived */
 async function collectStreams(type, id, base, soft = 4000){
