@@ -509,11 +509,11 @@ body:not(.tv) .tvhero .tdots{justify-content:center}
 /* slow drift on the hero picture, a little zoomed in */
 .tvhero .tbg{overflow:hidden}
 .tvhero .tbg img.on{animation:kenburns 16s ease-out both;transform-origin:62% 38%}
-@keyframes kenburns{from{transform:scale(1.07) translate(0,0)}to{transform:scale(1.18) translate(-1.6%,-1.2%)}}
-@media (prefers-reduced-motion:reduce){.tvhero .tbg img.on{animation:none;transform:scale(1.07)}}
+@keyframes kenburns{from{transform:scale(1.02) translate(0,0)}to{transform:scale(1.1) translate(-1%,-.6%)}}
+@media (prefers-reduced-motion:reduce){.tvhero .tbg img.on{animation:none;transform:scale(1.05)}}
 .tvhero{touch-action:pan-y}
 /* phone: the picture pans slowly left to right, so the whole wide image gets seen */
-body:not(.tv) .tvhero .tbg img.on{animation:panx 8.4s linear both;transform:none;object-position:0% 12%}
+body:not(.tv) .tvhero .tbg img.on{animation:panx 8.4s linear both;transform:scale(1.1);transform-origin:center;object-position:0% 12%}
 @keyframes panx{from{object-position:0% 12%}to{object-position:100% 12%}}
 @media (prefers-reduced-motion:reduce){body:not(.tv) .tvhero .tbg img.on{animation:none;object-position:center 12%}}
 /* ---- v4: TV pages, expanding nav, genre tiles, search page, intro ---- */
