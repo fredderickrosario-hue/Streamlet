@@ -54,6 +54,7 @@ const LAYER_CLOSERS = {
   editor: () => { $('#spaceEd').hidden = true; applyTheme(cur ? cur.theme : 'violet'); },
   pedit:  () => { $('#profEd').hidden = true; if (!$('#me').hidden) renderMe(); },
   menu:   () => { $('#menu').hidden = true; },
+  nfimp:  () => { $('#nfImp').hidden = true; },
   episode: () => { $('#episode').hidden = true; },
   aedit:  () => { $('#addonEd').hidden = true; if (!$('#addons').hidden) renderAddons(); }
 };

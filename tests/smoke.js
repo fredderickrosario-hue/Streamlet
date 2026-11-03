@@ -238,6 +238,27 @@ const ok = (name, cond, extra) => { cond ? pass++ : fail++; console.log((cond ? 
       }).catch(e => String(e));
       ok('Continue watching: an episode taken off the watched list is offered again', r === true, r);
     }
+    {
+      const r = await p.evaluate(async () => {
+        const real = getJSON;
+        getJSON = async u => {
+          if (u.includes('/catalog/series/top/search=Show%20A')) return {metas:[{id:'tt901', name:'Show A', releaseInfo:'2020', genres:['Animation']}]};
+          if (u.includes('/catalog/movie/top/search=A%20Movie')) return {metas:[{id:'tt902', name:'A Movie', releaseInfo:'2019'}]};
+          if (u.includes('/meta/series/tt901')) return {meta:{genres:['Animation'], videos:[{season:1, episode:1, name:'Pilot'}, {season:1, episode:2, name:'Second One'}, {season:1, episode:3, name:'Third'}]}};
+          if (u.includes('/catalog/')) return {metas:[]};
+          return real(u);
+        };
+        const csv = 'Title,Date\n"Show A: Season 1: Pilot",1/2/24\n"Show A: Season 1: Second One",1/3/24\n"Show A: Season 1: Not Real",1/4/24\n"A Movie",1/5/24\nUnknown Thing,1/6/24\n';
+        const list = await nfBuild(csv, () => {});
+        const a = list.find(g => g.name === 'Show A'), m = list.find(g => g.name === 'A Movie'), u = list.find(g => g.name === 'Unknown Thing');
+        spaces = spaces || []; const sid = 'sp-test';
+        for (const g of list) { g.include = !!g.match; g.space = sid; }
+        const res = nfApply(list);
+        getJSON = real;
+        return list.length === 3 && a.found === 2 && a.missed === 1 && nfAnimeish(a) && m.match.type === 'movie' && !u.match && epDone('tt901', 1, 1) && epDone('tt901', 1, 2) && !epDone('tt901', 1, 3) && watchedHas('tt902') && pget('shows', {}).tt901.sp === sid && res.nEp === 2 && res.nMovie === 1;
+      }).catch(e => String(e));
+      ok('Netflix import: matches shows and episodes, marks watched into the chosen space', r === true, r);
+    }
     ok('no errors after all of the above', errs.length === 0, errs[0]);
     await p.close();
   }
