@@ -255,9 +255,9 @@ const ok = (name, cond, extra) => { cond ? pass++ : fail++; console.log((cond ? 
         for (const g of list) { g.include = !!g.match; g.space = sid; }
         const res = nfApply(list);
         getJSON = real;
-        return list.length === 3 && a.found === 2 && a.missed === 1 && nfAnimeish(a) && m.match.type === 'movie' && !u.match && epDone('tt901', 1, 1) && epDone('tt901', 1, 2) && !epDone('tt901', 1, 3) && watchedHas('tt902') && pget('shows', {}).tt901.sp === sid && res.nEp === 2 && res.nMovie === 1;
+        return list.length === 1 && a.found === 2 && a.missed === 1 && nfAnimeish(a) && !m && !u && epDone('tt901', 1, 1) && epDone('tt901', 1, 2) && !epDone('tt901', 1, 3) && !watchedHas('tt902') && pget('shows', {}).tt901.sp === sid && res.nEp === 2 && res.nMovie === 0;
       }).catch(e => String(e));
-      ok('Netflix import: matches shows and episodes, marks watched into the chosen space', r === true, r);
+      ok('Netflix import: shows only, episodes matched and marked watched into the chosen space', r === true, r);
     }
     ok('no errors after all of the above', errs.length === 0, errs[0]);
     await p.close();

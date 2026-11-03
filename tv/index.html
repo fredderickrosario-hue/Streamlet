@@ -1255,7 +1255,7 @@ body:not(.tv) :is(#detail,#episode) .dhint{display:none}
       </div>
       <h2 class="sh">Netflix</h2>
       <div class="addon">
-        <div class="row2"><span class="rt">Import Netflix history<small id="nfState">On netflix.com: Account, your profile, Viewing activity, Download all. Choose that file here, then sort the shows into your spaces</small></span><button class="btn ghost sm" id="nfPick" type="button">Choose file</button></div>
+        <div class="row2"><span class="rt">Import Netflix shows<small id="nfState">On netflix.com: Account, your profile, Viewing activity, Download all. Choose that file here, then sort the shows into your spaces</small></span><button class="btn ghost sm" id="nfPick" type="button">Choose file</button></div>
         <input type="file" id="nfFile" accept=".csv,text/csv" hidden>
       </div>
       <h2 class="sh">Backup</h2>
@@ -5160,12 +5160,11 @@ async function nfBuild(text, onProgress){
     g.t = Math.max(g.t, t);
     if (!p.movie && !g.eps.some(x => x.name === p.ep && x.season === p.season)) g.eps.push({name:p.ep, season:p.season, t});
   }
-  const list = [...groups.values()];
+  const list = [...groups.values()].filter(g => !g.movie);             // shows only: titles without a season / episode part are movies and are left out
   let done = 0;
   await nfPool(list, 4, async g => {
     try {
-      const kinds = g.movie ? ['movie', 'series'] : ['series', 'movie'];
-      for (const kind of kinds) { const m = nfPick(await nfSearch(kind, g.name), g.name); if (m) { g.match = {id:m.id, name:m.name, type:kind, poster:m.poster, background:m.background, year:m.releaseInfo || m.year, genres:m.genres || []}; break; } }
+      for (const kind of ['series']) { const m = nfPick(await nfSearch(kind, g.name), g.name); if (m) { g.match = {id:m.id, name:m.name, type:kind, poster:m.poster, background:m.background, year:m.releaseInfo || m.year, genres:m.genres || []}; break; } }
       if (g.match && g.match.type === 'series' && g.eps.length) await nfMatchEpisodes(g);
       else if (g.match) g.genres = g.match.genres;
     } catch {}
@@ -5201,11 +5200,11 @@ function nfSheet(list){
   const rowsEl = h('div', {style:'display:flex;flex-direction:column;gap:8px'}), bulkSel = h('select', {class:'f'}, ...spOpts()), info = h('div', {class:'spin', style:'padding:6px 0'});
   const redraw = () => {
     const ok = list.filter(g => g.match), bad = list.length - ok.length;
-    info.textContent = `${ok.length} matched of ${list.length} titles${bad ? ` · ${bad} could not be matched` : ''}. Tick the ones to import and pick a space for each.`;
+    info.textContent = `${ok.length} matched of ${list.length} shows${bad ? ` · ${bad} could not be matched` : ''}. Movies are not imported. Tick the ones to import and pick a space for each.`;
     rowsEl.replaceChildren(...list.map((g, i) => {
       const cb = h('input', {type:'checkbox'}); cb.checked = g.include && !!g.match; cb.disabled = !g.match; cb.onchange = () => { g.include = cb.checked; };
       const sel = h('select', {class:'f', style:'max-width:44%'}, ...spOpts()); sel.value = g.space || ''; sel.disabled = !g.match; sel.onchange = () => { g.space = sel.value; if (!g.space) { g.include = false; cb.checked = false; } };
-      const sub = g.match ? `${g.match.name}${g.match.year ? ' (' + g.match.year + ')' : ''} · ${g.match.type === 'movie' ? 'movie' : (g.found || 0) + ' of ' + g.eps.length + ' episodes matched'}` : 'No match found';
+      const sub = g.match ? `${g.match.name}${g.match.year ? ' (' + g.match.year + ')' : ''} · ${(g.found || 0) + ' of ' + g.eps.length + ' episodes matched'}` : 'No match found';
       return h('div', {class:'rrow', style:'align-items:center;gap:10px;opacity:' + (g.match ? 1 : .55)}, cb, h('div', {style:'flex:1;min-width:0'}, h('div', {style:'font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap'}, g.name), h('div', {class:'spin', style:'padding:0;font-size:12px'}, sub)), sel);
     }));
   };
@@ -5221,7 +5220,7 @@ function nfSheet(list){
       h('div', {class:'rrow', style:'gap:8px;align-items:center;margin-bottom:10px'}, h('span', {class:'spin', style:'padding:0'}, 'Move ticked to:'), bulkSel, h('button', {class:'btn ghost sm', type:'button', onclick:moveSel}, 'Move')),
       rowsEl, msg,
       h('div', {style:'position:sticky;bottom:0;padding:12px 0;background:var(--bg)'}, h('button', {class:'btn', type:'button', onclick:() => {
-        const r = nfApply(list); msg.className = 'msg ok'; msg.textContent = `Imported ${r.nEp} episodes from ${r.nShow} shows and ${r.nMovie} movies.`; toast('Netflix history imported');
+        const r = nfApply(list); msg.className = 'msg ok'; msg.textContent = `Imported ${r.nEp} episodes from ${r.nShow} shows.`; toast('Netflix history imported');
       }}, 'Import ticked'))));
   redraw();
 }
