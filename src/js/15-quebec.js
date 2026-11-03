@@ -157,6 +157,20 @@ async function qcRcMeta(slug){
   const videos = info.eps.map((e, i) => ({id:`qc:rc:${slug}/${e.epId}/${e.slug}`, season:1, episode:i + 1, title:qcTitleCase(e.slug.replace(/-/g, ' ')), overview:'', thumbnail:info.background, released:e.released, runtime:''}));
   return {id:'qc:rc:' + slug, type:'series', name:info.name, poster:info.poster, background:info.background, description:info.description, videos, releaseInfo:''};
 }
+/* the site's own player offers French captions: they sit in the media description as separate files */
+async function qcRcSubs(mid, app){
+  try {
+    const r = await qcGet(`https://services.radio-canada.ca/media/meta/v1/index.ashx?appCode=${app}&idMedia=${mid}&output=jsonObject`, {Authorization:'Client-Key 773aea60-0e80-41bb-9c7f-e6d7c3ad17fb', 'X-Requested-With':'XMLHttpRequest'});
+    const found = [], seen = new Set();
+    const walk = (o, key, d) => {
+      if (!o || d > 8) return;
+      if (typeof o === 'string') { if (/^https?:\/\/\S+\.(vtt|srt|ttml|dfxp|xml)(\?\S*)?$/i.test(o) && !seen.has(o) && (/caption|subtitle|sous|cc|text|vtt|srt|ttml/i.test(key) || /\.(vtt|srt|ttml|dfxp)(\?|$)/i.test(o))) { seen.add(o); found.push({id:'rc' + found.length, url:o.replace(/^http:/, 'https:'), lang:/\ben\b|anglais|english/i.test(key + o) ? 'eng' : 'fra'}); } return; }
+      if (typeof o === 'object') for (const [k, v] of Object.entries(o)) walk(v, k, d + 1);
+    };
+    walk(JSON.parse(r.body), '', 0);
+    return found.slice(0, 4);
+  } catch { return []; }
+}
 async function qcRcStreams(id){
   const [slug, epId, es] = id.replace(/^qc:rc:/, '').split('/');
   const html = await qcRcPage(`https://ici.radio-canada.ca/tele/${slug}/site/episodes/${epId}/${es}`), cand = new Set();
@@ -164,7 +178,11 @@ async function qcRcStreams(id){
   for (const mid of [...cand].slice(0, 5)) for (const app of ['medianet', 'toutv']) {
     try {
       const r = await qcGet(`https://services.radio-canada.ca/media/validation/v2/?appCode=${app}&deviceType=ipad&connectionType=wifi&idMedia=${mid}&output=json`), j = JSON.parse(r.body);
-      if (j && j.errorCode === 0 && j.url && !(j.params || []).some(p => /license|drm/i.test(p.name))) return [{name:'Radio-Canada', title:'HLS · adaptive', url:String(j.url).replace(/^http:/, 'https:')}];
+      if (j && j.errorCode === 0 && j.url && !(j.params || []).some(p => /license|drm/i.test(p.name))) {
+        const st = {name:'Radio-Canada', title:'HLS · adaptive', url:String(j.url).replace(/^http:/, 'https:')}, subs = await qcRcSubs(mid, app);
+        if (subs.length) st.subtitles = subs;
+        return [st];
+      }
     } catch {}
   }
   return [];
