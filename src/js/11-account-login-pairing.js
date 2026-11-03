@@ -312,8 +312,16 @@ function bootApp(){
   if (upd) { lsSet('streamlet.upd', 0); selectProfile(lastP).then(() => { try { showTab('settings'); } catch {} }); return; }
   if (profiles.length > 1 && localStorage.getItem('streamlet.profile.ask') !== '0') showProfiles(); else selectProfile(lastP);
 }
+let earlyBoot = false;
 async function onUser(u){
   const first = firstAuth; firstAuth = false; user = u;
+  if (u) lsSet('streamlet.wasUser', 1);
+  if (u && first && earlyBoot) {                                  // the app is already open from this device's own data: sync quietly behind it
+    earlyBoot = false; syncState = 'syncing';
+    try { await withTimeout(initialSync(), 20000); syncErr = ''; } catch (e) { noteErr(e); }
+    startListeners(); initProfiles(); refreshUI(); fillAccountUI();
+    return;
+  }
   if (u) {
     syncState = 'syncing';
     try { await withTimeout(initialSync(), 20000); syncErr = ''; } catch (e) { noteErr(e); }
@@ -321,18 +329,21 @@ async function onUser(u){
     if (first) { initProfiles(); bootApp(); }
     else { replaceNext = true; initProfiles(); bootApp(); }
   } else if (first) {
-    if (localStorage.getItem('streamlet.skipLogin') === '1') bootApp(); else showLogin();
+    if (earlyBoot) { earlyBoot = false; if (localStorage.getItem('streamlet.skipLogin') !== '1') showLogin(); }
+    else if (localStorage.getItem('streamlet.skipLogin') === '1') bootApp(); else showLogin();
   } else { fillAccountUI(); }
 }
 async function startAuth(){
-  showLoginSplash('Loading…');
+  // a device that has been signed in before opens straight from its own saved data; the sync happens behind the scenes
+  if ((lsGet('streamlet.wasUser', 0) || localStorage.getItem('streamlet.skipLogin') === '1') && lsGet('streamlet.profile.last', null)) { earlyBoot = true; initProfiles(); bootApp(); }
+  else showLoginSplash('Loading…');
   try { FB = await withTimeout(loadFirebase(), 8000); }
-  catch { FB = null; syncState = 'local'; $('#login').hidden = true; bootApp(); return; }
+  catch { FB = null; syncState = 'local'; $('#login').hidden = true; if (!booted) bootApp(); return; }
   try {
     const app = FB.app.initializeApp(FB_CONFIG);
     auth = FB.au.getAuth(app);
     try { db = FB.fs.initializeFirestore(app, {localCache: FB.fs.persistentLocalCache()}); } catch { db = FB.fs.getFirestore(app); }
     FB.au.onAuthStateChanged(auth, onUser);
-  } catch { FB = null; $('#login').hidden = true; bootApp(); }
+  } catch { FB = null; $('#login').hidden = true; if (!booted) bootApp(); }
 }
 
