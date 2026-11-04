@@ -2111,7 +2111,7 @@ const nuMem = new Map();
 function showNote(id, name, poster, background, addonId){
   if (!profile || !cur) return;
   const sh = pget('shows', {}); sh[id] = {n:name, p:poster, b:background, a:addonId, ty:'series', sp:cur.id, t:Date.now()};
-  pset('shows', Object.fromEntries(Object.entries(sh).sort((x, y) => y[1].t - x[1].t).slice(0, 60)));
+  pset('shows', Object.fromEntries(Object.entries(sh).sort((x, y) => y[1].t - x[1].t).slice(0, 60))); scheduleSync();
 }
 async function showMeta(id, s0){
   const now = Date.now(), hit = nuMem.get(id);
