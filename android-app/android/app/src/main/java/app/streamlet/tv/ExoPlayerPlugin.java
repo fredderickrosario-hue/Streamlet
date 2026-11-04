@@ -217,6 +217,11 @@ public class ExoPlayerPlugin extends Plugin {
         i.putExtra("curSeason", call.getInt("curSeason", 1));
         i.putExtra("curEpisode", call.getInt("curEpisode", 0));
         i.putExtra("subDelay", call.getData().optLong("subDelay", 0L));
+        i.putExtra("wnProfile", call.getString("wnProfile", ""));
+        i.putExtra("wnItem", call.getString("wnItem", ""));
+        i.putExtra("wnKind", call.getString("wnKind", "movie"));
+        i.putExtra("wnTitle", call.getString("wnTitle", ""));
+        i.putExtra("wnPoster", call.getString("wnPoster", ""));
 
         call.setKeepAlive(true);
         pending = call;

@@ -103,6 +103,9 @@ public class PlayerActivity extends Activity {
     private final Handler handler = new Handler(Looper.getMainLooper());
     private boolean reported = false;
     private long lastPos = 0, lastDur = 0;
+    private String wnProfile, wnItem, wnKind, wnTitle, wnPoster;          // Continue watching on the home screen (Watch Next)
+    private int wnSeason = 1, wnEpisode = 0;
+    private long wnLast = 0;
 
     // ---- failed source dialog
     private FrameLayout errLayer;
@@ -185,7 +188,21 @@ public class PlayerActivity extends Activity {
         if (player != null && player.isPlaying() && !menuOn) hideControls(); else scheduleHide(); } };
     private final Runnable seekRun = new Runnable() { @Override public void run() {
         if (player != null) player.seekTo(seek.getProgress()); seekPending = false; } };
-    private final Runnable uiTick = new Runnable() { @Override public void run() { refreshProgress(); handler.postDelayed(this, 500); } };
+    private final Runnable uiTick = new Runnable() { @Override public void run() {
+        refreshProgress();
+        if (player != null && player.isPlaying() && System.currentTimeMillis() - wnLast > 60000) wnSync(false);   // keep the home-screen position about a minute fresh
+        handler.postDelayed(this, 500);
+    } };
+    /** Continue watching on the home screen: this title's entry follows the position; a finished title leaves the row */
+    private void wnSync(boolean finished) {
+        if (wnItem == null || wnItem.isEmpty() || wnProfile == null || wnProfile.isEmpty()) return;
+        wnLast = System.currentTimeMillis();
+        long pos = player != null ? Math.max(0L, player.getCurrentPosition()) : lastPos;
+        long dur = player != null && player.getDuration() != C.TIME_UNSET ? player.getDuration() : lastDur;
+        if (finished || (dur > 0 && pos >= dur * 0.95)) { WatchNext.remove(this, wnProfile, wnItem); return; }
+        boolean ep = "episode".equals(wnKind);
+        WatchNext.publish(this, wnProfile, wnItem, ep, wnTitle, streamSubtitle, wnSeason, wnEpisode, wnPoster, pos, dur);
+    }
     private final Runnable flashHide = new Runnable() { @Override public void run() { flashTx.setVisibility(View.GONE); } };
 
     private final Runnable ticker = new Runnable() {
@@ -219,6 +236,9 @@ public class PlayerActivity extends Activity {
         String title = in.getStringExtra("title");
         streamUrl = url == null ? "" : url; streamTitle = title == null ? "" : title;
         String st = in.getStringExtra("subtitle"); streamSubtitle = st == null ? "" : st;
+        wnProfile = in.getStringExtra("wnProfile"); wnItem = in.getStringExtra("wnItem"); wnKind = in.getStringExtra("wnKind");
+        wnTitle = in.getStringExtra("wnTitle"); wnPoster = in.getStringExtra("wnPoster");
+        wnSeason = in.getIntExtra("curSeason", 1); wnEpisode = in.getIntExtra("curEpisode", 0);
         long startMs = in.getLongExtra("startMs", 0L);
         String nt = in.getStringExtra("nextTitle"); nextTitle = nt == null ? "" : nt;
         autoNextOn = in.getBooleanExtra("autoNext", true); autoSkipOn = in.getBooleanExtra("autoSkip", false);
@@ -1648,6 +1668,7 @@ public class PlayerActivity extends Activity {
         if (reported) return;
         snapshot();
         reported = true;
+        wnSync(ended);
         ExoPlayerPlugin.subDelay = subDelayMs;
         ExoPlayerPlugin.finished(ended && lastDur > 0 ? lastDur : lastPos, lastDur, ended);
         finish();
@@ -1770,6 +1791,7 @@ public class PlayerActivity extends Activity {
         if (!reported) {
             snapshot();
             reported = true;
+            wnSync(false);
             ExoPlayerPlugin.finished(lastPos, lastDur, false);
         }
         if (player != null) {

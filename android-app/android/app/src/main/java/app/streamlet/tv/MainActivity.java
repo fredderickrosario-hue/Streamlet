@@ -2,6 +2,9 @@ package app.streamlet.tv;
 
 import android.app.Activity;
 import android.content.Context;
+import android.content.Intent;
+import android.net.Uri;
+import org.json.JSONObject;
 import android.content.SharedPreferences;
 import android.graphics.Color;
 import android.graphics.drawable.ColorDrawable;
@@ -38,6 +41,18 @@ public class MainActivity extends BridgeActivity {
     private boolean keepAwake() { return getSharedPreferences("streamlet_player", Context.MODE_PRIVATE).getBoolean("keepawake", false); }
 
     @Override
+    protected void onNewIntent(Intent intent) { super.onNewIntent(intent); setIntent(intent); handleWatchNext(intent); }
+
+    /** a Continue watching tile on the TV home screen: hand the title to the page, which resumes it once it is ready */
+    private void handleWatchNext(Intent in) {
+        Uri u = in == null ? null : in.getData();
+        if (u == null || !"streamlet".equals(u.getScheme()) || !"resume".equals(u.getHost())) return;
+        String item = u.getQueryParameter("i"), prof = u.getQueryParameter("p");
+        final String js = "window.__wnResume={item:" + JSONObject.quote(item == null ? "" : item) + ",profile:" + JSONObject.quote(prof == null ? "" : prof) + "};";
+        try { getBridge().getWebView().postDelayed(() -> getBridge().getWebView().evaluateJavascript(js, null), 1500); } catch (Exception e) { AppLog.add("watchnext", "resume failed: " + e); }
+    }
+
+    @Override
     public void onResume() { super.onResume(); applyBg(this, true); applyAwake(this, keepAwake()); }
 
     @Override
@@ -52,6 +67,7 @@ public class MainActivity extends BridgeActivity {
         } catch (Exception ignored) { }
         registerPlugin(ExoPlayerPlugin.class);
         super.onCreate(savedInstanceState);
+        handleWatchNext(getIntent());
         try {
             WebView wv = getBridge().getWebView();
             WebSettings ws = wv.getSettings();

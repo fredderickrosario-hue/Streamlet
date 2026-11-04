@@ -3989,7 +3989,7 @@ async function playNative(s, title, ctx){
   try {
     const epLine = ctx && ctx.ep ? `S${ctx.ep.season ?? 1}:E${ctx.ep.episode ?? ''}` + (ctx.ep.title ? ' · ' + ctx.ep.title : '') : '';
     const itemId = ctx && ctx.info && ctx.info.item.id, nextTitle = ctx && ctx.next ? `S${ctx.next.season ?? 1}:E${ctx.next.episode ?? ''}` + (ctx.next.title ? ' · ' + ctx.next.title : '') : '';
-    const r = await N.play({nextTitle, episode:!!(ctx && ctx.ep), subDelay:(mapGet('streamlet.subdelay')[itemId] || 0), url:s.url, title:title || '', autoNext:uiPlay('autonext', true), autoSkip:uiPlay('autoskip', false), hw:uiPlay('hw', true), fps:uiPlay('fps', true), tunnel:uiPlay('tunnel', false), pass:uiPlay('pass', true), skip:Number(lsGet('streamlet.ui', {}).skip) || 10, segs:segs ? JSON.stringify(segs) : '', eps:(ctx && ctx.eps && ctx.ep ? JSON.stringify(ctx.eps.map(x => ({s:x.season, e:x.episode, t:x.title || '', th:x.thumb || ''}))) : ''), curSeason:(ctx && ctx.ep ? ctx.ep.season ?? 1 : 1), curEpisode:(ctx && ctx.ep ? ctx.ep.episode ?? 0 : 0), subtitle:epLine, accent:(getComputedStyle(document.documentElement).getPropertyValue('--acc') || '').trim(), startMs, subtitles:picked, audioLang:code2(effAudio()) || null, subLang:pref ? (code2(pref) || pref) : null});
+    const r = await N.play({nextTitle, episode:!!(ctx && ctx.ep), subDelay:(mapGet('streamlet.subdelay')[itemId] || 0), url:s.url, title:title || '', autoNext:uiPlay('autonext', true), autoSkip:uiPlay('autoskip', false), hw:uiPlay('hw', true), fps:uiPlay('fps', true), tunnel:uiPlay('tunnel', false), pass:uiPlay('pass', true), skip:Number(lsGet('streamlet.ui', {}).skip) || 10, segs:segs ? JSON.stringify(segs) : '', eps:(ctx && ctx.eps && ctx.ep ? JSON.stringify(ctx.eps.map(x => ({s:x.season, e:x.episode, t:x.title || '', th:x.thumb || ''}))) : ''), curSeason:(ctx && ctx.ep ? ctx.ep.season ?? 1 : 1), curEpisode:(ctx && ctx.ep ? ctx.ep.episode ?? 0 : 0), subtitle:epLine, wnProfile:(profile ? profile.id : ''), wnItem:(itemId || ''), wnKind:(ctx && ctx.ep ? 'episode' : 'movie'), wnTitle:((ctx && ctx.info && ctx.info.item && ctx.info.item.name) || title || ''), wnPoster:((ctx && ctx.info && ctx.info.item && (ctx.info.item.poster || ctx.info.item.background)) || ''), accent:(getComputedStyle(document.documentElement).getPropertyValue('--acc') || '').trim(), startMs, subtitles:picked, audioLang:code2(effAudio()) || null, subLang:pref ? (code2(pref) || pref) : null});
     if (r && r.failed) {
       badStreams.add(s); badSet(s); logErr(title, s, r.error); const el = streamEls.get(s); if (el) el.classList.add('bad');
       const list = (ctx && ctx._list) || [], i = list.indexOf(s);
@@ -5617,6 +5617,15 @@ async function renderNewHot(box, tok, key){
 }
 
 
+/* ---------- Continue watching on the TV home screen (Watch Next): a tile opens the title where it was left ---------- */
+setInterval(() => {
+  const r = window.__wnResume;
+  if (!r || !profile || !cur) return;                                     // wait until a profile and space are open
+  window.__wnResume = null;
+  if (r.profile && r.profile !== profile.id) return;
+  const e = histGet().find(x => x.itemId === r.item);
+  if (e) openResume(e); else toast("That title is no longer in Continue watching");
+}, 500);
 </script>
 </body>
 </html>
