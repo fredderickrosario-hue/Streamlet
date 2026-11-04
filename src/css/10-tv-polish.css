@@ -64,3 +64,4 @@ body.tv #search .sres .rhead{margin-left:0;margin-right:0}
 body.tv .stile{height:164px}
 body.tv .stile .sem{width:72px;height:72px;font-size:42px;border-radius:22px}
 body.tv .ltitle{margin-bottom:4px}
+body.tv #tabAddons{display:none}   /* addons are reached from Settings on TV */
