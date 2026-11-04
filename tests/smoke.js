@@ -329,6 +329,19 @@ const ok = (name, cond, extra) => { cond ? pass++ : fail++; console.log((cond ? 
       }).catch(e => String(e));
       ok('Shows list is rebuilt from the history for shows watched before it existed', r === true, r);
     }
+    {
+      const r = await p.evaluate(async () => {
+        const id = profile.id, b = [plsGet(id, 'eps', []), plsGet(id, 'epRemoved', {})];
+        plsSet(id, 'eps', []); plsSet(id, 'epRemoved', {});
+        const list = Array.from({length:4000}, (_, i) => ({k:'ttB|1|' + i, itemId:'ttB', s:1, e:i, pos:0, dur:0, done:true, t:1000 + i}));
+        const str = JSON.stringify({l:list, r:{}}), parts = []; for (let i = 0; i < str.length; i += 200000) parts.push(str.slice(i, i + 200000));
+        const docs = parts.map((s2, i) => ({id:'b__' + id + '__eps__' + i, data:() => ({pid:id, key:'eps', i, n:parts.length, s:s2})}));
+        const partial = mergeBlobs(docs.slice(0, 1)), got = mergeBlobs(docs), n = plsGet(id, 'eps', []).length;
+        plsSet(id, 'eps', b[0]); plsSet(id, 'epRemoved', b[1]); epReset();
+        return parts.length > 1 && !partial && got && n === 3000 ? true : JSON.stringify({parts:parts.length, partial, got, n});
+      }).catch(e => String(e));
+      ok('Sync: big lists travel in chunks and are only applied once every piece has arrived', r === true, r);
+    }
     ok('no errors after all of the above', errs.length === 0, errs[0]);
     await p.close();
   }

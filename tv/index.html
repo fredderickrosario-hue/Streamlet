@@ -4124,6 +4124,33 @@ function packColl(id, key, remKey, deleteField, kf = 'itemId'){
   const out = {}; for (const [k, v] of Object.entries(entries)) out[k] = (v && v._methodName) ? v : clean(v);
   return {entries:out, rem:clean(remP), any:list.length > 0 || Object.keys(rem).length > 0};
 }
+/* The two big lists (every episode, every watched title) live in their own documents, in chunks: one profile document holding thousands of entries
+   goes over Firestore's limit (too many indexed fields) and then nothing in that profile syncs at all. */
+const BLOBS = [['eps', 'epRemoved', 'k'], ['watched', 'wdRemoved', 'itemId']], blobLast = {}, blobN = {};
+async function pushBlobs(pid){
+  const {doc, setDoc, deleteDoc} = FB.fs, base = ['users', user.uid, 'sync'];
+  for (const [key, remKey] of BLOBS) {
+    const list = plsGet(pid, key, []), rem = plsGet(pid, remKey, {}), tag = pid + '|' + key;
+    if (!list.length && !Object.keys(rem).length && !blobN[tag]) continue;
+    const str = JSON.stringify({l:list, r:Object.fromEntries(Object.entries(rem).map(([k, t]) => [ek(k), t]))});
+    if (blobLast[tag] === str) continue;
+    const parts = []; for (let i = 0; i < str.length; i += 200000) parts.push(str.slice(i, i + 200000));
+    for (let i = 0; i < parts.length; i++) await setDoc(doc(db, ...base, `b__${pid}__${key}__${i}`), {pid, key, i, n:parts.length, s:parts[i], t:Date.now()});
+    for (let i = parts.length; i < (blobN[tag] || 0); i++) deleteDoc(doc(db, ...base, `b__${pid}__${key}__${i}`)).catch(() => {});
+    blobLast[tag] = str; blobN[tag] = parts.length;
+  }
+}
+function mergeBlobs(docs){
+  const groups = {}; let changed = false;
+  for (const d of docs) { const x = d.data && d.data(); if (!x || !x.pid || typeof x.s !== 'string') continue; const g = groups[x.pid + '|' + x.key] || (groups[x.pid + '|' + x.key] = {pid:x.pid, key:x.key, n:x.n, p:[]}); g.p[x.i] = x.s; }
+  for (const g of Object.values(groups)) {
+    const spec = BLOBS.find(b => b[0] === g.key); if (!spec) continue;
+    let whole = true; for (let i = 0; i < g.n; i++) if (typeof g.p[i] !== 'string') whole = false;
+    if (!whole) continue;                                          // wait until every piece has arrived
+    try { const o = JSON.parse(g.p.join('')); if (mergeColl(g.pid, spec[0], spec[1], o.l, o.r, 3000, spec[2])) { changed = true; if (g.key === 'eps') epReset(); } } catch {}
+  }
+  return changed;
+}
 function mergeProfile(id, R){
   let changed = false;
   const lT = plsGet(id, 'settingsT', 0), rT = R.settingsT || 0;
@@ -4158,7 +4185,7 @@ function mergeProfile(id, R){
 }
 async function pushAll(){
   if (!user || !db) return;
-  const {doc, setDoc, deleteField} = FB.fs, m = metaGet(), base = ['users', user.uid], fam = {};
+  const {doc, setDoc, deleteField} = FB.fs, m = metaGet(), base = ['users', user.uid], fam = {}; let blobErr = null;
   if (m.profilesT) { fam.profiles = profiles; fam.profilesT = m.profilesT; }
   if (m.spacesT) { fam.spaces = spaces; fam.spacesT = m.spacesT; }
   if (m.addonsT) { fam.addons = addons.map(a => ({url:a.url, uid:a.uid, label:a.label || null})); fam.addonsT = m.addonsT; }
@@ -4168,7 +4195,7 @@ async function pushAll(){
   for (const p of profiles) {
     const hist = plsGet(p.id, 'history', []), removed = plsGet(p.id, 'removed', {}), sT = plsGet(p.id, 'settingsT', 0);
     const wl = plsGet(p.id, 'watchlist', []), wlrem = plsGet(p.id, 'wlRemoved', {});
-    const wdp = packColl(p.id, 'watched', 'wdRemoved', deleteField), epp = packColl(p.id, 'eps', 'epRemoved', deleteField, 'k'), lkp = packColl(p.id, 'likes', 'likeRemoved', deleteField), shp = plsGet(p.id, 'shows', {});
+    const wdp = {any: plsGet(p.id, 'watched', []).length > 0 || Object.keys(plsGet(p.id, 'wdRemoved', {})).length > 0}, epp = {any: plsGet(p.id, 'eps', []).length > 0 || Object.keys(plsGet(p.id, 'epRemoved', {})).length > 0}, lkp = packColl(p.id, 'likes', 'likeRemoved', deleteField), shp = plsGet(p.id, 'shows', {});
     if (!hist.length && !Object.keys(removed).length && !sT && !wl.length && !Object.keys(wlrem).length && !wdp.any && !epp.any && !lkp.any && !Object.keys(shp).length) continue;
     const entries = {}, rem = {};
     for (const e of hist) entries[ek(e.itemId)] = e;
@@ -4180,10 +4207,12 @@ async function pushAll(){
     for (const [k, t] of Object.entries(wlrem)) { wremP[ek(k)] = t; if (!wentries[ek(k)]) wentries[ek(k)] = deleteField(); }
     payload.watch = {}; payload.wremoved = clean(wremP);
     for (const [k, v] of Object.entries(wentries)) payload.watch[k] = (v && v._methodName) ? v : clean(v);
-    payload.wd = wdp.entries; payload.wdremoved = wdp.rem; payload.shows = Object.fromEntries(Object.entries(shp).map(([k, v]) => [ek(k), clean(v)])); payload.likes = lkp.entries; payload.likeremoved = lkp.rem; payload.eps = epp.entries; payload.epremoved = epp.rem;
+    payload.shows = Object.fromEntries(Object.entries(shp).map(([k, v]) => [ek(k), clean(v)])); payload.likes = lkp.entries; payload.likeremoved = lkp.rem; payload.eps = deleteField(); payload.epremoved = deleteField(); payload.wd = deleteField(); payload.wdremoved = deleteField();   // moved to their own documents (pushBlobs)
     if (sT) { payload.settings = plsGet(p.id, 'settings', {}); payload.settingsT = sT; }
     await setDoc(doc(db, ...base, 'profiles', p.id), payload, {merge:true});
+    try { await pushBlobs(p.id); } catch (e) { blobErr = blobErr || e; }
   }
+  if (blobErr) throw blobErr;                                      // shown in Settings → Account as the sync error
   syncState = 'synced'; lastSync = Date.now(); fillAccountUI();
 }
 async function cloudDeleteProfile(id){
@@ -4197,6 +4226,7 @@ async function initialSync(){
   if (addons.some(a => a.pending)) await applyRemoteAddons(addons.map(a => a.url));
   const ps = await getDocs(collection(db, ...base, 'profiles'));
   ps.forEach(d => mergeProfile(d.id, d.data()));
+  try { const bs = await getDocs(collection(db, ...base, 'sync')), arr = []; bs.forEach(d => { if (d.id.startsWith('b__')) arr.push(d); }); mergeBlobs(arr); } catch {}
   await pushAll();
 }
 function refreshUI(){
@@ -4218,6 +4248,10 @@ function startListeners(){
   onSnapshot(doc(db, ...base, 'sync', 'family'), async snap => {
     if (!snap.exists() || snap.metadata.hasPendingWrites) return;
     if (await mergeFamily(snap.data())) refreshUI();
+  });
+  onSnapshot(collection(db, ...base, 'sync'), snap => {
+    if (snap.metadata.hasPendingWrites) return;
+    if (mergeBlobs(snap.docs.filter(d => d.id.startsWith('b__')))) refreshUI();
   });
   onSnapshot(collection(db, ...base, 'profiles'), snap => {
     if (snap.metadata.hasPendingWrites) return;
