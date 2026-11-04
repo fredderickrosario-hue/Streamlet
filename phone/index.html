@@ -4479,11 +4479,11 @@ function revealEl(el, dir, rep, tv, edge){
   else if (!strip && (dir === 'up' || dir === 'down')) el.scrollIntoView({block:'center', inline:'nearest'});
   else (strip || el).scrollIntoView({block:'nearest', inline:'nearest'});
   const y1 = scrollY, x1 = strip ? strip.scrollLeft : 0;
-  if (rep || (y0 === y1 && x0 === x1)) return;
+  if (y0 === y1 && x0 === x1) return;
   window.scrollTo(0, y0); if (strip) strip.scrollLeft = x0;
   cancelAnimationFrame(scrollAnim);
-  const t0 = performance.now(), D = strip && (dir === 'up' || dir === 'down') ? 280 : 140;
-  const step = t => { const kk = Math.min(1, (t - t0) / D), e = 1 - Math.pow(1 - kk, 3); window.scrollTo(0, y0 + (y1 - y0) * e); if (strip) strip.scrollLeft = x0 + (x1 - x0) * e; if (kk < 1) scrollAnim = requestAnimationFrame(step); };
+  const t0 = performance.now(), D = rep ? 95 : strip && (dir === 'up' || dir === 'down') ? 280 : 140;   // held keys: a short glide from wherever the page is now, so the scroll is one continuous motion instead of a jump per step
+  const step = t => { const kk = Math.min(1, (t - t0) / D), e = 1 - Math.pow(1 - kk, rep ? 2 : 3); window.scrollTo(0, y0 + (y1 - y0) * e); if (strip) strip.scrollLeft = x0 + (x1 - x0) * e; if (kk < 1) scrollAnim = requestAnimationFrame(step); };
   scrollAnim = requestAnimationFrame(step);
 }
 function firstFocus(root, list){
@@ -4677,6 +4677,7 @@ document.addEventListener('keydown', e => {
     const now = performance.now(), gap = now - (window.__lastNav || 0), held = e.repeat || gap < 260;   // a remote may not flag repeats, so a quick follow-up counts as held too
     if (held && gap < 75) return;                                                                          // steady pace: extra repeats are dropped instead of piling up
     window.__lastNav = now;
+    if (held) { document.body.classList.add('navheld'); clearTimeout(window.__nhT); window.__nhT = setTimeout(() => document.body.classList.remove('navheld'), 240); }   // while a key is held: no blur, no transitions, so every frame stays cheap
     const before = document.activeElement; moveFocus(e.key.slice(5).toLowerCase(), held); if (document.activeElement !== before) sfx.tick(held);
   }
 }, true);

@@ -133,6 +133,7 @@ document.addEventListener('keydown', e => {
     const now = performance.now(), gap = now - (window.__lastNav || 0), held = e.repeat || gap < 260;   // a remote may not flag repeats, so a quick follow-up counts as held too
     if (held && gap < 75) return;                                                                          // steady pace: extra repeats are dropped instead of piling up
     window.__lastNav = now;
+    if (held) { document.body.classList.add('navheld'); clearTimeout(window.__nhT); window.__nhT = setTimeout(() => document.body.classList.remove('navheld'), 240); }   // while a key is held: no blur, no transitions, so every frame stays cheap
     const before = document.activeElement; moveFocus(e.key.slice(5).toLowerCase(), held); if (document.activeElement !== before) sfx.tick(held);
   }
 }, true);

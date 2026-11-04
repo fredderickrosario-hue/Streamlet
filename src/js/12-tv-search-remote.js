@@ -314,11 +314,11 @@ function revealEl(el, dir, rep, tv, edge){
   else if (!strip && (dir === 'up' || dir === 'down')) el.scrollIntoView({block:'center', inline:'nearest'});
   else (strip || el).scrollIntoView({block:'nearest', inline:'nearest'});
   const y1 = scrollY, x1 = strip ? strip.scrollLeft : 0;
-  if (rep || (y0 === y1 && x0 === x1)) return;
+  if (y0 === y1 && x0 === x1) return;
   window.scrollTo(0, y0); if (strip) strip.scrollLeft = x0;
   cancelAnimationFrame(scrollAnim);
-  const t0 = performance.now(), D = strip && (dir === 'up' || dir === 'down') ? 280 : 140;
-  const step = t => { const kk = Math.min(1, (t - t0) / D), e = 1 - Math.pow(1 - kk, 3); window.scrollTo(0, y0 + (y1 - y0) * e); if (strip) strip.scrollLeft = x0 + (x1 - x0) * e; if (kk < 1) scrollAnim = requestAnimationFrame(step); };
+  const t0 = performance.now(), D = rep ? 95 : strip && (dir === 'up' || dir === 'down') ? 280 : 140;   // held keys: a short glide from wherever the page is now, so the scroll is one continuous motion instead of a jump per step
+  const step = t => { const kk = Math.min(1, (t - t0) / D), e = 1 - Math.pow(1 - kk, rep ? 2 : 3); window.scrollTo(0, y0 + (y1 - y0) * e); if (strip) strip.scrollLeft = x0 + (x1 - x0) * e; if (kk < 1) scrollAnim = requestAnimationFrame(step); };
   scrollAnim = requestAnimationFrame(step);
 }
 function firstFocus(root, list){
