@@ -243,7 +243,7 @@ function editAddon(uid){
       h('div', {class:'lbl'}, 'Name'), name,
       h('div', {class:'lbl'}, 'Link (includes your settings, and any private keys)'), link,
       h('div', {class:'rrow', style:'margin-top:8px'},
-        h('button', {class:'btn ghost sm', type:'button', onclick:async () => { try { link.value = (await navigator.clipboard.readText()).trim(); } catch { toast('Long-press the box and choose Paste.'); } }}, 'Paste'),
+        h('button', {class:'btn ghost sm', type:'button', onclick:async () => { try { link.value = (await navigator.clipboard.readText()).trim(); } catch { toast('Paste the link into the box.'); } }}, 'Paste'),
         configurable(a) ? h('button', {class:'btn ghost sm', type:'button', onclick:() => openConfigure(link.value || a.url)}, "Open the addon's settings page ↗") : null),
       msg,
       h('div', {class:'rrow', style:'margin-top:14px'},
@@ -254,7 +254,7 @@ function editAddon(uid){
           const mf = await installAddon(link.value, {label:name.value.trim() || undefined});
           close(); toast('Added a copy of ' + mf.name);
         })}, 'Save as a new copy')),
-      h('p', {class:'spin', style:'padding:10px 0 0'}, 'Tip: open the settings page, choose your options, copy the new link it gives you, paste it above and tap "Save as a new copy". Your original stays as it is, so both are available (for example "Torrentio" and "Torrentio #2").'),
+      h('p', {class:'spin', style:'padding:10px 0 0'}, 'Tip: open the settings page, choose your options, copy the new link it gives you, paste it above and choose "Save as a new copy". Your original stays as it is, so both are available (for example "Torrentio" and "Torrentio #2").'),
       h('div', {style:'margin-top:22px'}, delBtn)));
 }
 

@@ -1093,9 +1093,10 @@ public class PlayerActivity extends Activity {
 
     private void togglePlay() {
         if (player == null) return;
-        if (player.isPlaying()) player.pause(); else player.play();
+        if (player.isPlaying()) player.pause(); else { player.play(); quickHideUntil = System.currentTimeMillis() + 1500; }   // pressing play with the controls up: they get out of the way almost at once
         scheduleHide();
     }
+    private long quickHideUntil = 0;
 
     private void showControls(View focus) {
         if (menuOn) return;
@@ -1114,7 +1115,7 @@ public class PlayerActivity extends Activity {
 
     private void scheduleHide() {
         handler.removeCallbacks(hideRun);
-        if (controlsOn) handler.postDelayed(hideRun, 4500);
+        if (controlsOn) handler.postDelayed(hideRun, System.currentTimeMillis() < quickHideUntil ? 700 : 4500);
     }
 
     /* ---- menus ---- */

@@ -81,6 +81,8 @@ async function mergeFamily(R){
   if (R.repos && (R.reposT || 0) > (m.reposT || 0)) { lsSet('streamlet.repos', R.repos); m.reposT = R.reposT; }
   if (!m.tmdbT && lsGet('streamlet.tmdb', '')) m.tmdbT = 1;                      // a key entered before this synced: push it unless the account already has a newer one
   if (typeof R.tmdb === 'string' && (R.tmdbT || 0) > (m.tmdbT || 0)) { lsSet('streamlet.tmdb', R.tmdb); m.tmdbT = R.tmdbT; try { fillTmdb(); } catch {} }
+  if (!m.qcT && Array.isArray(lsGet('streamlet.qcshows', null))) m.qcT = 1;
+  if (Array.isArray(R.qcshows) && (R.qcT || 0) > (m.qcT || 0)) { lsSet('streamlet.qcshows', R.qcshows.length ? R.qcshows : null); m.qcT = R.qcT; try { qcMem.clear(); qcFillShows(); } catch {} }
   lsSet('streamlet.meta', m);
   return changed;
 }
@@ -172,6 +174,7 @@ async function pushAll(){
   if (m.spacesT) { fam.spaces = spaces; fam.spacesT = m.spacesT; }
   if (m.addonsT) { fam.addons = addons.map(a => ({url:a.url, uid:a.uid, label:a.label || null})); fam.addonsT = m.addonsT; }
   if (m.reposT) { fam.repos = reposGet(); fam.reposT = m.reposT; }
+  if (m.qcT) { const q = lsGet('streamlet.qcshows', null); fam.qcshows = Array.isArray(q) ? q : []; fam.qcT = m.qcT; }
   if (m.tmdbT) { fam.tmdb = lsGet('streamlet.tmdb', '') || ''; fam.tmdbT = m.tmdbT; }
   if (Object.keys(fam).length) { const sig = JSON.stringify(fam); if (sig !== pushSig.fam) { await setDoc(doc(db, ...base, 'sync', 'family'), clean(fam), {merge:true}); pushSig.fam = sig; } }
   for (const p of profiles) {
@@ -246,7 +249,7 @@ function startListeners(){
 /* ----- login screen ----- */
 const AUTH_ERRORS = {
   'auth/invalid-credential':'Wrong email or password.', 'auth/wrong-password':'Wrong email or password.', 'auth/user-not-found':'No account with that email. Tap "Create account".',
-  'auth/email-already-in-use':'That email already has an account. Tap "Sign in".', 'auth/weak-password':'Password needs at least 6 characters.', 'auth/invalid-email':"That email doesn't look right.",
+  'auth/email-already-in-use':'That email already has an account. Choose "Sign in".', 'auth/weak-password':'Password needs at least 6 characters.', 'auth/invalid-email':"That email doesn't look right.",
   'auth/popup-closed-by-user':'Sign-in was cancelled.', 'auth/popup-blocked':'Your browser blocked the Google popup. Use email instead, or allow popups.',
   'auth/unauthorized-domain':"This site isn't authorised in Firebase yet (Authentication → Settings → Authorized domains).",
   'auth/operation-not-allowed':"That sign-in method isn't enabled in Firebase yet.", 'auth/network-request-failed':"Can't reach the server. Check your connection.", 'auth/too-many-requests':'Too many tries. Wait a minute.'
@@ -319,7 +322,7 @@ function showLogin(){
     h('p', {class:'sub'}, 'Sign in to sync your profiles, addons and progress on every device.'),
     ...(typeof showPairing === 'function' ? [h('button', {class:'btn', type:'button', style:'width:100%;margin-bottom:14px', onclick:() => showPairing()}, 'Sign in with your phone'), h('div', {class:'or'}, 'or')] : []),
     ...(nativePlayer()
-      ? [h('p', {class:'sub', style:'font-size:13px;margin:-8px 0 14px'}, "Google sign-in isn't available inside the app. Tap \"Forgot password?\" with your Google email once to set a password, then sign in below. It's the same account and data.")]
+      ? [h('p', {class:'sub', style:'font-size:13px;margin:-8px 0 14px'}, "Google sign-in isn't available inside the app. Choose \"Forgot password?\" with your Google email once to set a password, then sign in below. It's the same account and data.")]
       : [h('button', {class:'gbtn', type:'button', onclick:() => busy(() => FB.au.signInWithPopup(auth, new FB.au.GoogleAuthProvider()))},
           h('b', {style:'color:#4285f4;font-size:18px'}, 'G'), 'Continue with Google'),
          h('div', {class:'or'}, 'or use email')]),

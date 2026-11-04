@@ -78,7 +78,7 @@ function renderRepo(){
   const items = (repo.items || []).filter(x => !repo.q || (x.name + ' ' + x.desc).toLowerCase().includes(repo.q.toLowerCase()));
   const cards = items.slice(0, repo.show).map(repoCard);
   box.replaceChildren(
-    h('p', {class:'spin', style:'padding:0 0 8px'}, 'Pick a list of addons, then tap Install on the ones you want.'), h('div', {class:'lbl', style:'margin-top:0'}, 'Addon list'), sel, srcs.length ? q : null,
+    h('p', {class:'spin', style:'padding:0 0 8px'}, 'Choose a list of addons, then Install the ones you want.'), h('div', {class:'lbl', style:'margin-top:0'}, 'Addon list'), sel, srcs.length ? q : null,
     repo.busy ? h('p', {class:'spin', style:'padding:8px 0'}, 'Loading…') : null,
     repo.err ? h('p', {class:'msg err'}, repo.err) : null,
     ...cards,

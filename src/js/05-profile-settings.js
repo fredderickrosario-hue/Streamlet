@@ -23,6 +23,8 @@ function renderSettings(){
   const up = $('#setUpc'); up.checked = u.showUpcoming !== false; up.onchange = () => lsSet('streamlet.ui', {...lsGet('streamlet.ui', {}), showUpcoming:up.checked});
   const au = $('#setAuto'), mq = $('#setMaxQ'), sk = $('#setSkip');
   au.checked = u.autoPick !== false; au.onchange = () => lsSet('streamlet.ui', {...lsGet('streamlet.ui', {}), autoPick:au.checked});
+  $('#rowMaxQ').hidden = !au.checked; au.addEventListener('change', () => { $('#rowMaxQ').hidden = !au.checked; });
+  if (tv) { $('#skLbl').firstChild.textContent = 'Skip interval'; $('#skHint').textContent = 'Seconds to jump with the remote\'s left and right buttons'; }
   mq.value = u.maxQ || 'best'; mq.onchange = () => lsSet('streamlet.ui', {...lsGet('streamlet.ui', {}), maxQ:mq.value});
   sk.value = String(u.skip || 10); sk.onchange = () => lsSet('streamlet.ui', {...lsGet('streamlet.ui', {}), skip:Number(sk.value)});
   const sa = $('#setSrchAll'); sa.checked = u.srchAll !== false; sa.onchange = () => lsSet('streamlet.ui', {...lsGet('streamlet.ui', {}), srchAll:sa.checked});
@@ -33,11 +35,11 @@ function renderSettings(){
   const snd = $('#setSnd'); snd.checked = u.sound !== false;
   snd.onchange = () => { lsSet('streamlet.ui', {...lsGet('streamlet.ui', {}), sound:snd.checked}); if (snd.checked) sfx.select(); };
   $('#setPlay').hidden = !nativePlayer();
-  { const tvUi = isTVui(), sv = $('#setSaver'), mn = $('#setSaverMin'); $('#rowSaver').hidden = !tvUi; $('#rowSaverMin').hidden = !tvUi;
+  { const tvUi = isTVui(), sv = $('#setSaver'), mn = $('#setSaverMin'); $('#rowSaver').hidden = !tvUi; $('#rowSaverMin').hidden = !tvUi || u.saver === false;
     sv.checked = u.saver !== false;
     mn.replaceChildren(...[1, 2, 3, 5, 10, 15, 30, 60].map(m => h('option', {value:String(m)}, m === 60 ? '1 hour' : m + (m === 1 ? ' minute' : ' minutes')))); mn.value = String(u.saverMin || 5); if (mn.value !== String(u.saverMin || 5)) mn.value = '5';
     mn.disabled = !sv.checked;
-    sv.onchange = () => { lsSet('streamlet.ui', {...lsGet('streamlet.ui', {}), saver:sv.checked}); mn.disabled = !sv.checked; try { if (window.saverArm) { if (sv.checked) saverArm(); else { saverStop(); saverArm(); } } } catch {} };
+    sv.onchange = () => { $('#rowSaverMin').hidden = !sv.checked; lsSet('streamlet.ui', {...lsGet('streamlet.ui', {}), saver:sv.checked}); mn.disabled = !sv.checked; try { if (window.saverArm) { if (sv.checked) saverArm(); else { saverStop(); saverArm(); } } } catch {} };
     mn.onchange = () => { lsSet('streamlet.ui', {...lsGet('streamlet.ui', {}), saverMin:+mn.value}); try { if (window.saverArm) saverArm(); } catch {} }; }
   for (const [id, k, d] of [['#setAutoNext', 'autonext', true], ['#setAutoSkip', 'autoskip', false], ['#setHw', 'hw', true], ['#setFps', 'fps', true], ['#setTun', 'tunnel', false], ['#setPass', 'pass', true]]) {
     const el = $(id); el.checked = u[k] === undefined ? d : u[k] !== false && !!u[k];

@@ -1336,6 +1336,11 @@ body.tv .stile{height:164px}
 body.tv .stile .sem{width:72px;height:72px;font-size:42px;border-radius:22px}
 body.tv .ltitle{margin-bottom:4px}
 body.tv #tabAddons{display:none}   /* addons are reached from Settings on TV */
+/* dropdowns: one clean pill with a chevron, same on phone and TV */
+html body select.sel,html body #settings select.sel{-webkit-appearance:none !important;appearance:none !important;padding-right:34px !important;cursor:pointer;
+  background-color:rgba(255,255,255,.07) !important;background-repeat:no-repeat !important;background-position:right 12px center !important;background-size:14px 14px !important;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23ffffff' stroke-opacity='.7' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E") !important;text-overflow:ellipsis}
+select.sel option{background:#15151d;color:#fff}
 </style>
 </head>
 <body>
@@ -1393,60 +1398,60 @@ body.tv #tabAddons{display:none}   /* addons are reached from Settings on TV */
       <div class="addon profcard"><div id="profRow"></div></div>
       <h2 class="sh">Account</h2>
       <div class="addon" id="acctCard"></div>
-      <div class="addon tvonly"><div class="row2"><span class="rt">Addons<small>Install, remove and reorder the sources behind your catalogs and streams</small></span><button id="setAddons" class="btn f" type="button">Manage</button></div></div>
+      <div class="addon tvonly"><div class="row2"><span class="rt">Addons<small>Install, remove and reorder the sources for your catalogs and streams</small></span><button id="setAddons" class="btn f" type="button">Manage</button></div></div>
       <h2 class="sh">Language</h2>
       <div class="addon">
-        <div class="row2"><span class="rt">Subtitles<small>Picked automatically in this language</small></span><select id="setSub" class="sel"></select></div>
-        <div class="row2"><span class="rt">Audio<small>Preferred language when a stream has choices</small></span><select id="setAud" class="sel"></select></div>
+        <div class="row2"><span class="rt">Subtitles<small>Preferred subtitle language</small></span><select id="setSub" class="sel"></select></div>
+        <div class="row2"><span class="rt">Audio<small>Preferred audio language when a stream offers several tracks</small></span><select id="setAud" class="sel"></select></div>
       </div>
-      <p class="gnote">Subtitles come from your installed subtitle addons, like OpenSubtitles. Audio choices work when a stream carries several tracks.</p>
+      <p class="gnote">Subtitles are provided by your installed subtitle addons, such as OpenSubtitles. Audio selection requires a stream with multiple tracks.</p>
       <h2 class="sh">Playing</h2>
       <div class="addon">
-        <label class="row2"><span class="rt">Play the best source automatically<small>Play picks it for you (your audio language, quality, what worked before). A button on each title lets you choose by hand</small></span><input type="checkbox" id="setAuto"></label>
-        <label class="row2"><span class="rt">Show upcoming and in-theater titles<small>Turn off to hide titles that cannot be played yet</small></span><input type="checkbox" id="setUpc"></label>
-        <div class="row2"><span class="rt">Highest quality<small>Auto-pick never goes above this</small></span><select id="setMaxQ" class="sel"><option value="best">Best available</option><option value="2160">4K</option><option value="1080">1080p</option><option value="720">720p</option></select></div>
+        <label class="row2"><span class="rt">Automatic source selection<small>Chooses the best source using your audio language, preferred quality and past playback. You can still pick one manually from any title</small></span><input type="checkbox" id="setAuto"></label>
+        <label class="row2"><span class="rt">Show unreleased titles<small>Include upcoming and in-theater titles that cannot be played yet</small></span><input type="checkbox" id="setUpc"></label>
+        <div class="row2" id="rowMaxQ"><span class="rt">Maximum quality<small>Upper limit for automatic source selection</small></span><select id="setMaxQ" class="sel"><option value="best">Best available</option><option value="2160">4K</option><option value="1080">1080p</option><option value="720">720p</option></select></div>
       </div>
       <h2 class="sh">Search</h2>
       <div class="addon">
-        <label class="row2"><span class="rt">Search all my addons<small>Not only the ones in this space. Finds more, since some catalogs search poorly</small></span><input type="checkbox" id="setSrchAll"></label>
+        <label class="row2"><span class="rt">Search all addons<small>Include every installed addon, not only those in the current space. Returns more results</small></span><input type="checkbox" id="setSrchAll"></label>
       </div>
       <h2 class="sh">Look &amp; sound <small>this device</small></h2>
       <div class="addon">
-        <label class="row2"><span class="rt">Animated background<small>Slowly drifting colors</small></span><input type="checkbox" id="setAnim"></label>
-        <label class="row2"><span class="rt">Glass blur<small>Turn off if the app feels slow</small></span><input type="checkbox" id="setGlass"></label>
-        <label class="row2"><span class="rt">Navigation sounds<small>Soft clicks when you move and select</small></span><input type="checkbox" id="setSnd"></label>
-        <label class="row2" id="rowSaver" hidden><span class="rt">Screensaver<small>A black screen with the Streamlet plug slithering around when nothing is pressed. Off keeps the picture on</small></span><input type="checkbox" id="setSaver"></label>
-        <div class="row2" id="rowSaverMin" hidden><span class="rt">Start screensaver after<small>Minutes without pressing anything</small></span><select id="setSaverMin" class="sel"></select></div>
+        <label class="row2"><span class="rt">Animated background<small>Slowly shifting background colors</small></span><input type="checkbox" id="setAnim"></label>
+        <label class="row2"><span class="rt">Glass blur<small>Frosted-glass effect. Disable to improve performance on slower devices</small></span><input type="checkbox" id="setGlass"></label>
+        <label class="row2"><span class="rt">Navigation sounds<small>Subtle sounds when navigating and selecting</small></span><input type="checkbox" id="setSnd"></label>
+        <label class="row2" id="rowSaver" hidden><span class="rt">Screensaver<small>Shows a moving Streamlet logo on a black screen after a period of inactivity</small></span><input type="checkbox" id="setSaver"></label>
+        <div class="row2" id="rowSaverMin" hidden><span class="rt">Screensaver delay<small>Inactivity time before the screensaver starts</small></span><select id="setSaverMin" class="sel"></select></div>
       </div>
       <div id="setPlay" hidden>
         <h2 class="sh">Video <small>this device</small></h2>
         <div class="addon">
-          <div class="row2"><span class="rt">Double-tap to skip<small>Double-tap the left or right side while the controls are hidden. Also used by the remote's left and right</small></span><select id="setSkip" class="sel"><option value="5">5 s</option><option value="10">10 s</option><option value="15">15 s</option><option value="30">30 s</option></select></div>
-          <label class="row2"><span class="rt">Play the next episode automatically<small>When an episode ends, the next one starts after a short countdown. Off: you choose</small></span><input type="checkbox" id="setAutoNext"></label>
-          <label class="row2"><span class="rt">Skip intros, recaps and credits<small>Jumps over them by itself when the intro database knows the episode. A scene after the credits still plays, then the next episode card comes up. Rewind to watch one anyway</small></span><input type="checkbox" id="setAutoSkip"></label>
-          <label class="row2"><span class="rt">Hardware decoding<small>Smoother and cooler. Turn off only if video looks garbled</small></span><input type="checkbox" id="setHw"></label>
-          <label class="row2"><span class="rt">Match frame rate<small>Removes judder when your TV supports it</small></span><input type="checkbox" id="setFps"></label>
-          <label class="row2"><span class="rt">Tunneled playback<small>Can help 4K and HDR, may affect seeking</small></span><input type="checkbox" id="setTun"></label>
-          <label class="row2"><span class="rt">Dolby passthrough<small>Backup player sends Dolby and Atmos to your TV. Turn off if you get no sound</small></span><input type="checkbox" id="setPass"></label>
+          <div class="row2"><span class="rt" id="skLbl">Skip interval<small id="skHint">Seconds to jump when double-tapping the left or right side of the video</small></span><select id="setSkip" class="sel"><option value="5">5 s</option><option value="10">10 s</option><option value="15">15 s</option><option value="30">30 s</option></select></div>
+          <label class="row2"><span class="rt">Autoplay next episode<small>Starts the next episode after a short countdown. When off, you choose</small></span><input type="checkbox" id="setAutoNext"></label>
+          <label class="row2"><span class="rt">Skip intros, recaps and credits<small>Skips them automatically when timing data is available. Scenes after the credits still play. Rewind to watch a skipped section</small></span><input type="checkbox" id="setAutoSkip"></label>
+          <label class="row2"><span class="rt">Hardware decoding<small>Improves performance and reduces heat. Disable only if the video appears distorted</small></span><input type="checkbox" id="setHw"></label>
+          <label class="row2"><span class="rt">Match frame rate<small>Syncs the display to the video frame rate to reduce judder, where supported</small></span><input type="checkbox" id="setFps"></label>
+          <label class="row2"><span class="rt">Tunneled playback<small>May improve 4K and HDR playback. Can affect seeking</small></span><input type="checkbox" id="setTun"></label>
+          <label class="row2"><span class="rt">Dolby passthrough<small>Sends Dolby and Atmos audio to your TV in the fallback player. Disable if there is no sound</small></span><input type="checkbox" id="setPass"></label>
         </div>
       </div>
       <h2 class="sh">Release dates</h2>
       <div class="addon">
-        <div class="row2 stack"><span class="rt">TMDB API key<small>Optional. Lets the home slideshow show confirmed new-season and new-episode dates for shows you watch</small></span><span class="inrow"><input type="text" id="setTmdb" class="f" placeholder="API key (v3)" autocomplete="off" spellcheck="false"><button class="btn ghost sm" id="tmdbChk" type="button">Verify</button></span></div>
+        <div class="row2 stack"><span class="rt">TMDB API key<small>Optional. Enables confirmed release dates for new seasons and episodes of shows you follow</small></span><span class="inrow"><input type="text" id="setTmdb" class="f" placeholder="API key (v3)" autocomplete="off" spellcheck="false"><button class="btn ghost sm" id="tmdbChk" type="button">Verify</button></span></div>
       </div>
       <h2 class="sh">Québec</h2>
       <div class="addon">
-        <div class="row2 stack"><span class="rt">TVA+ shows<small>One show page address per line (tvaplus.ca/tva/..., ici.radio-canada.ca/tele/..., or ici.tou.tv/... to open the app). Add the "quebec" addon in Addons, then use it in a space</small></span>
-          <textarea id="qcShows" rows="4" wrap="off" class="f" style="width:100%;font-family:ui-monospace,monospace;font-size:13px" spellcheck="false"></textarea><button class="btn ghost sm" id="qcSave" type="button" style="align-self:flex-start">Save shows</button></div>
+        <div class="row2 stack"><span class="rt">Québec shows<small>One show page link per line, from tvaplus.ca, ici.radio-canada.ca/tele or ici.tou.tv. Requires the Québec addon. Synced across your devices</small></span>
+          <textarea id="qcShows" rows="4" wrap="off" class="f" style="width:100%;font-family:ui-monospace,monospace;font-size:13px" spellcheck="false"></textarea><button class="btn ghost sm" id="qcSave" type="button" style="align-self:flex-start">Save</button></div>
       </div>
       <h2 class="sh">Netflix</h2>
       <div class="addon">
-        <div class="row2 stack"><span class="rt">Import Netflix shows<small id="nfState">On netflix.com: Account, your profile, Viewing activity, Download all. Choose that file here, then sort the shows into your spaces</small></span><span class="inrow"><button class="btn ghost sm" id="nfPick" type="button">Choose file</button></span></div>
+        <div class="row2 stack"><span class="rt">Import Netflix history<small id="nfState">On netflix.com, open Account, choose your profile, then Viewing activity and Download all. Select that file here, then assign the shows to your spaces</small></span><span class="inrow"><button class="btn ghost sm" id="nfPick" type="button">Choose file</button></span></div>
         <input type="file" id="nfFile" accept=".csv,text/csv" hidden>
       </div>
       <h2 class="sh">Backup</h2>
       <div class="addon">
-        <div class="row2 stack"><span class="rt">Watch history backup<small>Save everything this profile has watched to a file, or restore it. Restoring merges with what is already here</small></span><span class="inrow"><button class="btn ghost sm" id="bkOut" type="button">Save</button><button class="btn ghost sm" id="bkIn" type="button">Restore</button></span></div>
+        <div class="row2 stack"><span class="rt">Watch history backup<small>Save this profile's watch history to a file, or restore it from one. Restoring merges with existing data</small></span><span class="inrow"><button class="btn ghost sm" id="bkOut" type="button">Save</button><button class="btn ghost sm" id="bkIn" type="button">Restore</button></span></div>
         <input type="file" id="bkFile" accept="application/json,.json" hidden>
       </div>
       <h2 class="sh">About</h2>
@@ -1477,7 +1482,7 @@ body.tv #tabAddons{display:none}   /* addons are reached from Settings on TV */
       <div id="list"></div>
     </div>
     <div class="pad" id="adBrowse" hidden>
-      <p class="hint">Popular addons. Tap Install to add one.</p>
+      <p class="hint">Popular addons. Choose Install to add one.</p>
       <div id="recList"></div>
       <details id="repoBox" class="adbox" style="margin-top:18px"><summary>Find more addons</summary><div id="repoBody" style="margin-top:10px"></div></details>
     </div>
@@ -2329,6 +2334,8 @@ function renderSettings(){
   const up = $('#setUpc'); up.checked = u.showUpcoming !== false; up.onchange = () => lsSet('streamlet.ui', {...lsGet('streamlet.ui', {}), showUpcoming:up.checked});
   const au = $('#setAuto'), mq = $('#setMaxQ'), sk = $('#setSkip');
   au.checked = u.autoPick !== false; au.onchange = () => lsSet('streamlet.ui', {...lsGet('streamlet.ui', {}), autoPick:au.checked});
+  $('#rowMaxQ').hidden = !au.checked; au.addEventListener('change', () => { $('#rowMaxQ').hidden = !au.checked; });
+  if (tv) { $('#skLbl').firstChild.textContent = 'Skip interval'; $('#skHint').textContent = 'Seconds to jump with the remote\'s left and right buttons'; }
   mq.value = u.maxQ || 'best'; mq.onchange = () => lsSet('streamlet.ui', {...lsGet('streamlet.ui', {}), maxQ:mq.value});
   sk.value = String(u.skip || 10); sk.onchange = () => lsSet('streamlet.ui', {...lsGet('streamlet.ui', {}), skip:Number(sk.value)});
   const sa = $('#setSrchAll'); sa.checked = u.srchAll !== false; sa.onchange = () => lsSet('streamlet.ui', {...lsGet('streamlet.ui', {}), srchAll:sa.checked});
@@ -2339,11 +2346,11 @@ function renderSettings(){
   const snd = $('#setSnd'); snd.checked = u.sound !== false;
   snd.onchange = () => { lsSet('streamlet.ui', {...lsGet('streamlet.ui', {}), sound:snd.checked}); if (snd.checked) sfx.select(); };
   $('#setPlay').hidden = !nativePlayer();
-  { const tvUi = isTVui(), sv = $('#setSaver'), mn = $('#setSaverMin'); $('#rowSaver').hidden = !tvUi; $('#rowSaverMin').hidden = !tvUi;
+  { const tvUi = isTVui(), sv = $('#setSaver'), mn = $('#setSaverMin'); $('#rowSaver').hidden = !tvUi; $('#rowSaverMin').hidden = !tvUi || u.saver === false;
     sv.checked = u.saver !== false;
     mn.replaceChildren(...[1, 2, 3, 5, 10, 15, 30, 60].map(m => h('option', {value:String(m)}, m === 60 ? '1 hour' : m + (m === 1 ? ' minute' : ' minutes')))); mn.value = String(u.saverMin || 5); if (mn.value !== String(u.saverMin || 5)) mn.value = '5';
     mn.disabled = !sv.checked;
-    sv.onchange = () => { lsSet('streamlet.ui', {...lsGet('streamlet.ui', {}), saver:sv.checked}); mn.disabled = !sv.checked; try { if (window.saverArm) { if (sv.checked) saverArm(); else { saverStop(); saverArm(); } } } catch {} };
+    sv.onchange = () => { $('#rowSaverMin').hidden = !sv.checked; lsSet('streamlet.ui', {...lsGet('streamlet.ui', {}), saver:sv.checked}); mn.disabled = !sv.checked; try { if (window.saverArm) { if (sv.checked) saverArm(); else { saverStop(); saverArm(); } } } catch {} };
     mn.onchange = () => { lsSet('streamlet.ui', {...lsGet('streamlet.ui', {}), saverMin:+mn.value}); try { if (window.saverArm) saverArm(); } catch {} }; }
   for (const [id, k, d] of [['#setAutoNext', 'autonext', true], ['#setAutoSkip', 'autoskip', false], ['#setHw', 'hw', true], ['#setFps', 'fps', true], ['#setTun', 'tunnel', false], ['#setPass', 'pass', true]]) {
     const el = $(id); el.checked = u[k] === undefined ? d : u[k] !== false && !!u[k];
@@ -3055,7 +3062,7 @@ function editAddon(uid){
       h('div', {class:'lbl'}, 'Name'), name,
       h('div', {class:'lbl'}, 'Link (includes your settings, and any private keys)'), link,
       h('div', {class:'rrow', style:'margin-top:8px'},
-        h('button', {class:'btn ghost sm', type:'button', onclick:async () => { try { link.value = (await navigator.clipboard.readText()).trim(); } catch { toast('Long-press the box and choose Paste.'); } }}, 'Paste'),
+        h('button', {class:'btn ghost sm', type:'button', onclick:async () => { try { link.value = (await navigator.clipboard.readText()).trim(); } catch { toast('Paste the link into the box.'); } }}, 'Paste'),
         configurable(a) ? h('button', {class:'btn ghost sm', type:'button', onclick:() => openConfigure(link.value || a.url)}, "Open the addon's settings page ↗") : null),
       msg,
       h('div', {class:'rrow', style:'margin-top:14px'},
@@ -3066,7 +3073,7 @@ function editAddon(uid){
           const mf = await installAddon(link.value, {label:name.value.trim() || undefined});
           close(); toast('Added a copy of ' + mf.name);
         })}, 'Save as a new copy')),
-      h('p', {class:'spin', style:'padding:10px 0 0'}, 'Tip: open the settings page, choose your options, copy the new link it gives you, paste it above and tap "Save as a new copy". Your original stays as it is, so both are available (for example "Torrentio" and "Torrentio #2").'),
+      h('p', {class:'spin', style:'padding:10px 0 0'}, 'Tip: open the settings page, choose your options, copy the new link it gives you, paste it above and choose "Save as a new copy". Your original stays as it is, so both are available (for example "Torrentio" and "Torrentio #2").'),
       h('div', {style:'margin-top:22px'}, delBtn)));
 }
 
@@ -3150,7 +3157,7 @@ function renderRepo(){
   const items = (repo.items || []).filter(x => !repo.q || (x.name + ' ' + x.desc).toLowerCase().includes(repo.q.toLowerCase()));
   const cards = items.slice(0, repo.show).map(repoCard);
   box.replaceChildren(
-    h('p', {class:'spin', style:'padding:0 0 8px'}, 'Pick a list of addons, then tap Install on the ones you want.'), h('div', {class:'lbl', style:'margin-top:0'}, 'Addon list'), sel, srcs.length ? q : null,
+    h('p', {class:'spin', style:'padding:0 0 8px'}, 'Choose a list of addons, then Install the ones you want.'), h('div', {class:'lbl', style:'margin-top:0'}, 'Addon list'), sel, srcs.length ? q : null,
     repo.busy ? h('p', {class:'spin', style:'padding:8px 0'}, 'Loading…') : null,
     repo.err ? h('p', {class:'msg err'}, repo.err) : null,
     ...cards,
@@ -4019,7 +4026,7 @@ $('#fsBtn').onclick = async () => {
 async function playStream(s, title, ctx){
   if (s.externalUrl) { if (/^https?:/i.test(s.externalUrl)) window.open(s.externalUrl,'_blank','noopener'); else { try { location.href = s.externalUrl; } catch { toast('Could not open the app.'); } } return; }
   if (s.ytId) { window.open('https://www.youtube.com/watch?v='+enc(s.ytId),'_blank','noopener'); return; }
-  if (!s.url) { toast(s.infoHash ? "Torrent stream: needs a debrid service set up in that addon (so it returns direct links), or a backend." : 'This stream type is not supported.'); return; }
+  if (!s.url) { toast(s.infoHash ? "This is a torrent stream. Its addon needs a debrid service to provide direct links." : 'This stream type is not supported.'); return; }
   if (nativePlayer()) { return playNative(s, title, ctx); }
   const v = $('#vid'); $('#player').hidden = false; $('#ptitle').textContent = title || ''; pushLayer('player');
   const tvp = document.body.classList.contains('tv'); v.controls = !tvp; $('#pctl').hidden = !tvp; showBar();
@@ -4314,6 +4321,8 @@ async function mergeFamily(R){
   if (R.repos && (R.reposT || 0) > (m.reposT || 0)) { lsSet('streamlet.repos', R.repos); m.reposT = R.reposT; }
   if (!m.tmdbT && lsGet('streamlet.tmdb', '')) m.tmdbT = 1;                      // a key entered before this synced: push it unless the account already has a newer one
   if (typeof R.tmdb === 'string' && (R.tmdbT || 0) > (m.tmdbT || 0)) { lsSet('streamlet.tmdb', R.tmdb); m.tmdbT = R.tmdbT; try { fillTmdb(); } catch {} }
+  if (!m.qcT && Array.isArray(lsGet('streamlet.qcshows', null))) m.qcT = 1;
+  if (Array.isArray(R.qcshows) && (R.qcT || 0) > (m.qcT || 0)) { lsSet('streamlet.qcshows', R.qcshows.length ? R.qcshows : null); m.qcT = R.qcT; try { qcMem.clear(); qcFillShows(); } catch {} }
   lsSet('streamlet.meta', m);
   return changed;
 }
@@ -4405,6 +4414,7 @@ async function pushAll(){
   if (m.spacesT) { fam.spaces = spaces; fam.spacesT = m.spacesT; }
   if (m.addonsT) { fam.addons = addons.map(a => ({url:a.url, uid:a.uid, label:a.label || null})); fam.addonsT = m.addonsT; }
   if (m.reposT) { fam.repos = reposGet(); fam.reposT = m.reposT; }
+  if (m.qcT) { const q = lsGet('streamlet.qcshows', null); fam.qcshows = Array.isArray(q) ? q : []; fam.qcT = m.qcT; }
   if (m.tmdbT) { fam.tmdb = lsGet('streamlet.tmdb', '') || ''; fam.tmdbT = m.tmdbT; }
   if (Object.keys(fam).length) { const sig = JSON.stringify(fam); if (sig !== pushSig.fam) { await setDoc(doc(db, ...base, 'sync', 'family'), clean(fam), {merge:true}); pushSig.fam = sig; } }
   for (const p of profiles) {
@@ -4479,7 +4489,7 @@ function startListeners(){
 /* ----- login screen ----- */
 const AUTH_ERRORS = {
   'auth/invalid-credential':'Wrong email or password.', 'auth/wrong-password':'Wrong email or password.', 'auth/user-not-found':'No account with that email. Tap "Create account".',
-  'auth/email-already-in-use':'That email already has an account. Tap "Sign in".', 'auth/weak-password':'Password needs at least 6 characters.', 'auth/invalid-email':"That email doesn't look right.",
+  'auth/email-already-in-use':'That email already has an account. Choose "Sign in".', 'auth/weak-password':'Password needs at least 6 characters.', 'auth/invalid-email':"That email doesn't look right.",
   'auth/popup-closed-by-user':'Sign-in was cancelled.', 'auth/popup-blocked':'Your browser blocked the Google popup. Use email instead, or allow popups.',
   'auth/unauthorized-domain':"This site isn't authorised in Firebase yet (Authentication → Settings → Authorized domains).",
   'auth/operation-not-allowed':"That sign-in method isn't enabled in Firebase yet.", 'auth/network-request-failed':"Can't reach the server. Check your connection.", 'auth/too-many-requests':'Too many tries. Wait a minute.'
@@ -4552,7 +4562,7 @@ function showLogin(){
     h('p', {class:'sub'}, 'Sign in to sync your profiles, addons and progress on every device.'),
     ...(typeof showPairing === 'function' ? [h('button', {class:'btn', type:'button', style:'width:100%;margin-bottom:14px', onclick:() => showPairing()}, 'Sign in with your phone'), h('div', {class:'or'}, 'or')] : []),
     ...(nativePlayer()
-      ? [h('p', {class:'sub', style:'font-size:13px;margin:-8px 0 14px'}, "Google sign-in isn't available inside the app. Tap \"Forgot password?\" with your Google email once to set a password, then sign in below. It's the same account and data.")]
+      ? [h('p', {class:'sub', style:'font-size:13px;margin:-8px 0 14px'}, "Google sign-in isn't available inside the app. Choose \"Forgot password?\" with your Google email once to set a password, then sign in below. It's the same account and data.")]
       : [h('button', {class:'gbtn', type:'button', onclick:() => busy(() => FB.au.signInWithPopup(auth, new FB.au.GoogleAuthProvider()))},
           h('b', {style:'color:#4285f4;font-size:18px'}, 'G'), 'Continue with Google'),
          h('div', {class:'or'}, 'or use email')]),
@@ -5494,7 +5504,7 @@ async function qcRoute(url){
   throw new Error('HTTP 404');
 }
 const qcFillShows = () => { const v = lsGet('streamlet.qcshows', null); $('#qcShows').value = (Array.isArray(v) && v.length ? v : QC_DEFAULT_SHOWS).join('\n'); };   // an empty saved list shows (and uses) the defaults
-$('#qcSave').onclick = () => { const urls = $('#qcShows').value.split(/\s+/).filter(Boolean); lsSet('streamlet.qcshows', urls.length ? urls : null); qcMem.clear(); qcFillShows(); toast(urls.length ? 'Saved. Reopen the Québec space to refresh' : 'Back to the default shows'); };
+$('#qcSave').onclick = () => { const urls = $('#qcShows').value.split(/\s+/).filter(Boolean); lsSet('streamlet.qcshows', urls.length ? urls : null); stamp('qcT'); qcMem.clear(); qcFillShows(); toast(urls.length ? 'Saved. Reopen the Québec space to refresh' : 'Back to the default shows'); };
 /* ---------- Import Netflix viewing activity (the CSV from Account > Viewing activity > Download all) ----------
    Each show is matched to its IMDb entry through Cinemeta, its episodes are matched by name, and everything is marked watched.
    Before anything is saved you choose, per show, which space it belongs to (so anime can go to the Anime space) or skip it. */

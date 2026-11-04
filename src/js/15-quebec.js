@@ -242,4 +242,4 @@ async function qcRoute(url){
   throw new Error('HTTP 404');
 }
 const qcFillShows = () => { const v = lsGet('streamlet.qcshows', null); $('#qcShows').value = (Array.isArray(v) && v.length ? v : QC_DEFAULT_SHOWS).join('\n'); };   // an empty saved list shows (and uses) the defaults
-$('#qcSave').onclick = () => { const urls = $('#qcShows').value.split(/\s+/).filter(Boolean); lsSet('streamlet.qcshows', urls.length ? urls : null); qcMem.clear(); qcFillShows(); toast(urls.length ? 'Saved. Reopen the Québec space to refresh' : 'Back to the default shows'); };
+$('#qcSave').onclick = () => { const urls = $('#qcShows').value.split(/\s+/).filter(Boolean); lsSet('streamlet.qcshows', urls.length ? urls : null); stamp('qcT'); qcMem.clear(); qcFillShows(); toast(urls.length ? 'Saved. Reopen the Québec space to refresh' : 'Back to the default shows'); };
