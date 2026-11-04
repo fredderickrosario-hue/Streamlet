@@ -144,6 +144,7 @@ public class PlayerActivity extends Activity {
     private int segMode = 0;
     private long segTarget = 0, creditsShownAt = 0;
     private boolean creditsDismissed = false;
+    private boolean subsWanted = false;
     private boolean autoNextOn = true, autoSkipOn = false;           // settings: start the next episode by itself, skip intros and recaps by themselves
     private long skippedIntro = -1, skippedRecap = -1;
     private FrameLayout nextLayer;
@@ -240,6 +241,7 @@ public class PlayerActivity extends Activity {
         optHw = in.getBooleanExtra("hw", true); optFps = in.getBooleanExtra("fps", true); optTunnel = in.getBooleanExtra("tunnel", false);
         String audioLang = in.getStringExtra("audioLang");
         String subLang = in.getStringExtra("subLang");
+        subsWanted = subLang != null && !subLang.isEmpty();                  // Subtitles Off in Settings: nothing turns them on later
 
         player = makePlayer(false);
         view.setPlayer(player);
@@ -1195,7 +1197,7 @@ public class PlayerActivity extends Activity {
         for (int i = 0; i < aud.size(); i++) { if (isDescribed(aud.get(i).label)) hasDesc = true; else if (reg < 0) reg = i; }
         if (!hasDesc || reg < 0) return;
         avDefaulted = true;
-        Combo c = new Combo(); c.a = reg; c.t = txt.isEmpty() ? -1 : 0;
+        Combo c = new Combo(); c.a = reg; c.t = txt.isEmpty() || !subsWanted ? -1 : 0;     // the subtitles setting decides, not the audio track
         applyCombo(c);
     }
 
