@@ -49,30 +49,41 @@ function nhCard(it, o = {}){
   const po = posterEl({name:it.name, poster:nhImg(it.poster)});
   if (o.rank) po.append(h('span', {class:'nhrank'}, String(o.rank)));
   if (o.date && it.date) { const d = new Date(it.date + 'T12:00:00'); if (!isNaN(d)) po.append(h('span', {class:'rtag upcoming'}, d.toLocaleDateString(undefined, {month:'short', day:'numeric'}))); }
-  return h('button', {class:'card', type:'button', onclick:() => nhOpen(it)}, po, h('div', {class:'t'}, it.name), h('div', {class:'s'}, (it.mt === 'movie' ? 'Movie' : 'Show') + (it.date ? ' · ' + it.date.slice(0, 4) : '')));
+  return h('button', {class:'card', type:'button', onclick:() => nhOpen(it)}, po, h('div', {class:'t'}, it.name), h('div', {class:'s'}, it.tag ? it.tag + ' · ' + it.sub : (it.mt === 'movie' ? 'Movie' : 'Show') + (it.date ? ' · ' + it.date.slice(0, 4) : '')));
+}
+async function nhNext(it, key){                                              // the next episode of a returning show: its date and whether it starts a season
+  try { const d = await nhGet(`/tv/${it.id}`, key), n = d && d.next_episode_to_air; if (!n || !n.air_date) return null; return {...it, date:n.air_date, tag:n.episode_number === 1 ? 'New season' : 'New episode', sub:'S' + n.season_number + ' · E' + n.episode_number}; } catch { return null; }
 }
 async function renderNewHot(box, tok, key){
   const get = p => nhGet(p, key), reg = '&region=' + NH_REGION;
-  const [upM, upT, all, tvd, mvd, newM, newT] = (await Promise.allSettled([
+  const [upM, upT, back, all, tvd, mvd, newM, newT] = (await Promise.allSettled([
     get(`/discover/movie?sort_by=popularity.desc&primary_release_date.gte=${isoDay(1)}&primary_release_date.lte=${isoDay(120)}${reg}`),
     get(`/discover/tv?sort_by=popularity.desc&first_air_date.gte=${isoDay(1)}&first_air_date.lte=${isoDay(120)}`),
+    get(`/discover/tv?sort_by=popularity.desc&air_date.gte=${isoDay(1)}&air_date.lte=${isoDay(60)}&first_air_date.lte=${isoDay(-30)}`),
     get('/trending/all/week'), get('/trending/tv/day'), get('/trending/movie/day'),
     get(`/discover/movie?sort_by=popularity.desc&primary_release_date.gte=${isoDay(-28)}&primary_release_date.lte=${isoDay(0)}${reg}`),
     get(`/discover/tv?sort_by=popularity.desc&first_air_date.gte=${isoDay(-60)}&first_air_date.lte=${isoDay(0)}`)
   ])).map(r => r.status === 'fulfilled' ? r.value : null);
   if (tok !== homeTok) return;
-  const coming = [...nhNorm(upM && upM.results, 'movie'), ...nhNorm(upT && upT.results, 'tv')].filter(x => x.date).sort((a, b) => a.date.localeCompare(b.date)).slice(0, 18);
+  const byDate = (a, b) => a.date.localeCompare(b.date);
   const rows = [
-    ['Coming soon', coming, {date:true}],
+    ['New shows coming soon', nhNorm(upT && upT.results, 'tv').filter(x => x.date).sort(byDate).slice(0, 16), {date:true}],
+    ['Movies coming soon', nhNorm(upM && upM.results, 'movie').filter(x => x.date).sort(byDate).slice(0, 16), {date:true}],
     ["Everyone's watching", nhNorm(all && all.results).slice(0, 18), {}],
     ['Top 10 shows today', nhNorm(tvd && tvd.results, 'tv').slice(0, 10), {rank:true}],
     ['Top 10 movies today', nhNorm(mvd && mvd.results, 'movie').slice(0, 10), {rank:true}],
     ['Just released', [...nhNorm(newM && newM.results, 'movie').slice(0, 10), ...nhNorm(newT && newT.results, 'tv').slice(0, 10)].sort((a, b) => b.date.localeCompare(a.date)), {}]
   ].filter(r => r[1].length);
-  if (!rows.length) { box.append(h('div', {class:'empty'}, h('h2', null, "Couldn't load New & Hot"), h('p', null, 'Check your TMDB key in Settings, or try again in a moment.'))); return false; }
-  for (const [title, list, o] of rows) {
+  const paint = (title, list, o) => {
     const strip = h('div', {class:'strip'}, ...list.map((it, i) => nhCard(it, {rank:o.rank ? i + 1 : 0, date:o.date})));
-    box.append(h('div', {class:'row' + (o.rank ? ' top10' : '')}, h('h2', null, title), strip));
-  }
+    return h('div', {class:'row' + (o.rank ? ' top10' : '')}, h('h2', null, title), strip);
+  };
+  if (!rows.length && !(back && back.results && back.results.length)) { box.append(h('div', {class:'empty'}, h('h2', null, "Couldn't load New & Hot"), h('p', null, 'Check your TMDB key in Settings, or try again in a moment.'))); return false; }
+  rows.forEach(([title, list, o], i) => { box.append(paint(title, list, o)); if (i === 1) box.append(h('div', {id:'nhBack'})); });   // new seasons and episodes sit right after the two "coming soon" rows
+  let slot = box.querySelector('#nhBack'); if (!slot) { slot = h('div', {id:'nhBack'}); box.append(slot); }
+  const cand = nhNorm(back && back.results, 'tv').filter(x => !((upT && upT.results) || []).some(u => u.id === x.id)).slice(0, 14);
+  const next = (await Promise.all(cand.map(it => nhNext(it, key)))).filter(Boolean).sort(byDate);
+  if (tok !== homeTok) return true;
+  if (slot && next.length) slot.replaceWith(paint('New seasons & episodes coming soon', next, {date:true}));
   return true;
 }

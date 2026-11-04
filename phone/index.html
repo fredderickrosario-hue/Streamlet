@@ -880,8 +880,11 @@ body.tv.pgfix:not(.launch) :is(#settings>.pad,#me>.pad,#wlGrid,#adBrowse,#adInst
 .srq span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .srico{flex:0 0 16px;height:16px;background:currentColor;opacity:.6;-webkit-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.2' stroke-linecap='round'%3E%3Ccircle cx='12' cy='12' r='9'/%3E%3Cpath d='M12 7v5l3 2'/%3E%3C/svg%3E") center/contain no-repeat;mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.2' stroke-linecap='round'%3E%3Ccircle cx='12' cy='12' r='9'/%3E%3Cpath d='M12 7v5l3 2'/%3E%3C/svg%3E") center/contain no-repeat}
 .srq:focus-visible,.srclear:focus-visible{outline:3px solid #fff;outline-offset:-3px;background:rgba(255,255,255,.14)}
-.rtag.season{background:#1faa6b}
-.nhrank{position:absolute;left:6px;bottom:2px;z-index:3;font-size:64px;line-height:1;font-weight:900;color:#fff;-webkit-text-stroke:2px rgba(0,0,0,.55);text-shadow:0 2px 12px rgba(0,0,0,.7);pointer-events:none}
+.rtag.season,.rtag.upcoming{background:var(--acc);color:var(--btnt)}
+.poster:has(.nhrank)::after{content:"";position:absolute;left:0;right:0;bottom:0;height:42%;background:linear-gradient(to top,rgba(0,0,0,.82),rgba(0,0,0,0));pointer-events:none}
+.nhrank{position:absolute;left:10px;bottom:6px;z-index:3;font-size:30px;line-height:1;font-weight:800;color:#fff;letter-spacing:-.5px;text-shadow:0 1px 6px rgba(0,0,0,.6);pointer-events:none}
+.nhrank::before{content:"#";font-size:.6em;margin-right:1px;color:var(--acc);font-weight:800;vertical-align:.18em}
+.nhsub{margin:-4px 16px 4px;color:var(--mut);font-size:13px}
 
 /* manage profiles: the pencil badge sits on the avatar's corner, in our accent color */
 .pav:not(.add){width:fit-content;height:auto;border-radius:0;box-shadow:none}
@@ -2087,8 +2090,6 @@ function editProfile(id){
 const cntMem = new Map();
 const unwatchedOf = id => cntMem.get(id) || 0;
 function ribEl(iid){
-  const n = unwatchedOf(iid);
-  if (n > 0) return h('span', {class:'rib cnt', 'data-n':n > 99 ? '99+' : String(n)});
   return watchedHas(iid) ? h('span', {class:'rib'}) : null;
 }
 function posterEl(meta){
@@ -5280,31 +5281,42 @@ function nhCard(it, o = {}){
   const po = posterEl({name:it.name, poster:nhImg(it.poster)});
   if (o.rank) po.append(h('span', {class:'nhrank'}, String(o.rank)));
   if (o.date && it.date) { const d = new Date(it.date + 'T12:00:00'); if (!isNaN(d)) po.append(h('span', {class:'rtag upcoming'}, d.toLocaleDateString(undefined, {month:'short', day:'numeric'}))); }
-  return h('button', {class:'card', type:'button', onclick:() => nhOpen(it)}, po, h('div', {class:'t'}, it.name), h('div', {class:'s'}, (it.mt === 'movie' ? 'Movie' : 'Show') + (it.date ? ' · ' + it.date.slice(0, 4) : '')));
+  return h('button', {class:'card', type:'button', onclick:() => nhOpen(it)}, po, h('div', {class:'t'}, it.name), h('div', {class:'s'}, it.tag ? it.tag + ' · ' + it.sub : (it.mt === 'movie' ? 'Movie' : 'Show') + (it.date ? ' · ' + it.date.slice(0, 4) : '')));
+}
+async function nhNext(it, key){                                              // the next episode of a returning show: its date and whether it starts a season
+  try { const d = await nhGet(`/tv/${it.id}`, key), n = d && d.next_episode_to_air; if (!n || !n.air_date) return null; return {...it, date:n.air_date, tag:n.episode_number === 1 ? 'New season' : 'New episode', sub:'S' + n.season_number + ' · E' + n.episode_number}; } catch { return null; }
 }
 async function renderNewHot(box, tok, key){
   const get = p => nhGet(p, key), reg = '&region=' + NH_REGION;
-  const [upM, upT, all, tvd, mvd, newM, newT] = (await Promise.allSettled([
+  const [upM, upT, back, all, tvd, mvd, newM, newT] = (await Promise.allSettled([
     get(`/discover/movie?sort_by=popularity.desc&primary_release_date.gte=${isoDay(1)}&primary_release_date.lte=${isoDay(120)}${reg}`),
     get(`/discover/tv?sort_by=popularity.desc&first_air_date.gte=${isoDay(1)}&first_air_date.lte=${isoDay(120)}`),
+    get(`/discover/tv?sort_by=popularity.desc&air_date.gte=${isoDay(1)}&air_date.lte=${isoDay(60)}&first_air_date.lte=${isoDay(-30)}`),
     get('/trending/all/week'), get('/trending/tv/day'), get('/trending/movie/day'),
     get(`/discover/movie?sort_by=popularity.desc&primary_release_date.gte=${isoDay(-28)}&primary_release_date.lte=${isoDay(0)}${reg}`),
     get(`/discover/tv?sort_by=popularity.desc&first_air_date.gte=${isoDay(-60)}&first_air_date.lte=${isoDay(0)}`)
   ])).map(r => r.status === 'fulfilled' ? r.value : null);
   if (tok !== homeTok) return;
-  const coming = [...nhNorm(upM && upM.results, 'movie'), ...nhNorm(upT && upT.results, 'tv')].filter(x => x.date).sort((a, b) => a.date.localeCompare(b.date)).slice(0, 18);
+  const byDate = (a, b) => a.date.localeCompare(b.date);
   const rows = [
-    ['Coming soon', coming, {date:true}],
+    ['New shows coming soon', nhNorm(upT && upT.results, 'tv').filter(x => x.date).sort(byDate).slice(0, 16), {date:true}],
+    ['Movies coming soon', nhNorm(upM && upM.results, 'movie').filter(x => x.date).sort(byDate).slice(0, 16), {date:true}],
     ["Everyone's watching", nhNorm(all && all.results).slice(0, 18), {}],
     ['Top 10 shows today', nhNorm(tvd && tvd.results, 'tv').slice(0, 10), {rank:true}],
     ['Top 10 movies today', nhNorm(mvd && mvd.results, 'movie').slice(0, 10), {rank:true}],
     ['Just released', [...nhNorm(newM && newM.results, 'movie').slice(0, 10), ...nhNorm(newT && newT.results, 'tv').slice(0, 10)].sort((a, b) => b.date.localeCompare(a.date)), {}]
   ].filter(r => r[1].length);
-  if (!rows.length) { box.append(h('div', {class:'empty'}, h('h2', null, "Couldn't load New & Hot"), h('p', null, 'Check your TMDB key in Settings, or try again in a moment.'))); return false; }
-  for (const [title, list, o] of rows) {
+  const paint = (title, list, o) => {
     const strip = h('div', {class:'strip'}, ...list.map((it, i) => nhCard(it, {rank:o.rank ? i + 1 : 0, date:o.date})));
-    box.append(h('div', {class:'row' + (o.rank ? ' top10' : '')}, h('h2', null, title), strip));
-  }
+    return h('div', {class:'row' + (o.rank ? ' top10' : '')}, h('h2', null, title), strip);
+  };
+  if (!rows.length && !(back && back.results && back.results.length)) { box.append(h('div', {class:'empty'}, h('h2', null, "Couldn't load New & Hot"), h('p', null, 'Check your TMDB key in Settings, or try again in a moment.'))); return false; }
+  rows.forEach(([title, list, o], i) => { box.append(paint(title, list, o)); if (i === 1) box.append(h('div', {id:'nhBack'})); });   // new seasons and episodes sit right after the two "coming soon" rows
+  let slot = box.querySelector('#nhBack'); if (!slot) { slot = h('div', {id:'nhBack'}); box.append(slot); }
+  const cand = nhNorm(back && back.results, 'tv').filter(x => !((upT && upT.results) || []).some(u => u.id === x.id)).slice(0, 14);
+  const next = (await Promise.all(cand.map(it => nhNext(it, key)))).filter(Boolean).sort(byDate);
+  if (tok !== homeTok) return true;
+  if (slot && next.length) slot.replaceWith(paint('New seasons & episodes coming soon', next, {date:true}));
   return true;
 }
 

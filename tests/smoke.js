@@ -219,10 +219,10 @@ const ok = (name, cond, extra) => { cond ? pass++ : fail++; console.log((cond ? 
         const none = countUnwatched(id, vids);
         epMark(id, [vids[1]], true); const a = countUnwatched(id, vids);                  // watched 2: episodes 3 and 4 are new, 1 is before the first watched
         epMark(id, [vids[3]], true); const b = countUnwatched(id, vids);                  // watched 2 and 4: 3 is missed
-        cntMem.set(id, 3); const el = ribEl(id); const ok = el && el.dataset.n === '3' && el.className === 'rib cnt'; cntMem.delete(id);
+        cntMem.set(id, 3); const el = ribEl(id); const ok = !el; cntMem.delete(id);                          // no count on the poster any more
         return none === 0 && a === 2 && b === 1 && ok;
       });
-      ok('Poster mark: counts new and missed episodes after the first one watched', r);
+      ok('Episode counting still works (Watching tab); posters carry no count', r);
     }
     {
       const r = await p.evaluate(async () => {
@@ -352,7 +352,7 @@ const ok = (name, cond, extra) => { cond ? pass++ : fail++; console.log((cond ? 
         tmdbGet = async path => ({results:[1, 2, 3].map(i => ({id:i, title:'T' + i, name:'T' + i, poster_path:'/p' + i + '.jpg', release_date:'2030-01-0' + i, first_air_date:'2030-01-0' + i, media_type:i === 2 ? 'tv' : 'movie'}))});
         const box = document.createElement('div'); const ok2 = await renderNewHot(box, homeTok, 'k'); tmdbGet = ot;
         const heads = [...box.querySelectorAll('h2')].map(x => x.textContent), ranks = box.querySelectorAll('.nhrank').length, dates = box.querySelectorAll('.rtag.upcoming').length;
-        return fresh === 2 && old === 0 && newShow === 0 && ok2 && heads.includes('Coming soon') && heads.includes('Top 10 shows today') && ranks >= 3 && dates >= 3 ? true : JSON.stringify({fresh, old, newShow, ok2, heads, ranks, dates});
+        return fresh === 2 && old === 0 && newShow === 0 && ok2 && heads.includes('New shows coming soon') && heads.includes('Top 10 shows today') && ranks >= 3 && dates >= 3 ? true : JSON.stringify({fresh, old, newShow, ok2, heads, ranks, dates});
       }).catch(e => String(e));
       ok('New & Hot rows (coming soon, top 10) and New season detection', r === true, r);
     }

@@ -218,8 +218,6 @@ function editProfile(id){
 const cntMem = new Map();
 const unwatchedOf = id => cntMem.get(id) || 0;
 function ribEl(iid){
-  const n = unwatchedOf(iid);
-  if (n > 0) return h('span', {class:'rib cnt', 'data-n':n > 99 ? '99+' : String(n)});
   return watchedHas(iid) ? h('span', {class:'rib'}) : null;
 }
 function posterEl(meta){
