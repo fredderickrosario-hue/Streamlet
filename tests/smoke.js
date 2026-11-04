@@ -407,6 +407,31 @@ const ok = (name, cond, extra) => { cond ? pass++ : fail++; console.log((cond ? 
       }).catch(e => String(e));
       ok('Hold menu fits where it opens (watching, history, continue watching, upcoming); episode eyes follow the store', r === true, r);
     }
+    {
+      const r = await p.evaluate(async () => {
+        // stored profile data is read from memory, and stays right after every write
+        const k = 'streamlet.p.' + profile.id + '.zztest';
+        lsSet(k, [1]); const a = lsGet(k, []); lsSet(k, [1, 2]); const b = lsGet(k, []);
+        localStorage.removeItem(k); lsMem.delete(k); const c = lsGet(k, 'none');
+        // playback progress: saved every 15 s, not on every tick, and the final position always
+        const oc = cur; cur = {id:'sp1', catalogs:[], streams:[]};
+        const ctx = {type:'movie', id:'ttPR', info:{item:{id:'ttPR', type:'movie', name:'Prog'}, addonId:'x'}};
+        lastRec = {k:'', t:0};
+        recordProgress(ctx, {}, 100, 6000); recordProgress(ctx, {}, 105, 6000);
+        const p1 = (histGet().find(x => x.itemId === 'ttPR') || {}).pos;
+        recordProgress(ctx, {}, 130, 6000, true);
+        const p2 = (histGet().find(x => x.itemId === 'ttPR') || {}).pos;
+        histRemove('movie|ttPR'); cur = oc;
+        // cloud pushes: progress waits, a real change goes out quickly and replaces the slow one
+        const ou = user, od = db, ot = window.setTimeout; let delays = [];
+        user = {uid:'u'}; db = {}; syncT = null;
+        window.setTimeout = (fn, ms) => { delays.push(ms); return 1; };
+        syncSoft = true; scheduleSync(); syncSoft = false; scheduleSync(); const d = delays.slice();
+        window.setTimeout = ot; clearTimeout(syncT); syncT = null; user = ou; db = od; syncState = 'local';
+        return a[0] === 1 && b.length === 2 && c === 'none' && p1 === 100 && p2 === 130 && d[0] === 60000 && d[1] === 1500 ? true : JSON.stringify({a, b, c, p1, p2, d});
+      }).catch(e => String(e));
+      ok('Storage reads from memory; progress saved every 15 s; slow cloud push for progress, quick for changes', r === true, r);
+    }
     ok('no errors after all of the above', errs.length === 0, errs[0]);
     await p.close();
   }

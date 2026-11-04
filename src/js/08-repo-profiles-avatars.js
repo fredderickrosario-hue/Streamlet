@@ -76,7 +76,6 @@ function renderRepo(){
     const r = {id:Date.now().toString(36), name:nameIn.value.trim() || hostOf(u), url:u}; reposSet([...reposGet(), r]); pickRepo('u:' + r.id);
   }}, 'Add list');
   const items = (repo.items || []).filter(x => !repo.q || (x.name + ' ' + x.desc).toLowerCase().includes(repo.q.toLowerCase()));
-  const installedUrl = u => { try { const p = parseAddonUrl(u).url; return addons.find(a => a.url === p); } catch { return null; } };
   const cards = items.slice(0, repo.show).map(repoCard);
   box.replaceChildren(
     h('p', {class:'spin', style:'padding:0 0 8px'}, 'Pick a list of addons, then tap Install on the ones you want.'), h('div', {class:'lbl', style:'margin-top:0'}, 'Addon list'), sel, srcs.length ? q : null,
@@ -174,8 +173,22 @@ let profiles = [], profile = null;
 let settings = {subLang:'off', audioLang:'any'};
 const effAudio = () => (cur && cur.audio) || settings.audioLang;      // a space can have its own audio / subtitle language (anime: Japanese + English subs)
 const effSub = () => (cur && cur.subs) || settings.subLang;
-const lsGet = (k, d) => { try { const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch { return d; } };
-const lsSet = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} };
+/* Profile data (history, watched, episodes...) is read very often (every poster asks "watched?"): it is parsed once and kept in memory,
+   and every write goes through lsSet, which keeps that copy current. */
+const lsMem = new Map();
+const lsGet = (k, d) => {
+  if (lsMem.has(k)) { const v = lsMem.get(k); return v === undefined ? d : v; }
+  try { const s = localStorage.getItem(k), v = s == null ? undefined : JSON.parse(s); if (k.startsWith('streamlet.p.')) lsMem.set(k, v); return v === undefined ? d : v; } catch { return d; }
+};
+function lsFree(){                                                  // storage is full: drop what can be rebuilt, never what was watched
+  for (const k of Object.keys(localStorage)) if (/^streamlet\.(nseason|syslog|recent\.|p\.[^.]+\.nextcards$)/.test(k)) { try { localStorage.removeItem(k); lsMem.delete(k); } catch {} }
+}
+const lsSet = (k, v) => {
+  const s = JSON.stringify(v);
+  try { localStorage.setItem(k, s); }
+  catch { lsFree(); try { localStorage.setItem(k, s); } catch { lsMem.delete(k); try { sysLog('STORAGE', 'Storage full, could not save ' + k); } catch {} return; } }
+  if (k.startsWith('streamlet.p.')) lsMem.set(k, v);
+};
 const plsGet = (id, k, d) => lsGet(`streamlet.p.${id}.${k}`, d);
 const plsSet = (id, k, v) => lsSet(`streamlet.p.${id}.${k}`, v);
 const pget = (k, d) => plsGet(profile.id, k, d);

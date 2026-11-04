@@ -208,6 +208,8 @@ public class ExoPlayerPlugin extends Plugin {
         i.putExtra("tunnel", call.getBoolean("tunnel", false));
         i.putExtra("pass", call.getBoolean("pass", true));
         i.putExtra("nextTitle", call.getString("nextTitle", ""));
+        i.putExtra("autoNext", call.getBoolean("autoNext", true));
+        i.putExtra("autoSkip", call.getBoolean("autoSkip", false));
         i.putExtra("episode", call.getBoolean("episode", false));
         i.putExtra("eps", call.getString("eps", ""));
         i.putExtra("skip", call.getInt("skip", 10));

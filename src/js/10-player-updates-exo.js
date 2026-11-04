@@ -253,7 +253,7 @@ async function playNative(s, title, ctx){
   try {
     const epLine = ctx && ctx.ep ? `S${ctx.ep.season ?? 1}:E${ctx.ep.episode ?? ''}` + (ctx.ep.title ? ' · ' + ctx.ep.title : '') : '';
     const itemId = ctx && ctx.info && ctx.info.item.id, nextTitle = ctx && ctx.next ? `S${ctx.next.season ?? 1}:E${ctx.next.episode ?? ''}` + (ctx.next.title ? ' · ' + ctx.next.title : '') : '';
-    const r = await N.play({nextTitle, episode:!!(ctx && ctx.ep), subDelay:(mapGet('streamlet.subdelay')[itemId] || 0), url:s.url, title:title || '', hw:uiPlay('hw', true), fps:uiPlay('fps', true), tunnel:uiPlay('tunnel', false), pass:uiPlay('pass', true), skip:Number(lsGet('streamlet.ui', {}).skip) || 10, segs:segs ? JSON.stringify(segs) : '', eps:(ctx && ctx.eps && ctx.ep ? JSON.stringify(ctx.eps.map(x => ({s:x.season, e:x.episode, t:x.title || '', th:x.thumb || ''}))) : ''), curSeason:(ctx && ctx.ep ? ctx.ep.season ?? 1 : 1), curEpisode:(ctx && ctx.ep ? ctx.ep.episode ?? 0 : 0), subtitle:epLine, accent:(getComputedStyle(document.documentElement).getPropertyValue('--acc') || '').trim(), startMs, subtitles:picked, audioLang:code2(effAudio()) || null, subLang:pref ? (code2(pref) || pref) : null});
+    const r = await N.play({nextTitle, episode:!!(ctx && ctx.ep), subDelay:(mapGet('streamlet.subdelay')[itemId] || 0), url:s.url, title:title || '', autoNext:uiPlay('autonext', true), autoSkip:uiPlay('autoskip', false), hw:uiPlay('hw', true), fps:uiPlay('fps', true), tunnel:uiPlay('tunnel', false), pass:uiPlay('pass', true), skip:Number(lsGet('streamlet.ui', {}).skip) || 10, segs:segs ? JSON.stringify(segs) : '', eps:(ctx && ctx.eps && ctx.ep ? JSON.stringify(ctx.eps.map(x => ({s:x.season, e:x.episode, t:x.title || '', th:x.thumb || ''}))) : ''), curSeason:(ctx && ctx.ep ? ctx.ep.season ?? 1 : 1), curEpisode:(ctx && ctx.ep ? ctx.ep.episode ?? 0 : 0), subtitle:epLine, accent:(getComputedStyle(document.documentElement).getPropertyValue('--acc') || '').trim(), startMs, subtitles:picked, audioLang:code2(effAudio()) || null, subLang:pref ? (code2(pref) || pref) : null});
     if (r && r.failed) {
       badStreams.add(s); badSet(s); logErr(title, s, r.error); const el = streamEls.get(s); if (el) el.classList.add('bad');
       const list = (ctx && ctx._list) || [], i = list.indexOf(s);
@@ -261,7 +261,7 @@ async function playNative(s, title, ctx){
       if (nx) { toast('Trying the next source…'); return playNative(nx, title, ctx); }
       toast(r.next ? 'No other sources to try.' : 'That source failed. Pick another one.');
     } else {
-      if (r && r.duration) recordProgress(ctx, stream, r.position / 1000, r.duration / 1000);
+      if (r && r.duration) recordProgress(ctx, stream, r.position / 1000, r.duration / 1000, true);
       if (r && itemId && r.position > 20000) prefSet(itemId, sigOf(s));
       if (r && itemId && typeof r.subDelay === 'number') { const m = mapGet('streamlet.subdelay'); if (r.subDelay) m[itemId] = r.subDelay; else delete m[itemId]; lsSet('streamlet.subdelay', m); }
       if (r && r.autoNext && ctx && ctx.next) setTimeout(() => autoPlayNext(ctx, s), 60);
@@ -295,12 +295,19 @@ async function playEpisode(ctx, nx, prev, rest, next){
   if (!st) { toast('No sources found for that episode.'); return; }
   return playNative(st, ctx.info.item.name, {type:ctx.type, id:nx.id, info:ctx.info, alt, eps:ctx.eps, ep:{season:nx.season, episode:nx.episode, title:nx.title}, next:next || null, rest:rest || [], _list:all});
 }
-function saveProgress(){ const v = $('#vid'); recordProgress(pl.ctx, pl.stream, v.currentTime, v.duration); }
-function recordProgress(c, stream, pos, dur){
+function saveProgress(force){ const v = $('#vid'); recordProgress(pl.ctx, pl.stream, v.currentTime, v.duration, force); }
+let lastRec = {k:'', t:0};
+function recordProgress(c, stream, pos, dur, force){
   if (!c || !c.info || !profile) return;
   if (!isFinite(dur) || dur < 60 || pos < 15) return;
   const it = c.info.item, key = `${c.type}|${c.id}`;
   const es = c.ep ? (c.ep.season ?? 1) : 0, ee = c.ep ? (c.ep.episode ?? 0) : 0, fin = pos / dur >= 0.92;
+  if (!fin && !force && lastRec.k === key && Date.now() - lastRec.t < 15000) return;      // while playing: the position is saved every 15 s, not on every tick
+  lastRec = {k:key, t:Date.now()};
+  syncSoft = !fin;                                                                          // progress alone can wait for the next quiet moment to go to the cloud
+  try { recordProgressNow(c, stream, pos, dur, it, key, es, ee, fin); } finally { syncSoft = false; }
+}
+function recordProgressNow(c, stream, pos, dur, it, key, es, ee, fin){
   epPut(it.id, es, ee, fin ? {pos:0, dur, done:true} : {pos, dur, done:false});
   if (it.type === 'series' || c.ep) showNote(it.id, it.name, it.poster, it.background, c.info.addonId);
   if (fin) {                       // finished: drop it, queue the next episode
@@ -314,11 +321,11 @@ function recordProgress(c, stream, pos, dur){
     ep:c.ep || null, next:c.next || null, pos, dur, t:Date.now(), space:cur && cur.id, stream});
 }
 $('#vid').addEventListener('timeupdate', () => { if (Date.now() - lastSave > 10000) { lastSave = Date.now(); saveProgress(); } });
-$('#vid').addEventListener('pause', saveProgress);
-$('#vid').addEventListener('ended', saveProgress);
-document.addEventListener('visibilitychange', () => { if (document.hidden && !$('#player').hidden) saveProgress(); });
+$('#vid').addEventListener('pause', () => saveProgress(true));
+$('#vid').addEventListener('ended', () => saveProgress(true));
+document.addEventListener('visibilitychange', () => { if (document.hidden && !$('#player').hidden) saveProgress(true); });
 async function stopPlayer(){
-  saveProgress();
+  saveProgress(true);
   const v = $('#vid'); v.pause(); if (hls) { hls.destroy(); hls = null; }
   v.querySelectorAll('track').forEach(t => t.remove()); if (pl.blob) URL.revokeObjectURL(pl.blob);
   pl = {id:pl.id + 1, ctx:null, subs:[], loading:false, nSrc:0, cur:null, offset:0, blob:null};

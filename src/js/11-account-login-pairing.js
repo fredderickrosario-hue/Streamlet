@@ -16,11 +16,26 @@ const clean = o => JSON.parse(JSON.stringify(o));
 const metaGet = () => lsGet('streamlet.meta', {});
 function stamp(k){ const m = metaGet(); m[k] = Date.now(); lsSet('streamlet.meta', m); scheduleSync(); }
 function noteErr(e){ syncErr = (e && (e.code || e.message)) || 'unknown error'; syncState = 'error'; fillAccountUI(); }
+/* Cloud pushes: a normal change goes out after 1.5 s; playback progress (every few seconds while watching) waits up to a minute,
+   and anything waiting goes out at once when the app is hidden or closed. Only documents that really changed are written. */
+let syncSoft = false, syncTsoft = false, pushing = false, pushAgain = false;
+const pushSig = {};
 function scheduleSync(){
   if (!user || !db) return;
-  clearTimeout(syncT); syncState = 'syncing';
-  syncT = setTimeout(() => pushAll().catch(noteErr), 1500);
+  const soft = syncSoft;
+  if (syncT && (soft || !syncTsoft)) return;                     // already queued, and that push will carry this change too
+  clearTimeout(syncT); syncTsoft = soft; syncState = 'syncing';
+  syncT = setTimeout(runPush, soft ? 60000 : 1500);
 }
+function runPush(){
+  syncT = null;
+  if (pushing) { pushAgain = true; return; }
+  pushing = true;
+  pushAll().catch(noteErr).finally(() => { pushing = false; if (pushAgain) { pushAgain = false; runPush(); } });
+}
+function flushSync(){ if (syncT) { clearTimeout(syncT); runPush(); } }
+document.addEventListener('visibilitychange', () => { if (document.hidden) flushSync(); });
+addEventListener('pagehide', flushSync);
 
 async function loadFirebase(){
   const base = `https://www.gstatic.com/firebasejs/${FB_VER}/`;
@@ -158,7 +173,7 @@ async function pushAll(){
   if (m.addonsT) { fam.addons = addons.map(a => ({url:a.url, uid:a.uid, label:a.label || null})); fam.addonsT = m.addonsT; }
   if (m.reposT) { fam.repos = reposGet(); fam.reposT = m.reposT; }
   if (m.tmdbT) { fam.tmdb = lsGet('streamlet.tmdb', '') || ''; fam.tmdbT = m.tmdbT; }
-  if (Object.keys(fam).length) await setDoc(doc(db, ...base, 'sync', 'family'), clean(fam), {merge:true});
+  if (Object.keys(fam).length) { const sig = JSON.stringify(fam); if (sig !== pushSig.fam) { await setDoc(doc(db, ...base, 'sync', 'family'), clean(fam), {merge:true}); pushSig.fam = sig; } }
   for (const p of profiles) {
     const hist = plsGet(p.id, 'history', []), removed = plsGet(p.id, 'removed', {}), sT = plsGet(p.id, 'settingsT', 0);
     const wl = plsGet(p.id, 'watchlist', []), wlrem = plsGet(p.id, 'wlRemoved', {});
@@ -176,7 +191,8 @@ async function pushAll(){
     for (const [k, v] of Object.entries(wentries)) payload.watch[k] = (v && v._methodName) ? v : clean(v);
     payload.shows = Object.fromEntries(Object.entries(shp).map(([k, v]) => [ek(k), clean(v)])); payload.showsremoved = Object.fromEntries(Object.entries(plsGet(p.id, 'showsRemoved', {})).map(([k, t]) => [ek(k), t])); payload.likes = lkp.entries; payload.likeremoved = lkp.rem; payload.eps = deleteField(); payload.epremoved = deleteField(); payload.wd = deleteField(); payload.wdremoved = deleteField();   // moved to their own documents (pushBlobs)
     if (sT) { payload.settings = plsGet(p.id, 'settings', {}); payload.settingsT = sT; }
-    await setDoc(doc(db, ...base, 'profiles', p.id), payload, {merge:true});
+    const sig = JSON.stringify(payload);
+    if (sig !== pushSig[p.id]) { await setDoc(doc(db, ...base, 'profiles', p.id), payload, {merge:true}); pushSig[p.id] = sig; }
     try { await pushBlobs(p.id); } catch (e) { blobErr = blobErr || e; }
   }
   if (blobErr) throw blobErr;                                      // shown in Settings → Account as the sync error

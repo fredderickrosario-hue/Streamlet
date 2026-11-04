@@ -50,11 +50,13 @@ try { addons = JSON.parse(localStorage.getItem('streamlet.addons') || '[]'); } c
 ensureUids();
 const save = () => { try { localStorage.setItem('streamlet.addons', JSON.stringify(addons)); } catch {} stamp('addonsT'); };
 
-/*@tv*/
-/* TV: catalog rows are remembered between launches. They show at once from the cache and refresh quietly when older than 15 minutes. */
-const DCACHE = 'streamlet-data', DMAX = 80, DFRESH = 15 * 60e3;
+/* Catalog rows and title pages are remembered between launches (TV and phone): they show at once from the cache
+   and refresh quietly in the background once they are older than 15 minutes (rows) or 30 minutes (title pages). */
+const DCACHE = 'streamlet-data', DMAX = 160;
+const dKind = url => /search=/.test(url) ? '' : /\/catalog\//.test(url) ? 'c' : /\/meta\//.test(url) ? 'm' : '';
+const dFresh = url => dKind(url) === 'm' ? 30 * 60e3 : 15 * 60e3;
 async function dataGet(url){
-  if (!/\/catalog\//.test(url) || /search=/.test(url) || !self.caches || !document.body.classList.contains('tv')) return null;
+  if (!dKind(url) || !self.caches) return null;
   try {
     const c = await caches.open(DCACHE), r = await c.match(url);
     if (!r) return null;
@@ -62,25 +64,23 @@ async function dataGet(url){
   } catch { return null; }
 }
 async function dataPut(url, json){
-  if (!/\/catalog\//.test(url) || /search=/.test(url) || !self.caches || !document.body.classList.contains('tv')) return;
+  if (!dKind(url) || !self.caches) return;
   try {
     const c = await caches.open(DCACHE);
     await c.put(url, new Response(JSON.stringify(json), {headers:{'content-type':'application/json', 'x-t':String(Date.now())}}));
     const ks = await c.keys(); if (ks.length > DMAX) for (const k of ks.slice(0, ks.length - DMAX)) await c.delete(k);
   } catch {}
 }
-/*@end*/
+
 const warmC = new Map();                                                       // catalogs fetched ahead of time by warmSpace (used for 2 minutes)
 async function getJSON(url){
   const w = warmC.get(url); if (w && Date.now() - w.t < 120000) return w.j;
   if (url.startsWith('demo://sample/')) return demoRoute(url.slice('demo://sample/'.length));
   if (url.startsWith('qc://')) return qcRoute(url);
-  /*@tv*/
   const hit = await dataGet(url);
-  if (hit) { if (hit.age > DFRESH) fetchJSON(url).then(j => dataPut(url, j)).catch(() => {}); return hit.json; }
-  /*@end*/
+  if (hit) { if (hit.age > dFresh(url)) fetchJSON(url).then(j => dataPut(url, j)).catch(() => {}); return hit.json; }
   const j = await fetchJSON(url);
-  /*@tv*/ dataPut(url, j); /*@end*/
+  dataPut(url, j);
   return j;
 }
 async function fetchJSON(url){

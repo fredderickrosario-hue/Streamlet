@@ -144,6 +144,8 @@ public class PlayerActivity extends Activity {
     private int segMode = 0;
     private long segTarget = 0, creditsShownAt = 0;
     private boolean creditsDismissed = false;
+    private boolean autoNextOn = true, autoSkipOn = false;           // settings: start the next episode by itself, skip intros and recaps by themselves
+    private long skippedIntro = -1, skippedRecap = -1;
     private FrameLayout nextLayer;
     private int nextSecs = 0;
     private final Runnable nextTick = new Runnable() { @Override public void run() {
@@ -218,6 +220,7 @@ public class PlayerActivity extends Activity {
         String st = in.getStringExtra("subtitle"); streamSubtitle = st == null ? "" : st;
         long startMs = in.getLongExtra("startMs", 0L);
         String nt = in.getStringExtra("nextTitle"); nextTitle = nt == null ? "" : nt;
+        autoNextOn = in.getBooleanExtra("autoNext", true); autoSkipOn = in.getBooleanExtra("autoSkip", false);
         isEpisode = in.getBooleanExtra("episode", false);
         try {                                                                  // intro / recap / credits times from the intro database
             String sg = in.getStringExtra("segs");
@@ -808,6 +811,14 @@ public class PlayerActivity extends Activity {
         int mode = 0; String label = null; long target = 0;
         if (segIntro != null && cp >= segIntro[0] - 500 && cp < segIntro[1] - 1500) { mode = 1; label = "Skip intro"; target = segIntro[1]; }
         else if (segRecap != null && cp >= segRecap[0] - 500 && cp < segRecap[1] - 1500) { mode = 2; label = "Skip recap"; target = segRecap[1]; }
+        if (autoSkipOn && player != null && !errOn && !nextOn && (mode == 1 || mode == 2)) {   // once per intro / recap: seeking back into it later plays it
+            long key = mode == 1 ? segIntro[0] : segRecap[0];
+            if ((mode == 1 ? skippedIntro : skippedRecap) != key) {
+                if (mode == 1) skippedIntro = key; else skippedRecap = key;
+                player.seekTo(target); flash(mode == 1 ? "Intro skipped" : "Recap skipped");
+                segMode = 0; segTarget = 0; segBtn.setVisibility(View.GONE); return;
+            }
+        }
         else if (segOutro != null && !nextTitle.isEmpty() && cp >= segOutro[0] && !creditsDismissed) {
             mode = 3; label = "Next episode  \u25B6";
             if (creditsShownAt == 0) creditsShownAt = System.currentTimeMillis();
@@ -1641,7 +1652,7 @@ public class PlayerActivity extends Activity {
         card.setBackground(cb);
         TextView h1 = text("Next episode", 14, true); h1.setAlpha(.6f);
         TextView h2 = text(nextTitle, 22, true); h2.setEllipsize(TextUtils.TruncateAt.END);
-        nextCount = text("Starting in " + nextSecs + " s", 14, false); nextCount.setAlpha(.7f);
+        nextCount = text(autoNextOn ? "Starting in " + nextSecs + " s" : "Up next", 14, false); nextCount.setAlpha(.7f);
         nextCount.setPadding(0, dp(6), 0, dp(16));
         LinearLayout row = new LinearLayout(this);
         row.setOrientation(LinearLayout.HORIZONTAL);
@@ -1653,7 +1664,7 @@ public class PlayerActivity extends Activity {
         lp.rightMargin = dp(48); lp.bottomMargin = dp(48);
         nextLayer.addView(card, lp);
         go.requestFocus();
-        handler.postDelayed(nextTick, 1000);
+        if (autoNextOn) handler.postDelayed(nextTick, 1000);
     }
 
     private void hideSystemUi() {

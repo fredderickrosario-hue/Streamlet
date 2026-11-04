@@ -39,7 +39,7 @@ function renderSettings(){
     mn.disabled = !sv.checked;
     sv.onchange = () => { lsSet('streamlet.ui', {...lsGet('streamlet.ui', {}), saver:sv.checked}); mn.disabled = !sv.checked; try { if (window.saverArm) { if (sv.checked) saverArm(); else { saverStop(); saverArm(); } } } catch {} };
     mn.onchange = () => { lsSet('streamlet.ui', {...lsGet('streamlet.ui', {}), saverMin:+mn.value}); try { if (window.saverArm) saverArm(); } catch {} }; }
-  for (const [id, k, d] of [['#setHw', 'hw', true], ['#setFps', 'fps', true], ['#setTun', 'tunnel', false], ['#setPass', 'pass', true]]) {
+  for (const [id, k, d] of [['#setAutoNext', 'autonext', true], ['#setAutoSkip', 'autoskip', false], ['#setHw', 'hw', true], ['#setFps', 'fps', true], ['#setTun', 'tunnel', false], ['#setPass', 'pass', true]]) {
     const el = $(id); el.checked = u[k] === undefined ? d : u[k] !== false && !!u[k];
     el.onchange = () => { lsSet('streamlet.ui', {...lsGet('streamlet.ui', {}), [k]:el.checked}); };
   }
@@ -187,7 +187,7 @@ function editProfile(id){
     if (profiles.length < 2) { toast('Keep at least one profile.'); return; }
     if (!armed) { armed = true; del.textContent = 'Tap again to delete'; return; }
     profiles = profiles.filter(x => x.id !== pr.id); saveProfiles(); cloudDeleteProfile(pr.id);
-    try { Object.keys(localStorage).filter(k => k.startsWith(`streamlet.p.${pr.id}.`)).forEach(k => localStorage.removeItem(k)); } catch {}
+    try { Object.keys(localStorage).filter(k => k.startsWith(`streamlet.p.${pr.id}.`)).forEach(k => { localStorage.removeItem(k); lsMem.delete(k); }); } catch {}
     if (profile && profile.id === pr.id) profile = null;
     launcherDirty = true; close();
   };
@@ -249,7 +249,7 @@ async function showMeta(id, s0){
   const now = Date.now(), hit = nuMem.get(id);
   if (hit && now - hit.t < 30 * 60e3) return hit.m;
   const ma = addons.find(x => x.uid === s0.a && supports(x, 'meta', 'series', id)) || spaceAddons().find(x => supports(x, 'meta', 'series', id)) || addons.find(x => supports(x, 'meta', 'series', id)); if (!ma) return null;      // the space may only have a stream addon: any installed addon can describe the show
-  const meta = (await getJSON(`${ma.base}/meta/series/${enc(id)}.json`)).meta; meta._a = ma.uid; nuMem.set(id, {t:now, m:meta}); return meta;
+  const meta = (await getJSON(`${ma.base}/meta/series/${enc(id)}.json`)).meta; meta._a = ma.uid; nuMem.set(id, {t:now, m:meta}); if (nuMem.size > 60) nuMem.delete(nuMem.keys().next().value); return meta;
 }
 const airedVids = meta => (meta.videos || []).filter(v => v && v.id && (v.season ?? 1) >= 1).sort((x, y) => ((x.season ?? 1) - (y.season ?? 1)) || ((x.episode ?? 0) - (y.episode ?? 0)));
 /* an episode you took off the watched list counts as the place you were at, so the show still offers it again */

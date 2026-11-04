@@ -38,12 +38,6 @@ function epPut(id, s, e, patch, t){
   if (patch && patch.dur != null) rec.dur = Math.round(patch.dur);
   epWrite([rec, ...epAll().filter(x => x.k !== k)]);
 }
-function epDel(id, s, e){
-  if (!profile) return;
-  const k = epKey(id, s, e), r = pget('epRemoved', {}); r[k] = Date.now();
-  pset('epRemoved', Object.fromEntries(Object.entries(r).sort((a, b) => b[1] - a[1]).slice(0, 1500)));
-  epWrite(epAll().filter(x => x.k !== k));
-}
 /* mark a list of episodes (all of a season, or the whole show) watched / unwatched */
 function epMark(id, list, done){
   if (!profile) return;

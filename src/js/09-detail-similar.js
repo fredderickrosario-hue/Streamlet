@@ -52,13 +52,6 @@ function infoPanel(meta, genres){
   if (!rows.length) return null;
   return h('div', {class:'dinfo'}, rows.map(([k, v]) => h('div', {class:'di'}, h('span', {class:'dil'}, k), h('span', null, v.join(', ')))));
 }
-function mirrorBtn(src, path, label){
-  if (!src) return null;
-  const b = iconBtn(path, label, null, src.classList.contains('fill') ? 'fill' : '');
-  const sync = () => { b.classList.toggle('on', src.classList.contains('on')); b.title = src.title || label; };
-  b.onclick = () => { src.click(); sync(); };
-  sync(); return b;
-}
 /* TV: toggle icons (Watchlist / Watched) with no background; the icon itself grows when focused and fills with the accent color when on */
 function plainIconBtn(src, path, label){
   if (!src) return null;
@@ -69,7 +62,7 @@ function plainIconBtn(src, path, label){
 function metaRow(parts, rating, right){
   const row = h('div', {class:'dmeta'});
   parts.filter(Boolean).forEach((t, i) => { if (i) row.append(h('span', {class:'dot'}, '·')); row.append(h('span', null, t)); });
-  if (rating) row.append(h('span', {class:'imdb'}, true ? '★' : 'IMDb'), h('span', null, String(rating)));
+  if (rating) row.append(h('span', {class:'imdb'}, '★'), h('span', null, String(rating)));
   row.append(h('span', {class:'sp'}), ...(right || []).filter(Boolean));
   return row;
 }
@@ -176,13 +169,6 @@ function similarPane(pane, a, type, meta){
     pane.replaceChildren(grid);
   });
 }
-function rightTabs(mainLabel, mainEls, loadSim){
-  const paneMain = h('div', {class:'dpane'}, ...mainEls.filter(Boolean)), paneSim = h('div', {class:'dpane', hidden:true}); let loaded = false;
-  const b1 = h('button', {class:'chip on', type:'button'}, mainLabel), b2 = h('button', {class:'chip', type:'button'}, 'More like this');
-  const show = k => { b1.classList.toggle('on', k === 0); b2.classList.toggle('on', k === 1); paneMain.hidden = k !== 0; paneSim.hidden = k !== 1; if (k === 1 && !loaded) { loaded = true; loadSim(paneSim); } };
-  b1.onclick = () => show(0); b2.onclick = () => show(1);
-  return [h('div', {class:'dptabs'}, b1, b2), paneMain, paneSim];
-}
 function episodeBase(addon, type, meta, v, sorted){
   const i = sorted.indexOf(v), nx = sorted[i + 1];
   return {info:{item:{id:meta.id, type, name:meta.name, poster:meta.poster, background:meta.background}, addonId:addon.uid},
@@ -216,24 +202,18 @@ function tvRowsFor(addon, type, meta, title, els, opts = {}){
     people.length ? h('section', {class:'drow dpeople'}, h('h3', {class:'drt'}, 'Cast & crew'), h('div', {class:'dpl'}, ...people)) : null,
     simRow));
 }
-function resumeButton(rs, base){
-  if (!rs || !rs.stream || !rs.stream.url || rs.upnext) return null;
-  return h('button', {class:'btn resbtn', type:'button', onclick:() => playStream(rs.stream, rs.name, {type:rs.type, id:rs.id, info:base.info, ep:rs.ep, next:rs.next, alt:base.alt, eps:base.eps})},
-    '▶ Resume ' + fmtTime(rs.pos) + (rs.ep ? ` · S${rs.ep.season ?? 1}:E${rs.ep.episode ?? '?'}` : ''));
-}
 
 /* the page of a single episode: its own backdrop, overview and the streams */
 function openEpisode(addon, type, meta, v, sorted, again){
   if (profile && type === 'series' && (epAll().some(r => r.itemId === meta.id) || Object.keys(pget('epRemoved', {})).some(k => k.startsWith(meta.id + '|')))) showNote(meta.id, meta.name, meta.poster, meta.background, addon.uid);
   const ed = $('#episode'); ed.hidden = false; ed.scrollTop = 0; ed.classList.remove('p2'); if (!again) pushLayer('episode');
   const base = episodeBase(addon, type, meta, v, sorted);
-  const sn = v.season ?? 1, code = `S${String(sn).padStart(2, '0')}E${String(v.episode ?? 0).padStart(2, '0')}`;
+  const sn = v.season ?? 1;
   const title = v.title || v.name || `Episode ${v.episode ?? ''}`;
   const when = v.released ? fmtDate(v.released) : '';
   const streamsBox = h('div', {class:'dbox'});
-  const saved = histGet().find(x => x.k === `${type}|${v.id}`);
   const etop = h('div', {class:'dtop'}, iconBtn(IC.back, 'Back', () => popLayer('episode')), titleMini(meta), h('span', {class:'dtep'}, `S${sn} E${v.episode ?? ''} · ${title}`));
-  if (true) {                                                      // TV: same two-half page as a movie, for this episode
+  {                                                                // same two-half page as a movie, for this episode
     const rec = epGet(meta.id, sn, v.episode), hist = rec && !rec.done && rec.pos > 20;
     const play = h('button', {class:'hb p', type:'button', onclick:async () => {
       if (autoPickOn()) { if (!(await autoPlay(type, v.id, meta.name, base))) { const b = ed.querySelector('.manualbtn'); if (b) b.click(); } return; }
@@ -259,21 +239,7 @@ function openEpisode(addon, type, meta, v, sorted, again){
     }
     for (const [cls, ok, label] of [['l', at > 0, '‹'], ['r', at >= 0 && at < sorted.length - 1, '›']]) if (ok) ed.append(h('div', {class:'dnav ' + cls, 'aria-hidden':'true'}, label));
     manualSources(streamsBox, () => loadStreams(type, v.id, streamsBox, meta.name, base));
-    return;
   }
-  ed.replaceChildren(
-    etop,
-    h('div', {class:'dwrap'}, heroBlock(meta, v.thumbnail || meta.background || meta.poster),
-      h('div', {class:'dbody'},
-        h('div', {class:'dleft'},
-          titleBlock(meta),
-          metaRow([v.runtime || meta.runtime, when || meta.year || meta.releaseInfo], meta.imdbRating),
-          h('h2', {class:'ept'}, `${code} – ${title}`),
-          (v.overview || v.description) ? h('p', {class:'ddesc'}, v.overview || v.description) : null),
-        h('div', {class:'dsec dright'}, h('div', {class:'dptitle'}, 'Sources'), resumeButton(saved, base),
-          autoPickOn() ? h('button', {class:'btn resbtn', type:'button', onclick:() => autoPlay(type, v.id, meta.name, base)}, '▶  Play best source') : null, streamsBox))));
-  bindScroll(ed, etop);
-  manualSources(streamsBox, () => loadStreams(type, v.id, streamsBox, meta.name, base));
 }
 
 async function openDetail(addon, type, item, opts = {}){
@@ -294,9 +260,9 @@ async function openDetail(addon, type, item, opts = {}){
     const acts = h('div', {class:'dacts2'});
     const body = h('div', {class:'dbody'}, h('div', {class:'dleft'},
       titleBlock(meta), relBadgeEl(meta, type),
-      metaRow([meta.runtime, true ? genres.slice(0, 3).join(', ') : null, meta.year || meta.releaseInfo], meta.imdbRating, [ico.seen]),
+      metaRow([meta.runtime, genres.slice(0, 3).join(', '), meta.year || meta.releaseInfo], meta.imdbRating, [ico.seen]),
       meta.description ? h('p', {class:'ddesc'}, meta.description) : null,
-      acts, infoPanel(meta, genres), true ? hintEl() : null,
+      acts, infoPanel(meta, genres), hintEl(),
       ph(genres.length ? h('div', {class:'dgen'}, genres.map(g => h('button', {class:'pillx', type:'button', onclick:() => searchFor(g)}, g))) : null),
       ph(chipsSection('Cast', listOf(meta, 'cast', 'cast'))), ph(chipsSection('Director', listOf(meta, 'director', 'director'))), ph(chipsSection('Writer', listOf(meta, 'writer', 'writer')))));
     const tvRows = (title, els) => tvRowsFor(addon, type, meta, title, els);
@@ -314,10 +280,10 @@ async function openDetail(addon, type, item, opts = {}){
           return epCard(addon, type, meta, v, sorted, soon, th, hist);
         }));
       };
-      draw(); body.append(true ? tvRows('Episodes', [srow, list]) : h('div', {class:'dsec dright'}, ...rightTabs('Episodes', [srow, list], pane => similarPane(pane, addon, type, meta))));
+      draw(); body.append(tvRows('Episodes', [srow, list]));
     } else if (withStreams) {                                              // ---- movie / single title: streams right here
-      const box = h('div', {class:'dbox'}), saved = histGet().find(x => x.k === `${type}|${meta.id}`);
-      body.append(true ? tvRows('Sources', [box]) : h('div', {class:'dsec dright'}, ...rightTabs('Sources', [resumeButton(saved, base), box], pane => similarPane(pane, addon, type, meta))));
+      const box = h('div', {class:'dbox'});
+      body.append(tvRows('Sources', [box]));
       manualSources(box, () => loadStreams(type, meta.id, box, meta.name, base));
       if (autoPickOn() && type === 'movie' && recentRelease(meta)) collectStreams(type, meta.id, base, 2500).then(o => { if (o) noteTheaters(base.info.item, o); }).catch(() => {});
     }
@@ -335,8 +301,8 @@ async function openDetail(addon, type, item, opts = {}){
       else { const rb = d.querySelector('.dright .resbtn'); if (rb) { rb.click(); return; } const t = d.querySelector('.dright .scard:not(.dis), .dp2 .scard:not(.dis)'); if (t) t.focus({preventScroll:true}); else toast('Loading sources…'); }
     }}, playLabel());
     playSync = () => { playEl.textContent = playLabel(); };
-    const restart = type === 'movie' ? (true ? (() => { const b = h('button', {class:'pib', type:'button', 'aria-label':'Start from the beginning', title:'Start from the beginning'}); b.innerHTML = `<svg viewBox="0 0 24 24">${IC.restart}</svg>`; b.onclick = () => { if (soon()) { toast('Not out yet.'); return; } autoPlay(type, meta.id, meta.name, {...base, fresh:true}); }; return b; })() : iconBtn(IC.restart, 'Start from the beginning', () => { if (soon()) { toast('Not out yet.'); return; } autoPlay(type, meta.id, meta.name, {...base, fresh:true}); })) : null;
-    acts.append(playEl, ...(true ? [plainIconBtn(ico.wl, IC.mark, 'Watchlist'), plainIconBtn(ico.like, IC.heart, 'Like'), plainIconBtn(ico.seen, IC.seen, 'Watched'), restart] : [mirrorBtn(ico.wl, IC.mark, 'Watchlist'), mirrorBtn(ico.like, IC.heart, 'Like'), mirrorBtn(ico.seen, IC.seen, 'Watched'), restart]).filter(Boolean));
+    const restart = type === 'movie' ? (() => { const b = h('button', {class:'pib', type:'button', 'aria-label':'Start from the beginning', title:'Start from the beginning'}); b.innerHTML = `<svg viewBox="0 0 24 24">${IC.restart}</svg>`; b.onclick = () => { if (soon()) { toast('Not out yet.'); return; } autoPlay(type, meta.id, meta.name, {...base, fresh:true}); }; return b; })() : null;
+    acts.append(playEl, ...[plainIconBtn(ico.wl, IC.mark, 'Watchlist'), plainIconBtn(ico.like, IC.heart, 'Like'), plainIconBtn(ico.seen, IC.seen, 'Watched'), restart].filter(Boolean));
     d.replaceChildren(top, h('div', {class:'dwrap'}, heroBlock(meta), body));
     d.scrollTop = keep; bindScroll(d, top);
     return {sorted};

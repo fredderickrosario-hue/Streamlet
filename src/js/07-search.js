@@ -197,7 +197,6 @@ async function renderHome(query = $('#q').value.trim(), target){
   else if (!hideCats) Promise.all(jobs).then(() => { if (tok===homeTok && !shown && !box.querySelector('.spin')) box.append(h('div',{class:'empty'}, query ? 'No results.' : none)); });
 }
 
-const maskUrl = u => String(u).replace(/((?:real|all)?debrid(?:link)?|premiumize|torbox|offcloud|easydebrid|putio|apikey|api_key|token|key|password)=([^|/&?]+)/gi, '$1=••••••');
 let addonsTab = 'installed';
 const CAP_NAMES = {catalog:'Catalogs', meta:'Info', stream:'Streams', subtitles:'Subtitles', addon_catalog:'Addon lists'};
 function addonLogo(a){

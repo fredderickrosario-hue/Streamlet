@@ -8,7 +8,6 @@ async function qcGet(url, headers){
   if (N && N.httpGet) { const r = await N.httpGet({url, headers:{'User-Agent':'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36', 'Accept-Language':'fr-CA,fr;q=0.9', ...(headers || {})}}); return r; }
   const r = await fetch(url, {headers}); return {status:r.status, body:await r.text(), url:r.url};
 }
-const qcHost = u => { try { return new URL(u).host; } catch { return '?'; } };
 const QC_ACCOUNTS = ['5481942443001', '5813221784001'];
 const QC_DEFAULT_SHOWS = ['https://www.tvaplus.ca/tva/les-armes', 'https://www.tvaplus.ca/tva/indefendable', 'https://ici.radio-canada.ca/tele/stat/site/episodes'];
 const qcMem = new Map();                                                  // url -> {t, v}: short in-memory cache

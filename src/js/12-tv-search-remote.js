@@ -340,7 +340,7 @@ function ensureFocus(){
   if (typing) return;
   const f = firstFocus(root); if (f) { f.focus({preventScroll:true}); autoEl = f; }
 }
-let efT; new MutationObserver(() => { clearTimeout(efT); efT = setTimeout(ensureFocus, 220); })
+let efT; new MutationObserver(() => { if (!remoteMode) return; clearTimeout(efT); efT = setTimeout(ensureFocus, 220); })   // touch screens have no focus to keep
   .observe(document.body, {subtree:true, childList:true, attributes:true, attributeFilter:['hidden', 'class']});
 
 const KEYMAP = {Escape:'back', BrowserBack:'back', GoBack:'back', MediaPlayPause:'playpause', MediaPlay:'play', MediaPause:'pause', MediaStop:'stop',
