@@ -1508,9 +1508,20 @@ public class PlayerActivity extends Activity {
                         String txt;
                         synchronized (subText) { txt = subText.get(c.url); }
                         if (txt == null) { txt = download(c.url); synchronized (subText) { subText.put(c.url, txt); } }
-                        File f = new File(getCacheDir(), "sub" + i + (c.vtt ? ".vtt" : ".srt"));
-                        try (FileOutputStream fo = new FileOutputStream(f)) { fo.write((d == 0 ? txt : shiftSub(txt, d, c.vtt)).getBytes("UTF-8")); }
-                        u = Uri.fromFile(f);
+                        if (txt.contains("[Script Info]") || txt.contains("[V4+ Styles]") || txt.contains("[V4 Styles]")) {
+                            // an ASS/SSA script behind an address that did not say so: read it as a script, not as SRT
+                            // (the raw drawing commands showed up as numbers). Vector drawings (signs, title cards) are dropped; the dialogue stays
+                            c.mime = MimeTypes.TEXT_SSA; c.shiftable = false;
+                            StringBuilder keep = new StringBuilder();
+                            for (String line : txt.split("\r?\n", -1)) if (!(line.startsWith("Dialogue:") && line.contains("\\p1"))) keep.append(line).append('\n');
+                            File fa = new File(getCacheDir(), "sub" + i + ".ass");
+                            try (FileOutputStream fo = new FileOutputStream(fa)) { fo.write(keep.toString().getBytes("UTF-8")); }
+                            u = Uri.fromFile(fa);
+                        } else {
+                            File f = new File(getCacheDir(), "sub" + i + (c.vtt ? ".vtt" : ".srt"));
+                            try (FileOutputStream fo = new FileOutputStream(f)) { fo.write((d == 0 ? txt : shiftSub(txt, d, c.vtt)).getBytes("UTF-8")); }
+                            u = Uri.fromFile(f);
+                        }
                     } catch (Exception ignored) { u = Uri.parse(c.url); }
                 }
                 out.add(new MediaItem.SubtitleConfiguration.Builder(u).setMimeType(c.mime).setLanguage(c.lang).setLabel(c.label).build());

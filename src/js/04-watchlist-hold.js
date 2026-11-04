@@ -62,14 +62,22 @@ async function serMeta(itemId, type, addonId){
   const ma = a && supports(a, 'meta', type, itemId) ? a : addons.find(x => supports(x, 'meta', type, itemId));
   if (!ma) return null;
   const r = await getJSON(`${ma.base}/meta/${type}/${enc(itemId)}.json`);
-  const m = {...r.meta, id:itemId, type}; serMem.set(itemId, {t:Date.now(), m}); return m;
+  const m = {...r.meta, id:itemId, type};
+  const tk = lsGet('streamlet.tmdb', ''), imdb = /^tt\d+$/.test(itemId) ? itemId : (m.imdb_id || '');
+  if (tk && /^tt\d+$/.test(imdb)) {                                  // TMDB knows the real status: Returning Series, In Production, Ended, Canceled…
+    try { const f = await tmdbGet(`/find/${imdb}?external_source=imdb_id`, tk), t = f.tv_results && f.tv_results[0];
+      if (t) { const d = await tmdbGet(`/tv/${t.id}`, tk); m.tmdbStatus = d.status || ''; m.tmdbNext = !!d.next_episode_to_air; } } catch {}
+  }
+  serMem.set(itemId, {t:Date.now(), m}); return m;
 }
 function serStatus(meta){
   const now = Date.now(), vids = (meta.videos || []).filter(v => v && v.id && v.episode != null);
   const aired = vids.filter(v => v.released && new Date(v.released) <= now);
   const lastAired = aired.length ? Math.max(...aired.map(v => new Date(v.released).getTime())) : 0;
+  const tm = serMem.get(meta.id), ts = String((tm && tm.m.tmdbStatus) || meta.tmdbStatus || '');
   const st = String(meta.status || '');
-  const ongoing = /continu|return|production|planned|airing|ongoing/i.test(st) || (!/ended|cancel/i.test(st) && (vids.length > aired.length || (!st && lastAired > now - 400 * 864e5)));
+  const ongoing = ts ? (/returning|production|planned|pilot/i.test(ts) || !!((tm && tm.m.tmdbNext) || meta.tmdbNext))
+    : (/continu|return|production|planned|airing|ongoing/i.test(st) || (!/ended|cancel/i.test(st) && (vids.length > aired.length || (!st && lastAired > now - 400 * 864e5))));
   const done = aired.length > 0 && aired.every(v => epDone(meta.id, v.season ?? 1, v.episode));
   return {aired, ongoing, done};
 }

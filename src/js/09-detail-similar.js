@@ -84,7 +84,9 @@ function toggleIcons(addon, type, meta){
   wl.onclick = () => { if (wlHas(e.itemId)) { wlRemove(e.itemId); toast('Removed from watchlist'); } else { wlAdd({...e}); toast('Added to watchlist'); } paint(); };
   like.onclick = () => { if (likeHas(e.itemId)) { likeRemove(e.itemId); toast('Removed your like'); } else { likeAdd({...e}); toast('Liked. You will get more like this on Home'); } paint(); };
   seen.onclick = () => { if (isSer) serToggle(meta); else if (watchedHas(e.itemId)) { watchedRemove(e.itemId); toast('Marked as unwatched'); } else { watchedAdd(e); toast('Marked as watched'); } paint(); };
-  paint(); return {wl, seen, like};
+  paint();
+  if (isSer) serMeta(e.itemId, 'series', addon.uid).then(() => paint()).catch(() => {});   // TMDB status, once it is in
+  return {wl, seen, like};
 }
 function titleMini(meta){
   return h('div', {class:'dtlogo'}, meta.logo
