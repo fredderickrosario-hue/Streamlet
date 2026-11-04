@@ -1534,10 +1534,10 @@ public class PlayerActivity extends Activity {
                             // an ASS/SSA script behind an address that did not say so: read it as a script, not as SRT
                             // (the raw drawing commands showed up as numbers). Vector drawings (signs, title cards) are dropped; the dialogue stays
                             c.mime = MimeTypes.TEXT_SSA; c.shiftable = false;
-                            StringBuilder keep = new StringBuilder();
-                            for (String line : txt.split("\r?\n", -1)) if (!(line.startsWith("Dialogue:") && line.contains("\\p1"))) keep.append(line).append('\n');
+                            StringBuilder kept = new StringBuilder();
+                            for (String line : txt.split("\r?\n", -1)) if (!(line.startsWith("Dialogue:") && line.contains("\\p1"))) kept.append(line).append('\n');
                             File fa = new File(getCacheDir(), "sub" + i + ".ass");
-                            try (FileOutputStream fo = new FileOutputStream(fa)) { fo.write(keep.toString().getBytes("UTF-8")); }
+                            try (FileOutputStream fo = new FileOutputStream(fa)) { fo.write(kept.toString().getBytes("UTF-8")); }
                             u = Uri.fromFile(fa);
                         } else {
                             File f = new File(getCacheDir(), "sub" + i + (c.vtt ? ".vtt" : ".srt"));
