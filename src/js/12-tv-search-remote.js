@@ -156,8 +156,16 @@ function moveVisualRow(dir, list, cur){
   return best;
 }
 function moveFocus(dir, rep){
-  const root = ctxRoot(); let list = focusables(root); const cur = document.activeElement;
+  const root = ctxRoot(), cur = document.activeElement;
   const tv = document.body.classList.contains('tv') && root === document.body, inNav = !!(tv && cur && cur.closest && cur.closest('#nav'));
+  if (tv && !inNav && (dir === 'left' || dir === 'right') && cur && cur.closest) {       // along a row: the neighbour is the next card, no need to measure everything
+    const strip = cur.closest('.strip'), item = strip && (cur.closest('.strip > *') || cur);
+    for (let sib = item && (dir === 'right' ? item.nextElementSibling : item.previousElementSibling); sib; sib = dir === 'right' ? sib.nextElementSibling : sib.previousElementSibling) {
+      const t = sib.matches(FOCUSABLE) ? sib : sib.querySelector(FOCUSABLE);
+      if (t && t.tabIndex >= 0 && !t.closest('.off,[hidden]')) { t.focus({preventScroll:true}); revealEl(t, dir, rep, tv, null); return; }
+    }
+  }
+  let list = focusables(root);
   if (tv) {
     if (inNav) {
       if (dir === 'left') return;

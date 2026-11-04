@@ -88,7 +88,7 @@ const sfx = (() => {
     trem.start(t); trem.stop(t + 5.3);
   };
   return {
-    tick(){ if (!on()) return; const n = performance.now(); if (n - last < 55) return; last = n; note(392, .11, .028); },
+    tick(held){ if (!on()) return; const n = performance.now(); if (n - last < (held ? 130 : 55)) return; last = n; note(392, .11, .028); },
     select(){ if (!on()) return; note(440, .14, .05); },
     back(){ if (!on()) return; note(294, .14, .045); },
     warm(){ ensure(); },                                              // create the audio engine early so nothing is slow at the moment it's needed
@@ -129,8 +129,11 @@ document.addEventListener('keydown', e => {
   if (e.key === 'Backspace' && !typing) { e.preventDefault(); history.back(); return; }
   if (/^Arrow(Up|Down|Left|Right)$/.test(e.key)) {
     if (typing && (e.key === 'ArrowLeft' || e.key === 'ArrowRight')) return;
-    e.preventDefault(); if (e.repeat) { const n = performance.now(); if (n - (window.__lastNav || 0) < 85) return; window.__lastNav = n; } else window.__lastNav = performance.now();   // held keys move at a steady pace
-    const before = document.activeElement; moveFocus(e.key.slice(5).toLowerCase(), e.repeat); if (document.activeElement !== before) sfx.tick();
+    e.preventDefault();
+    const now = performance.now(), gap = now - (window.__lastNav || 0), held = e.repeat || gap < 260;   // a remote may not flag repeats, so a quick follow-up counts as held too
+    if (held && gap < 75) return;                                                                          // steady pace: extra repeats are dropped instead of piling up
+    window.__lastNav = now;
+    const before = document.activeElement; moveFocus(e.key.slice(5).toLowerCase(), held); if (document.activeElement !== before) sfx.tick(held);
   }
 }, true);
 
@@ -225,7 +228,7 @@ $('#pseek').addEventListener('click', e => { const v = $('#vid'), r = e.currentT
 
 /* ---------- boot ---------- */
 history.replaceState({guard:true}, '');
-try { const N = nativePlayer(); if (N && N.setKeepAwake) N.setKeepAwake({on:lsGet('streamlet.ui', {}).saver === false}); } catch {}
+try { const N = nativePlayer(); if (N && N.setKeepAwake) N.setKeepAwake({on:true}); } catch {}
 initProfiles();
 startAuth();
 if ('serviceWorker' in navigator && /^https?:/.test(location.protocol)) navigator.serviceWorker.register('sw.js').catch(()=>{});

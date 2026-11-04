@@ -63,10 +63,8 @@ body.tv .rhead{margin:6px 28px 2px;font-size:24px}
 body.tv .dsim{flex:1 1 auto;min-height:0;overflow-y:auto;grid-template-columns:repeat(auto-fill,minmax(128px,1fr));scrollbar-width:none;padding:6px}
 #offline{position:fixed;top:0;left:0;right:0;z-index:9000;background:#b3261e;color:#fff;text-align:center;padding:8px;font-size:15px;font-weight:700}
 #offline[hidden]{display:none}
-#idle{position:fixed;inset:0;z-index:9500;background:#000;opacity:0;pointer-events:none;transition:opacity 1.5s}
-#idle.on{opacity:.92;pointer-events:auto}
-#idle img{position:absolute;width:64px;opacity:.5;animation:idledrift 60s linear infinite}
-@keyframes idledrift{0%{left:8%;top:12%}25%{left:78%;top:30%}50%{left:30%;top:78%}75%{left:70%;top:15%}100%{left:8%;top:12%}}
+#saver{position:fixed;inset:0;width:100%;height:100%;z-index:9500;background:#000;opacity:0;pointer-events:none;transition:opacity .8s}
+#saver.on{opacity:1;pointer-events:auto}
 .lastu{margin-left:8px;font-size:10px;font-weight:800;letter-spacing:.4px;text-transform:uppercase;color:var(--btnt,#fff);background:var(--acc);border-radius:999px;padding:2px 7px;vertical-align:middle}
 .stile.new{justify-content:center;border-style:dashed;background:rgba(255,255,255,.04);box-shadow:none;color:var(--mut)}
 .stile:focus-visible{outline:2px solid #fff;outline-offset:3px;box-shadow:0 14px 34px rgba(0,0,0,.35);transform:scale(1.03)}

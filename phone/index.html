@@ -639,10 +639,8 @@ body:not(.tv) .tvhero::after{display:none}
 .dsim .card{width:auto;text-align:left}.dsim .poster{width:100%;height:auto;aspect-ratio:118/172}
 #offline{position:fixed;top:0;left:0;right:0;z-index:9000;background:#b3261e;color:#fff;text-align:center;padding:8px;font-size:15px;font-weight:700}
 #offline[hidden]{display:none}
-#idle{position:fixed;inset:0;z-index:9500;background:#000;opacity:0;pointer-events:none;transition:opacity 1.5s}
-#idle.on{opacity:.92;pointer-events:auto}
-#idle img{position:absolute;width:64px;opacity:.5;animation:idledrift 60s linear infinite}
-@keyframes idledrift{0%{left:8%;top:12%}25%{left:78%;top:30%}50%{left:30%;top:78%}75%{left:70%;top:15%}100%{left:8%;top:12%}}
+#saver{position:fixed;inset:0;width:100%;height:100%;z-index:9500;background:#000;opacity:0;pointer-events:none;transition:opacity .8s}
+#saver.on{opacity:1;pointer-events:auto}
 .lastu{margin-left:8px;font-size:10px;font-weight:800;letter-spacing:.4px;text-transform:uppercase;color:var(--btnt,#fff);background:var(--acc);border-radius:999px;padding:2px 7px;vertical-align:middle}
 .stile.new{justify-content:center;border-style:dashed;background:rgba(255,255,255,.04);box-shadow:none;color:var(--mut)}
 .stile:focus-visible{outline:2px solid #fff;outline-offset:3px;box-shadow:0 14px 34px rgba(0,0,0,.35);transform:scale(1.03)}
@@ -1045,6 +1043,8 @@ body:not(.tv) :is(#detail,#episode) .dhint{display:none}
         <label class="row2"><span class="rt">Animated background<small>Slowly drifting colors</small></span><input type="checkbox" id="setAnim"></label>
         <label class="row2"><span class="rt">Glass blur<small>Turn off if the app feels slow</small></span><input type="checkbox" id="setGlass"></label>
         <label class="row2"><span class="rt">Navigation sounds<small>Soft clicks when you move and select</small></span><input type="checkbox" id="setSnd"></label>
+        <label class="row2" id="rowSaver" hidden><span class="rt">Screensaver<small>A black screen with the Streamlet plug slithering around when nothing is pressed. Off keeps the picture on</small></span><input type="checkbox" id="setSaver"></label>
+        <div class="row2" id="rowSaverMin" hidden><span class="rt">Start screensaver after<small>Minutes without pressing anything</small></span><select id="setSaverMin" class="sel"></select></div>
       </div>
       <div id="setPlay" hidden>
         <h2 class="sh">Video <small>this device</small></h2>
@@ -1054,7 +1054,6 @@ body:not(.tv) :is(#detail,#episode) .dhint{display:none}
           <label class="row2"><span class="rt">Match frame rate<small>Removes judder when your TV supports it</small></span><input type="checkbox" id="setFps"></label>
           <label class="row2"><span class="rt">Tunneled playback<small>Can help 4K and HDR, may affect seeking</small></span><input type="checkbox" id="setTun"></label>
           <label class="row2"><span class="rt">Dolby passthrough<small>Backup player sends Dolby and Atmos to your TV. Turn off if you get no sound</small></span><input type="checkbox" id="setPass"></label>
-          <label class="row2"><span class="rt">Screensaver<small>Lets the TV's screensaver start while Streamlet is open (always on a black background). Turn off to keep the screen awake</small></span><input type="checkbox" id="setSaver"></label>
         </div>
       </div>
       <h2 class="sh">Release dates</h2>
@@ -1916,9 +1915,15 @@ function renderSettings(){
   const snd = $('#setSnd'); snd.checked = u.sound !== false;
   snd.onchange = () => { lsSet('streamlet.ui', {...lsGet('streamlet.ui', {}), sound:snd.checked}); if (snd.checked) sfx.select(); };
   $('#setPlay').hidden = !nativePlayer();
-  for (const [id, k, d] of [['#setHw', 'hw', true], ['#setFps', 'fps', true], ['#setTun', 'tunnel', false], ['#setPass', 'pass', true], ['#setSaver', 'saver', true]]) {
+  { const tvUi = isTVui(), sv = $('#setSaver'), mn = $('#setSaverMin'); $('#rowSaver').hidden = !tvUi; $('#rowSaverMin').hidden = !tvUi;
+    sv.checked = u.saver !== false;
+    mn.replaceChildren(...[1, 2, 3, 5, 10, 15, 30, 60].map(m => h('option', {value:String(m)}, m === 60 ? '1 hour' : m + (m === 1 ? ' minute' : ' minutes')))); mn.value = String(u.saverMin || 5); if (mn.value !== String(u.saverMin || 5)) mn.value = '5';
+    mn.disabled = !sv.checked;
+    sv.onchange = () => { lsSet('streamlet.ui', {...lsGet('streamlet.ui', {}), saver:sv.checked}); mn.disabled = !sv.checked; try { if (window.saverArm) { if (sv.checked) saverArm(); else { saverStop(); saverArm(); } } } catch {} };
+    mn.onchange = () => { lsSet('streamlet.ui', {...lsGet('streamlet.ui', {}), saverMin:+mn.value}); try { if (window.saverArm) saverArm(); } catch {} }; }
+  for (const [id, k, d] of [['#setHw', 'hw', true], ['#setFps', 'fps', true], ['#setTun', 'tunnel', false], ['#setPass', 'pass', true]]) {
     const el = $(id); el.checked = u[k] === undefined ? d : u[k] !== false && !!u[k];
-    el.onchange = () => { lsSet('streamlet.ui', {...lsGet('streamlet.ui', {}), [k]:el.checked}); if (k === 'saver') { try { const N = nativePlayer(); if (N && N.setKeepAwake) N.setKeepAwake({on:!el.checked}); } catch {} } };
+    el.onchange = () => { lsSet('streamlet.ui', {...lsGet('streamlet.ui', {}), [k]:el.checked}); };
   }
   $('#verLine').textContent = 'Streamlet · web version';
   { const N = nativePlayer(); if (N && N.appVersion) N.appVersion().then(r => { $('#verLine').textContent = `Streamlet · ${vName(r.code)} · Android app`; }).catch(() => {}); }
@@ -4316,8 +4321,16 @@ function moveVisualRow(dir, list, cur){
   return best;
 }
 function moveFocus(dir, rep){
-  const root = ctxRoot(); let list = focusables(root); const cur = document.activeElement;
+  const root = ctxRoot(), cur = document.activeElement;
   const tv = document.body.classList.contains('tv') && root === document.body, inNav = !!(tv && cur && cur.closest && cur.closest('#nav'));
+  if (tv && !inNav && (dir === 'left' || dir === 'right') && cur && cur.closest) {       // along a row: the neighbour is the next card, no need to measure everything
+    const strip = cur.closest('.strip'), item = strip && (cur.closest('.strip > *') || cur);
+    for (let sib = item && (dir === 'right' ? item.nextElementSibling : item.previousElementSibling); sib; sib = dir === 'right' ? sib.nextElementSibling : sib.previousElementSibling) {
+      const t = sib.matches(FOCUSABLE) ? sib : sib.querySelector(FOCUSABLE);
+      if (t && t.tabIndex >= 0 && !t.closest('.off,[hidden]')) { t.focus({preventScroll:true}); revealEl(t, dir, rep, tv, null); return; }
+    }
+  }
+  let list = focusables(root);
   if (tv) {
     if (inNav) {
       if (dir === 'left') return;
@@ -4619,7 +4632,7 @@ const sfx = (() => {
     trem.start(t); trem.stop(t + 5.3);
   };
   return {
-    tick(){ if (!on()) return; const n = performance.now(); if (n - last < 55) return; last = n; note(392, .11, .028); },
+    tick(held){ if (!on()) return; const n = performance.now(); if (n - last < (held ? 130 : 55)) return; last = n; note(392, .11, .028); },
     select(){ if (!on()) return; note(440, .14, .05); },
     back(){ if (!on()) return; note(294, .14, .045); },
     warm(){ ensure(); },                                              // create the audio engine early so nothing is slow at the moment it's needed
@@ -4660,8 +4673,11 @@ document.addEventListener('keydown', e => {
   if (e.key === 'Backspace' && !typing) { e.preventDefault(); history.back(); return; }
   if (/^Arrow(Up|Down|Left|Right)$/.test(e.key)) {
     if (typing && (e.key === 'ArrowLeft' || e.key === 'ArrowRight')) return;
-    e.preventDefault(); if (e.repeat) { const n = performance.now(); if (n - (window.__lastNav || 0) < 85) return; window.__lastNav = n; } else window.__lastNav = performance.now();   // held keys move at a steady pace
-    const before = document.activeElement; moveFocus(e.key.slice(5).toLowerCase(), e.repeat); if (document.activeElement !== before) sfx.tick();
+    e.preventDefault();
+    const now = performance.now(), gap = now - (window.__lastNav || 0), held = e.repeat || gap < 260;   // a remote may not flag repeats, so a quick follow-up counts as held too
+    if (held && gap < 75) return;                                                                          // steady pace: extra repeats are dropped instead of piling up
+    window.__lastNav = now;
+    const before = document.activeElement; moveFocus(e.key.slice(5).toLowerCase(), held); if (document.activeElement !== before) sfx.tick(held);
   }
 }, true);
 
@@ -4756,7 +4772,7 @@ $('#pseek').addEventListener('click', e => { const v = $('#vid'), r = e.currentT
 
 /* ---------- boot ---------- */
 history.replaceState({guard:true}, '');
-try { const N = nativePlayer(); if (N && N.setKeepAwake) N.setKeepAwake({on:lsGet('streamlet.ui', {}).saver === false}); } catch {}
+try { const N = nativePlayer(); if (N && N.setKeepAwake) N.setKeepAwake({on:true}); } catch {}
 initProfiles();
 startAuth();
 /* ---------- Québec: a built-in addon (qc://tva) that reads TVA+ pages directly from this device ----------
@@ -5319,6 +5335,7 @@ async function renderNewHot(box, tok, key){
   if (slot && next.length) slot.replaceWith(paint('New seasons & episodes coming soon', next, {date:true}));
   return true;
 }
+
 
 </script>
 </body>

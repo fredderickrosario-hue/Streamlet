@@ -371,6 +371,19 @@ const ok = (name, cond, extra) => { cond ? pass++ : fail++; console.log((cond ? 
       }).catch(e => String(e));
       ok('TV: a text box only opens its keyboard when you click it', r === true, r);
     }
+    {
+      const r = await p.evaluate(async () => {
+        if (!document.body.classList.contains('tv')) return true;
+        saverStart(); await new Promise(r => setTimeout(r, 120));
+        const shown = document.getElementById('saver').classList.contains('on');
+        window.dispatchEvent(new KeyboardEvent('keydown', {key:'ArrowDown', bubbles:true, cancelable:true}));
+        const hidden = !document.getElementById('saver').classList.contains('on');
+        const strip = document.createElement('div'); strip.className = 'strip'; strip.innerHTML = '<button>a</button><button>b</button><button>c</button>'; document.body.append(strip);
+        const [a, b] = strip.children; a.focus(); moveFocus('right', true); const moved = document.activeElement === b; moveFocus('left', true); const back = document.activeElement === a; strip.remove();
+        return shown && hidden && moved && back ? true : JSON.stringify({shown, hidden, moved, back});
+      }).catch(e => String(e));
+      ok('TV: screensaver starts, any key wakes it; held arrows step along a row', r === true, r);
+    }
     ok('no errors after all of the above', errs.length === 0, errs[0]);
     await p.close();
   }

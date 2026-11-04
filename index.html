@@ -814,10 +814,8 @@ body.tv .rhead{margin:6px 28px 2px;font-size:24px}
 body.tv .dsim{flex:1 1 auto;min-height:0;overflow-y:auto;grid-template-columns:repeat(auto-fill,minmax(128px,1fr));scrollbar-width:none;padding:6px}
 #offline{position:fixed;top:0;left:0;right:0;z-index:9000;background:#b3261e;color:#fff;text-align:center;padding:8px;font-size:15px;font-weight:700}
 #offline[hidden]{display:none}
-#idle{position:fixed;inset:0;z-index:9500;background:#000;opacity:0;pointer-events:none;transition:opacity 1.5s}
-#idle.on{opacity:.92;pointer-events:auto}
-#idle img{position:absolute;width:64px;opacity:.5;animation:idledrift 60s linear infinite}
-@keyframes idledrift{0%{left:8%;top:12%}25%{left:78%;top:30%}50%{left:30%;top:78%}75%{left:70%;top:15%}100%{left:8%;top:12%}}
+#saver{position:fixed;inset:0;width:100%;height:100%;z-index:9500;background:#000;opacity:0;pointer-events:none;transition:opacity .8s}
+#saver.on{opacity:1;pointer-events:auto}
 .lastu{margin-left:8px;font-size:10px;font-weight:800;letter-spacing:.4px;text-transform:uppercase;color:var(--btnt,#fff);background:var(--acc);border-radius:999px;padding:2px 7px;vertical-align:middle}
 .stile.new{justify-content:center;border-style:dashed;background:rgba(255,255,255,.04);box-shadow:none;color:var(--mut)}
 .stile:focus-visible{outline:2px solid #fff;outline-offset:3px;box-shadow:0 14px 34px rgba(0,0,0,.35);transform:scale(1.03)}
@@ -1297,6 +1295,8 @@ body:not(.tv) :is(#detail,#episode) .dhint{display:none}
         <label class="row2"><span class="rt">Animated background<small>Slowly drifting colors</small></span><input type="checkbox" id="setAnim"></label>
         <label class="row2"><span class="rt">Glass blur<small>Turn off if the app feels slow</small></span><input type="checkbox" id="setGlass"></label>
         <label class="row2"><span class="rt">Navigation sounds<small>Soft clicks when you move and select</small></span><input type="checkbox" id="setSnd"></label>
+        <label class="row2" id="rowSaver" hidden><span class="rt">Screensaver<small>A black screen with the Streamlet plug slithering around when nothing is pressed. Off keeps the picture on</small></span><input type="checkbox" id="setSaver"></label>
+        <div class="row2" id="rowSaverMin" hidden><span class="rt">Start screensaver after<small>Minutes without pressing anything</small></span><select id="setSaverMin" class="sel"></select></div>
       </div>
       <div id="setPlay" hidden>
         <h2 class="sh">Video <small>this device</small></h2>
@@ -1306,7 +1306,6 @@ body:not(.tv) :is(#detail,#episode) .dhint{display:none}
           <label class="row2"><span class="rt">Match frame rate<small>Removes judder when your TV supports it</small></span><input type="checkbox" id="setFps"></label>
           <label class="row2"><span class="rt">Tunneled playback<small>Can help 4K and HDR, may affect seeking</small></span><input type="checkbox" id="setTun"></label>
           <label class="row2"><span class="rt">Dolby passthrough<small>Backup player sends Dolby and Atmos to your TV. Turn off if you get no sound</small></span><input type="checkbox" id="setPass"></label>
-          <label class="row2"><span class="rt">Screensaver<small>Lets the TV's screensaver start while Streamlet is open (always on a black background). Turn off to keep the screen awake</small></span><input type="checkbox" id="setSaver"></label>
         </div>
       </div>
       <h2 class="sh">Release dates</h2>
@@ -2190,9 +2189,15 @@ function renderSettings(){
   const snd = $('#setSnd'); snd.checked = u.sound !== false;
   snd.onchange = () => { lsSet('streamlet.ui', {...lsGet('streamlet.ui', {}), sound:snd.checked}); if (snd.checked) sfx.select(); };
   $('#setPlay').hidden = !nativePlayer();
-  for (const [id, k, d] of [['#setHw', 'hw', true], ['#setFps', 'fps', true], ['#setTun', 'tunnel', false], ['#setPass', 'pass', true], ['#setSaver', 'saver', true]]) {
+  { const tvUi = isTVui(), sv = $('#setSaver'), mn = $('#setSaverMin'); $('#rowSaver').hidden = !tvUi; $('#rowSaverMin').hidden = !tvUi;
+    sv.checked = u.saver !== false;
+    mn.replaceChildren(...[1, 2, 3, 5, 10, 15, 30, 60].map(m => h('option', {value:String(m)}, m === 60 ? '1 hour' : m + (m === 1 ? ' minute' : ' minutes')))); mn.value = String(u.saverMin || 5); if (mn.value !== String(u.saverMin || 5)) mn.value = '5';
+    mn.disabled = !sv.checked;
+    sv.onchange = () => { lsSet('streamlet.ui', {...lsGet('streamlet.ui', {}), saver:sv.checked}); mn.disabled = !sv.checked; try { if (window.saverArm) { if (sv.checked) saverArm(); else { saverStop(); saverArm(); } } } catch {} };
+    mn.onchange = () => { lsSet('streamlet.ui', {...lsGet('streamlet.ui', {}), saverMin:+mn.value}); try { if (window.saverArm) saverArm(); } catch {} }; }
+  for (const [id, k, d] of [['#setHw', 'hw', true], ['#setFps', 'fps', true], ['#setTun', 'tunnel', false], ['#setPass', 'pass', true]]) {
     const el = $(id); el.checked = u[k] === undefined ? d : u[k] !== false && !!u[k];
-    el.onchange = () => { lsSet('streamlet.ui', {...lsGet('streamlet.ui', {}), [k]:el.checked}); if (k === 'saver') { try { const N = nativePlayer(); if (N && N.setKeepAwake) N.setKeepAwake({on:!el.checked}); } catch {} } };
+    el.onchange = () => { lsSet('streamlet.ui', {...lsGet('streamlet.ui', {}), [k]:el.checked}); };
   }
   $('#verLine').textContent = 'Streamlet · web version';
   { const N = nativePlayer(); if (N && N.appVersion) N.appVersion().then(r => { $('#verLine').textContent = `Streamlet · ${vName(r.code)} · Android app`; }).catch(() => {}); }
@@ -2231,14 +2236,6 @@ $('#logBox').addEventListener('toggle', () => { if ($('#logBox').open) renderLog
 document.addEventListener('contextmenu', e => e.preventDefault());
 addEventListener('scroll', () => { if (scrollX) scrollTo(0, scrollY); }, {passive:true});   // the TV page never scrolls sideways
 document.addEventListener('dragstart', e => e.preventDefault());
-{ // dim the screen after a few idle minutes so a static menu doesn't burn into the TV
-  const el = h('div', {id:'idle'}); el.append(h('img', {src:(document.querySelector('.navbrand img') || {}).src || 'logo.svg', alt:''}));
-  document.body.append(el);
-  let t = 0, on = false;
-  const arm = () => { clearTimeout(t); t = setTimeout(() => { if ($('#player').hidden) { on = true; el.classList.add('on'); } else arm(); }, 4 * 60 * 1000); };
-  const wake = e => { if (on) { on = false; el.classList.remove('on'); if (e && e.type === 'keydown') { e.preventDefault(); e.stopImmediatePropagation(); } } arm(); };
-  addEventListener('keydown', wake, true); addEventListener('mousemove', wake, true); addEventListener('click', wake, true); arm();
-}
 /*@end*/
 $('#closeBtn').onclick = async () => {
   try { const A = window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.App; if (A && A.exitApp) { await A.exitApp(); return; } } catch {}
@@ -4650,8 +4647,16 @@ function moveVisualRow(dir, list, cur){
   return best;
 }
 function moveFocus(dir, rep){
-  const root = ctxRoot(); let list = focusables(root); const cur = document.activeElement;
+  const root = ctxRoot(), cur = document.activeElement;
   const tv = document.body.classList.contains('tv') && root === document.body, inNav = !!(tv && cur && cur.closest && cur.closest('#nav'));
+  if (tv && !inNav && (dir === 'left' || dir === 'right') && cur && cur.closest) {       // along a row: the neighbour is the next card, no need to measure everything
+    const strip = cur.closest('.strip'), item = strip && (cur.closest('.strip > *') || cur);
+    for (let sib = item && (dir === 'right' ? item.nextElementSibling : item.previousElementSibling); sib; sib = dir === 'right' ? sib.nextElementSibling : sib.previousElementSibling) {
+      const t = sib.matches(FOCUSABLE) ? sib : sib.querySelector(FOCUSABLE);
+      if (t && t.tabIndex >= 0 && !t.closest('.off,[hidden]')) { t.focus({preventScroll:true}); revealEl(t, dir, rep, tv, null); return; }
+    }
+  }
+  let list = focusables(root);
   if (tv) {
     if (inNav) {
       if (dir === 'left') return;
@@ -4953,7 +4958,7 @@ const sfx = (() => {
     trem.start(t); trem.stop(t + 5.3);
   };
   return {
-    tick(){ if (!on()) return; const n = performance.now(); if (n - last < 55) return; last = n; note(392, .11, .028); },
+    tick(held){ if (!on()) return; const n = performance.now(); if (n - last < (held ? 130 : 55)) return; last = n; note(392, .11, .028); },
     select(){ if (!on()) return; note(440, .14, .05); },
     back(){ if (!on()) return; note(294, .14, .045); },
     warm(){ ensure(); },                                              // create the audio engine early so nothing is slow at the moment it's needed
@@ -4994,8 +4999,11 @@ document.addEventListener('keydown', e => {
   if (e.key === 'Backspace' && !typing) { e.preventDefault(); history.back(); return; }
   if (/^Arrow(Up|Down|Left|Right)$/.test(e.key)) {
     if (typing && (e.key === 'ArrowLeft' || e.key === 'ArrowRight')) return;
-    e.preventDefault(); if (e.repeat) { const n = performance.now(); if (n - (window.__lastNav || 0) < 85) return; window.__lastNav = n; } else window.__lastNav = performance.now();   // held keys move at a steady pace
-    const before = document.activeElement; moveFocus(e.key.slice(5).toLowerCase(), e.repeat); if (document.activeElement !== before) sfx.tick();
+    e.preventDefault();
+    const now = performance.now(), gap = now - (window.__lastNav || 0), held = e.repeat || gap < 260;   // a remote may not flag repeats, so a quick follow-up counts as held too
+    if (held && gap < 75) return;                                                                          // steady pace: extra repeats are dropped instead of piling up
+    window.__lastNav = now;
+    const before = document.activeElement; moveFocus(e.key.slice(5).toLowerCase(), held); if (document.activeElement !== before) sfx.tick(held);
   }
 }, true);
 
@@ -5090,7 +5098,7 @@ $('#pseek').addEventListener('click', e => { const v = $('#vid'), r = e.currentT
 
 /* ---------- boot ---------- */
 history.replaceState({guard:true}, '');
-try { const N = nativePlayer(); if (N && N.setKeepAwake) N.setKeepAwake({on:lsGet('streamlet.ui', {}).saver === false}); } catch {}
+try { const N = nativePlayer(); if (N && N.setKeepAwake) N.setKeepAwake({on:true}); } catch {}
 initProfiles();
 startAuth();
 if ('serviceWorker' in navigator && /^https?:/.test(location.protocol)) navigator.serviceWorker.register('sw.js').catch(()=>{});
@@ -5676,6 +5684,78 @@ async function renderNewHot(box, tok, key){
     document.addEventListener('focusout', e => { const el = e.target; if (el && el._tvArmed && !el._tvKeep) { el._tvArmed = false; el.readOnly = true; el.setAttribute('inputmode', 'none'); } }, true);
   };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start); else start();
+})();
+/*@end*/
+/*@tv*/
+/* ---------- screensaver: a black screen and the Streamlet plug slithering around like the old bouncing-logo savers, its cord following behind like a snake ---------- */
+(function(){
+  const cfg = () => lsGet('streamlet.ui', {});
+  const enabled = () => cfg().saver !== false;
+  const delay = () => Math.max(1, +cfg().saverMin || 5) * 60 * 1000;
+  const cv = h('canvas', {id:'saver'}); document.body.append(cv);
+  const ctx = cv.getContext('2d');
+  let on = false, raf = 0, idleT = 0, W = 0, H = 0, S = 1;
+  let x = 0, y = 0, psi = 0, t0 = 0, last = 0, bounceAt = 0, trail = [];
+  const BODY = new Path2D('M-100 -66H100Q124 -66 124 -42V12Q124 74 62 82L38 120H-38L-62 82Q-124 74 -124 12V-42Q-124 -66 -100 -66Z');
+  const PRONG = new Path2D(); PRONG.roundRect ? (PRONG.roundRect(-74, -148, 38, 104, 19), PRONG.roundRect(36, -148, 38, 104, 19)) : (PRONG.rect(-74, -148, 38, 104), PRONG.rect(36, -148, 38, 104));
+  const fit = () => { const d = Math.min(window.devicePixelRatio || 1, 1.5); W = innerWidth; H = innerHeight; cv.width = Math.round(W * d); cv.height = Math.round(H * d); ctx.setTransform(d, 0, 0, d, 0, 0); S = H / 1080; };
+  const mix = (a, b, k) => a.map((v, i) => Math.round(v + (b[i] - v) * k));
+  const TAIL = [162, 75, 255], HEAD = [32, 216, 245];
+  function frame(ts){
+    if (!on) return;
+    raf = requestAnimationFrame(frame);
+    const dt = Math.min(0.05, (ts - (last || ts)) / 1000); last = ts;
+    const t = (ts - t0) / 1000, speed = 150 * S, m = 150 * S;
+    const heading = psi + 0.55 * Math.sin(t * 1.9);                      // the weaving that makes it a snake
+    let vx = Math.cos(heading) * speed, vy = Math.sin(heading) * speed;
+    x += vx * dt; y += vy * dt;
+    if (ts - bounceAt > 250) {
+      if ((x < m && vx < 0) || (x > W - m && vx > 0)) { psi = Math.PI - psi; bounceAt = ts; }
+      else if ((y < m * 1.6 && vy < 0) || (y > H - m && vy > 0)) { psi = -psi; bounceAt = ts; }
+    }
+    x = Math.max(m * .5, Math.min(W - m * .5, x)); y = Math.max(m, Math.min(H - m * .5, y));
+    const lp = trail[trail.length - 1];
+    if (!lp || Math.hypot(x - lp[0], y - lp[1]) >= 5 * S) trail.push([x, y]);
+    const maxN = 240; if (trail.length > maxN) trail.splice(0, trail.length - maxN);
+    ctx.clearRect(0, 0, W, H);
+    ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+    const n = trail.length;
+    for (let i = 1; i < n; i++) {                                           // the cord: thin and purple at the tail, thick and cyan near the plug
+      const k = i / n, c = mix(TAIL, HEAD, k);
+      ctx.strokeStyle = `rgb(${c[0]},${c[1]},${c[2]})`; ctx.lineWidth = (6 + 18 * k) * S * 1.1;
+      ctx.beginPath(); ctx.moveTo(trail[i - 1][0], trail[i - 1][1]); ctx.lineTo(trail[i][0], trail[i][1]); ctx.stroke();
+    }
+    const nx = Math.cos(heading), ny = Math.sin(heading);                   // the plug: prongs lead, the cord leaves from its back
+    ctx.save(); ctx.translate(x, y); ctx.rotate(Math.atan2(ny, nx) + Math.PI / 2); ctx.scale(.4 * S * 1.35, .4 * S * 1.35); ctx.translate(0, -112);
+    const g = ctx.createLinearGradient(-124, -66, 124, 120); g.addColorStop(0, '#ffffff'); g.addColorStop(1, '#ddd3ff');
+    ctx.fillStyle = g; ctx.fill(PRONG); ctx.fill(BODY); ctx.restore();
+  }
+  function start(){
+    if (on || document.hidden) return;
+    on = true; fit(); trail = []; x = W * (.25 + Math.random() * .5); y = H * (.25 + Math.random() * .5); psi = Math.random() * Math.PI * 2;
+    t0 = performance.now(); last = 0; bounceAt = 0; cv.classList.add('on'); raf = requestAnimationFrame(frame);
+  }
+  function stop(){ if (!on) return; on = false; cancelAnimationFrame(raf); cv.classList.remove('on'); setTimeout(() => { if (!on) ctx.clearRect(0, 0, cv.width, cv.height); }, 900); }
+  function arm(){
+    clearTimeout(idleT); if (!enabled()) return;
+    idleT = setTimeout(() => {
+      const v = $('#vid'), playing = !$('#player').hidden && v && !v.paused && !v.ended;
+      if (playing) arm(); else start();
+    }, delay());
+  }
+  window.saverStart = start; window.saverStop = stop; window.saverArm = arm;
+  const wake = e => {
+    if (on) { stop(); if (e && (e.type === 'keydown' || e.type === 'click')) { e.preventDefault(); e.stopImmediatePropagation(); } }
+    arm();
+  };
+  let mx = 0, my = 0;
+  window.addEventListener('keydown', wake, true);
+  window.addEventListener('click', wake, true);
+  window.addEventListener('touchstart', wake, true);
+  window.addEventListener('mousemove', e => { if (Math.abs(e.clientX - mx) + Math.abs(e.clientY - my) > 6) { mx = e.clientX; my = e.clientY; wake(e); } }, true);
+  document.addEventListener('visibilitychange', () => { if (document.hidden) stop(); else arm(); });
+  addEventListener('resize', () => { if (on) fit(); });
+  arm();
 })();
 /*@end*/
 </script>

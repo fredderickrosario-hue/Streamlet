@@ -32,9 +32,15 @@ function renderSettings(){
   const snd = $('#setSnd'); snd.checked = u.sound !== false;
   snd.onchange = () => { lsSet('streamlet.ui', {...lsGet('streamlet.ui', {}), sound:snd.checked}); if (snd.checked) sfx.select(); };
   $('#setPlay').hidden = !nativePlayer();
-  for (const [id, k, d] of [['#setHw', 'hw', true], ['#setFps', 'fps', true], ['#setTun', 'tunnel', false], ['#setPass', 'pass', true], ['#setSaver', 'saver', true]]) {
+  { const tvUi = isTVui(), sv = $('#setSaver'), mn = $('#setSaverMin'); $('#rowSaver').hidden = !tvUi; $('#rowSaverMin').hidden = !tvUi;
+    sv.checked = u.saver !== false;
+    mn.replaceChildren(...[1, 2, 3, 5, 10, 15, 30, 60].map(m => h('option', {value:String(m)}, m === 60 ? '1 hour' : m + (m === 1 ? ' minute' : ' minutes')))); mn.value = String(u.saverMin || 5); if (mn.value !== String(u.saverMin || 5)) mn.value = '5';
+    mn.disabled = !sv.checked;
+    sv.onchange = () => { lsSet('streamlet.ui', {...lsGet('streamlet.ui', {}), saver:sv.checked}); mn.disabled = !sv.checked; try { if (window.saverArm) { if (sv.checked) saverArm(); else { saverStop(); saverArm(); } } } catch {} };
+    mn.onchange = () => { lsSet('streamlet.ui', {...lsGet('streamlet.ui', {}), saverMin:+mn.value}); try { if (window.saverArm) saverArm(); } catch {} }; }
+  for (const [id, k, d] of [['#setHw', 'hw', true], ['#setFps', 'fps', true], ['#setTun', 'tunnel', false], ['#setPass', 'pass', true]]) {
     const el = $(id); el.checked = u[k] === undefined ? d : u[k] !== false && !!u[k];
-    el.onchange = () => { lsSet('streamlet.ui', {...lsGet('streamlet.ui', {}), [k]:el.checked}); if (k === 'saver') { try { const N = nativePlayer(); if (N && N.setKeepAwake) N.setKeepAwake({on:!el.checked}); } catch {} } };
+    el.onchange = () => { lsSet('streamlet.ui', {...lsGet('streamlet.ui', {}), [k]:el.checked}); };
   }
   $('#verLine').textContent = 'Streamlet · web version';
   { const N = nativePlayer(); if (N && N.appVersion) N.appVersion().then(r => { $('#verLine').textContent = `Streamlet · ${vName(r.code)} · Android app`; }).catch(() => {}); }
@@ -73,14 +79,6 @@ $('#logBox').addEventListener('toggle', () => { if ($('#logBox').open) renderLog
 document.addEventListener('contextmenu', e => e.preventDefault());
 addEventListener('scroll', () => { if (scrollX) scrollTo(0, scrollY); }, {passive:true});   // the TV page never scrolls sideways
 document.addEventListener('dragstart', e => e.preventDefault());
-{ // dim the screen after a few idle minutes so a static menu doesn't burn into the TV
-  const el = h('div', {id:'idle'}); el.append(h('img', {src:(document.querySelector('.navbrand img') || {}).src || 'logo.svg', alt:''}));
-  document.body.append(el);
-  let t = 0, on = false;
-  const arm = () => { clearTimeout(t); t = setTimeout(() => { if ($('#player').hidden) { on = true; el.classList.add('on'); } else arm(); }, 4 * 60 * 1000); };
-  const wake = e => { if (on) { on = false; el.classList.remove('on'); if (e && e.type === 'keydown') { e.preventDefault(); e.stopImmediatePropagation(); } } arm(); };
-  addEventListener('keydown', wake, true); addEventListener('mousemove', wake, true); addEventListener('click', wake, true); arm();
-}
 /*@end*/
 $('#closeBtn').onclick = async () => {
   try { const A = window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.App; if (A && A.exitApp) { await A.exitApp(); return; } } catch {}

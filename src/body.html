@@ -80,6 +80,8 @@
         <label class="row2"><span class="rt">Animated background<small>Slowly drifting colors</small></span><input type="checkbox" id="setAnim"></label>
         <label class="row2"><span class="rt">Glass blur<small>Turn off if the app feels slow</small></span><input type="checkbox" id="setGlass"></label>
         <label class="row2"><span class="rt">Navigation sounds<small>Soft clicks when you move and select</small></span><input type="checkbox" id="setSnd"></label>
+        <label class="row2" id="rowSaver" hidden><span class="rt">Screensaver<small>A black screen with the Streamlet plug slithering around when nothing is pressed. Off keeps the picture on</small></span><input type="checkbox" id="setSaver"></label>
+        <div class="row2" id="rowSaverMin" hidden><span class="rt">Start screensaver after<small>Minutes without pressing anything</small></span><select id="setSaverMin" class="sel"></select></div>
       </div>
       <div id="setPlay" hidden>
         <h2 class="sh">Video <small>this device</small></h2>
@@ -89,7 +91,6 @@
           <label class="row2"><span class="rt">Match frame rate<small>Removes judder when your TV supports it</small></span><input type="checkbox" id="setFps"></label>
           <label class="row2"><span class="rt">Tunneled playback<small>Can help 4K and HDR, may affect seeking</small></span><input type="checkbox" id="setTun"></label>
           <label class="row2"><span class="rt">Dolby passthrough<small>Backup player sends Dolby and Atmos to your TV. Turn off if you get no sound</small></span><input type="checkbox" id="setPass"></label>
-          <label class="row2"><span class="rt">Screensaver<small>Lets the TV's screensaver start while Streamlet is open (always on a black background). Turn off to keep the screen awake</small></span><input type="checkbox" id="setSaver"></label>
         </div>
       </div>
       <h2 class="sh">Release dates</h2>
