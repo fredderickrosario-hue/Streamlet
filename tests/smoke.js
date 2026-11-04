@@ -309,6 +309,16 @@ const ok = (name, cond, extra) => { cond ? pass++ : fail++; console.log((cond ? 
       }).catch(e => String(e));
       ok("Warm: a space's catalogs are fetched ahead and kept for a moment", r === true, r);
     }
+    {
+      const r = await p.evaluate(async () => {
+        const id = profile.id, before = plsGet(id, 'shows', {});
+        plsSet(id, 'shows', {});
+        const ch = mergeProfile(id, {shows:{tt555:{n:'Remote Show', ty:'series', sp:'anime', t:123, a:'x', p:''}}});
+        const got = plsGet(id, 'shows', {}).tt555; plsSet(id, 'shows', before);
+        return ch && got && got.n === 'Remote Show' && got.sp === 'anime' ? true : JSON.stringify({ch, got});
+      }).catch(e => String(e));
+      ok('Sync: shows you follow come from the account to a new device', r === true, r);
+    }
     ok('no errors after all of the above', errs.length === 0, errs[0]);
     await p.close();
   }

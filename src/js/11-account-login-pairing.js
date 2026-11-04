@@ -111,6 +111,9 @@ function mergeProfile(id, R){
   const wout = Object.values(wmap).filter(e => (e.t || 0) > (wrem[e.itemId] || 0)).sort((a, b) => b.t - a.t);
   if (JSON.stringify(wout) !== JSON.stringify(wlocal)) { plsSet(id, 'watchlist', wout); changed = true; }
   plsSet(id, 'wlRemoved', wrem);
+  { const sl = {...plsGet(id, 'shows', {})}; let ch = false;                         // the shows you follow (name, picture, space) travel with the account, so every device knows them
+    for (const [k, v] of Object.entries(R.shows || {})) { const kk = decodeURIComponent(k); if (v && v.n && (!sl[kk] || (sl[kk].t || 0) < (v.t || 0))) { sl[kk] = v; ch = true; } }
+    if (ch) { plsSet(id, 'shows', Object.fromEntries(Object.entries(sl).sort((x, y) => (y[1].t || 0) - (x[1].t || 0)).slice(0, 200))); changed = true; epReset(); } }
   if (mergeColl(id, 'likes', 'likeRemoved', R.likes, R.likeremoved, 1000)) changed = true;
   if (mergeColl(id, 'watched', 'wdRemoved', R.wd, R.wdremoved, 3000)) changed = true;
   if (mergeColl(id, 'eps', 'epRemoved', R.eps, R.epremoved, 3000, 'k')) { changed = true; epReset(); }
@@ -128,8 +131,8 @@ async function pushAll(){
   for (const p of profiles) {
     const hist = plsGet(p.id, 'history', []), removed = plsGet(p.id, 'removed', {}), sT = plsGet(p.id, 'settingsT', 0);
     const wl = plsGet(p.id, 'watchlist', []), wlrem = plsGet(p.id, 'wlRemoved', {});
-    const wdp = packColl(p.id, 'watched', 'wdRemoved', deleteField), epp = packColl(p.id, 'eps', 'epRemoved', deleteField, 'k'), lkp = packColl(p.id, 'likes', 'likeRemoved', deleteField);
-    if (!hist.length && !Object.keys(removed).length && !sT && !wl.length && !Object.keys(wlrem).length && !wdp.any && !epp.any && !lkp.any) continue;
+    const wdp = packColl(p.id, 'watched', 'wdRemoved', deleteField), epp = packColl(p.id, 'eps', 'epRemoved', deleteField, 'k'), lkp = packColl(p.id, 'likes', 'likeRemoved', deleteField), shp = plsGet(p.id, 'shows', {});
+    if (!hist.length && !Object.keys(removed).length && !sT && !wl.length && !Object.keys(wlrem).length && !wdp.any && !epp.any && !lkp.any && !Object.keys(shp).length) continue;
     const entries = {}, rem = {};
     for (const e of hist) entries[ek(e.itemId)] = e;
     for (const [k, t] of Object.entries(removed)) { rem[ek(k)] = t; if (!entries[ek(k)]) entries[ek(k)] = deleteField(); }
@@ -140,7 +143,7 @@ async function pushAll(){
     for (const [k, t] of Object.entries(wlrem)) { wremP[ek(k)] = t; if (!wentries[ek(k)]) wentries[ek(k)] = deleteField(); }
     payload.watch = {}; payload.wremoved = clean(wremP);
     for (const [k, v] of Object.entries(wentries)) payload.watch[k] = (v && v._methodName) ? v : clean(v);
-    payload.wd = wdp.entries; payload.wdremoved = wdp.rem; payload.likes = lkp.entries; payload.likeremoved = lkp.rem; payload.eps = epp.entries; payload.epremoved = epp.rem;
+    payload.wd = wdp.entries; payload.wdremoved = wdp.rem; payload.shows = Object.fromEntries(Object.entries(shp).map(([k, v]) => [ek(k), clean(v)])); payload.likes = lkp.entries; payload.likeremoved = lkp.rem; payload.eps = epp.entries; payload.epremoved = epp.rem;
     if (sT) { payload.settings = plsGet(p.id, 'settings', {}); payload.settingsT = sT; }
     await setDoc(doc(db, ...base, 'profiles', p.id), payload, {merge:true});
   }
