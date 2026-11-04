@@ -1215,6 +1215,102 @@ body:not(.tv) :is(#detail,#episode) .dhint{display:none}
 /* who's watching: focus ring follows the circle */
 .ptile:focus-visible .pav,body.tv .ptile:focus-visible .pav{outline:none !important}
 .ptile:focus-visible .pav .av,.ptile:focus-visible .pav.add{outline:3px solid rgba(255,255,255,.95);outline-offset:5px;border-radius:50% !important}
+/* ---------- phone polish: one set of sizes, margins and shapes for every page (the TV keeps its own) ----------
+   page edge 16px · cards 18px corners · rows inside cards 14px · buttons and fields 12px · small buttons 10px · chips fully round */
+
+/* page edges: every page lines up on the same 16px margin */
+body:not(.tv) .pad,body:not(.tv) .seg,body:not(.tv) #mlTabs,body:not(.tv) #wlTabs,body:not(.tv) .wgrid{padding-left:16px;padding-right:16px}
+body:not(.tv).pgfix:not(.launch) .pagehead{padding-left:16px;padding-right:16px}
+body:not(.tv) .rgrid{padding-left:16px;padding-right:16px}
+body:not(.tv) .row h2,body:not(.tv) .rhead{margin-left:16px;margin-right:16px}
+body:not(.tv) .strip{padding-left:16px;padding-right:16px;scroll-padding:0 16px}
+body:not(.tv) .gstrip{padding-left:16px;padding-right:16px}
+body:not(.tv).onhome:not(.launch) #tabsBar{padding-left:16px;padding-right:16px}
+body:not(.tv) #launcher{padding-left:16px;padding-right:16px}
+body:not(.tv) .sedwrap,body:not(.tv) .pe{padding-left:16px;padding-right:16px}
+body:not(.tv) #spaceEd{padding-left:0;padding-right:0}
+body:not(.tv) .sheet>.bar{padding:calc(12px + env(safe-area-inset-top)) 16px 8px !important}
+body:not(.tv) :is(#detail,#episode) .dleft{padding-left:16px;padding-right:16px}
+body:not(.tv) :is(#detail,#episode) .dp2{padding-left:16px}
+body:not(.tv) :is(#detail,#episode) .dp2 :is(.srow,.sfilter,.cchips,.eplist,.slist,.dsim){padding-right:16px}
+body:not(.tv) .dtop{padding-left:16px;padding-right:16px}
+
+/* page titles: the same size everywhere, and the line under them always takes its place so tabs never jump */
+body:not(.tv) .pagehead h1{font-size:30px;font-weight:800;letter-spacing:-.3px}
+body:not(.tv) #wlCount,body:not(.tv) #adCount{min-height:20px;font-size:14px}
+body:not(.tv) .sedh{font-size:26px;font-weight:800;letter-spacing:-.3px;margin:4px 0 14px}
+
+/* section titles */
+body:not(.tv) .row h2,body:not(.tv) #rows .row h2{font-size:17px;font-weight:700;margin-bottom:8px}
+body:not(.tv) .rhead{font-size:18px}
+body:not(.tv) .sh{font-size:13px;letter-spacing:.9px;margin:26px 4px 10px}
+body:not(.tv) .lbl{font-size:12px;letter-spacing:.8px;margin:18px 0 8px}
+body:not(.tv) #wlGrid .rsep{font-size:17px !important;font-weight:700;color:var(--text);text-transform:none;letter-spacing:0;margin:10px 0 2px !important}
+
+/* buttons: regular 44px, small 36px, same corners and weight on every page */
+body:not(.tv) .btn{min-height:44px;padding:0 20px;border-radius:12px;font-size:15px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;gap:8px;line-height:1.2;box-sizing:border-box}
+body:not(.tv) .btn.sm{min-height:36px;padding:0 14px;border-radius:10px;font-size:14px;font-weight:650}
+body:not(.tv) .gbtn{min-height:48px;border-radius:12px;font-size:15px}
+body:not(.tv) .lrow .btn{min-height:48px}
+body:not(.tv) .rrow{gap:8px;margin-top:4px}
+body:not(.tv) .mebtns{gap:10px;margin-top:14px}
+body:not(.tv) .mebtns .btn{flex:1 1 140px}
+body:not(.tv) .pe-act{margin:20px 0 26px}
+
+/* chips: fully round, 36px, one look for tabs and filters */
+body:not(.tv) .chip:not(.ico){min-height:36px;padding:0 16px;border-radius:999px;font-size:14px;font-weight:650;display:inline-flex;align-items:center;justify-content:center;gap:6px;box-sizing:border-box;white-space:nowrap}
+body:not(.tv).onhome:not(.launch) #tabsBar .chip{height:36px;border-radius:18px}
+body:not(.tv) .pchips .chip{padding:0 14px 0 6px}
+body:not(.tv) .lfoot .chip{min-height:44px;padding:0 22px;font-size:15px}
+body:not(.tv) #wlTabs .chip{min-height:32px;padding:0 14px;font-size:13px;background:transparent;border:1px solid rgba(255,255,255,.16);box-shadow:none}
+body:not(.tv) #wlTabs .chip.on{background:rgba(255,255,255,.92);border-color:transparent;color:#0d0d14}
+body:not(.tv) #wlTabs{padding-top:0}
+body:not(.tv) #mlTabs .chip{flex:1 1 auto;padding:0 12px}
+body:not(.tv) .gtile{border-radius:12px}
+
+/* fields */
+body:not(.tv) :is(.f,.add input,select.sel,#settings select.sel,#settings input[type=text]){min-height:44px;box-sizing:border-box;border-radius:12px;padding:0 14px;font-size:15px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);color:var(--text)}
+body:not(.tv) :is(select.sel,#settings select.sel){padding-right:10px}
+body:not(.tv) textarea.f{padding:12px 14px;line-height:1.45}
+body:not(.tv) .pe-input{border-radius:12px}
+:is(.row2.stack,#settings .row2.stack){flex-direction:column;align-items:stretch;gap:10px}
+.row2.stack .inrow{align-self:flex-start;max-width:100%}
+body:not(.tv) .row2.stack .inrow:has(.f){align-self:stretch}
+body:not(.tv) .inrow .f{flex:1}
+.inrow{display:flex;gap:8px;align-items:center}
+.inrow .f{min-width:0;width:auto;height:auto}
+body.tv .inrow .f{width:min(32vw,340px)}
+
+/* cards and the rows inside them */
+body:not(.tv) :is(.addon,.acard,.rcard,#settings .addon){border-radius:18px}
+body:not(.tv) .rcard{padding:14px 16px;margin:10px 0}
+body:not(.tv) .pe-prev{border-radius:18px}
+body:not(.tv) :is(.tgl,.opt,.stream,.adbox summary){border-radius:14px}
+body:not(.tv) .tgl{min-height:56px;box-sizing:border-box}
+
+/* switches: every on/off option looks like the ones in Settings */
+body:not(.tv) :is(.sheet,#profiles) input[type=checkbox]{-webkit-appearance:none;appearance:none;flex:0 0 auto;width:50px;height:30px;margin:0;border-radius:15px;background:rgba(255,255,255,.17);position:relative;transition:background .2s;cursor:pointer}
+body:not(.tv) :is(.sheet,#profiles) input[type=checkbox]::after{content:'';position:absolute;top:3px;left:3px;width:24px;height:24px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.4);transition:transform .2s}
+body:not(.tv) :is(.sheet,#profiles) input[type=checkbox]:checked{background:linear-gradient(135deg,var(--acc),var(--acc2))}
+body:not(.tv) :is(.sheet,#profiles) input[type=checkbox]:checked::after{transform:translateX(20px)}
+
+/* grids: three posters across on a phone, like the search results */
+@media (max-width:600px){
+  body:not(.tv) :is(.wgrid,.rgrid){grid-template-columns:repeat(3,minmax(0,1fr));gap:16px 10px}
+}
+
+/* long-press menu: Cancel reads as the way out, not as another action */
+body:not(.tv) .menu .box h3{margin:2px 2px 10px;font-size:18px}
+body:not(.tv) .menu .opt{min-height:50px;box-sizing:border-box}
+body:not(.tv) .menu .opt:last-child{justify-content:center;background:transparent;border-color:rgba(255,255,255,.14);color:var(--mut);margin-top:12px}
+
+/* toast: a soft floating card above the bottom bar */
+body:not(.tv) #toast{border-radius:14px;padding:12px 18px;background:rgba(28,30,40,.96);border:1px solid rgba(255,255,255,.1);box-shadow:0 10px 30px rgba(0,0,0,.4);bottom:calc(98px + env(safe-area-inset-bottom));font-weight:600}
+
+/* launcher: the hint lines up with the title */
+body:not(.tv) .lmid .lsub{text-align:left;margin:0 0 18px;color:rgba(255,255,255,.72)}
+.lmid .ltitle.noadd::after{display:none}
+body:not(.tv) .wgrid .card .s,body:not(.tv) .rgrid .card .s{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 </style>
 </head>
 <body>
@@ -1312,21 +1408,21 @@ body:not(.tv) :is(#detail,#episode) .dhint{display:none}
       </div>
       <h2 class="sh">Release dates</h2>
       <div class="addon">
-        <div class="row2"><span class="rt">TMDB API key<small>Optional. Lets the home slideshow show confirmed new-season and new-episode dates for shows you watch</small></span><input type="text" id="setTmdb" placeholder="API key (v3)" autocomplete="off" spellcheck="false" style="width:min(40%,240px)"><button class="btn ghost sm" id="tmdbChk" type="button">Verify</button></div>
+        <div class="row2 stack"><span class="rt">TMDB API key<small>Optional. Lets the home slideshow show confirmed new-season and new-episode dates for shows you watch</small></span><span class="inrow"><input type="text" id="setTmdb" class="f" placeholder="API key (v3)" autocomplete="off" spellcheck="false"><button class="btn ghost sm" id="tmdbChk" type="button">Verify</button></span></div>
       </div>
       <h2 class="sh">Québec</h2>
       <div class="addon">
-        <div class="row2" style="flex-direction:column;align-items:stretch;gap:8px"><span class="rt">TVA+ shows<small>One show page address per line (tvaplus.ca/tva/..., ici.radio-canada.ca/tele/..., or ici.tou.tv/... to open the app). Add the "quebec" addon in Addons, then use it in a space</small></span>
-          <textarea id="qcShows" rows="4" class="f" style="width:100%;font:13px/1.4 monospace" spellcheck="false"></textarea><button class="btn ghost sm" id="qcSave" type="button" style="align-self:flex-start">Save shows</button></div>
+        <div class="row2 stack"><span class="rt">TVA+ shows<small>One show page address per line (tvaplus.ca/tva/..., ici.radio-canada.ca/tele/..., or ici.tou.tv/... to open the app). Add the "quebec" addon in Addons, then use it in a space</small></span>
+          <textarea id="qcShows" rows="4" wrap="off" class="f" style="width:100%;font-family:ui-monospace,monospace;font-size:13px" spellcheck="false"></textarea><button class="btn ghost sm" id="qcSave" type="button" style="align-self:flex-start">Save shows</button></div>
       </div>
       <h2 class="sh">Netflix</h2>
       <div class="addon">
-        <div class="row2"><span class="rt">Import Netflix shows<small id="nfState">On netflix.com: Account, your profile, Viewing activity, Download all. Choose that file here, then sort the shows into your spaces</small></span><button class="btn ghost sm" id="nfPick" type="button">Choose file</button></div>
+        <div class="row2 stack"><span class="rt">Import Netflix shows<small id="nfState">On netflix.com: Account, your profile, Viewing activity, Download all. Choose that file here, then sort the shows into your spaces</small></span><span class="inrow"><button class="btn ghost sm" id="nfPick" type="button">Choose file</button></span></div>
         <input type="file" id="nfFile" accept=".csv,text/csv" hidden>
       </div>
       <h2 class="sh">Backup</h2>
       <div class="addon">
-        <div class="row2"><span class="rt">Watch history backup<small>Save everything this profile has watched to a file, or restore it. Restoring merges with what is already here</small></span><span style="display:flex;gap:8px"><button class="btn ghost sm" id="bkOut" type="button">Save</button><button class="btn ghost sm" id="bkIn" type="button">Restore</button></span></div>
+        <div class="row2 stack"><span class="rt">Watch history backup<small>Save everything this profile has watched to a file, or restore it. Restoring merges with what is already here</small></span><span class="inrow"><button class="btn ghost sm" id="bkOut" type="button">Save</button><button class="btn ghost sm" id="bkIn" type="button">Restore</button></span></div>
         <input type="file" id="bkFile" accept="application/json,.json" hidden>
       </div>
       <h2 class="sh">About</h2>
@@ -1870,7 +1966,7 @@ function showLauncher(){
     h('div', {class:'lhead'}, h('h1', null, 'Stream', h('span', {style:'color:var(--acc)'}, 'let')),
       h('button', {class:'spaceBtn', type:'button', onclick:() => showProfiles()}, profile ? [avatarEl(profile, 22), ' ' + profile.name] : 'Profile', h('i', null, '⇄'))),
     h('div', {class:'lmid'},
-      h('h2', {class:'ltitle'}, addons.length ? 'What are we watching?' : 'Add an addon first'),
+      h('h2', {class:'ltitle' + (addons.length ? '' : ' noadd')}, addons.length ? 'What are we watching?' : 'Add an addon first'),
       addons.length ? null : h('p', {class:'lsub'}, 'Open Addons, install one, then pick a space.'),
       h('div', {class:'sgrid'}, ...spaces.map(tile),
         h('div', {class:'swrap newwrap'}, h('button', {class:'stile new', type:'button', onclick:() => editSpace(null)}, h('span', {class:'sem'}, '＋'), h('span', {class:'stx'}, h('span', {class:'snm'}, 'New space')))))),
@@ -2169,10 +2265,11 @@ function renderMe(){
       h('div', {class:'mestats'}, h('div', {class:'addon'}, h('b', null, String(hs)), h('span', null, 'In progress')), h('div', {class:'addon'}, h('b', null, String(ws)), h('span', null, 'In watchlist'))),
       h('div', {class:'mebtns'},
         h('button', {class:'btn', type:'button', onclick:() => showProfiles()}, 'Switch profile'),
-        h('button', {class:'btn ghost', type:'button', onclick:() => editProfile(profile.id)}, 'Edit profile')),
+        h('button', {class:'btn ghost', type:'button', onclick:() => editProfile(profile.id)}, 'Edit profile'),
+        h('button', {class:'btn ghost', type:'button', onclick:() => { manageProfiles = true; showProfiles(); manageProfiles = true; renderProfiles(); }}, 'Manage profiles')),
       profiles.length > 1 ? h('div', null, h('div', {class:'lbl'}, 'Switch quickly'),
         h('div', {class:'pchips'}, profiles.filter(x => x.id !== profile.id).map(x => h('button', {class:'chip', type:'button', onclick:() => selectProfile(x)}, avatarEl(x, 22), ' ' + x.name)))) : null,
-      h('div', {class:'mebtns', style:'margin-top:18px'}, h('button', {class:'btn ghost sm', type:'button', onclick:() => { manageProfiles = true; showProfiles(); manageProfiles = true; renderProfiles(); }}, 'Manage profiles'))));
+      ));
 }
 const APP_BUILD = '2.0';
 function renderSettings(){

@@ -1,0 +1,96 @@
+/* ---------- phone polish: one set of sizes, margins and shapes for every page (the TV keeps its own) ----------
+   page edge 16px · cards 18px corners · rows inside cards 14px · buttons and fields 12px · small buttons 10px · chips fully round */
+
+/* page edges: every page lines up on the same 16px margin */
+body:not(.tv) .pad,body:not(.tv) .seg,body:not(.tv) #mlTabs,body:not(.tv) #wlTabs,body:not(.tv) .wgrid{padding-left:16px;padding-right:16px}
+body:not(.tv).pgfix:not(.launch) .pagehead{padding-left:16px;padding-right:16px}
+body:not(.tv) .rgrid{padding-left:16px;padding-right:16px}
+body:not(.tv) .row h2,body:not(.tv) .rhead{margin-left:16px;margin-right:16px}
+body:not(.tv) .strip{padding-left:16px;padding-right:16px;scroll-padding:0 16px}
+body:not(.tv) .gstrip{padding-left:16px;padding-right:16px}
+body:not(.tv).onhome:not(.launch) #tabsBar{padding-left:16px;padding-right:16px}
+body:not(.tv) #launcher{padding-left:16px;padding-right:16px}
+body:not(.tv) .sedwrap,body:not(.tv) .pe{padding-left:16px;padding-right:16px}
+body:not(.tv) #spaceEd{padding-left:0;padding-right:0}
+body:not(.tv) .sheet>.bar{padding:calc(12px + env(safe-area-inset-top)) 16px 8px !important}
+body:not(.tv) :is(#detail,#episode) .dleft{padding-left:16px;padding-right:16px}
+body:not(.tv) :is(#detail,#episode) .dp2{padding-left:16px}
+body:not(.tv) :is(#detail,#episode) .dp2 :is(.srow,.sfilter,.cchips,.eplist,.slist,.dsim){padding-right:16px}
+body:not(.tv) .dtop{padding-left:16px;padding-right:16px}
+
+/* page titles: the same size everywhere, and the line under them always takes its place so tabs never jump */
+body:not(.tv) .pagehead h1{font-size:30px;font-weight:800;letter-spacing:-.3px}
+body:not(.tv) #wlCount,body:not(.tv) #adCount{min-height:20px;font-size:14px}
+body:not(.tv) .sedh{font-size:26px;font-weight:800;letter-spacing:-.3px;margin:4px 0 14px}
+
+/* section titles */
+body:not(.tv) .row h2,body:not(.tv) #rows .row h2{font-size:17px;font-weight:700;margin-bottom:8px}
+body:not(.tv) .rhead{font-size:18px}
+body:not(.tv) .sh{font-size:13px;letter-spacing:.9px;margin:26px 4px 10px}
+body:not(.tv) .lbl{font-size:12px;letter-spacing:.8px;margin:18px 0 8px}
+body:not(.tv) #wlGrid .rsep{font-size:17px !important;font-weight:700;color:var(--text);text-transform:none;letter-spacing:0;margin:10px 0 2px !important}
+
+/* buttons: regular 44px, small 36px, same corners and weight on every page */
+body:not(.tv) .btn{min-height:44px;padding:0 20px;border-radius:12px;font-size:15px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;gap:8px;line-height:1.2;box-sizing:border-box}
+body:not(.tv) .btn.sm{min-height:36px;padding:0 14px;border-radius:10px;font-size:14px;font-weight:650}
+body:not(.tv) .gbtn{min-height:48px;border-radius:12px;font-size:15px}
+body:not(.tv) .lrow .btn{min-height:48px}
+body:not(.tv) .rrow{gap:8px;margin-top:4px}
+body:not(.tv) .mebtns{gap:10px;margin-top:14px}
+body:not(.tv) .mebtns .btn{flex:1 1 140px}
+body:not(.tv) .pe-act{margin:20px 0 26px}
+
+/* chips: fully round, 36px, one look for tabs and filters */
+body:not(.tv) .chip:not(.ico){min-height:36px;padding:0 16px;border-radius:999px;font-size:14px;font-weight:650;display:inline-flex;align-items:center;justify-content:center;gap:6px;box-sizing:border-box;white-space:nowrap}
+body:not(.tv).onhome:not(.launch) #tabsBar .chip{height:36px;border-radius:18px}
+body:not(.tv) .pchips .chip{padding:0 14px 0 6px}
+body:not(.tv) .lfoot .chip{min-height:44px;padding:0 22px;font-size:15px}
+body:not(.tv) #wlTabs .chip{min-height:32px;padding:0 14px;font-size:13px;background:transparent;border:1px solid rgba(255,255,255,.16);box-shadow:none}
+body:not(.tv) #wlTabs .chip.on{background:rgba(255,255,255,.92);border-color:transparent;color:#0d0d14}
+body:not(.tv) #wlTabs{padding-top:0}
+body:not(.tv) #mlTabs .chip{flex:1 1 auto;padding:0 12px}
+body:not(.tv) .gtile{border-radius:12px}
+
+/* fields */
+body:not(.tv) :is(.f,.add input,select.sel,#settings select.sel,#settings input[type=text]){min-height:44px;box-sizing:border-box;border-radius:12px;padding:0 14px;font-size:15px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);color:var(--text)}
+body:not(.tv) :is(select.sel,#settings select.sel){padding-right:10px}
+body:not(.tv) textarea.f{padding:12px 14px;line-height:1.45}
+body:not(.tv) .pe-input{border-radius:12px}
+:is(.row2.stack,#settings .row2.stack){flex-direction:column;align-items:stretch;gap:10px}
+.row2.stack .inrow{align-self:flex-start;max-width:100%}
+body:not(.tv) .row2.stack .inrow:has(.f){align-self:stretch}
+body:not(.tv) .inrow .f{flex:1}
+.inrow{display:flex;gap:8px;align-items:center}
+.inrow .f{min-width:0;width:auto;height:auto}
+body.tv .inrow .f{width:min(32vw,340px)}
+
+/* cards and the rows inside them */
+body:not(.tv) :is(.addon,.acard,.rcard,#settings .addon){border-radius:18px}
+body:not(.tv) .rcard{padding:14px 16px;margin:10px 0}
+body:not(.tv) .pe-prev{border-radius:18px}
+body:not(.tv) :is(.tgl,.opt,.stream,.adbox summary){border-radius:14px}
+body:not(.tv) .tgl{min-height:56px;box-sizing:border-box}
+
+/* switches: every on/off option looks like the ones in Settings */
+body:not(.tv) :is(.sheet,#profiles) input[type=checkbox]{-webkit-appearance:none;appearance:none;flex:0 0 auto;width:50px;height:30px;margin:0;border-radius:15px;background:rgba(255,255,255,.17);position:relative;transition:background .2s;cursor:pointer}
+body:not(.tv) :is(.sheet,#profiles) input[type=checkbox]::after{content:'';position:absolute;top:3px;left:3px;width:24px;height:24px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.4);transition:transform .2s}
+body:not(.tv) :is(.sheet,#profiles) input[type=checkbox]:checked{background:linear-gradient(135deg,var(--acc),var(--acc2))}
+body:not(.tv) :is(.sheet,#profiles) input[type=checkbox]:checked::after{transform:translateX(20px)}
+
+/* grids: three posters across on a phone, like the search results */
+@media (max-width:600px){
+  body:not(.tv) :is(.wgrid,.rgrid){grid-template-columns:repeat(3,minmax(0,1fr));gap:16px 10px}
+}
+
+/* long-press menu: Cancel reads as the way out, not as another action */
+body:not(.tv) .menu .box h3{margin:2px 2px 10px;font-size:18px}
+body:not(.tv) .menu .opt{min-height:50px;box-sizing:border-box}
+body:not(.tv) .menu .opt:last-child{justify-content:center;background:transparent;border-color:rgba(255,255,255,.14);color:var(--mut);margin-top:12px}
+
+/* toast: a soft floating card above the bottom bar */
+body:not(.tv) #toast{border-radius:14px;padding:12px 18px;background:rgba(28,30,40,.96);border:1px solid rgba(255,255,255,.1);box-shadow:0 10px 30px rgba(0,0,0,.4);bottom:calc(98px + env(safe-area-inset-bottom));font-weight:600}
+
+/* launcher: the hint lines up with the title */
+body:not(.tv) .lmid .lsub{text-align:left;margin:0 0 18px;color:rgba(255,255,255,.72)}
+.lmid .ltitle.noadd::after{display:none}
+body:not(.tv) .wgrid .card .s,body:not(.tv) .rgrid .card .s{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}

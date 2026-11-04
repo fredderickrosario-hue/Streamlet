@@ -10,10 +10,11 @@ function renderMe(){
       h('div', {class:'mestats'}, h('div', {class:'addon'}, h('b', null, String(hs)), h('span', null, 'In progress')), h('div', {class:'addon'}, h('b', null, String(ws)), h('span', null, 'In watchlist'))),
       h('div', {class:'mebtns'},
         h('button', {class:'btn', type:'button', onclick:() => showProfiles()}, 'Switch profile'),
-        h('button', {class:'btn ghost', type:'button', onclick:() => editProfile(profile.id)}, 'Edit profile')),
+        h('button', {class:'btn ghost', type:'button', onclick:() => editProfile(profile.id)}, 'Edit profile'),
+        h('button', {class:'btn ghost', type:'button', onclick:() => { manageProfiles = true; showProfiles(); manageProfiles = true; renderProfiles(); }}, 'Manage profiles')),
       profiles.length > 1 ? h('div', null, h('div', {class:'lbl'}, 'Switch quickly'),
         h('div', {class:'pchips'}, profiles.filter(x => x.id !== profile.id).map(x => h('button', {class:'chip', type:'button', onclick:() => selectProfile(x)}, avatarEl(x, 22), ' ' + x.name)))) : null,
-      h('div', {class:'mebtns', style:'margin-top:18px'}, h('button', {class:'btn ghost sm', type:'button', onclick:() => { manageProfiles = true; showProfiles(); manageProfiles = true; renderProfiles(); }}, 'Manage profiles'))));
+      ));
 }
 const APP_BUILD = '2.0';
 function renderSettings(){

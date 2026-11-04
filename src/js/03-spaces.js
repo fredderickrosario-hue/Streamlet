@@ -75,7 +75,7 @@ function showLauncher(){
     h('div', {class:'lhead'}, h('h1', null, 'Stream', h('span', {style:'color:var(--acc)'}, 'let')),
       h('button', {class:'spaceBtn', type:'button', onclick:() => showProfiles()}, profile ? [avatarEl(profile, 22), ' ' + profile.name] : 'Profile', h('i', null, '⇄'))),
     h('div', {class:'lmid'},
-      h('h2', {class:'ltitle'}, addons.length ? 'What are we watching?' : 'Add an addon first'),
+      h('h2', {class:'ltitle' + (addons.length ? '' : ' noadd')}, addons.length ? 'What are we watching?' : 'Add an addon first'),
       addons.length ? null : h('p', {class:'lsub'}, 'Open Addons, install one, then pick a space.'),
       h('div', {class:'sgrid'}, ...spaces.map(tile),
         h('div', {class:'swrap newwrap'}, h('button', {class:'stile new', type:'button', onclick:() => editSpace(null)}, h('span', {class:'sem'}, '＋'), h('span', {class:'stx'}, h('span', {class:'snm'}, 'New space')))))),
