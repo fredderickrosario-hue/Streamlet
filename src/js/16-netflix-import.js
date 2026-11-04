@@ -115,7 +115,7 @@ function nfSheet(list){
   const msg = h('div', {class:'msg', style:'margin-top:8px'});
   ed.replaceChildren(
     h('div', {class:'bar', style:'padding-left:0;padding-right:0'}, h('button', {class:'btn ghost sm', onclick:() => popLayer('nfimp')}, '← Back')),
-    h('div', {style:'padding:0 16px 120px'},
+    h('div', {class:'sheetbody', style:'padding:0 16px 120px'},
       h('h2', {style:'margin:6px 0 2px'}, 'Import from Netflix'), h('p', {style:'margin:0 0 8px;color:var(--mut);font-size:13px'}, 'Saving to profile: ' + (profile ? profile.name : '?')), info,
       h('div', {class:'rrow', style:'gap:8px;flex-wrap:wrap;margin:8px 0'}, h('button', {class:'btn ghost sm', type:'button', onclick:() => toggleAll(true)}, 'Select all'), h('button', {class:'btn ghost sm', type:'button', onclick:() => toggleAll(false)}, 'Select none'),
         h('button', {class:'btn ghost sm', type:'button', onclick:() => { const a = (spaces || []).find(s => /anim|ani?me/i.test(s.name || '')); if (!a) { toast('No space with "anime" in its name'); return; } for (const g of list) g.include = !!g.match && nfAnimeish(g); for (const g of list) if (g.include) g.space = a.id; redraw(); }}, 'Pick anime → Anime space')),

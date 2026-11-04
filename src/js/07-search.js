@@ -239,7 +239,7 @@ function editAddon(uid){
   const run = async fn => { msg.className = 'msg'; msg.textContent = 'Checking…'; try { await fn(); } catch (e) { msg.className = 'msg err'; msg.textContent = e.message || 'Failed.'; } };
   ed.replaceChildren(
     h('div', {class:'bar', style:'padding-left:0;padding-right:0'}, h('button', {class:'btn ghost sm', onclick:close}, '← Back')),
-    h('div', {style:'padding:0 16px'},
+    h('div', {class:'sheetbody', style:'padding:0 16px'},
       h('h2', {style:'margin:6px 0 2px'}, an(a)), h('p', {style:'margin:0 0 6px;color:var(--mut);font-size:13px'}, a.manifest.name + (a.manifest.version ? ' · v' + a.manifest.version : '') + ' · ' + a.uid),
       h('div', {class:'lbl'}, 'Name'), name,
       h('div', {class:'lbl'}, 'Link (includes your settings, and any private keys)'), link,

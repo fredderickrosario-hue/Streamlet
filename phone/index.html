@@ -1058,6 +1058,43 @@ body:not(.tv) .lmid .lsub{text-align:left;margin:0 0 18px;color:rgba(255,255,255
 body:not(.tv) .wgrid .card .s,body:not(.tv) .rgrid .card .s{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .ep .eseen{color:var(--acc)}
 .ep .eseen svg{fill:color-mix(in srgb,var(--acc) 45%,transparent)}
+/* ---------- TV polish: one set of sizes, edges and focus rings on every TV page (the phone keeps its own) ----------
+   pages line up on the title's left edge · content 900px wide at most · buttons 46px, small 38px · chips 40px, fully round
+   focus: a 3px white ring drawn inside the item, so no row, list or page edge can ever crop it */
+
+/* pages: tabs and lists start exactly under the title */
+body.tv.pgfix:not(.launch) :is(#mlTabs,#wlTabs,#adSeg){padding-left:0;padding-right:0;margin-left:0}
+body.tv :is(.addon,.acard,.rcard,#addBox,.mestats,.mebtns,.adbox,#settings .addon){max-width:860px;box-sizing:border-box}
+
+/* buttons */
+
+/* chips */
+
+/* fields */
+body.tv :is(.f,.add input,select.sel,#settings select.sel){min-height:46px;box-sizing:border-box;border-radius:12px;padding:0 14px;font-size:16px}
+
+/* cards and the rows inside them */
+body.tv :is(.addon,.acard,.rcard,#settings .addon){border-radius:20px}
+body.tv :is(.tgl,.opt,.stream,.adbox summary){border-radius:14px}
+
+/* switches for every on/off option, not only the ones in Settings */
+body.tv :is(.sheet,#profiles) input[type=checkbox]{-webkit-appearance:none;appearance:none;flex:0 0 auto;width:50px;height:30px;margin:0;border-radius:15px;background:rgba(255,255,255,.17);position:relative;transition:background .2s;cursor:pointer}
+body.tv :is(.sheet,#profiles) input[type=checkbox]::after{content:'';position:absolute;top:3px;left:3px;width:24px;height:24px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.4);transition:transform .2s}
+body.tv :is(.sheet,#profiles) input[type=checkbox]:checked{background:linear-gradient(135deg,var(--acc),var(--acc2))}
+body.tv :is(.sheet,#profiles) input[type=checkbox]:checked::after{transform:translateX(20px)}
+
+/* focus on posters: the same 3px white ring as every other item, inside the picture */
+body.tv :is(button.card,.cwb,.wlb):focus-visible .poster{outline:3px solid #fff;outline-offset:-3px}
+
+/* editors and import pages: a fixed margin from the screen edge, the Back / Cancel button lined up with the content */
+
+/* long-press menu: Cancel reads as the way out */
+
+/* toast: low and centred, clear of the content */
+
+/* search page: the titles line up with the results */
+
+/* launcher: two rows of spaces and the buttons below fit on one screen */
 </style>
 </head>
 <body>
@@ -2760,7 +2797,7 @@ function editAddon(uid){
   const run = async fn => { msg.className = 'msg'; msg.textContent = 'Checking…'; try { await fn(); } catch (e) { msg.className = 'msg err'; msg.textContent = e.message || 'Failed.'; } };
   ed.replaceChildren(
     h('div', {class:'bar', style:'padding-left:0;padding-right:0'}, h('button', {class:'btn ghost sm', onclick:close}, '← Back')),
-    h('div', {style:'padding:0 16px'},
+    h('div', {class:'sheetbody', style:'padding:0 16px'},
       h('h2', {style:'margin:6px 0 2px'}, an(a)), h('p', {style:'margin:0 0 6px;color:var(--mut);font-size:13px'}, a.manifest.name + (a.manifest.version ? ' · v' + a.manifest.version : '') + ' · ' + a.uid),
       h('div', {class:'lbl'}, 'Name'), name,
       h('div', {class:'lbl'}, 'Link (includes your settings, and any private keys)'), link,
@@ -5279,7 +5316,7 @@ function nfSheet(list){
   const msg = h('div', {class:'msg', style:'margin-top:8px'});
   ed.replaceChildren(
     h('div', {class:'bar', style:'padding-left:0;padding-right:0'}, h('button', {class:'btn ghost sm', onclick:() => popLayer('nfimp')}, '← Back')),
-    h('div', {style:'padding:0 16px 120px'},
+    h('div', {class:'sheetbody', style:'padding:0 16px 120px'},
       h('h2', {style:'margin:6px 0 2px'}, 'Import from Netflix'), h('p', {style:'margin:0 0 8px;color:var(--mut);font-size:13px'}, 'Saving to profile: ' + (profile ? profile.name : '?')), info,
       h('div', {class:'rrow', style:'gap:8px;flex-wrap:wrap;margin:8px 0'}, h('button', {class:'btn ghost sm', type:'button', onclick:() => toggleAll(true)}, 'Select all'), h('button', {class:'btn ghost sm', type:'button', onclick:() => toggleAll(false)}, 'Select none'),
         h('button', {class:'btn ghost sm', type:'button', onclick:() => { const a = (spaces || []).find(s => /anim|ani?me/i.test(s.name || '')); if (!a) { toast('No space with "anime" in its name'); return; } for (const g of list) g.include = !!g.match && nfAnimeish(g); for (const g of list) if (g.include) g.space = a.id; redraw(); }}, 'Pick anime → Anime space')),
