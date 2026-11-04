@@ -342,6 +342,35 @@ const ok = (name, cond, extra) => { cond ? pass++ : fail++; console.log((cond ? 
       }).catch(e => String(e));
       ok('Sync: big lists travel in chunks and are only applied once every piece has arrived', r === true, r);
     }
+    {
+      const r = await p.evaluate(async () => {
+        const d = n => new Date(Date.now() + n * 864e5).toISOString();
+        const fresh = nsCompute({videos:[{id:'a', season:1, episode:1, released:d(-400)}, {id:'b', season:2, episode:1, released:d(-10)}, {id:'c', season:2, episode:2, released:d(-3)}, {id:'f', season:3, episode:1, released:d(40)}]});
+        const old = nsCompute({videos:[{id:'a', season:1, episode:1, released:d(-400)}, {id:'b', season:2, episode:1, released:d(-200)}]});
+        const newShow = nsCompute({videos:[{id:'a', season:1, episode:1, released:d(-5)}]});
+        const ot = tmdbGet, hb = homeTok; nhMem.clear();
+        tmdbGet = async path => ({results:[1, 2, 3].map(i => ({id:i, title:'T' + i, name:'T' + i, poster_path:'/p' + i + '.jpg', release_date:'2030-01-0' + i, first_air_date:'2030-01-0' + i, media_type:i === 2 ? 'tv' : 'movie'}))});
+        const box = document.createElement('div'); const ok2 = await renderNewHot(box, homeTok, 'k'); tmdbGet = ot;
+        const heads = [...box.querySelectorAll('h2')].map(x => x.textContent), ranks = box.querySelectorAll('.nhrank').length, dates = box.querySelectorAll('.rtag.upcoming').length;
+        return fresh === 2 && old === 0 && newShow === 0 && ok2 && heads.includes('Coming soon') && heads.includes('Top 10 shows today') && ranks >= 3 && dates >= 3 ? true : JSON.stringify({fresh, old, newShow, ok2, heads, ranks, dates});
+      }).catch(e => String(e));
+      ok('New & Hot rows (coming soon, top 10) and New season detection', r === true, r);
+    }
+    {
+      const r = await p.evaluate(async () => {
+        if (!document.body.classList.contains('tv')) return true;
+        const i = document.createElement('input'); i.type = 'text'; document.body.append(i);
+        await new Promise(r => setTimeout(r, 50));
+        const locked = i.readOnly && i.getAttribute('inputmode') === 'none';
+        i.focus(); const still = i.readOnly;
+        i.click(); await new Promise(r => setTimeout(r, 30));
+        const open = !i.readOnly && i.getAttribute('inputmode') === 'text';
+        i.blur(); await new Promise(r => setTimeout(r, 30));
+        const back = i.readOnly; i.remove();
+        return locked && still && open && back ? true : JSON.stringify({locked, still, open, back});
+      }).catch(e => String(e));
+      ok('TV: a text box only opens its keyboard when you click it', r === true, r);
+    }
     ok('no errors after all of the above', errs.length === 0, errs[0]);
     await p.close();
   }

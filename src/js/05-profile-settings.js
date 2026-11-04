@@ -228,14 +228,15 @@ function posterEl(meta){
   const iid = meta.itemId || meta.id;
   if (iid) { p.dataset.iid = iid; const rb = ribEl(iid); if (rb) p.append(rb); }
   const rs = relState(meta, meta.type); if (rs) p.append(h('span', {class:'rtag ' + rs}, relLabel(rs)));
+  try { nsWatch(p, iid, meta.type); } catch {}
   return p;
 }
 
 function cwCard(e){
   const pct = e.dur ? Math.min(100, Math.round(e.pos / e.dur * 100)) : 0;
   const label = (e.ep ? `S${e.ep.season ?? 1}:E${e.ep.episode ?? '?'}` : '') + (e.upnext ? ' · Next episode' : (e.dur ? (e.ep ? ' · ' : '') + Math.max(1, Math.round((e.dur - e.pos) / 60)) + 'm left' : ''));
-  const po = posterEl({name:e.name, poster:e.poster, itemId:e.itemId});
-  if (e.upnext) po.append(h('span', {class:'upn'}, 'UP NEXT')); else po.append(h('div', {class:'pg'}, h('i', {style:`width:${pct}%`})));
+  const po = posterEl({name:e.name, poster:e.poster, itemId:e.itemId, type:e.itemType || e.type});
+  if (e.upnext) { if (e.rel && Date.now() - Date.parse(e.rel) < 21 * 864e5) po.append(h('span', {class:'upn'}, 'NEW EPISODE')); } else po.append(h('div', {class:'pg'}, h('i', {style:`width:${pct}%`})));
   return h('div', {class:'card cwc'},
     (() => { const b = h('button', {class:'cwb', type:'button', onclick:() => openResume(e)}, po, h('div', {class:'t'}, e.name), h('div', {class:'s'}, label)); attachHold(b, {itemId:e.itemId, type:e.itemType, name:e.name, poster:e.poster, background:e.background, addonId:e.addonId}, {cw:e.fromShow ? null : e}); return b; })());
 }
@@ -298,7 +299,7 @@ async function nextEpisodeCards(have){
       if (!nx || (epGet(id, nx.season ?? 1, nx.episode) || {}).pos > 20) { cwDiag.push(`${id}: nothing new to offer (${vids.length} episodes, last watched #${last})`); return; }
       cwDiag.push(`${id}: offering S${nx.season ?? 1}E${nx.episode}`);
       out.push({k:`next|${nx.id}`, type:'series', id:nx.id, itemId:id, itemType:'series', name:meta.name || s0.n, poster:meta.poster || s0.p, background:meta.background || s0.b, addonId:meta._a || s0.a,
-        ep:{season:nx.season ?? 1, episode:nx.episode, title:nx.title || nx.name}, pos:0, dur:0, t:now, upnext:true, fromShow:true});
+        ep:{season:nx.season ?? 1, episode:nx.episode, title:nx.title || nx.name}, pos:0, dur:0, t:now, upnext:true, fromShow:true, rel:nx.released || ''});
     } catch {}
   }));
   return out;

@@ -143,7 +143,7 @@ $('#spaceBtn').onclick = () => showLauncher();
 const isTVui = () => document.body.classList.contains('tv');
 function tvTab(t){ if (!cur) return showLauncher(); srchOn = false; $('#q').value = ''; view = {tab:t, genre:''}; showTab('home'); }
 $('#tabHome').onclick = () => { if (isTVui()) tvTab('home'); else showTab('home'); };
-$('#nvMovies').onclick = () => tvTab('movie'); $('#nvShows').onclick = () => tvTab('series');
+$('#nvMovies').onclick = () => tvTab('movie'); $('#nvShows').onclick = () => tvTab('series'); $('#nvNew').onclick = () => tvTab('new');
 $('#nvSpace').onclick = () => showLauncher();
 $('#nvSearch').onclick = () => { if (!cur) return showLauncher(); if (isTVui()) { showTab('search'); setTimeout(() => { const k = $('.kkey'); if (k) k.focus({preventScroll:true}); }, 60); return; } if (srchOn || $('#q').value.trim()) { closeSearch(); return; } if ($('#home').hidden) showTab('home'); srchOn = true; renderTabs(); $('#q').focus(); };
 $('#nav').addEventListener('keydown', e => { if ((e.key === 'Enter' || e.key === ' ') && e.target.closest('button')) e.target.closest('button').classList.add('prs'); });
@@ -162,7 +162,7 @@ function syncNav(){
   try {
     const home = !$('#home').hidden, st = !!(cur && spaceTabs()), tv = isTVui(), sr = srchOn || !!$('#q').value.trim();
     const set = (id, on, show = true) => { const b = $(id); b.classList.toggle('on', !!on); b.classList.toggle('gone', !show); };
-    set('#nvMovies', home && st && !sr && view.tab === 'movie', st); set('#nvShows', home && st && !sr && view.tab === 'series', st);
+    set('#nvMovies', home && st && !sr && view.tab === 'movie', st); set('#nvShows', home && st && !sr && view.tab === 'series', st); set('#nvNew', home && st && !sr && view.tab === 'new', st);
     set('#nvSearch', home && sr || !$('#search').hidden); set('#nvSpace', false);
     if (tv) $('#tabHome').classList.toggle('on', home && !sr && (!st || view.tab === 'home'));
   } catch {}

@@ -307,7 +307,7 @@ function recordProgress(c, stream, pos, dur){
     histRemove(key);
     if (it.type === 'movie') watchedAdd({itemId:it.id, type:it.type, name:it.name});     // a series is never marked watched just because its newest episode ended
     if (c.next) histPut({k:`${c.type}|${c.next.id}`, type:c.type, id:c.next.id, itemId:it.id, itemType:it.type, name:it.name, poster:it.poster, background:it.background,
-      addonId:c.info.addonId, ep:{season:c.next.season, episode:c.next.episode, title:c.next.title}, pos:0, dur:0, t:Date.now(), space:cur && cur.id, upnext:true});
+      addonId:c.info.addonId, ep:{season:c.next.season, episode:c.next.episode, title:c.next.title}, pos:0, dur:0, t:Date.now(), space:cur && cur.id, upnext:true, rel:c.next.released || ''});
     return;
   }
   histPut({k:key, type:c.type, id:c.id, itemId:it.id, itemType:it.type, name:it.name, poster:it.poster, background:it.background, addonId:c.info.addonId,

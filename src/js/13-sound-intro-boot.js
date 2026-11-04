@@ -105,7 +105,7 @@ const sfx = (() => {
 document.addEventListener('keydown', e => {
   if (e.ctrlKey || e.metaKey || e.altKey) return;
   const act = keyAct(e), el = document.activeElement;
-  const typing = el && ((el.tagName === 'INPUT' && !/^(checkbox|radio|button|range|submit)$/.test(el.type)) || el.tagName === 'TEXTAREA');
+  const typing = el && ((el.tagName === 'INPUT' && !el.readOnly && !/^(checkbox|radio|button|range|submit)$/.test(el.type)) || (el.tagName === 'TEXTAREA' && !el.readOnly));
   if (!remoteMode && (e.key.startsWith('Arrow') || e.key === 'Enter')) { remoteMode = true; document.body.classList.add('remote'); }
   if ((e.key === 'Enter' || e.keyCode === 23) && !typing && !e.repeat && remoteMode) sfx.select();
   if (act === 'back' && !typing && remoteMode) sfx.back();

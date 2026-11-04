@@ -205,3 +205,5 @@ body.tv #search .sres::-webkit-scrollbar{display:none}
 body.tv #search .sres .tspace{height:0}
 body.tv #search .sres .rhead{margin-top:0}
 body.tv #search .rgrid{grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:18px 16px;padding:8px 6px}
+.rtag.season{background:#1faa6b}
+.nhrank{position:absolute;left:6px;bottom:2px;z-index:3;font-size:64px;line-height:1;font-weight:900;color:#fff;-webkit-text-stroke:2px rgba(0,0,0,.55);text-shadow:0 2px 12px rgba(0,0,0,.7);pointer-events:none}

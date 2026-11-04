@@ -1130,6 +1130,8 @@ body.tv #search .sres::-webkit-scrollbar{display:none}
 body.tv #search .sres .tspace{height:0}
 body.tv #search .sres .rhead{margin-top:0}
 body.tv #search .rgrid{grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:18px 16px;padding:8px 6px}
+.rtag.season{background:#1faa6b}
+.nhrank{position:absolute;left:6px;bottom:2px;z-index:3;font-size:64px;line-height:1;font-weight:900;color:#fff;-webkit-text-stroke:2px rgba(0,0,0,.55);text-shadow:0 2px 12px rgba(0,0,0,.7);pointer-events:none}
 
 /* manage profiles: the pencil badge sits on the avatar's corner, in our accent color */
 .pav:not(.add){width:fit-content;height:auto;border-radius:0;box-shadow:none}
@@ -1385,6 +1387,7 @@ body:not(.tv) :is(#detail,#episode) .dhint{display:none}
   <button id="tabHome" type="button"><svg viewBox="0 0 24 24"><path d="M3 11.5 12 4l9 7.5"/><path d="M5 10.2V20h5v-5.2h4V20h5v-9.8"/></svg><span>Home</span></button>
   <button id="nvMovies" class="tvonly" type="button" aria-label="Movies"><svg viewBox="0 0 24 24"><rect x="3.5" y="4" width="17" height="16" rx="2.2"/><path class="k" d="M8 4v16M16 4v16M3.5 9h4.5M3.5 15h4.5M16 9h4.5M16 15h4.5"/></svg><span>Movies</span></button>
   <button id="nvShows" class="tvonly" type="button" aria-label="Shows"><svg viewBox="0 0 24 24"><rect x="3" y="6.5" width="18" height="12" rx="2.4"/><path d="M8.5 3 12 6.5 15.5 3M8 21.5h8"/></svg><span>Shows</span></button>
+  <button id="nvNew" class="tvonly" type="button" aria-label="New and Hot"><svg viewBox="0 0 24 24"><path d="M12 3c.6 3.2 4.5 4.8 4.5 9.2A4.5 4.5 0 0 1 12 17a4.5 4.5 0 0 1-4.5-4.4c0-1.8.8-3 1.8-4 .3 1.1 1 1.7 1.7 1.9C11 8.6 10.6 5.6 12 3z"/><path d="M9.5 21h5"/></svg><span>New &amp; Hot</span></button>
   <button id="tabWatch" type="button"><svg viewBox="0 0 24 24"><path d="M6.5 3.5h11v17l-5.5-4.2-5.5 4.2z"/></svg><span>My List</span></button>
   <button id="tabAddons" type="button"><svg viewBox="0 0 24 24"><path d="M20.5 11H19V7a2 2 0 0 0-2-2h-4V3.5a2.5 2.5 0 0 0-5 0V5H4a2 2 0 0 0-2 2v3.8h1.5a2.7 2.7 0 0 1 0 5.4H2V20a2 2 0 0 0 2 2h3.8v-1.5a2.7 2.7 0 0 1 5.4 0V22H17a2 2 0 0 0 2-2v-4h1.5a2.5 2.5 0 0 0 0-5z" transform="translate(.3 .3) scale(.94)"/></svg><span>Addons</span></button>
   <button id="tabSettings" type="button"><svg viewBox="0 0 24 24"><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.9.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.9 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.9l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.9.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.9-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.9V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/><circle class="k" cx="12" cy="12" r="3"/></svg><span>Settings</span></button>
@@ -1760,7 +1763,7 @@ $('#spaceBtn').onclick = () => showLauncher();
 const isTVui = () => document.body.classList.contains('tv');
 function tvTab(t){ if (!cur) return showLauncher(); srchOn = false; $('#q').value = ''; view = {tab:t, genre:''}; showTab('home'); }
 $('#tabHome').onclick = () => { if (isTVui()) tvTab('home'); else showTab('home'); };
-$('#nvMovies').onclick = () => tvTab('movie'); $('#nvShows').onclick = () => tvTab('series');
+$('#nvMovies').onclick = () => tvTab('movie'); $('#nvShows').onclick = () => tvTab('series'); $('#nvNew').onclick = () => tvTab('new');
 $('#nvSpace').onclick = () => showLauncher();
 $('#nvSearch').onclick = () => { if (!cur) return showLauncher(); if (isTVui()) { showTab('search'); setTimeout(() => { const k = $('.kkey'); if (k) k.focus({preventScroll:true}); }, 60); return; } if (srchOn || $('#q').value.trim()) { closeSearch(); return; } if ($('#home').hidden) showTab('home'); srchOn = true; renderTabs(); $('#q').focus(); };
 $('#nav').addEventListener('keydown', e => { if ((e.key === 'Enter' || e.key === ' ') && e.target.closest('button')) e.target.closest('button').classList.add('prs'); });
@@ -1779,7 +1782,7 @@ function syncNav(){
   try {
     const home = !$('#home').hidden, st = !!(cur && spaceTabs()), tv = isTVui(), sr = srchOn || !!$('#q').value.trim();
     const set = (id, on, show = true) => { const b = $(id); b.classList.toggle('on', !!on); b.classList.toggle('gone', !show); };
-    set('#nvMovies', home && st && !sr && view.tab === 'movie', st); set('#nvShows', home && st && !sr && view.tab === 'series', st);
+    set('#nvMovies', home && st && !sr && view.tab === 'movie', st); set('#nvShows', home && st && !sr && view.tab === 'series', st); set('#nvNew', home && st && !sr && view.tab === 'new', st);
     set('#nvSearch', home && sr || !$('#search').hidden); set('#nvSpace', false);
     if (tv) $('#tabHome').classList.toggle('on', home && !sr && (!st || view.tab === 'home'));
   } catch {}
@@ -2380,14 +2383,15 @@ function posterEl(meta){
   const iid = meta.itemId || meta.id;
   if (iid) { p.dataset.iid = iid; const rb = ribEl(iid); if (rb) p.append(rb); }
   const rs = relState(meta, meta.type); if (rs) p.append(h('span', {class:'rtag ' + rs}, relLabel(rs)));
+  try { nsWatch(p, iid, meta.type); } catch {}
   return p;
 }
 
 function cwCard(e){
   const pct = e.dur ? Math.min(100, Math.round(e.pos / e.dur * 100)) : 0;
   const label = (e.ep ? `S${e.ep.season ?? 1}:E${e.ep.episode ?? '?'}` : '') + (e.upnext ? ' · Next episode' : (e.dur ? (e.ep ? ' · ' : '') + Math.max(1, Math.round((e.dur - e.pos) / 60)) + 'm left' : ''));
-  const po = posterEl({name:e.name, poster:e.poster, itemId:e.itemId});
-  if (e.upnext) po.append(h('span', {class:'upn'}, 'UP NEXT')); else po.append(h('div', {class:'pg'}, h('i', {style:`width:${pct}%`})));
+  const po = posterEl({name:e.name, poster:e.poster, itemId:e.itemId, type:e.itemType || e.type});
+  if (e.upnext) { if (e.rel && Date.now() - Date.parse(e.rel) < 21 * 864e5) po.append(h('span', {class:'upn'}, 'NEW EPISODE')); } else po.append(h('div', {class:'pg'}, h('i', {style:`width:${pct}%`})));
   return h('div', {class:'card cwc'},
     (() => { const b = h('button', {class:'cwb', type:'button', onclick:() => openResume(e)}, po, h('div', {class:'t'}, e.name), h('div', {class:'s'}, label)); attachHold(b, {itemId:e.itemId, type:e.itemType, name:e.name, poster:e.poster, background:e.background, addonId:e.addonId}, {cw:e.fromShow ? null : e}); return b; })());
 }
@@ -2450,7 +2454,7 @@ async function nextEpisodeCards(have){
       if (!nx || (epGet(id, nx.season ?? 1, nx.episode) || {}).pos > 20) { cwDiag.push(`${id}: nothing new to offer (${vids.length} episodes, last watched #${last})`); return; }
       cwDiag.push(`${id}: offering S${nx.season ?? 1}E${nx.episode}`);
       out.push({k:`next|${nx.id}`, type:'series', id:nx.id, itemId:id, itemType:'series', name:meta.name || s0.n, poster:meta.poster || s0.p, background:meta.background || s0.b, addonId:meta._a || s0.a,
-        ep:{season:nx.season ?? 1, episode:nx.episode, title:nx.title || nx.name}, pos:0, dur:0, t:now, upnext:true, fromShow:true});
+        ep:{season:nx.season ?? 1, episode:nx.episode, title:nx.title || nx.name}, pos:0, dur:0, t:now, upnext:true, fromShow:true, rel:nx.released || ''});
     } catch {}
   }));
   return out;
@@ -2657,7 +2661,7 @@ function renderTabs(){
   if (!spaceTabs() || !addons.length) { bar.hidden = true; bar.replaceChildren(); return; }
   bar.hidden = false;
   const chip = (id, label) => h('button', {class:'chip'+(view.tab===id ? ' on' : ''), onclick:() => { view = {tab:id, genre:''}; pushPage(); renderHome(); }}, label);
-  bar.replaceChildren(chip('home','Home'), chip('movie','Movies'), chip('series','Shows'), chip('new','New releases'));
+  bar.replaceChildren(chip('home','Home'), chip('movie','Movies'), chip('series','Shows'), chip('new','New & Hot'));
   if (had) { const t = [...bar.children].find(c => c.id === had || c.textContent === had); if (t) t.focus({preventScroll:true}); }
 }
 
@@ -2806,8 +2810,11 @@ async function renderHome(query = $('#q').value.trim(), target){
   const skipP = personalSkip; personalSkip = false;
   const personal = !skipP && !query && !target && !(tabs && view.genre) && (!tabs || view.tab === 'home') && personalSeeds().any;
   const hideCats = personal && tabs;                                            // with tabs, the catalogs live in Movies / Shows as discoveries
+  const nhKey = tabs && !target && view.tab === 'new' && !view.genre ? lsGet('streamlet.tmdb', '') : '';
+  if (nhKey) { box.append(h('div', {class:'tspace'})); renderNewHot(box, tok, nhKey).catch(() => {}); return; }
   const heroBox = h('div'); if (!query && !(tabs && view.genre)) box.append(heroBox); else if (!target) box.append(h('div', {class:'tspace'}));
   if (tabs && !target) box.append(genreStrip());
+  if (tabs && !target && view.tab === 'new') box.append(h('div', {class:'empty', style:'padding:6px 16px 0'}, h('p', null, 'Add your TMDB key in Settings to turn this tab into New & Hot: coming soon, trending and top 10.')));
   if (!target) { box.append(h('div', {id:'cwBox'})); renderCW(); }
   if (personal) { const pbox = h('div', {id:'pBox'}); box.append(pbox); renderPersonal(pbox, tok).then(ok => { if (!ok && hideCats && tok === homeTok) { personalSkip = true; renderHome(query, target); } }).catch(() => { if (hideCats && tok === homeTok) { personalSkip = true; renderHome(query, target); } }); }
   let heroDone = false, shown = 0;
@@ -4077,7 +4084,7 @@ function recordProgress(c, stream, pos, dur){
     histRemove(key);
     if (it.type === 'movie') watchedAdd({itemId:it.id, type:it.type, name:it.name});     // a series is never marked watched just because its newest episode ended
     if (c.next) histPut({k:`${c.type}|${c.next.id}`, type:c.type, id:c.next.id, itemId:it.id, itemType:it.type, name:it.name, poster:it.poster, background:it.background,
-      addonId:c.info.addonId, ep:{season:c.next.season, episode:c.next.episode, title:c.next.title}, pos:0, dur:0, t:Date.now(), space:cur && cur.id, upnext:true});
+      addonId:c.info.addonId, ep:{season:c.next.season, episode:c.next.episode, title:c.next.title}, pos:0, dur:0, t:Date.now(), space:cur && cur.id, upnext:true, rel:c.next.released || ''});
     return;
   }
   histPut({k:key, type:c.type, id:c.id, itemId:it.id, itemType:it.type, name:it.name, poster:it.poster, background:it.background, addonId:c.info.addonId,
@@ -4962,7 +4969,7 @@ const sfx = (() => {
 document.addEventListener('keydown', e => {
   if (e.ctrlKey || e.metaKey || e.altKey) return;
   const act = keyAct(e), el = document.activeElement;
-  const typing = el && ((el.tagName === 'INPUT' && !/^(checkbox|radio|button|range|submit)$/.test(el.type)) || el.tagName === 'TEXTAREA');
+  const typing = el && ((el.tagName === 'INPUT' && !el.readOnly && !/^(checkbox|radio|button|range|submit)$/.test(el.type)) || (el.tagName === 'TEXTAREA' && !el.readOnly));
   if (!remoteMode && (e.key.startsWith('Arrow') || e.key === 'Enter')) { remoteMode = true; document.body.classList.add('remote'); }
   if ((e.key === 'Enter' || e.keyCode === 23) && !typing && !e.repeat && remoteMode) sfx.select();
   if (act === 'back' && !typing && remoteMode) sfx.back();
@@ -5557,6 +5564,108 @@ async function openSpace(id){
   try { await warmSpace(sp, 6000); } catch {}
   enterSpace(id); done(); opening = false;
 }
+/* ---------- "New season" labels on posters, and the New & Hot tab ---------- */
+const NS_KEY = 'streamlet.nseason', NS_TTL = 2 * 864e5;
+let nsMap = null, nsSaveT = 0, nsBusy = 0; const nsWait = [];
+const nsAll = () => nsMap || (nsMap = (() => { const v = lsGet(NS_KEY, {}); return v && typeof v === 'object' ? v : {}; })());
+const nsGet = id => { const e = nsAll()[id]; return e && e.s ? e.s : 0; };
+function nsCompute(meta){                                                    // the newest season (2 or later) whose first episode aired in the last 60 days
+  const now = Date.now(), DAY = 864e5, by = {};
+  for (const v of airedVids(meta)) { const s = v.season ?? 1, t = v.released ? Date.parse(v.released) : NaN; if (!isNaN(t) && t <= now + DAY) (by[s] || (by[s] = [])).push(t); }
+  const s = Object.keys(by).map(Number).filter(x => x >= 2).sort((a, b) => b - a)[0];
+  return s && now - Math.min(...by[s]) < 60 * DAY ? s : 0;
+}
+function nsPaint(id){
+  if (!nsGet(id)) return;
+  for (const p of document.querySelectorAll('.poster[data-iid="' + (window.CSS && CSS.escape ? CSS.escape(id) : id) + '"]')) {
+    if (p.querySelector('.rtag, .upn')) continue;
+    p.append(h('span', {class:'rtag season'}, 'New season'));
+  }
+}
+function nsRun(){
+  while (nsBusy < 3 && nsWait.length) {
+    const id = nsWait.shift(); nsBusy++;
+    (async () => { try { const m = await showMeta(id, {a:''}); const s = m ? nsCompute(m) : 0; nsAll()[id] = {t:Date.now(), s}; clearTimeout(nsSaveT); nsSaveT = setTimeout(() => lsSet(NS_KEY, nsAll()), 1500); nsPaint(id); } catch {} nsBusy--; nsRun(); })();
+  }
+}
+const nsIO = 'IntersectionObserver' in window ? new IntersectionObserver(es => es.forEach(e => {
+  if (!e.isIntersecting) return; nsIO.unobserve(e.target);
+  const id = e.target.dataset.iid, c = nsAll()[id]; if (!id || (c && Date.now() - c.t < NS_TTL) || nsWait.includes(id)) return;
+  nsWait.push(id); nsRun();
+}), {rootMargin:'300px'}) : null;
+function nsWatch(p, id, type){ if (type !== 'series' || !id) return; if (nsGet(id) && !p.querySelector('.rtag, .upn')) p.append(h('span', {class:'rtag season'}, 'New season')); if (nsIO) nsIO.observe(p); }
+
+/* ---------- New & Hot (needs the TMDB key): coming soon, everyone's watching, top 10, just released ---------- */
+const NH_REGION = (() => { try { return (navigator.language || 'en-CA').split('-')[1] || 'CA'; } catch { return 'CA'; } })();
+const nhMem = new Map();
+const nhImg = (p, w = 'w342') => p ? 'https://image.tmdb.org/t/p/' + w + p : '';
+const isoDay = off => new Date(Date.now() + off * 864e5).toISOString().slice(0, 10);
+async function nhGet(path, key){ const hit = nhMem.get(path); if (hit && Date.now() - hit.t < 30 * 60e3) return hit.j; const j = await tmdbGet(path, key); nhMem.set(path, {t:Date.now(), j}); return j; }
+const nhNorm = (r, mt) => (r || []).filter(x => x && x.poster_path && (x.media_type || mt) !== 'person').map(x => ({mt:x.media_type || mt, id:x.id, name:x.title || x.name, poster:x.poster_path, backdrop:x.backdrop_path, date:x.release_date || x.first_air_date || ''}));
+async function nhOpen(it){
+  const key = lsGet('streamlet.tmdb', '');
+  try {
+    const ex = await nhGet(`/${it.mt}/${it.id}/external_ids`, key), imdb = ex && ex.imdb_id, type = it.mt === 'movie' ? 'movie' : 'series';
+    const a = imdb && (spaceAddons().find(x => supports(x, 'meta', type, imdb)) || addons.find(x => supports(x, 'meta', type, imdb)));
+    if (!a) { toast("Your addons don't have this one yet"); return; }
+    openDetail(a, type, {id:imdb, type, name:it.name, poster:nhImg(it.poster), background:nhImg(it.backdrop, 'w780'), releaseInfo:(it.date || '').slice(0, 4)});
+  } catch { toast("Couldn't open it right now"); }
+}
+function nhCard(it, o = {}){
+  const po = posterEl({name:it.name, poster:nhImg(it.poster)});
+  if (o.rank) po.append(h('span', {class:'nhrank'}, String(o.rank)));
+  if (o.date && it.date) { const d = new Date(it.date + 'T12:00:00'); if (!isNaN(d)) po.append(h('span', {class:'rtag upcoming'}, d.toLocaleDateString(undefined, {month:'short', day:'numeric'}))); }
+  return h('button', {class:'card', type:'button', onclick:() => nhOpen(it)}, po, h('div', {class:'t'}, it.name), h('div', {class:'s'}, (it.mt === 'movie' ? 'Movie' : 'Show') + (it.date ? ' · ' + it.date.slice(0, 4) : '')));
+}
+async function renderNewHot(box, tok, key){
+  const get = p => nhGet(p, key), reg = '&region=' + NH_REGION;
+  const [upM, upT, all, tvd, mvd, newM, newT] = (await Promise.allSettled([
+    get(`/discover/movie?sort_by=popularity.desc&primary_release_date.gte=${isoDay(1)}&primary_release_date.lte=${isoDay(120)}${reg}`),
+    get(`/discover/tv?sort_by=popularity.desc&first_air_date.gte=${isoDay(1)}&first_air_date.lte=${isoDay(120)}`),
+    get('/trending/all/week'), get('/trending/tv/day'), get('/trending/movie/day'),
+    get(`/discover/movie?sort_by=popularity.desc&primary_release_date.gte=${isoDay(-28)}&primary_release_date.lte=${isoDay(0)}${reg}`),
+    get(`/discover/tv?sort_by=popularity.desc&first_air_date.gte=${isoDay(-60)}&first_air_date.lte=${isoDay(0)}`)
+  ])).map(r => r.status === 'fulfilled' ? r.value : null);
+  if (tok !== homeTok) return;
+  const coming = [...nhNorm(upM && upM.results, 'movie'), ...nhNorm(upT && upT.results, 'tv')].filter(x => x.date).sort((a, b) => a.date.localeCompare(b.date)).slice(0, 18);
+  const rows = [
+    ['Coming soon', coming, {date:true}],
+    ["Everyone's watching", nhNorm(all && all.results).slice(0, 18), {}],
+    ['Top 10 shows today', nhNorm(tvd && tvd.results, 'tv').slice(0, 10), {rank:true}],
+    ['Top 10 movies today', nhNorm(mvd && mvd.results, 'movie').slice(0, 10), {rank:true}],
+    ['Just released', [...nhNorm(newM && newM.results, 'movie').slice(0, 10), ...nhNorm(newT && newT.results, 'tv').slice(0, 10)].sort((a, b) => b.date.localeCompare(a.date)), {}]
+  ].filter(r => r[1].length);
+  if (!rows.length) { box.append(h('div', {class:'empty'}, h('h2', null, "Couldn't load New & Hot"), h('p', null, 'Check your TMDB key in Settings, or try again in a moment.'))); return false; }
+  for (const [title, list, o] of rows) {
+    const strip = h('div', {class:'strip'}, ...list.map((it, i) => nhCard(it, {rank:o.rank ? i + 1 : 0, date:o.date})));
+    box.append(h('div', {class:'row' + (o.rank ? ' top10' : '')}, h('h2', null, title), strip));
+  }
+  return true;
+}
+/*@tv*/
+/* ---------- TV: a text box only opens the keyboard when you press OK on it, not when the focus merely passes over it ---------- */
+(function(){
+  const TEXT = /^(text|search|url|email|password|number|tel)?$/i;
+  const lockable = el => el && ((el.tagName === 'INPUT' && TEXT.test(el.getAttribute('type') || '')) || el.tagName === 'TEXTAREA');
+  const lock = el => { if (!lockable(el) || el._tvArmed) return; el.readOnly = true; el.setAttribute('inputmode', 'none'); el._tvLocked = true; };
+  const arm = el => {
+    if (!el || !el._tvLocked || el._tvArmed) return;
+    el._tvArmed = true; el.readOnly = false; el.setAttribute('inputmode', el._tvMode || 'text');
+    el._tvKeep = true; el.blur(); el.focus(); el._tvKeep = false;                                                   // focus again, now editable: the keyboard opens
+    try { const n = el.value.length; el.setSelectionRange(n, n); } catch {}
+  };
+  const scan = root => { if (!root.querySelectorAll) return; if (lockable(root)) { root._tvMode = root._tvMode || root.getAttribute('inputmode'); lock(root); } root.querySelectorAll('input,textarea').forEach(el => { el._tvMode = el._tvMode || el.getAttribute('inputmode'); lock(el); }); };
+  const start = () => {
+    if (!document.body.classList.contains('tv')) return;
+    scan(document.body);
+    new MutationObserver(ms => { for (const m of ms) m.addedNodes.forEach(n => { if (n.nodeType === 1) scan(n); }); }).observe(document.body, {childList:true, subtree:true});
+    document.addEventListener('click', e => { const el = e.target.closest && e.target.closest('input,textarea'); if (el) arm(el); }, true);
+    document.addEventListener('keydown', e => { if ((e.key === 'Enter' || e.keyCode === 23) && document.activeElement && document.activeElement._tvLocked && !document.activeElement._tvArmed) { e.preventDefault(); arm(document.activeElement); } }, true);
+    document.addEventListener('focusout', e => { const el = e.target; if (el && el._tvArmed && !el._tvKeep) { el._tvArmed = false; el.readOnly = true; el.setAttribute('inputmode', 'none'); } }, true);
+  };
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start); else start();
+})();
+/*@end*/
 </script>
 </body>
 </html>

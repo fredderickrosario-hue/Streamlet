@@ -132,8 +132,11 @@ async function renderHome(query = $('#q').value.trim(), target){
   const skipP = personalSkip; personalSkip = false;
   const personal = !skipP && !query && !target && !(tabs && view.genre) && (!tabs || view.tab === 'home') && personalSeeds().any;
   const hideCats = personal && tabs;                                            // with tabs, the catalogs live in Movies / Shows as discoveries
+  const nhKey = tabs && !target && view.tab === 'new' && !view.genre ? lsGet('streamlet.tmdb', '') : '';
+  if (nhKey) { box.append(h('div', {class:'tspace'})); renderNewHot(box, tok, nhKey).catch(() => {}); return; }
   const heroBox = h('div'); if (!query && !(tabs && view.genre)) box.append(heroBox); else if (!target) box.append(h('div', {class:'tspace'}));
   if (tabs && !target) box.append(genreStrip());
+  if (tabs && !target && view.tab === 'new') box.append(h('div', {class:'empty', style:'padding:6px 16px 0'}, h('p', null, 'Add your TMDB key in Settings to turn this tab into New & Hot: coming soon, trending and top 10.')));
   if (!target) { box.append(h('div', {id:'cwBox'})); renderCW(); }
   if (personal) { const pbox = h('div', {id:'pBox'}); box.append(pbox); renderPersonal(pbox, tok).then(ok => { if (!ok && hideCats && tok === homeTok) { personalSkip = true; renderHome(query, target); } }).catch(() => { if (hideCats && tok === homeTok) { personalSkip = true; renderHome(query, target); } }); }
   let heroDone = false, shown = 0;
