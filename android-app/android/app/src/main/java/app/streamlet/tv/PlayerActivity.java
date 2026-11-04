@@ -819,7 +819,13 @@ public class PlayerActivity extends Activity {
                 segMode = 0; segTarget = 0; segBtn.setVisibility(View.GONE); return;
             }
         }
-        else if (segOutro != null && !nextTitle.isEmpty() && cp >= segOutro[0] && !creditsDismissed) {
+        if (autoSkipOn && player != null && !errOn && !nextOn && !creditsDismissed && segOutro != null && cp >= segOutro[0] && cp < segOutro[1] - 1500) {
+            creditsDismissed = true;                         // credits skipped once; a bonus scene after them plays, then the next-episode card comes up at the end
+            long d = player.getDuration();
+            player.seekTo(d > 0 && segOutro[1] >= d - 3000 ? d : segOutro[1]); flash("Credits skipped");
+            segMode = 0; segTarget = 0; segBtn.setVisibility(View.GONE); return;
+        }
+        if (mode == 0 && segOutro != null && !nextTitle.isEmpty() && cp >= segOutro[0] && !creditsDismissed) {
             mode = 3; label = "Next episode  \u25B6";
             if (creditsShownAt == 0) creditsShownAt = System.currentTimeMillis();
             else if (System.currentTimeMillis() - creditsShownAt > 15000) { creditsDismissed = true; mode = 0; }      // not taken: stay out of the way
