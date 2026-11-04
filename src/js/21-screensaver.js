@@ -18,6 +18,7 @@
     if (!on) return;
     raf = requestAnimationFrame(frame);
     const dt = Math.min(0.05, (ts - (last || ts)) / 1000), speed = 340 * S, r = 54 * S;
+    last = ts;                                                               // the time step must advance every frame or nothing moves
     let vx = Math.cos(psi) * speed, vy = Math.sin(psi) * speed;
     x += vx * dt; y += vy * dt;                                              // straight lines, bouncing off the four edges: it is the plug that touches them
     if (x < r) { x = r; psi = Math.PI - psi; } else if (x > W - r) { x = W - r; psi = Math.PI - psi; }

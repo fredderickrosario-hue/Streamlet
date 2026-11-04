@@ -79,10 +79,11 @@ function toggleIcons(addon, type, meta){
   if (!profile) return {wl:null, seen:null, like:null};
   const e = entryOf(addon, type, meta);
   const wl = iconBtn(IC.mark, 'Watchlist', null, 'fill'), seen = iconBtn(IC.seen, 'Watched', null), like = iconBtn(IC.heart, 'Like', null, 'fill');
-  const paint = () => { const w = wlHas(e.itemId), v = watchedHas(e.itemId); wl.classList.toggle('on', w); wl.title = w ? 'Remove from watchlist' : 'Add to watchlist'; like.classList.toggle('on', likeHas(e.itemId)); like.title = likeHas(e.itemId) ? 'Unlike' : 'Like'; seen.classList.toggle('on', v); seen.title = v ? 'Mark as unwatched' : 'Mark as watched'; };
+  const isSer = type === 'series';
+  const paint = () => { const w = wlHas(e.itemId), v = isSer ? serStatus(meta).done : watchedHas(e.itemId); wl.classList.toggle('on', w); wl.title = w ? 'Remove from watchlist' : 'Add to watchlist'; like.classList.toggle('on', likeHas(e.itemId)); like.title = likeHas(e.itemId) ? 'Unlike' : 'Like'; seen.classList.toggle('on', v); seen.title = isSer ? serLabel(meta) : (v ? 'Mark as unwatched' : 'Mark as watched'); };
   wl.onclick = () => { if (wlHas(e.itemId)) { wlRemove(e.itemId); toast('Removed from watchlist'); } else { wlAdd({...e}); toast('Added to watchlist'); } paint(); };
   like.onclick = () => { if (likeHas(e.itemId)) { likeRemove(e.itemId); toast('Removed your like'); } else { likeAdd({...e}); toast('Liked. You will get more like this on Home'); } paint(); };
-  seen.onclick = () => { if (watchedHas(e.itemId)) { watchedRemove(e.itemId); toast('Marked as unwatched'); } else { watchedAdd(e); toast('Marked as watched'); } paint(); };
+  seen.onclick = () => { if (isSer) serToggle(meta); else if (watchedHas(e.itemId)) { watchedRemove(e.itemId); toast('Marked as unwatched'); } else { watchedAdd(e); toast('Marked as watched'); } paint(); };
   paint(); return {wl, seen, like};
 }
 function titleMini(meta){
@@ -230,6 +231,11 @@ function openEpisode(addon, type, meta, v, sorted, again){
           h('div', {class:'dacts2'}, play, (() => { const b = h('button', {class:'pib', type:'button', 'aria-label':'Watched'}); b.innerHTML = `<svg viewBox="0 0 24 24">${IC.seen}</svg>`; const paint = () => { const on = epDone(meta.id, sn, v.episode); b.classList.toggle('on', on); b.title = on ? 'Mark episode as unwatched' : 'Mark episode as watched'; }; b.onclick = () => { epMark(meta.id, [v], !epDone(meta.id, sn, v.episode)); paint(); toast(epDone(meta.id, sn, v.episode) ? 'Marked as watched' : 'Marked as unwatched'); }; paint(); return b; })()),
           hintEl()),
         tvRowsFor(addon, type, meta, 'Sources', [streamsBox], {sim:false, rows:[h('section', {class:'drow'}, h('h3', {class:'drt'}, 'Season ' + sn), others)]}))));
+    if (isTVui()) {                                                        // TV: the episode row starts on the next episode you have not watched
+      const tgt = sorted.filter(x => (x.season ?? 1) === sn).find(x => !epDone(meta.id, sn, x.episode) && (x.episode ?? 0) >= (v.episode ?? 0))
+        || sorted.filter(x => (x.season ?? 1) === sn).find(x => !epDone(meta.id, sn, x.episode));
+      if (tgt) requestAnimationFrame(() => { const c = [...ed.querySelectorAll('.eplist .ep')].find(b => b.dataset.s === String(sn) && b.dataset.e === String(tgt.episode ?? 0)); if (c) c.focus({preventScroll:true}); });
+    }
     const at = sorted.indexOf(v);
     ed._step = d => { const t = sorted[at + d]; if (t) openEpisode(addon, type, meta, t, sorted, true); };       // Left / Right on the top half
     if (!isTVui()) {                                                       // phone: swipe the top half sideways for the previous / next episode

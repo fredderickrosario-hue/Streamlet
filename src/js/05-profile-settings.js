@@ -218,8 +218,9 @@ function editProfile(id){
 /* corner mark on a poster: a number = episodes you have not watched yet (new or missed), an eye = watched */
 const cntMem = new Map();
 const unwatchedOf = id => cntMem.get(id) || 0;
-function ribEl(iid){
-  return watchedHas(iid) ? h('span', {class:'rib'}) : null;
+function ribEl(iid){                                                     // shows and episodes never get a whole-title eye: only watched movies
+  const w = profile && wdGet().find(x => x.itemId === iid);
+  return w && w.type !== 'series' ? h('span', {class:'rib'}) : null;
 }
 function posterEl(meta){
   const p = h('div', {class:'poster'}, (meta.name||'?').trim().charAt(0).toUpperCase());
@@ -313,14 +314,14 @@ function renderCW(){
   const row = h('div', {class:'row'}, h('h2', null, 'Continue watching'), strip);
   for (const e of hist) strip.append(cwCard(e));
   const saved = (pget('nextcards', []) || []).filter(e => !hist.some(h2 => h2.itemId === e.itemId) && (allHist() || e.sp === cur.id));
-  for (const e of saved.slice().reverse()) { const c = cwCard(e); c._next = true; strip.prepend(c); }
+  for (const e of saved) { const c = cwCard(e); c._next = true; strip.append(c); }      // watched titles first (most recent on the left), up-next cards after them
   if (hist.length || saved.length) box.append(row);
   refreshCounts();
   nextEpisodeCards(new Set(hist.map(e => e.itemId))).then(extra => {
     if (tok !== cwTok) return;
     pset('nextcards', extra.map(e => ({...e, sp:cur.id})));                       // next time the row shows these at once
     strip.querySelectorAll('.cwc').forEach(c => { if (c._next) c.remove(); });
-    for (const e of extra.slice().reverse()) { const c = cwCard(e); c._next = true; strip.prepend(c); }
+    for (const e of extra) { const c = cwCard(e); c._next = true; strip.append(c); }
     if (extra.length && !row.isConnected) box.append(row); else if (!strip.children.length && row.isConnected) row.remove();
   }).catch(() => {});
 }

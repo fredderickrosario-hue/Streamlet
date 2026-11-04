@@ -54,6 +54,38 @@ function watchedAdd(e){
   for (const x of histGet().filter(h_ => h_.itemId === e.itemId)) histRemove(x.k);   // watched titles leave "Continue watching"
   scheduleSync(); syncRibbons();
 }
+/* ---------- series: a show is never marked watched as a whole. "Caught up" marks the episodes that have aired; the eye is for movies only ---------- */
+const serMem = new Map();
+async function serMeta(itemId, type, addonId){
+  const hit = serMem.get(itemId); if (hit && Date.now() - hit.t < 600000) return hit.m;
+  const a = addons.find(x => x.uid === addonId || (x.manifest && x.manifest.id === addonId)) || spaceAddons()[0] || addons[0];
+  const ma = a && supports(a, 'meta', type, itemId) ? a : addons.find(x => supports(x, 'meta', type, itemId));
+  if (!ma) return null;
+  const r = await getJSON(`${ma.base}/meta/${type}/${enc(itemId)}.json`);
+  const m = {...r.meta, id:itemId, type}; serMem.set(itemId, {t:Date.now(), m}); return m;
+}
+function serStatus(meta){
+  const now = Date.now(), vids = (meta.videos || []).filter(v => v && v.id && v.episode != null);
+  const aired = vids.filter(v => v.released && new Date(v.released) <= now);
+  const lastAired = aired.length ? Math.max(...aired.map(v => new Date(v.released).getTime())) : 0;
+  const st = String(meta.status || '');
+  const ongoing = /continu|return|production|planned|airing|ongoing/i.test(st) || (!/ended|cancel/i.test(st) && (vids.length > aired.length || (!st && lastAired > now - 400 * 864e5)));
+  const done = aired.length > 0 && aired.every(v => epDone(meta.id, v.season ?? 1, v.episode));
+  return {aired, ongoing, done};
+}
+const serLabel = meta => { const s = serStatus(meta); return s.done ? 'Mark as unwatched' : (s.ongoing ? 'Caught up' : 'Mark as watched'); };
+function serToggle(meta){
+  if (!profile) return;
+  const s = serStatus(meta);
+  if (s.done) { epMark(meta.id, s.aired, false); toast('Marked as unwatched'); }
+  else {
+    const todo = s.aired.filter(v => !epDone(meta.id, v.season ?? 1, v.episode));
+    epMark(meta.id, todo, true);
+    toast(s.ongoing ? (todo.length ? `Caught up: ${todo.length} episode${todo.length === 1 ? '' : 's'} marked` : 'Already caught up') : 'Marked as watched');
+  }
+  if (watchedHas(meta.id)) watchedRemove(meta.id);                  // older whole-show marks are cleared
+  refreshLists(); syncRibbons();
+}
 function watchedRemove(id){
   if (!profile) return;
   pset('watched', wdGet().filter(x => x.itemId !== id));
@@ -89,7 +121,14 @@ function openEntry(en){
 function openMenu(en, ctx = {}){
   const m = $('#menu'); if (!m.hidden) return;
   const choose = (label, fn) => h('button', {class:'opt', type:'button', onclick:() => { popLayer('menu'); afterLayerClosed('menu', fn); }}, label);
-  const inWL = !!profile && wlHas(en.itemId), seen = watchedHas(en.itemId);
+  const inWL = !!profile && wlHas(en.itemId), seen = watchedHas(en.itemId), isSer = en.type === 'series';
+  let serBtn = null;
+  if (profile && !ctx.upcoming && !ctx.watching && isSer) {
+    serBtn = choose('Caught up', async () => { try { const meta = await serMeta(en.itemId, 'series', en.addonId); if (meta) serToggle(meta); else toast("Couldn't load this show right now"); } catch { toast("Couldn't load this show right now"); } });
+    const hit = serMem.get(en.itemId);
+    if (hit) serBtn.textContent = serLabel(hit.m);
+    else serMeta(en.itemId, 'series', en.addonId).then(m => { if (m) serBtn.textContent = serLabel(m); }).catch(() => {});
+  }
   const base = {itemId:en.itemId, type:en.type, name:en.name, poster:en.poster, background:en.background, addonId:en.addonId};
   m.replaceChildren(h('div', {class:'box'},
     h('h3', null, en.name),
@@ -101,10 +140,10 @@ function openMenu(en, ctx = {}){
     profile && cur ? choose(likeHas(en.itemId) ? 'Remove like' : 'Like', () => {
       if (likeHas(en.itemId)) { likeRemove(en.itemId); toast('Removed your like'); } else { likeAdd({...base}); toast('Liked. You will get more like this on Home'); }
     }) : null,
-    profile && !ctx.upcoming && !ctx.watching ? choose(seen ? 'Mark as unwatched' : 'Mark as watched', () => {
+    profile && !ctx.upcoming && !ctx.watching ? (isSer ? serBtn : choose(seen ? 'Mark as unwatched' : 'Mark as watched', () => {
       if (seen) { watchedRemove(en.itemId); toast('Marked as unwatched'); } else { watchedAdd(base); toast('Marked as watched'); }
       refreshLists();
-    }) : null,
+    })) : null,
     ctx.cw ? choose('Remove from Continue watching', () => {
       if (ctx.cw.fromShow) showForget(en.itemId); else histRemove(ctx.cw.k);
       refreshLists(); toast('Removed from Continue watching');
