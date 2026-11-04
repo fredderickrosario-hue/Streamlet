@@ -116,6 +116,7 @@ function mergeProfile(id, R){
     if (ch) { plsSet(id, 'shows', Object.fromEntries(Object.entries(sl).sort((x, y) => (y[1].t || 0) - (x[1].t || 0)).slice(0, 200))); changed = true; epReset(); } }
   if (mergeColl(id, 'likes', 'likeRemoved', R.likes, R.likeremoved, 1000)) changed = true;
   if (mergeColl(id, 'watched', 'wdRemoved', R.wd, R.wdremoved, 3000)) changed = true;
+  if (showsBackfill(id)) changed = true;
   if (mergeColl(id, 'eps', 'epRemoved', R.eps, R.epremoved, 3000, 'k')) { changed = true; epReset(); }
   return changed;
 }

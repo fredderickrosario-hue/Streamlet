@@ -319,6 +319,16 @@ const ok = (name, cond, extra) => { cond ? pass++ : fail++; console.log((cond ? 
       }).catch(e => String(e));
       ok('Sync: shows you follow come from the account to a new device', r === true, r);
     }
+    {
+      const r = await p.evaluate(async () => {
+        const id = profile.id, b = [plsGet(id, 'shows', {}), plsGet(id, 'history', [])];
+        plsSet(id, 'shows', {}); plsSet(id, 'history', [{k:'x', itemId:'ttBF', itemType:'series', name:'Old Show', poster:'', space:'anime', t:5}]);
+        const ch = showsBackfill(id), got = plsGet(id, 'shows', {}).ttBF;
+        plsSet(id, 'shows', b[0]); plsSet(id, 'history', b[1]);
+        return ch && got && got.sp === 'anime' && got.n === 'Old Show' ? true : JSON.stringify({ch, got});
+      }).catch(e => String(e));
+      ok('Shows list is rebuilt from the history for shows watched before it existed', r === true, r);
+    }
     ok('no errors after all of the above', errs.length === 0, errs[0]);
     await p.close();
   }

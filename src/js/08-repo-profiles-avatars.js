@@ -212,7 +212,7 @@ function loadProfileData(){
 }
 async function selectProfile(p){
   profile = p; try { navAvatar(); } catch {} lsSet('streamlet.profile.last', p.id);
-  loadProfileData(); epReset(); try { fillTmdb(); qcFillShows(); } catch {} try { epMigrate(); } catch {}
+  loadProfileData(); epReset(); try { fillTmdb(); qcFillShows(); } catch {} try { epMigrate(); } catch {} try { for (const q of profiles) showsBackfill(q.id); epReset(); } catch {}
   const last = pget('last', null);
   const sp = last && spaces.find(x => x.id === last);
   if (!sp) { showLauncher(); return; }

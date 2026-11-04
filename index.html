@@ -3144,7 +3144,7 @@ function loadProfileData(){
 }
 async function selectProfile(p){
   profile = p; try { navAvatar(); } catch {} lsSet('streamlet.profile.last', p.id);
-  loadProfileData(); epReset(); try { fillTmdb(); qcFillShows(); } catch {} try { epMigrate(); } catch {}
+  loadProfileData(); epReset(); try { fillTmdb(); qcFillShows(); } catch {} try { epMigrate(); } catch {} try { for (const q of profiles) showsBackfill(q.id); epReset(); } catch {}
   const last = pget('last', null);
   const sp = last && spaces.find(x => x.id === last);
   if (!sp) { showLauncher(); return; }
@@ -3263,6 +3263,16 @@ function backupImport(file){
 }
 
 const fillTmdb = () => { $('#setTmdb').value = lsGet('streamlet.tmdb', '') || ''; };
+
+/* shows watched before the followed-shows list existed (or on another device): rebuild their entries from the history and watchlist, which already carry the name, picture and space */
+function showsBackfill(id){
+  if (!id) return false;
+  const sh = {...plsGet(id, 'shows', {})}; let ch = false;
+  for (const x of plsGet(id, 'history', [])) { const ii = x.itemId; if (!ii || sh[ii] || (x.itemType || x.type) !== 'series' || !x.space || !x.name) continue; sh[ii] = {n:x.name, p:x.poster || '', b:x.background || '', a:x.addonId || '', ty:'series', sp:x.space, t:x.t || Date.now()}; ch = true; }
+  for (const x of plsGet(id, 'watchlist', [])) { const ii = x.itemId, sp = x.spaces && x.spaces[0]; if (!ii || sh[ii] || x.type !== 'series' || !sp || !x.name) continue; sh[ii] = {n:x.name, p:x.poster || '', b:x.background || '', a:x.addonId || '', ty:'series', sp, t:x.t || Date.now()}; ch = true; }
+  if (ch) plsSet(id, 'shows', Object.fromEntries(Object.entries(sh).sort((x, y) => (y[1].t || 0) - (x[1].t || 0)).slice(0, 200)));
+  return ch;
+}
 /* ---------- detail + streams ---------- */
 /* a "Continue watching" card: plays on from where it stopped (same source), no page in between */
 async function openResume(e){
@@ -4205,6 +4215,7 @@ function mergeProfile(id, R){
     if (ch) { plsSet(id, 'shows', Object.fromEntries(Object.entries(sl).sort((x, y) => (y[1].t || 0) - (x[1].t || 0)).slice(0, 200))); changed = true; epReset(); } }
   if (mergeColl(id, 'likes', 'likeRemoved', R.likes, R.likeremoved, 1000)) changed = true;
   if (mergeColl(id, 'watched', 'wdRemoved', R.wd, R.wdremoved, 3000)) changed = true;
+  if (showsBackfill(id)) changed = true;
   if (mergeColl(id, 'eps', 'epRemoved', R.eps, R.epremoved, 3000, 'k')) { changed = true; epReset(); }
   return changed;
 }

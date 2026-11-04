@@ -81,3 +81,13 @@ function backupImport(file){
 }
 
 const fillTmdb = () => { $('#setTmdb').value = lsGet('streamlet.tmdb', '') || ''; };
+
+/* shows watched before the followed-shows list existed (or on another device): rebuild their entries from the history and watchlist, which already carry the name, picture and space */
+function showsBackfill(id){
+  if (!id) return false;
+  const sh = {...plsGet(id, 'shows', {})}; let ch = false;
+  for (const x of plsGet(id, 'history', [])) { const ii = x.itemId; if (!ii || sh[ii] || (x.itemType || x.type) !== 'series' || !x.space || !x.name) continue; sh[ii] = {n:x.name, p:x.poster || '', b:x.background || '', a:x.addonId || '', ty:'series', sp:x.space, t:x.t || Date.now()}; ch = true; }
+  for (const x of plsGet(id, 'watchlist', [])) { const ii = x.itemId, sp = x.spaces && x.spaces[0]; if (!ii || sh[ii] || x.type !== 'series' || !sp || !x.name) continue; sh[ii] = {n:x.name, p:x.poster || '', b:x.background || '', a:x.addonId || '', ty:'series', sp, t:x.t || Date.now()}; ch = true; }
+  if (ch) plsSet(id, 'shows', Object.fromEntries(Object.entries(sh).sort((x, y) => (y[1].t || 0) - (x[1].t || 0)).slice(0, 200)));
+  return ch;
+}
