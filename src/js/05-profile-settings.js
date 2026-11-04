@@ -235,7 +235,7 @@ function cwCard(e){
   const po = posterEl({name:e.name, poster:e.poster, itemId:e.itemId, type:e.itemType || e.type});
   if (e.upnext) { if (e.rel && Date.now() - Date.parse(e.rel) < 21 * 864e5) po.append(h('span', {class:'upn'}, 'NEW EPISODE')); } else po.append(h('div', {class:'pg'}, h('i', {style:`width:${pct}%`})));
   return h('div', {class:'card cwc'},
-    (() => { const b = h('button', {class:'cwb', type:'button', onclick:() => openResume(e)}, po, h('div', {class:'t'}, e.name), h('div', {class:'s'}, label)); attachHold(b, {itemId:e.itemId, type:e.itemType, name:e.name, poster:e.poster, background:e.background, addonId:e.addonId}, {cw:e.fromShow ? null : e}); return b; })());
+    (() => { const b = h('button', {class:'cwb', type:'button', onclick:() => openResume(e)}, po, h('div', {class:'t'}, e.name), h('div', {class:'s'}, label)); attachHold(b, {itemId:e.itemId, type:e.itemType, name:e.name, poster:e.poster, background:e.background, addonId:e.addonId}, {cw:e}); return b; })());
 }
 /* shows being watched whose next episode is out (and not started) join the row as "Next episode", found from the shows remembered on this device */
 const nuMem = new Map();

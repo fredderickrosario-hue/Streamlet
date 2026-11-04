@@ -384,6 +384,29 @@ const ok = (name, cond, extra) => { cond ? pass++ : fail++; console.log((cond ? 
       }).catch(e => String(e));
       ok('TV: screensaver starts, any key wakes it; held arrows step along a row', r === true, r);
     }
+    {
+      const r = await p.evaluate(async () => {
+        const oc = cur; cur = {id:'sp1', allHistory:true, catalogs:[], streams:[]};
+        const shB = pget('shows', {}), epB = pget('eps', []), remB = pget('showsRemoved', {});
+        pset('shows', {ttH1:{n:'Hist Show', ty:'series', sp:'sp1', t:Date.now(), a:'x', p:''}});
+        epMark('ttH1', [{season:1, episode:1}, {season:1, episode:2}], true);
+        const opts = ctx => { openMenu({itemId:'ttH1', type:'series', name:'Hist Show'}, ctx); const l = [...document.querySelectorAll('#menu .opt')].map(x => x.textContent); popLayer('menu'); $('#menu').hidden = true; return l; };
+        const w = opts({watching:true}), hi = opts({history:true}), cw = opts({cw:{k:'x', fromShow:true, itemId:'ttH1'}}), up = opts({upcoming:true});
+        // the episode card follows the store
+        const card = document.createElement('button'); card.className = 'ep'; card.dataset.sid = 'ttH1'; card.dataset.s = '1'; card.dataset.e = '3'; card.innerHTML = '<div class="ethumb"></div>'; document.body.append(card);
+        epMark('ttH1', [{season:1, episode:3}], true); await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+        const eyeOn = !!card.querySelector('.eseen') && card.classList.contains('seen');
+        epMark('ttH1', [{season:1, episode:3}], false); await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+        const eyeOff = !card.querySelector('.eseen'); card.remove();
+        historyForget({itemId:'ttH1', type:'series', name:'Hist Show'});
+        const gone = !pget('shows', {}).ttH1 && !epAll().some(r => r.itemId === 'ttH1') && !!pget('showsRemoved', {}).ttH1;
+        const back = showsBackfill(profile.id) === false || !pget('shows', {}).ttH1;
+        pset('shows', shB); pset('eps', epB); pset('showsRemoved', remB); epReset(); cur = oc;
+        const res = {w, hi, cw, up, eyeOn, eyeOff, gone, back};
+        return w.includes('Remove from Watching') && !w.includes('Mark as watched') && hi.includes('Remove from history') && cw.includes('Remove from Continue watching') && !up.includes('Mark as watched') && w.includes('Like') && eyeOn && eyeOff && gone && back ? true : JSON.stringify(res);
+      }).catch(e => String(e));
+      ok('Hold menu fits where it opens (watching, history, continue watching, upcoming); episode eyes follow the store', r === true, r);
+    }
     ok('no errors after all of the above', errs.length === 0, errs[0]);
     await p.close();
   }

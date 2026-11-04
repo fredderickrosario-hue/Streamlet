@@ -94,3 +94,5 @@ body:not(.tv) #toast{border-radius:14px;padding:12px 18px;background:rgba(28,30,
 body:not(.tv) .lmid .lsub{text-align:left;margin:0 0 18px;color:rgba(255,255,255,.72)}
 .lmid .ltitle.noadd::after{display:none}
 body:not(.tv) .wgrid .card .s,body:not(.tv) .rgrid .card .s{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ep .eseen{color:var(--acc)}
+.ep .eseen svg{fill:color-mix(in srgb,var(--acc) 45%,transparent)}

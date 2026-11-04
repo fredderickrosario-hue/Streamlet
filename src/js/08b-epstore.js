@@ -14,7 +14,21 @@ function epMap(){
 const epGet = (id, s, e) => epMap().get(epKey(id, s, e)) || null;
 const epDone = (id, s, e) => { const r = epGet(id, s, e); return !!(r && r.done); };
 function epWrite(list){
-  pset('eps', list.sort((a, b) => b.t - a.t).slice(0, 3000)); epReset(); scheduleSync();
+  pset('eps', list.sort((a, b) => b.t - a.t).slice(0, 3000)); epReset(); scheduleSync(); epPaintSoon();
+}
+/* every episode card on screen follows the store: the eye and the progress bar change as soon as you mark or watch */
+let epPaintRaf = 0;
+function epPaintSoon(){ cancelAnimationFrame(epPaintRaf); epPaintRaf = requestAnimationFrame(epPaintCards); }
+function epPaintCards(){
+  for (const c of document.querySelectorAll('.ep[data-sid]')) {
+    const rec = epGet(c.dataset.sid, +c.dataset.s, +c.dataset.e), seen = !!(rec && rec.done), th = c.querySelector('.ethumb'); if (!th) continue;
+    c.classList.toggle('seen', seen);
+    let b = th.querySelector('.eseen');
+    if (seen && !b) { b = h('span', {class:'eseen', 'aria-label':'Watched'}); b.innerHTML = EYE_SVG; th.append(b); }
+    else if (!seen && b) b.remove();
+    const pct = rec && !rec.done && rec.dur && rec.pos > 20 ? Math.min(100, Math.round(rec.pos / rec.dur * 100)) : 0, pg = th.querySelector('.epg');
+    if (pct && !pg) th.append(h('div', {class:'epg'}, h('i', {style:`width:${pct}%`}))); else if (!pct && pg) pg.remove(); else if (pg) pg.firstChild.style.width = pct + '%';
+  }
 }
 function epPut(id, s, e, patch, t){
   if (!profile) return;
@@ -85,9 +99,9 @@ const fillTmdb = () => { $('#setTmdb').value = lsGet('streamlet.tmdb', '') || ''
 /* shows watched before the followed-shows list existed (or on another device): rebuild their entries from the history and watchlist, which already carry the name, picture and space */
 function showsBackfill(id){
   if (!id) return false;
-  const sh = {...plsGet(id, 'shows', {})}; let ch = false;
-  for (const x of plsGet(id, 'history', [])) { const ii = x.itemId; if (!ii || sh[ii] || (x.itemType || x.type) !== 'series' || !x.space || !x.name) continue; sh[ii] = {n:x.name, p:x.poster || '', b:x.background || '', a:x.addonId || '', ty:'series', sp:x.space, t:x.t || Date.now()}; ch = true; }
-  for (const x of plsGet(id, 'watchlist', [])) { const ii = x.itemId, sp = x.spaces && x.spaces[0]; if (!ii || sh[ii] || x.type !== 'series' || !sp || !x.name) continue; sh[ii] = {n:x.name, p:x.poster || '', b:x.background || '', a:x.addonId || '', ty:'series', sp, t:x.t || Date.now()}; ch = true; }
+  const sh = {...plsGet(id, 'shows', {})}, gone = plsGet(id, 'showsRemoved', {}); let ch = false;
+  for (const x of plsGet(id, 'history', [])) { const ii = x.itemId; if (!ii || sh[ii] || (gone[ii] || 0) >= (x.t || 0) || (x.itemType || x.type) !== 'series' || !x.space || !x.name) continue; sh[ii] = {n:x.name, p:x.poster || '', b:x.background || '', a:x.addonId || '', ty:'series', sp:x.space, t:x.t || Date.now()}; ch = true; }
+  for (const x of plsGet(id, 'watchlist', [])) { const ii = x.itemId, sp = x.spaces && x.spaces[0]; if (!ii || sh[ii] || (gone[ii] || 0) >= (x.t || 0) || x.type !== 'series' || !sp || !x.name) continue; sh[ii] = {n:x.name, p:x.poster || '', b:x.background || '', a:x.addonId || '', ty:'series', sp, t:x.t || Date.now()}; ch = true; }
   if (ch) plsSet(id, 'shows', Object.fromEntries(Object.entries(sh).sort((x, y) => (y[1].t || 0) - (x[1].t || 0)).slice(0, 200)));
   return ch;
 }

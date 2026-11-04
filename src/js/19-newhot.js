@@ -36,20 +36,32 @@ const nhImg = (p, w = 'w342') => p ? 'https://image.tmdb.org/t/p/' + w + p : '';
 const isoDay = off => new Date(Date.now() + off * 864e5).toISOString().slice(0, 10);
 async function nhGet(path, key){ const hit = nhMem.get(path); if (hit && Date.now() - hit.t < 30 * 60e3) return hit.j; const j = await tmdbGet(path, key); nhMem.set(path, {t:Date.now(), j}); return j; }
 const nhNorm = (r, mt) => (r || []).filter(x => x && x.poster_path && (x.media_type || mt) !== 'person').map(x => ({mt:x.media_type || mt, id:x.id, name:x.title || x.name, poster:x.poster_path, backdrop:x.backdrop_path, date:x.release_date || x.first_air_date || ''}));
-async function nhOpen(it){
+async function nhResolve(it){                                                  // TMDB title -> the IMDb id your addons know, and an addon that describes it
   const key = lsGet('streamlet.tmdb', '');
+  const ex = await nhGet(`/${it.mt}/${it.id}/external_ids`, key), imdb = ex && ex.imdb_id, type = it.mt === 'movie' ? 'movie' : 'series';
+  const a = imdb && (spaceAddons().find(x => supports(x, 'meta', type, imdb)) || addons.find(x => supports(x, 'meta', type, imdb)));
+  if (!a) return null;
+  const m = {id:imdb, type, name:it.name, poster:nhImg(it.poster), background:nhImg(it.backdrop, 'w780'), releaseInfo:(it.date || '').slice(0, 4)};
+  return {a, type, m, entry:{itemId:imdb, type, name:it.name, poster:m.poster, background:m.background, addonId:a.uid, _item:m}};
+}
+async function nhOpen(it){
+  try { const r = await nhResolve(it); if (!r) { toast("Your addons don't have this one yet"); return; } openDetail(r.a, r.type, r.m); }
+  catch { toast("Couldn't open it right now"); }
+}
+async function nhHold(it){
   try {
-    const ex = await nhGet(`/${it.mt}/${it.id}/external_ids`, key), imdb = ex && ex.imdb_id, type = it.mt === 'movie' ? 'movie' : 'series';
-    const a = imdb && (spaceAddons().find(x => supports(x, 'meta', type, imdb)) || addons.find(x => supports(x, 'meta', type, imdb)));
-    if (!a) { toast("Your addons don't have this one yet"); return; }
-    openDetail(a, type, {id:imdb, type, name:it.name, poster:nhImg(it.poster), background:nhImg(it.backdrop, 'w780'), releaseInfo:(it.date || '').slice(0, 4)});
-  } catch { toast("Couldn't open it right now"); }
+    const r = await nhResolve(it); if (!r) { toast("Your addons don't have this one yet"); return; }
+    const upcoming = !!(it.date && Date.parse(it.date + 'T12:00:00') > Date.now());
+    openMenu(r.entry, {upcoming});
+  } catch { toast("Couldn't load its options right now"); }
 }
 function nhCard(it, o = {}){
   const po = posterEl({name:it.name, poster:nhImg(it.poster)});
   if (o.rank) po.append(h('span', {class:'nhrank'}, String(o.rank)));
   if (o.date && it.date) { const d = new Date(it.date + 'T12:00:00'); if (!isNaN(d)) po.append(h('span', {class:'rtag upcoming'}, d.toLocaleDateString(undefined, {month:'short', day:'numeric'}))); }
-  return h('button', {class:'card', type:'button', onclick:() => nhOpen(it)}, po, h('div', {class:'t'}, it.name), h('div', {class:'s'}, it.tag ? it.tag + ' · ' + it.sub : (it.mt === 'movie' ? 'Movie' : 'Show') + (it.date ? ' · ' + it.date.slice(0, 4) : '')));
+  const b = h('button', {class:'card', type:'button', onclick:() => nhOpen(it)}, po, h('div', {class:'t'}, it.name), h('div', {class:'s'}, it.tag ? it.tag + ' · ' + it.sub : (it.mt === 'movie' ? 'Movie' : 'Show') + (it.date ? ' · ' + it.date.slice(0, 4) : '')));
+  attachLong(b, () => nhHold(it));
+  return b;
 }
 async function nhNext(it, key){                                              // the next episode of a returning show: its date and whether it starts a season
   try { const d = await nhGet(`/tv/${it.id}`, key), n = d && d.next_episode_to_air; if (!n || !n.air_date) return null; return {...it, date:n.air_date, tag:n.episode_number === 1 ? 'New season' : 'New episode', sub:'S' + n.season_number + ' · E' + n.episode_number}; } catch { return null; }

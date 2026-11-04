@@ -1311,6 +1311,8 @@ body:not(.tv) #toast{border-radius:14px;padding:12px 18px;background:rgba(28,30,
 body:not(.tv) .lmid .lsub{text-align:left;margin:0 0 18px;color:rgba(255,255,255,.72)}
 .lmid .ltitle.noadd::after{display:none}
 body:not(.tv) .wgrid .card .s,body:not(.tv) .rgrid .card .s{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ep .eseen{color:var(--acc)}
+.ep .eseen svg{fill:color-mix(in srgb,var(--acc) 45%,transparent)}
 </style>
 </head>
 <body>
@@ -2112,6 +2114,22 @@ function watchedRemove(id){
   pset('wdRemoved', Object.fromEntries(Object.entries(r).sort((a, b) => b[1] - a[1]).slice(0, 400)));
   scheduleSync(); syncRibbons();
 }
+/* stop following a show: it leaves Continue watching and the Watching tab (comes back by itself once you play it again) */
+function showForget(id){
+  if (!profile) return;
+  const sh = pget('shows', {}); if (sh[id]) { delete sh[id]; pset('shows', sh); }
+  const r = pget('showsRemoved', {}); r[id] = Date.now(); pset('showsRemoved', Object.fromEntries(Object.entries(r).sort((a, b) => b[1] - a[1]).slice(0, 400)));
+  pset('nextcards', (pget('nextcards', []) || []).filter(e => e.itemId !== id));
+  scheduleSync();
+}
+/* take a title out of the history: a movie is no longer watched, a show loses its watched episodes */
+function historyForget(en){
+  if (!profile) return;
+  if (en.type === 'movie') watchedRemove(en.itemId);
+  else { const recs = epAll().filter(r => r.itemId === en.itemId); if (recs.length) epMark(en.itemId, recs.map(r => ({season:r.s, episode:r.e})), false); showForget(en.itemId); }
+  for (const x of histGet().filter(x => x.itemId === en.itemId)) histRemove(x.k);
+  syncRibbons();
+}
 const entryOf = (addon, type, meta) => ({itemId:meta.id, type, name:meta.name, poster:meta.poster, background:meta.background, addonId:addon.uid});
 /* ---------- hold menu: Details / watchlist / watched ---------- */
 function afterLayerClosed(name, fn){
@@ -2133,15 +2151,24 @@ function openMenu(en, ctx = {}){
       if (inWL) { wlRemove(en.itemId); toast('Removed from watchlist'); } else { wlAdd({...base}); toast('Added to watchlist'); }
       if (!$('#watch').hidden) renderWatch();
     }) : null,
-    profile ? choose(seen ? 'Mark as unwatched' : 'Mark as watched', () => {
-      if (seen) { watchedRemove(en.itemId); toast('Marked as unwatched'); } else { watchedAdd(base); toast('Marked as watched'); }
-      if (!$('#home').hidden) renderCW();
+    profile && cur ? choose(likeHas(en.itemId) ? 'Remove like' : 'Like', () => {
+      if (likeHas(en.itemId)) { likeRemove(en.itemId); toast('Removed your like'); } else { likeAdd({...base}); toast('Liked. You will get more like this on Home'); }
     }) : null,
-    ctx.cw ? choose('Remove from Continue watching', () => { histRemove(ctx.cw.k); renderCW(); toast('Removed from Continue watching'); }) : null,
+    profile && !ctx.upcoming && !ctx.watching ? choose(seen ? 'Mark as unwatched' : 'Mark as watched', () => {
+      if (seen) { watchedRemove(en.itemId); toast('Marked as unwatched'); } else { watchedAdd(base); toast('Marked as watched'); }
+      refreshLists();
+    }) : null,
+    ctx.cw ? choose('Remove from Continue watching', () => {
+      if (ctx.cw.fromShow) showForget(en.itemId); else histRemove(ctx.cw.k);
+      refreshLists(); toast('Removed from Continue watching');
+    }) : null,
+    ctx.watching ? choose('Remove from Watching', () => { showForget(en.itemId); refreshLists(); toast('Removed from Watching'); }) : null,
+    ctx.history ? choose('Remove from history', () => { historyForget(en); refreshLists(); toast('Removed from history'); }) : null,
     choose('Cancel', () => {})));
   m.hidden = false; pushLayer('menu');
   m.onclick = ev => { if (ev.target === m) popLayer('menu'); };
 }
+function refreshLists(){ try { if (!$('#home').hidden) renderCW(); if (!$('#watch').hidden) renderWatch(); } catch {} }
 function attachLong(el, fn){
   el._holdFn = fn;
   let t = null, sx = 0, sy = 0;
@@ -2181,9 +2208,9 @@ let mlTab = 'list', mlTok = 0;
 const ML_TABS = [['list', 'Watchlist'], ['watching', 'Watching'], ['history', 'History'], ['foryou', 'For you']];
 const mlHere = sp => allHist() || sp === (cur && cur.id);
 const fmtDay = t => { try { return new Date(t).toLocaleDateString(undefined, {month:'short', day:'numeric'}); } catch { return ''; } };
-function mlCard(e, sub, extra){
+function mlCard(e, sub, extra, ctx){
   const b = h('button', {class:'wlb', type:'button', 'data-id':e.itemId, onclick:() => openWL(e)}, posterEl(e), h('div', {class:'t'}, e.name), h('div', {class:'s'}, sub));
-  attachHold(b, {...e});
+  attachHold(b, {...e}, ctx || {});
   return h('div', {class:'card wlc'}, b, extra || null);
 }
 const mlEmpty = (title, text) => h('div', {class:'empty', style:'grid-column:1/-1'}, h('h2', null, title), h('p', null, text));
@@ -2208,15 +2235,15 @@ function renderWatch(noRefresh){
   if (mlTab === 'watching') {
     const shows = mlShows();
     if (!shows.length) { grid.replaceChildren(mlEmpty('Nothing in progress', 'Shows you are watching appear here once you have played an episode.')); return; }
-    grid.replaceChildren(...shows.map(s => { const n = unwatchedOf(s.id); return mlCard({itemId:s.id, type:'series', name:s.n, poster:s.p, background:s.b, addonId:s.a}, n > 0 ? `${n} to watch` : 'Caught up'); }));
+    grid.replaceChildren(...shows.map(s => { const n = unwatchedOf(s.id); return mlCard({itemId:s.id, type:'series', name:s.n, poster:s.p, background:s.b, addonId:s.a}, n > 0 ? `${n} to watch` : 'Caught up', null, {watching:true}); }));
     if (!noRefresh) { try { refreshCounts().then(ch => { if (ch && tok === mlTok && mlTab === 'watching' && !$('#watch').hidden) renderWatch(true); }); } catch {} }      // redraw once if the counts changed (never in a loop)
     return;
   }
   if (mlTab === 'history') {
     const sh = pget('shows', {}), byShow = new Map();
     for (const r of epAll()) { if (!r.itemId || r.s < 1) continue; const k = r.itemId, g = byShow.get(k) || {id:k, last:null, n:0, t:0}; g.n += r.done ? 1 : 0; if (r.t > g.t) { g.t = r.t; g.last = r; } byShow.set(k, g); }
-    const rows = [...byShow.values()].filter(g => sh[g.id] && mlHere(sh[g.id].sp)).map(g => ({t:g.t, card:mlCard({itemId:g.id, type:'series', name:sh[g.id].n, poster:sh[g.id].p, background:sh[g.id].b, addonId:sh[g.id].a}, `S${g.last.s}:E${g.last.e} · ${fmtDay(g.t)}${g.n > 1 ? ' · ' + g.n + ' watched' : ''}`)}));
-    for (const m of wdGet()) if (m.type === 'movie' && mlHere(m.space)) rows.push({t:m.t || 0, card:mlCard({itemId:m.itemId, type:'movie', name:m.name, poster:m.poster, addonId:m.addonId}, `Movie · ${fmtDay(m.t)}`)});
+    const rows = [...byShow.values()].filter(g => sh[g.id] && mlHere(sh[g.id].sp)).map(g => ({t:g.t, card:mlCard({itemId:g.id, type:'series', name:sh[g.id].n, poster:sh[g.id].p, background:sh[g.id].b, addonId:sh[g.id].a}, `S${g.last.s}:E${g.last.e} · ${fmtDay(g.t)}${g.n > 1 ? ' · ' + g.n + ' watched' : ''}`, null, {history:true})}));
+    for (const m of wdGet()) if (m.type === 'movie' && mlHere(m.space)) rows.push({t:m.t || 0, card:mlCard({itemId:m.itemId, type:'movie', name:m.name, poster:m.poster, addonId:m.addonId}, `Movie · ${fmtDay(m.t)}`, null, {history:true})});
     rows.sort((x, y) => y.t - x.t);
     grid.replaceChildren(...(rows.length ? rows.slice(0, 120).map(r => r.card) : [mlEmpty('No history yet', 'What you watch shows up here, newest first.')]));
     return;
@@ -2490,7 +2517,7 @@ function cwCard(e){
   const po = posterEl({name:e.name, poster:e.poster, itemId:e.itemId, type:e.itemType || e.type});
   if (e.upnext) { if (e.rel && Date.now() - Date.parse(e.rel) < 21 * 864e5) po.append(h('span', {class:'upn'}, 'NEW EPISODE')); } else po.append(h('div', {class:'pg'}, h('i', {style:`width:${pct}%`})));
   return h('div', {class:'card cwc'},
-    (() => { const b = h('button', {class:'cwb', type:'button', onclick:() => openResume(e)}, po, h('div', {class:'t'}, e.name), h('div', {class:'s'}, label)); attachHold(b, {itemId:e.itemId, type:e.itemType, name:e.name, poster:e.poster, background:e.background, addonId:e.addonId}, {cw:e.fromShow ? null : e}); return b; })());
+    (() => { const b = h('button', {class:'cwb', type:'button', onclick:() => openResume(e)}, po, h('div', {class:'t'}, e.name), h('div', {class:'s'}, label)); attachHold(b, {itemId:e.itemId, type:e.itemType, name:e.name, poster:e.poster, background:e.background, addonId:e.addonId}, {cw:e}); return b; })());
 }
 /* shows being watched whose next episode is out (and not started) join the row as "Next episode", found from the shows remembered on this device */
 const nuMem = new Map();
@@ -3300,7 +3327,21 @@ function epMap(){
 const epGet = (id, s, e) => epMap().get(epKey(id, s, e)) || null;
 const epDone = (id, s, e) => { const r = epGet(id, s, e); return !!(r && r.done); };
 function epWrite(list){
-  pset('eps', list.sort((a, b) => b.t - a.t).slice(0, 3000)); epReset(); scheduleSync();
+  pset('eps', list.sort((a, b) => b.t - a.t).slice(0, 3000)); epReset(); scheduleSync(); epPaintSoon();
+}
+/* every episode card on screen follows the store: the eye and the progress bar change as soon as you mark or watch */
+let epPaintRaf = 0;
+function epPaintSoon(){ cancelAnimationFrame(epPaintRaf); epPaintRaf = requestAnimationFrame(epPaintCards); }
+function epPaintCards(){
+  for (const c of document.querySelectorAll('.ep[data-sid]')) {
+    const rec = epGet(c.dataset.sid, +c.dataset.s, +c.dataset.e), seen = !!(rec && rec.done), th = c.querySelector('.ethumb'); if (!th) continue;
+    c.classList.toggle('seen', seen);
+    let b = th.querySelector('.eseen');
+    if (seen && !b) { b = h('span', {class:'eseen', 'aria-label':'Watched'}); b.innerHTML = EYE_SVG; th.append(b); }
+    else if (!seen && b) b.remove();
+    const pct = rec && !rec.done && rec.dur && rec.pos > 20 ? Math.min(100, Math.round(rec.pos / rec.dur * 100)) : 0, pg = th.querySelector('.epg');
+    if (pct && !pg) th.append(h('div', {class:'epg'}, h('i', {style:`width:${pct}%`}))); else if (!pct && pg) pg.remove(); else if (pg) pg.firstChild.style.width = pct + '%';
+  }
 }
 function epPut(id, s, e, patch, t){
   if (!profile) return;
@@ -3371,9 +3412,9 @@ const fillTmdb = () => { $('#setTmdb').value = lsGet('streamlet.tmdb', '') || ''
 /* shows watched before the followed-shows list existed (or on another device): rebuild their entries from the history and watchlist, which already carry the name, picture and space */
 function showsBackfill(id){
   if (!id) return false;
-  const sh = {...plsGet(id, 'shows', {})}; let ch = false;
-  for (const x of plsGet(id, 'history', [])) { const ii = x.itemId; if (!ii || sh[ii] || (x.itemType || x.type) !== 'series' || !x.space || !x.name) continue; sh[ii] = {n:x.name, p:x.poster || '', b:x.background || '', a:x.addonId || '', ty:'series', sp:x.space, t:x.t || Date.now()}; ch = true; }
-  for (const x of plsGet(id, 'watchlist', [])) { const ii = x.itemId, sp = x.spaces && x.spaces[0]; if (!ii || sh[ii] || x.type !== 'series' || !sp || !x.name) continue; sh[ii] = {n:x.name, p:x.poster || '', b:x.background || '', a:x.addonId || '', ty:'series', sp, t:x.t || Date.now()}; ch = true; }
+  const sh = {...plsGet(id, 'shows', {})}, gone = plsGet(id, 'showsRemoved', {}); let ch = false;
+  for (const x of plsGet(id, 'history', [])) { const ii = x.itemId; if (!ii || sh[ii] || (gone[ii] || 0) >= (x.t || 0) || (x.itemType || x.type) !== 'series' || !x.space || !x.name) continue; sh[ii] = {n:x.name, p:x.poster || '', b:x.background || '', a:x.addonId || '', ty:'series', sp:x.space, t:x.t || Date.now()}; ch = true; }
+  for (const x of plsGet(id, 'watchlist', [])) { const ii = x.itemId, sp = x.spaces && x.spaces[0]; if (!ii || sh[ii] || (gone[ii] || 0) >= (x.t || 0) || x.type !== 'series' || !sp || !x.name) continue; sh[ii] = {n:x.name, p:x.poster || '', b:x.background || '', a:x.addonId || '', ty:'series', sp, t:x.t || Date.now()}; ch = true; }
   if (ch) plsSet(id, 'shows', Object.fromEntries(Object.entries(sh).sort((x, y) => (y[1].t || 0) - (x[1].t || 0)).slice(0, 200)));
   return ch;
 }
@@ -3576,7 +3617,7 @@ function hintEl(){ const e = h('div', {class:'dhint', 'aria-hidden':'true'}); e.
 const EYE_SVG = '<svg viewBox="0 0 24 24"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>';
 function epCard(addon, type, meta, v, sorted, soon, th, hist, again){
   const rec = epGet(meta.id, v.season ?? 1, v.episode), seen = !!(rec && rec.done), pct = rec && !rec.done && rec.dur && rec.pos > 20 ? Math.min(100, Math.round(rec.pos / rec.dur * 100)) : 0;
-  return h('button', {class:'ep' + (soon ? ' soon' : '') + (seen ? ' seen' : ''), type:'button', onclick:() => openEpisode(addon, type, meta, v, sorted, again)},
+  return h('button', {class:'ep' + (soon ? ' soon' : '') + (seen ? ' seen' : ''), type:'button', 'data-sid':meta.id, 'data-s':String(v.season ?? 1), 'data-e':String(v.episode ?? 0), onclick:() => openEpisode(addon, type, meta, v, sorted, again)},
     h('div', {class:'ethumb'}, th ? h('img', {src:th, loading:'lazy', alt:'', onerror:e => e.target.remove()}) : null,
       h('span', {class:'enum'}, String(v.episode ?? '')),
       seen ? (() => { const b = h('span', {class:'eseen', 'aria-label':'Watched'}); b.innerHTML = EYE_SVG; return b; })() : null,
@@ -4341,8 +4382,11 @@ function mergeProfile(id, R){
   const wout = Object.values(wmap).filter(e => (e.t || 0) > (wrem[e.itemId] || 0)).sort((a, b) => b.t - a.t);
   if (JSON.stringify(wout) !== JSON.stringify(wlocal)) { plsSet(id, 'watchlist', wout); changed = true; }
   plsSet(id, 'wlRemoved', wrem);
-  { const sl = {...plsGet(id, 'shows', {})}; let ch = false;                         // the shows you follow (name, picture, space) travel with the account, so every device knows them
-    for (const [k, v] of Object.entries(R.shows || {})) { const kk = decodeURIComponent(k); if (v && v.n && (!sl[kk] || (sl[kk].t || 0) < (v.t || 0))) { sl[kk] = v; ch = true; } }
+  { const sl = {...plsGet(id, 'shows', {})}, srem = {...plsGet(id, 'showsRemoved', {})}; let ch = false;
+    for (const [k, t] of Object.entries(R.showsremoved || {})) { const kk = decodeURIComponent(k); if ((srem[kk] || 0) < t) srem[kk] = t; }
+    plsSet(id, 'showsRemoved', srem);
+    for (const k of Object.keys(sl)) if ((srem[k] || 0) >= (sl[k].t || 0)) { delete sl[k]; ch = true; }                         // the shows you follow (name, picture, space) travel with the account, so every device knows them
+    for (const [k, v] of Object.entries(R.shows || {})) { const kk = decodeURIComponent(k); if (v && v.n && (srem[kk] || 0) < (v.t || 0) && (!sl[kk] || (sl[kk].t || 0) < (v.t || 0))) { sl[kk] = v; ch = true; } }
     if (ch) { plsSet(id, 'shows', Object.fromEntries(Object.entries(sl).sort((x, y) => (y[1].t || 0) - (x[1].t || 0)).slice(0, 200))); changed = true; epReset(); } }
   if (mergeColl(id, 'likes', 'likeRemoved', R.likes, R.likeremoved, 1000)) changed = true;
   if (mergeColl(id, 'watched', 'wdRemoved', R.wd, R.wdremoved, 3000)) changed = true;
@@ -4374,7 +4418,7 @@ async function pushAll(){
     for (const [k, t] of Object.entries(wlrem)) { wremP[ek(k)] = t; if (!wentries[ek(k)]) wentries[ek(k)] = deleteField(); }
     payload.watch = {}; payload.wremoved = clean(wremP);
     for (const [k, v] of Object.entries(wentries)) payload.watch[k] = (v && v._methodName) ? v : clean(v);
-    payload.shows = Object.fromEntries(Object.entries(shp).map(([k, v]) => [ek(k), clean(v)])); payload.likes = lkp.entries; payload.likeremoved = lkp.rem; payload.eps = deleteField(); payload.epremoved = deleteField(); payload.wd = deleteField(); payload.wdremoved = deleteField();   // moved to their own documents (pushBlobs)
+    payload.shows = Object.fromEntries(Object.entries(shp).map(([k, v]) => [ek(k), clean(v)])); payload.showsremoved = Object.fromEntries(Object.entries(plsGet(p.id, 'showsRemoved', {})).map(([k, t]) => [ek(k), t])); payload.likes = lkp.entries; payload.likeremoved = lkp.rem; payload.eps = deleteField(); payload.epremoved = deleteField(); payload.wd = deleteField(); payload.wdremoved = deleteField();   // moved to their own documents (pushBlobs)
     if (sT) { payload.settings = plsGet(p.id, 'settings', {}); payload.settingsT = sT; }
     await setDoc(doc(db, ...base, 'profiles', p.id), payload, {merge:true});
     try { await pushBlobs(p.id); } catch (e) { blobErr = blobErr || e; }
@@ -5711,20 +5755,32 @@ const nhImg = (p, w = 'w342') => p ? 'https://image.tmdb.org/t/p/' + w + p : '';
 const isoDay = off => new Date(Date.now() + off * 864e5).toISOString().slice(0, 10);
 async function nhGet(path, key){ const hit = nhMem.get(path); if (hit && Date.now() - hit.t < 30 * 60e3) return hit.j; const j = await tmdbGet(path, key); nhMem.set(path, {t:Date.now(), j}); return j; }
 const nhNorm = (r, mt) => (r || []).filter(x => x && x.poster_path && (x.media_type || mt) !== 'person').map(x => ({mt:x.media_type || mt, id:x.id, name:x.title || x.name, poster:x.poster_path, backdrop:x.backdrop_path, date:x.release_date || x.first_air_date || ''}));
-async function nhOpen(it){
+async function nhResolve(it){                                                  // TMDB title -> the IMDb id your addons know, and an addon that describes it
   const key = lsGet('streamlet.tmdb', '');
+  const ex = await nhGet(`/${it.mt}/${it.id}/external_ids`, key), imdb = ex && ex.imdb_id, type = it.mt === 'movie' ? 'movie' : 'series';
+  const a = imdb && (spaceAddons().find(x => supports(x, 'meta', type, imdb)) || addons.find(x => supports(x, 'meta', type, imdb)));
+  if (!a) return null;
+  const m = {id:imdb, type, name:it.name, poster:nhImg(it.poster), background:nhImg(it.backdrop, 'w780'), releaseInfo:(it.date || '').slice(0, 4)};
+  return {a, type, m, entry:{itemId:imdb, type, name:it.name, poster:m.poster, background:m.background, addonId:a.uid, _item:m}};
+}
+async function nhOpen(it){
+  try { const r = await nhResolve(it); if (!r) { toast("Your addons don't have this one yet"); return; } openDetail(r.a, r.type, r.m); }
+  catch { toast("Couldn't open it right now"); }
+}
+async function nhHold(it){
   try {
-    const ex = await nhGet(`/${it.mt}/${it.id}/external_ids`, key), imdb = ex && ex.imdb_id, type = it.mt === 'movie' ? 'movie' : 'series';
-    const a = imdb && (spaceAddons().find(x => supports(x, 'meta', type, imdb)) || addons.find(x => supports(x, 'meta', type, imdb)));
-    if (!a) { toast("Your addons don't have this one yet"); return; }
-    openDetail(a, type, {id:imdb, type, name:it.name, poster:nhImg(it.poster), background:nhImg(it.backdrop, 'w780'), releaseInfo:(it.date || '').slice(0, 4)});
-  } catch { toast("Couldn't open it right now"); }
+    const r = await nhResolve(it); if (!r) { toast("Your addons don't have this one yet"); return; }
+    const upcoming = !!(it.date && Date.parse(it.date + 'T12:00:00') > Date.now());
+    openMenu(r.entry, {upcoming});
+  } catch { toast("Couldn't load its options right now"); }
 }
 function nhCard(it, o = {}){
   const po = posterEl({name:it.name, poster:nhImg(it.poster)});
   if (o.rank) po.append(h('span', {class:'nhrank'}, String(o.rank)));
   if (o.date && it.date) { const d = new Date(it.date + 'T12:00:00'); if (!isNaN(d)) po.append(h('span', {class:'rtag upcoming'}, d.toLocaleDateString(undefined, {month:'short', day:'numeric'}))); }
-  return h('button', {class:'card', type:'button', onclick:() => nhOpen(it)}, po, h('div', {class:'t'}, it.name), h('div', {class:'s'}, it.tag ? it.tag + ' · ' + it.sub : (it.mt === 'movie' ? 'Movie' : 'Show') + (it.date ? ' · ' + it.date.slice(0, 4) : '')));
+  const b = h('button', {class:'card', type:'button', onclick:() => nhOpen(it)}, po, h('div', {class:'t'}, it.name), h('div', {class:'s'}, it.tag ? it.tag + ' · ' + it.sub : (it.mt === 'movie' ? 'Movie' : 'Show') + (it.date ? ' · ' + it.date.slice(0, 4) : '')));
+  attachLong(b, () => nhHold(it));
+  return b;
 }
 async function nhNext(it, key){                                              // the next episode of a returning show: its date and whether it starts a season
   try { const d = await nhGet(`/tv/${it.id}`, key), n = d && d.next_episode_to_air; if (!n || !n.air_date) return null; return {...it, date:n.air_date, tag:n.episode_number === 1 ? 'New season' : 'New episode', sub:'S' + n.season_number + ' · E' + n.episode_number}; } catch { return null; }

@@ -61,6 +61,22 @@ function watchedRemove(id){
   pset('wdRemoved', Object.fromEntries(Object.entries(r).sort((a, b) => b[1] - a[1]).slice(0, 400)));
   scheduleSync(); syncRibbons();
 }
+/* stop following a show: it leaves Continue watching and the Watching tab (comes back by itself once you play it again) */
+function showForget(id){
+  if (!profile) return;
+  const sh = pget('shows', {}); if (sh[id]) { delete sh[id]; pset('shows', sh); }
+  const r = pget('showsRemoved', {}); r[id] = Date.now(); pset('showsRemoved', Object.fromEntries(Object.entries(r).sort((a, b) => b[1] - a[1]).slice(0, 400)));
+  pset('nextcards', (pget('nextcards', []) || []).filter(e => e.itemId !== id));
+  scheduleSync();
+}
+/* take a title out of the history: a movie is no longer watched, a show loses its watched episodes */
+function historyForget(en){
+  if (!profile) return;
+  if (en.type === 'movie') watchedRemove(en.itemId);
+  else { const recs = epAll().filter(r => r.itemId === en.itemId); if (recs.length) epMark(en.itemId, recs.map(r => ({season:r.s, episode:r.e})), false); showForget(en.itemId); }
+  for (const x of histGet().filter(x => x.itemId === en.itemId)) histRemove(x.k);
+  syncRibbons();
+}
 const entryOf = (addon, type, meta) => ({itemId:meta.id, type, name:meta.name, poster:meta.poster, background:meta.background, addonId:addon.uid});
 /* ---------- hold menu: Details / watchlist / watched ---------- */
 function afterLayerClosed(name, fn){
@@ -82,15 +98,24 @@ function openMenu(en, ctx = {}){
       if (inWL) { wlRemove(en.itemId); toast('Removed from watchlist'); } else { wlAdd({...base}); toast('Added to watchlist'); }
       if (!$('#watch').hidden) renderWatch();
     }) : null,
-    profile ? choose(seen ? 'Mark as unwatched' : 'Mark as watched', () => {
-      if (seen) { watchedRemove(en.itemId); toast('Marked as unwatched'); } else { watchedAdd(base); toast('Marked as watched'); }
-      if (!$('#home').hidden) renderCW();
+    profile && cur ? choose(likeHas(en.itemId) ? 'Remove like' : 'Like', () => {
+      if (likeHas(en.itemId)) { likeRemove(en.itemId); toast('Removed your like'); } else { likeAdd({...base}); toast('Liked. You will get more like this on Home'); }
     }) : null,
-    ctx.cw ? choose('Remove from Continue watching', () => { histRemove(ctx.cw.k); renderCW(); toast('Removed from Continue watching'); }) : null,
+    profile && !ctx.upcoming && !ctx.watching ? choose(seen ? 'Mark as unwatched' : 'Mark as watched', () => {
+      if (seen) { watchedRemove(en.itemId); toast('Marked as unwatched'); } else { watchedAdd(base); toast('Marked as watched'); }
+      refreshLists();
+    }) : null,
+    ctx.cw ? choose('Remove from Continue watching', () => {
+      if (ctx.cw.fromShow) showForget(en.itemId); else histRemove(ctx.cw.k);
+      refreshLists(); toast('Removed from Continue watching');
+    }) : null,
+    ctx.watching ? choose('Remove from Watching', () => { showForget(en.itemId); refreshLists(); toast('Removed from Watching'); }) : null,
+    ctx.history ? choose('Remove from history', () => { historyForget(en); refreshLists(); toast('Removed from history'); }) : null,
     choose('Cancel', () => {})));
   m.hidden = false; pushLayer('menu');
   m.onclick = ev => { if (ev.target === m) popLayer('menu'); };
 }
+function refreshLists(){ try { if (!$('#home').hidden) renderCW(); if (!$('#watch').hidden) renderWatch(); } catch {} }
 function attachLong(el, fn){
   el._holdFn = fn;
   let t = null, sx = 0, sy = 0;
@@ -130,9 +155,9 @@ let mlTab = 'list', mlTok = 0;
 const ML_TABS = [['list', 'Watchlist'], ['watching', 'Watching'], ['history', 'History'], ['foryou', 'For you']];
 const mlHere = sp => allHist() || sp === (cur && cur.id);
 const fmtDay = t => { try { return new Date(t).toLocaleDateString(undefined, {month:'short', day:'numeric'}); } catch { return ''; } };
-function mlCard(e, sub, extra){
+function mlCard(e, sub, extra, ctx){
   const b = h('button', {class:'wlb', type:'button', 'data-id':e.itemId, onclick:() => openWL(e)}, posterEl(e), h('div', {class:'t'}, e.name), h('div', {class:'s'}, sub));
-  attachHold(b, {...e});
+  attachHold(b, {...e}, ctx || {});
   return h('div', {class:'card wlc'}, b, extra || null);
 }
 const mlEmpty = (title, text) => h('div', {class:'empty', style:'grid-column:1/-1'}, h('h2', null, title), h('p', null, text));
@@ -157,15 +182,15 @@ function renderWatch(noRefresh){
   if (mlTab === 'watching') {
     const shows = mlShows();
     if (!shows.length) { grid.replaceChildren(mlEmpty('Nothing in progress', 'Shows you are watching appear here once you have played an episode.')); return; }
-    grid.replaceChildren(...shows.map(s => { const n = unwatchedOf(s.id); return mlCard({itemId:s.id, type:'series', name:s.n, poster:s.p, background:s.b, addonId:s.a}, n > 0 ? `${n} to watch` : 'Caught up'); }));
+    grid.replaceChildren(...shows.map(s => { const n = unwatchedOf(s.id); return mlCard({itemId:s.id, type:'series', name:s.n, poster:s.p, background:s.b, addonId:s.a}, n > 0 ? `${n} to watch` : 'Caught up', null, {watching:true}); }));
     if (!noRefresh) { try { refreshCounts().then(ch => { if (ch && tok === mlTok && mlTab === 'watching' && !$('#watch').hidden) renderWatch(true); }); } catch {} }      // redraw once if the counts changed (never in a loop)
     return;
   }
   if (mlTab === 'history') {
     const sh = pget('shows', {}), byShow = new Map();
     for (const r of epAll()) { if (!r.itemId || r.s < 1) continue; const k = r.itemId, g = byShow.get(k) || {id:k, last:null, n:0, t:0}; g.n += r.done ? 1 : 0; if (r.t > g.t) { g.t = r.t; g.last = r; } byShow.set(k, g); }
-    const rows = [...byShow.values()].filter(g => sh[g.id] && mlHere(sh[g.id].sp)).map(g => ({t:g.t, card:mlCard({itemId:g.id, type:'series', name:sh[g.id].n, poster:sh[g.id].p, background:sh[g.id].b, addonId:sh[g.id].a}, `S${g.last.s}:E${g.last.e} · ${fmtDay(g.t)}${g.n > 1 ? ' · ' + g.n + ' watched' : ''}`)}));
-    for (const m of wdGet()) if (m.type === 'movie' && mlHere(m.space)) rows.push({t:m.t || 0, card:mlCard({itemId:m.itemId, type:'movie', name:m.name, poster:m.poster, addonId:m.addonId}, `Movie · ${fmtDay(m.t)}`)});
+    const rows = [...byShow.values()].filter(g => sh[g.id] && mlHere(sh[g.id].sp)).map(g => ({t:g.t, card:mlCard({itemId:g.id, type:'series', name:sh[g.id].n, poster:sh[g.id].p, background:sh[g.id].b, addonId:sh[g.id].a}, `S${g.last.s}:E${g.last.e} · ${fmtDay(g.t)}${g.n > 1 ? ' · ' + g.n + ' watched' : ''}`, null, {history:true})}));
+    for (const m of wdGet()) if (m.type === 'movie' && mlHere(m.space)) rows.push({t:m.t || 0, card:mlCard({itemId:m.itemId, type:'movie', name:m.name, poster:m.poster, addonId:m.addonId}, `Movie · ${fmtDay(m.t)}`, null, {history:true})});
     rows.sort((x, y) => y.t - x.t);
     grid.replaceChildren(...(rows.length ? rows.slice(0, 120).map(r => r.card) : [mlEmpty('No history yet', 'What you watch shows up here, newest first.')]));
     return;

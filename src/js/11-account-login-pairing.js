@@ -138,8 +138,11 @@ function mergeProfile(id, R){
   const wout = Object.values(wmap).filter(e => (e.t || 0) > (wrem[e.itemId] || 0)).sort((a, b) => b.t - a.t);
   if (JSON.stringify(wout) !== JSON.stringify(wlocal)) { plsSet(id, 'watchlist', wout); changed = true; }
   plsSet(id, 'wlRemoved', wrem);
-  { const sl = {...plsGet(id, 'shows', {})}; let ch = false;                         // the shows you follow (name, picture, space) travel with the account, so every device knows them
-    for (const [k, v] of Object.entries(R.shows || {})) { const kk = decodeURIComponent(k); if (v && v.n && (!sl[kk] || (sl[kk].t || 0) < (v.t || 0))) { sl[kk] = v; ch = true; } }
+  { const sl = {...plsGet(id, 'shows', {})}, srem = {...plsGet(id, 'showsRemoved', {})}; let ch = false;
+    for (const [k, t] of Object.entries(R.showsremoved || {})) { const kk = decodeURIComponent(k); if ((srem[kk] || 0) < t) srem[kk] = t; }
+    plsSet(id, 'showsRemoved', srem);
+    for (const k of Object.keys(sl)) if ((srem[k] || 0) >= (sl[k].t || 0)) { delete sl[k]; ch = true; }                         // the shows you follow (name, picture, space) travel with the account, so every device knows them
+    for (const [k, v] of Object.entries(R.shows || {})) { const kk = decodeURIComponent(k); if (v && v.n && (srem[kk] || 0) < (v.t || 0) && (!sl[kk] || (sl[kk].t || 0) < (v.t || 0))) { sl[kk] = v; ch = true; } }
     if (ch) { plsSet(id, 'shows', Object.fromEntries(Object.entries(sl).sort((x, y) => (y[1].t || 0) - (x[1].t || 0)).slice(0, 200))); changed = true; epReset(); } }
   if (mergeColl(id, 'likes', 'likeRemoved', R.likes, R.likeremoved, 1000)) changed = true;
   if (mergeColl(id, 'watched', 'wdRemoved', R.wd, R.wdremoved, 3000)) changed = true;
@@ -171,7 +174,7 @@ async function pushAll(){
     for (const [k, t] of Object.entries(wlrem)) { wremP[ek(k)] = t; if (!wentries[ek(k)]) wentries[ek(k)] = deleteField(); }
     payload.watch = {}; payload.wremoved = clean(wremP);
     for (const [k, v] of Object.entries(wentries)) payload.watch[k] = (v && v._methodName) ? v : clean(v);
-    payload.shows = Object.fromEntries(Object.entries(shp).map(([k, v]) => [ek(k), clean(v)])); payload.likes = lkp.entries; payload.likeremoved = lkp.rem; payload.eps = deleteField(); payload.epremoved = deleteField(); payload.wd = deleteField(); payload.wdremoved = deleteField();   // moved to their own documents (pushBlobs)
+    payload.shows = Object.fromEntries(Object.entries(shp).map(([k, v]) => [ek(k), clean(v)])); payload.showsremoved = Object.fromEntries(Object.entries(plsGet(p.id, 'showsRemoved', {})).map(([k, t]) => [ek(k), t])); payload.likes = lkp.entries; payload.likeremoved = lkp.rem; payload.eps = deleteField(); payload.epremoved = deleteField(); payload.wd = deleteField(); payload.wdremoved = deleteField();   // moved to their own documents (pushBlobs)
     if (sT) { payload.settings = plsGet(p.id, 'settings', {}); payload.settingsT = sT; }
     await setDoc(doc(db, ...base, 'profiles', p.id), payload, {merge:true});
     try { await pushBlobs(p.id); } catch (e) { blobErr = blobErr || e; }
