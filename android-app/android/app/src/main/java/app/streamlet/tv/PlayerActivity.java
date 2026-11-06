@@ -421,7 +421,7 @@ public class PlayerActivity extends Activity {
 
     /* ---- seek preview: five frames around the point you are seeking to, read from the stream itself (not for HLS) ---- */
     private LinearLayout thumbStrip;
-    private final ImageView[] thumbs = new ImageView[5];
+    private final ImageView[] seekThumbs = new ImageView[5];
     private final long[] thumbKeys = new long[5];
     private final LruCache<Long, Bitmap> thumbCache = new LruCache<>(32);
     private final Set<Long> thumbWant = Collections.synchronizedSet(new HashSet<>());
@@ -448,7 +448,7 @@ public class PlayerActivity extends Activity {
             LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(0, i == 2 ? -1 : dp(phone ? 54 : 88), 1f);
             lp.leftMargin = dp(5); lp.rightMargin = dp(5);
             thumbStrip.addView(iv, lp);
-            thumbs[i] = iv;
+            seekThumbs[i] = iv;
         }
         thumbStrip.setVisibility(View.GONE);
         if (streamUrl.toLowerCase(Locale.ROOT).contains(".m3u8") || streamUrl.isEmpty()) thumbsBroken = true;
@@ -466,7 +466,7 @@ public class PlayerActivity extends Activity {
         thumbWant.clear();
         for (int i : new int[]{2, 1, 3, 0, 4}) {                              // the frame you are on first, then its neighbours
             long t = pos + (i - 2) * THUMB_STEP;
-            ImageView iv = thumbs[i];
+            ImageView iv = seekThumbs[i];
             if (t < 0 || t > dur) { iv.setVisibility(View.INVISIBLE); thumbKeys[i] = -1; continue; }
             iv.setVisibility(View.VISIBLE);
             long key = (t / 5000) * 5000;
@@ -480,7 +480,7 @@ public class PlayerActivity extends Activity {
     private void refreshThumbs() {
         if (thumbStrip == null) return;
         if (thumbsBroken) { thumbStrip.setVisibility(View.GONE); return; }
-        for (int i = 0; i < 5; i++) { if (thumbKeys[i] < 0) continue; Bitmap b = thumbCache.get(thumbKeys[i]); if (b != null) thumbs[i].setImageBitmap(b); }
+        for (int i = 0; i < 5; i++) { if (thumbKeys[i] < 0) continue; Bitmap b = thumbCache.get(thumbKeys[i]); if (b != null) seekThumbs[i].setImageBitmap(b); }
     }
 
     private void requestThumb(final long key) {
@@ -498,9 +498,9 @@ public class PlayerActivity extends Activity {
                 Bitmap b = android.os.Build.VERSION.SDK_INT >= 27
                         ? thumbMmr.getScaledFrameAtTime(key * 1000L, android.media.MediaMetadataRetriever.OPTION_CLOSEST_SYNC, 384, 216)
                         : thumbMmr.getFrameAtTime(key * 1000L, android.media.MediaMetadataRetriever.OPTION_CLOSEST_SYNC);
-                if (b == null) { if (++thumbFails >= 3) { thumbsBroken = true; AppLog.add("thumbs", "seek preview: no frames from this stream"); } }
+                if (b == null) { if (++thumbFails >= 3) { thumbsBroken = true; AppLog.add("seekThumbs", "seek preview: no frames from this stream"); } }
                 else { thumbFails = 0; thumbCache.put(key, b); }
-            } catch (Throwable e) { thumbsBroken = true; AppLog.add("thumbs", "seek preview unavailable: " + e); }
+            } catch (Throwable e) { thumbsBroken = true; AppLog.add("seekThumbs", "seek preview unavailable: " + e); }
             finally { thumbPending.remove(key); }
             runOnUiThread(this::refreshThumbs);
         });
