@@ -1,7 +1,7 @@
 // Caches the app shell only. Addon requests (cross-origin) are never touched.
 // The shell is always asked fresh from the network first (a cheap "has it changed?" check), so an update shows on the next launch;
 // the cached copy is only used offline. The remembered catalog rows (streamlet-data) survive updates.
-const CACHE = 'streamlet-v192';
+const CACHE = 'streamlet-v193';
 const SHELL = ['./', 'index.html', 'manifest.webmanifest', 'icon.svg'];
 self.addEventListener('install', e => { e.waitUntil(caches.open(CACHE).then(c => c.addAll(SHELL))); self.skipWaiting(); });
 self.addEventListener('activate', e => { e.waitUntil(caches.keys().then(ks => Promise.all(ks.filter(k => k !== CACHE && !k.startsWith('streamlet-data')).map(k => caches.delete(k))))); self.clients.claim(); });

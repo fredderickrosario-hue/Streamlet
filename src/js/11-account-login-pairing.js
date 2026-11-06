@@ -388,6 +388,7 @@ async function onUser(u){
     startListeners();
     if (first) { initProfiles(); bootApp(); }
     else { replaceNext = true; initProfiles(); bootApp(); }
+    setTimeout(() => packOffer(u), 2500);                            // a fresh sign-in: offer the Streamlet addon pack once per account
   } else if (first) {
     if (earlyBoot) { earlyBoot = false; if (localStorage.getItem('streamlet.skipLogin') !== '1') showLogin(); }
     else if (localStorage.getItem('streamlet.skipLogin') === '1') bootApp(); else showLogin();
