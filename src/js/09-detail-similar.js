@@ -184,6 +184,13 @@ function episodeBase(addon, type, meta, v, sorted){
 let playSync = null;
 function hintEl(){ const e = h('div', {class:'dhint', 'aria-hidden':'true'}); e.innerHTML = '<svg viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>'; return e; }
 const EYE_SVG = '<svg viewBox="0 0 24 24"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>';
+/* the episode a row lands on when you move into it: the first one not watched yet (from a given episode on, when there is one) */
+function epPref(list, id, from = -Infinity){
+  const cards = [...list.querySelectorAll('.ep')]; cards.forEach(c => c.removeAttribute('data-pref'));
+  const open = c => !c.classList.contains('soon') && !epDone(id, +c.dataset.s, +c.dataset.e);
+  const t = cards.find(c => open(c) && +c.dataset.e >= from) || cards.find(open);
+  if (t && t !== cards[0]) t.dataset.pref = '1';
+}
 function epCard(addon, type, meta, v, sorted, soon, th, hist, again){
   const rec = epGet(meta.id, v.season ?? 1, v.episode), seen = !!(rec && rec.done), pct = rec && !rec.done && rec.dur && rec.pos > 20 ? Math.min(100, Math.round(rec.pos / rec.dur * 100)) : 0;
   return h('button', {class:'ep' + (soon ? ' soon' : '') + (seen ? ' seen' : ''), type:'button', 'data-sid':meta.id, 'data-s':String(v.season ?? 1), 'data-e':String(v.episode ?? 0), onclick:() => openEpisode(addon, type, meta, v, sorted, again)},
@@ -233,11 +240,7 @@ function openEpisode(addon, type, meta, v, sorted, again){
           h('div', {class:'dacts2'}, play, (() => { const b = h('button', {class:'pib', type:'button', 'aria-label':'Watched'}); b.innerHTML = `<svg viewBox="0 0 24 24">${IC.seen}</svg>`; const paint = () => { const on = epDone(meta.id, sn, v.episode); b.classList.toggle('on', on); b.title = on ? 'Mark episode as unwatched' : 'Mark episode as watched'; }; b.onclick = () => { epMark(meta.id, [v], !epDone(meta.id, sn, v.episode)); paint(); toast(epDone(meta.id, sn, v.episode) ? 'Marked as watched' : 'Marked as unwatched'); }; paint(); return b; })()),
           hintEl()),
         tvRowsFor(addon, type, meta, 'Sources', [streamsBox], {sim:false, rows:[h('section', {class:'drow'}, h('h3', {class:'drt'}, 'Season ' + sn), others)]}))));
-    if (isTVui()) {                                                        // TV: the episode row starts on the next episode you have not watched
-      const tgt = sorted.filter(x => (x.season ?? 1) === sn).find(x => !epDone(meta.id, sn, x.episode) && (x.episode ?? 0) >= (v.episode ?? 0))
-        || sorted.filter(x => (x.season ?? 1) === sn).find(x => !epDone(meta.id, sn, x.episode));
-      if (tgt) requestAnimationFrame(() => { const c = [...ed.querySelectorAll('.eplist .ep')].find(b => b.dataset.s === String(sn) && b.dataset.e === String(tgt.episode ?? 0)); if (c) c.focus({preventScroll:true}); });
-    }
+    epPref(others, meta.id, v.episode ?? 0);
     const at = sorted.indexOf(v);
     ed._step = d => { const t = sorted[at + d]; if (t) openEpisode(addon, type, meta, t, sorted, true); };       // Left / Right on the top half
     if (!isTVui()) {                                                       // phone: swipe the top half sideways for the previous / next episode
@@ -276,7 +279,7 @@ async function openDetail(addon, type, item, opts = {}){
     const tvRows = (title, els) => tvRowsFor(addon, type, meta, title, els);
     if (withStreams && sorted.length) {                                    // ---- series: seasons + episodes
       const seasons = [...new Set(sorted.map(v => v.season ?? 1))];
-      if (curSeason === null || !seasons.includes(curSeason)) curSeason = seasons.find(x => x >= 1) ?? seasons[0];
+      if (curSeason === null || !seasons.includes(curSeason)) { const nx = profile ? epNext(meta.id, sorted).v : null; curSeason = nx && seasons.includes(nx.season ?? 1) ? (nx.season ?? 1) : (seasons.find(x => x >= 1) ?? seasons[0]); }
       const srow = h('div', {class:'srow'}), list = h('div', {class:'eplist'});
       const draw = () => {
         const inSeason = sorted.filter(v => (v.season ?? 1) === curSeason), allSeen = inSeason.length && inSeason.every(v => epDone(meta.id, v.season ?? 1, v.episode));
@@ -287,6 +290,7 @@ async function openDetail(addon, type, item, opts = {}){
           const th = v.thumbnail || meta.background;
           return epCard(addon, type, meta, v, sorted, soon, th, hist);
         }));
+        epPref(list, meta.id);
       };
       draw(); body.append(tvRows('Episodes', [srow, list]));
     } else if (withStreams) {                                              // ---- movie / single title: streams right here

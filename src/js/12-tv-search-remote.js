@@ -181,7 +181,11 @@ function moveFocus(dir, rep){
   if (!cur || cur === document.body || !list.includes(cur)) { const f = firstFocus(root, list); if (f) f.focus({preventScroll:true}); return; }
   const entryTV = document.body.classList.contains('tv') && (root.id === 'detail' || root.id === 'episode');
   if ((dir === 'up' || dir === 'down') && !inNav && document.body.classList.contains('tv')) {
-    const t = moveRow(dir, list, cur);
+    const col = cur.closest('#search .skb, #search .sres');                // search: the keyboard and the results are separate columns, Up / Down stays in yours
+    if (col) { list = list.filter(e => col.contains(e)); const v = moveVisualRow(dir, list, cur); if (v) { v.focus({preventScroll:true}); revealEl(v, dir, rep, tv, null); } return; }
+    let t = moveRow(dir, list, cur);
+    const ep = t && t.closest('.eplist');                                   // entering an episode row: land on the first episode not watched yet
+    if (ep && ep !== cur.closest('.eplist')) { const p = ep.querySelector('.ep[data-pref]'); if (p) t = p; }
     if (t) { t.focus({preventScroll:true}); if (root === document.body) revealEl(t, dir, rep, tv, null); else revealEl(t, dir, rep, false, null); return; }
     if (cur.closest(ROW_SEL)) return;                       // already on the last (or first) row: stay put
     if (!entryTV) {

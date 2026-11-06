@@ -419,6 +419,93 @@ public class PlayerActivity extends Activity {
     /* ======================= Streamlet control layer ======================= */
     private int dp(float v) { return Math.round(v * getResources().getDisplayMetrics().density); }
 
+    /* ---- seek preview: five frames around the point you are seeking to, read from the stream itself (not for HLS) ---- */
+    private LinearLayout thumbStrip;
+    private final ImageView[] thumbs = new ImageView[5];
+    private final long[] thumbKeys = new long[5];
+    private final LruCache<Long, Bitmap> thumbCache = new LruCache<>(32);
+    private final Set<Long> thumbWant = Collections.synchronizedSet(new HashSet<>());
+    private final Set<Long> thumbPending = Collections.synchronizedSet(new HashSet<>());
+    private ExecutorService thumbExec;
+    private android.media.MediaMetadataRetriever thumbMmr;
+    private volatile boolean thumbsBroken = false;
+    private int thumbFails = 0;
+    private static final long THUMB_STEP = 10000;
+    private final Runnable thumbHide = () -> { if (thumbStrip != null) thumbStrip.setVisibility(View.GONE); };
+
+    private void buildThumbStrip(LinearLayout parent) {
+        thumbStrip = new LinearLayout(this);
+        thumbStrip.setOrientation(LinearLayout.HORIZONTAL);
+        thumbStrip.setGravity(Gravity.CENTER_VERTICAL);
+        thumbStrip.setClipChildren(false); thumbStrip.setClipToPadding(false);
+        for (int i = 0; i < 5; i++) {
+            ImageView iv = new ImageView(this);
+            iv.setScaleType(ImageView.ScaleType.CENTER_CROP);
+            GradientDrawable bg = new GradientDrawable(); bg.setColor(0xFF15151C); bg.setCornerRadius(dp(10));
+            if (i == 2) { bg.setStroke(dp(3), Color.WHITE); iv.setPadding(dp(3), dp(3), dp(3), dp(3)); }
+            iv.setBackground(bg);
+            iv.setClipToOutline(true);
+            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(0, i == 2 ? -1 : dp(phone ? 54 : 88), 1f);
+            lp.leftMargin = dp(5); lp.rightMargin = dp(5);
+            thumbStrip.addView(iv, lp);
+            thumbs[i] = iv;
+        }
+        thumbStrip.setVisibility(View.GONE);
+        if (streamUrl.toLowerCase(Locale.ROOT).contains(".m3u8") || streamUrl.isEmpty()) thumbsBroken = true;
+        LinearLayout.LayoutParams sp = new LinearLayout.LayoutParams(-1, dp(phone ? 64 : 104));
+        sp.bottomMargin = dp(14);
+        parent.addView(thumbStrip, sp);
+    }
+
+    private void showThumbs(long pos) {
+        if (thumbStrip == null || thumbsBroken || player == null) return;
+        long dur = player.getDuration();
+        if (dur == C.TIME_UNSET || dur <= 0) return;
+        handler.removeCallbacks(thumbHide);
+        thumbStrip.setVisibility(View.VISIBLE);
+        thumbWant.clear();
+        for (int i : new int[]{2, 1, 3, 0, 4}) {                              // the frame you are on first, then its neighbours
+            long t = pos + (i - 2) * THUMB_STEP;
+            ImageView iv = thumbs[i];
+            if (t < 0 || t > dur) { iv.setVisibility(View.INVISIBLE); thumbKeys[i] = -1; continue; }
+            iv.setVisibility(View.VISIBLE);
+            long key = (t / 5000) * 5000;
+            thumbKeys[i] = key;
+            Bitmap b = thumbCache.get(key);
+            iv.setImageBitmap(b);
+            if (b == null) { thumbWant.add(key); requestThumb(key); }
+        }
+    }
+
+    private void refreshThumbs() {
+        if (thumbStrip == null) return;
+        if (thumbsBroken) { thumbStrip.setVisibility(View.GONE); return; }
+        for (int i = 0; i < 5; i++) { if (thumbKeys[i] < 0) continue; Bitmap b = thumbCache.get(thumbKeys[i]); if (b != null) thumbs[i].setImageBitmap(b); }
+    }
+
+    private void requestThumb(final long key) {
+        if (!thumbPending.add(key)) return;
+        if (thumbExec == null) thumbExec = Executors.newSingleThreadExecutor();
+        thumbExec.execute(() -> {
+            try {
+                if (thumbsBroken || !thumbWant.contains(key)) return;          // you have moved on: skip it
+                if (thumbMmr == null) {
+                    android.media.MediaMetadataRetriever m = new android.media.MediaMetadataRetriever();
+                    if (streamUrl.startsWith("http")) { Map<String, String> hd = new HashMap<>(); hd.put("User-Agent", UA); m.setDataSource(streamUrl, hd); }
+                    else m.setDataSource(this, Uri.parse(streamUrl));
+                    thumbMmr = m;
+                }
+                Bitmap b = android.os.Build.VERSION.SDK_INT >= 27
+                        ? thumbMmr.getScaledFrameAtTime(key * 1000L, android.media.MediaMetadataRetriever.OPTION_CLOSEST_SYNC, 384, 216)
+                        : thumbMmr.getFrameAtTime(key * 1000L, android.media.MediaMetadataRetriever.OPTION_CLOSEST_SYNC);
+                if (b == null) { if (++thumbFails >= 3) { thumbsBroken = true; AppLog.add("thumbs", "seek preview: no frames from this stream"); } }
+                else { thumbFails = 0; thumbCache.put(key, b); }
+            } catch (Throwable e) { thumbsBroken = true; AppLog.add("thumbs", "seek preview unavailable: " + e); }
+            finally { thumbPending.remove(key); }
+            runOnUiThread(this::refreshThumbs);
+        });
+    }
+
     private GradientDrawable shape(boolean oval, int fill, int stroke, int strokeW, float radiusDp) {
         GradientDrawable g = new GradientDrawable();
         g.setShape(oval ? GradientDrawable.OVAL : GradientDrawable.RECTANGLE);
@@ -925,13 +1012,14 @@ public class PlayerActivity extends Activity {
             @Override public void onChange(int p, boolean fromUser) {
                 if (!fromUser) return;
                 posTx.setText(fmt(p));
+                showThumbs(p);
                 seekPending = true;
                 handler.removeCallbacks(seekRun);
                 handler.postDelayed(seekRun, 400);
                 scheduleHide();
             }
             @Override public void onStart() { seekPending = true; handler.removeCallbacks(hideRun); }
-            @Override public void onStop() { handler.removeCallbacks(seekRun); seekRun.run(); scheduleHide(); }
+            @Override public void onStop() { handler.removeCallbacks(seekRun); seekRun.run(); scheduleHide(); handler.removeCallbacks(thumbHide); handler.postDelayed(thumbHide, 1800); }
         });
         LinearLayout.LayoutParams pt = new LinearLayout.LayoutParams(-2, -2);
         pt.leftMargin = dp(14);
@@ -940,6 +1028,7 @@ public class PlayerActivity extends Activity {
         row.addView(posTx, pt);
         row.addView(seek, sl);
         row.addView(durTx);
+        buildThumbStrip(bottom);
         bottom.addView(row, new LinearLayout.LayoutParams(-1, -2));
 
         LinearLayout ctl = new LinearLayout(this);
@@ -1109,6 +1198,7 @@ public class PlayerActivity extends Activity {
         if (d != C.TIME_UNSET && d > 0) t = Math.min(t, d - 500);
         player.seekTo(Math.max(0, t));
         refreshProgress();
+        showThumbs(Math.max(0, t)); handler.removeCallbacks(thumbHide); handler.postDelayed(thumbHide, 1800);
         flash(delta < 0 ? "\u2212" + Math.abs(delta / 1000) + " s" : "+" + (delta / 1000) + " s");
         scheduleHide();
     }
@@ -1131,6 +1221,7 @@ public class PlayerActivity extends Activity {
 
     private void hideControls() {
         controlsOn = false;
+        thumbHide.run();
         handler.removeCallbacks(hideRun);
         controls.animate().alpha(0f).setDuration(180).withEndAction(() -> { if (!controlsOn) controls.setVisibility(View.GONE); }).start();
     }
@@ -1788,6 +1879,8 @@ public class PlayerActivity extends Activity {
     @Override
     protected void onDestroy() {
         handler.removeCallbacksAndMessages(null);
+        thumbWant.clear(); thumbsBroken = true;
+        if (thumbExec != null) { thumbExec.execute(() -> { try { if (thumbMmr != null) thumbMmr.release(); } catch (Exception ignored) { } }); thumbExec.shutdown(); }
         if (!reported) {
             snapshot();
             reported = true;
