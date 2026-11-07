@@ -102,7 +102,8 @@ function parseAddonUrl(input){
   if (!u) throw new Error('Paste an addon URL first.');
   if (u.toLowerCase()==='demo') u = 'demo://sample';
   if (/^(qu[eé]bec|qc)$/i.test(u)) u = 'qc://tva';
-  const tm = /^tmdb(?::\/\/|\s+)?(all|netflix|disney|kids)?\/?$/i.exec(u); if (tm) u = 'tmdb://' + (tm[1] || 'all').toLowerCase();
+  const tm = /^tmdb(?::\/\/|\s+)?(all|netflix|disney|marvel|kids)?\/?$/i.exec(u); if (tm) u = 'tmdb://' + (tm[1] || 'all').toLowerCase();
+  const tl = /themoviedb\.org\/list\/(\d+)/i.exec(u) || /^tmdb(?::\/\/|\s+)list[-\s]?(\d+)\/?$/i.exec(u); if (tl) u = 'tmdb://list-' + tl[1];      // a TMDB list link becomes a row
   u = u.replace(/^stremio:\/\//i, 'https://').replace(/^https?:\/\/((qc|tmdb):\/\/)/i, '$1');      // 'https://qc://tva' was saved by an older build: repair it
   if (!/^(https?|demo|qc|tmdb):\/\//i.test(u)) u = 'https://' + u;
   if (!/manifest\.json(\?.*)?$/.test(u)) u = u.replace(/\/+$/,'') + '/manifest.json';

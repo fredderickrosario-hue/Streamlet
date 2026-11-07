@@ -6,6 +6,7 @@ const TM_FLAVORS = {
   all:     {name:'TMDB',          desc:'Trending, popular and top rated movies and shows, with search.'},
   netflix: {name:'Netflix (TMDB)', desc:'What is on Netflix in Canada, and Netflix originals.'},
   disney:  {name:'Disney+ (TMDB)', desc:'Disney, Pixar, Marvel, Star Wars and Disney Channel, like the Disney+ catalog.'},
+  marvel:  {name:'Marvel (TMDB)',  desc:'The MCU in release order, Marvel shows, X-Men, Spider-Man and Marvel Animation.'},
   kids:    {name:'Kids (TMDB)',    desc:'Family movies rated G and PG, cartoons and kids shows. Search only finds kids titles.'}
 };
 const TM_MG = {Action:28, Adventure:12, Animation:16, Comedy:35, Crime:80, Documentary:99, Drama:18, Family:10751, Fantasy:14, History:36, Horror:27, Music:10402, Mystery:9648, Romance:10749, 'Science Fiction':878, Thriller:53, War:10752, Western:37};
@@ -42,6 +43,14 @@ const TM_CATS = {
     {type:'series', id:'dz.marvel', name:'Marvel shows',       disc:{with_companies:'co:Marvel Studios'}},
     {type:'series', id:'dz.sw',     name:'Star Wars shows',    disc:{with_companies:'co:Lucasfilm Ltd.'}}
   ],
+  marvel: [
+    {type:'movie',  id:'mv.mcu',    name:'MCU in release order', disc:{with_companies:'co:Marvel Studios', sort_by:'primary_release_date.asc', 'primary_release_date.lte':'today'}},
+    {type:'series', id:'mv.shows',  name:'Marvel shows',       disc:{with_companies:'co:Marvel Studios|co:Marvel Television', sort_by:'first_air_date.desc', 'first_air_date.lte':'today'}},
+    {type:'movie',  id:'mv.xmen',   name:'X-Men',              disc:{with_keywords:'kw:x-men', sort_by:'primary_release_date.asc', 'primary_release_date.lte':'today'}},
+    {type:'movie',  id:'mv.spidey', name:'Spider-Man',         disc:{with_keywords:'kw:spider-man', sort_by:'primary_release_date.asc', 'primary_release_date.lte':'today'}},
+    {type:'series', id:'mv.anim',   name:'Marvel Animation',   disc:{with_companies:'co:Marvel Animation'}},
+    {type:'movie',  id:'mv.pop',    name:'Popular Marvel movies', disc:{with_companies:'co:Marvel Studios|co:Marvel Entertainment'}}
+  ],
   kids: [
     {type:'movie',  id:'kd.pop',    name:'Family movies',      disc:{...TM_KIDM, with_genres:'10751'}},
     {type:'movie',  id:'kd.anim',   name:'Animated movies',    disc:{...TM_KIDM, with_genres:'16'}},
@@ -53,7 +62,12 @@ const TM_CATS = {
 };
 const tmKey = () => lsGet('streamlet.tmdb', '');
 const tmGenres = (fl, type) => fl === 'kids' ? (type === 'movie' ? TM_KID_MG : TM_KID_TG) : Object.keys(type === 'movie' ? TM_MG : TM_TG);
+const tmListName = id => (lsGet('streamlet.tmlists', {}) || {})[id] || 'TMDB list';
 function tmManifest(fl){
+  const lm = /^list-(\d+)$/.exec(fl);
+  if (lm) return {id:'app.streamlet.tmdb.list.' + lm[1], version:'1.0.0', name:tmListName(lm[1]), description:'A TMDB list, in its own order (whoever keeps the list keeps it up to date). Needs your TMDB key.',
+    resources:['catalog', {name:'meta', types:['movie', 'series'], idPrefixes:['tt', 'tmdb:']}], types:['movie', 'series'], idPrefixes:['tt', 'tmdb:'],
+    catalogs:[{type:'movie', id:'ls.' + lm[1], name:tmListName(lm[1]), extra:[{name:'skip', isRequired:false}]}]};
   const f = TM_FLAVORS[fl] || TM_FLAVORS.all;
   const catalogs = (TM_CATS[fl] || TM_CATS.all).map(c => ({type:c.type, id:c.id, name:c.name, genres:tmGenres(fl, c.type),
     extra:[{name:'genre', options:tmGenres(fl, c.type), isRequired:false}, {name:'skip', isRequired:false}]}));
@@ -71,6 +85,10 @@ async function tmResolve(tok){
     const r = await tmdbGet(`/search/company?query=${enc(name)}`, tmKey()), res = r.results || [];
     const hit = res.find(x => x.name.toLowerCase() === low) || res.find(x => x.name.toLowerCase().startsWith(low)) || res[0];
     id = hit ? String(hit.id) : '';
+  } else if (kind === 'kw') {
+    const r = await tmdbGet(`/search/keyword?query=${enc(name)}`, tmKey()), res = r.results || [];
+    const hit = res.find(x => x.name.toLowerCase() === low) || res[0];
+    id = hit ? String(hit.id) : '';
   } else if (kind === 'prov') {
     const r = await tmdbGet(`/watch/providers/tv?watch_region=${TM_REGION}`, tmKey()), res = r.results || [];
     const hit = res.find(x => x.provider_name.toLowerCase() === low) || res.find(x => x.provider_name.toLowerCase().includes(low));
@@ -82,8 +100,9 @@ async function tmResolve(tok){
 async function tmParams(disc){
   const out = {};
   for (const [k, v] of Object.entries(disc)) {
-    if (/(^|[|,])(co|prov):/.test(v)) {
-      const parts = await Promise.all(v.split('|').map(p => /^(co|prov):/.test(p) ? tmResolve(p) : p));
+    if (v === 'today') { out[k] = new Date().toISOString().slice(0, 10); continue; }
+    if (/(^|[|,])(co|prov|kw):/.test(v)) {
+      const parts = await Promise.all(v.split('|').map(p => /^(co|prov|kw):/.test(p) ? tmResolve(p) : p));
       const ok = parts.filter(Boolean); if (!ok.length) throw new Error('Not found on TMDB: ' + v);
       out[k] = ok.join('|');
       if (k === 'with_watch_providers') out.watch_region = TM_REGION;
@@ -119,6 +138,11 @@ function tmKidOk(x, kind){
 async function tmCatalog(fl, type, id, extra){
   const kind = type === 'series' ? 'tv' : 'movie', page = Math.floor((+extra.skip || 0) / 20) + 1;
   let r;
+  if (id.startsWith('ls.')) {                                              // a TMDB list: movies and shows mixed, in the list's order
+    const r2 = await tmdbGet(`/list/${id.slice(3)}?page=${page}`, tmKey());
+    const items2 = (r2.items || []).filter(x => x.poster_path && (x.media_type === 'movie' || x.media_type === 'tv'));
+    return {metas:await Promise.all(items2.map(x => tmPreview(x, x.media_type)))};
+  }
   if (id === 'tm.search') {
     if (!extra.search) return {metas:[]};
     r = await tmdbGet(`/search/${kind}?query=${enc(extra.search)}&include_adult=false&page=${page}`, tmKey());
@@ -173,8 +197,12 @@ async function tmMeta(type, id){
 }
 async function tmRoute(url){
   const m = /^tmdb:\/\/([^/]+)\/(.*?)(\.json)?(\?.*)?$/.exec(url); if (!m) throw new Error('Bad TMDB address');
-  const fl = TM_FLAVORS[m[1]] ? m[1] : 'all', path = m[2];
-  if (path === 'manifest') return tmManifest(fl);
+  const fl = TM_FLAVORS[m[1]] || /^list-\d+$/.test(m[1]) ? m[1] : 'all', path = m[2];
+  if (path === 'manifest') {
+    const lm = /^list-(\d+)$/.exec(fl);
+    if (lm && tmKey()) { try { const r = await tmdbGet(`/list/${lm[1]}?page=1`, tmKey()); const n = lsGet('streamlet.tmlists', {}) || {}; n[lm[1]] = r.name || 'TMDB list'; lsSet('streamlet.tmlists', n); } catch {} }   // the list's own name for its row
+    return tmManifest(fl);
+  }
   if (!tmKey()) throw new Error('Add your TMDB key in Settings to use this addon');
   const ck = url.replace(/^tmdb:\/\//, 'https://tmdb.streamlet.invalid/');      // the device cache only takes web addresses
   const hit = await dataGet(ck); if (hit && hit.age < dFresh(ck)) return hit.json;
@@ -189,4 +217,4 @@ async function tmRoute(url){
   return j;
 }
 /* installed copies always answer with the current catalog list */
-for (const a of addons) if (a.url && a.url.startsWith('tmdb://')) { const fl = a.url.slice(7).split('/')[0]; a.manifest = tmManifest(TM_FLAVORS[fl] ? fl : 'all'); }
+for (const a of addons) if (a.url && a.url.startsWith('tmdb://')) { const fl = a.url.slice(7).split('/')[0]; a.manifest = tmManifest(TM_FLAVORS[fl] || /^list-\d+$/.test(fl) ? fl : 'all'); }
