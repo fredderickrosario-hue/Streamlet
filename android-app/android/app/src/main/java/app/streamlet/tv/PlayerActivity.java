@@ -194,7 +194,6 @@ public class PlayerActivity extends Activity {
         if (player != null && player.isPlaying() && !menuOn) hideControls(); else scheduleHide(); } };
     private long seekTo = -1, seekAt = 0;                                  // the last jump: a retry after it resumes there, not before it
     private final Runnable seekRun = new Runnable() { @Override public void run() {
-        thumbWant.clear();                                                  // the jump is happening: frames still queued for the preview are dropped
         if (player != null) { seekTo = seek.getProgress(); seekAt = System.currentTimeMillis(); player.seekTo(seekTo); } seekPending = false; } };
     private final Runnable uiTick = new Runnable() { @Override public void run() {
         refreshProgress();
@@ -528,10 +527,11 @@ public class PlayerActivity extends Activity {
         }
         handler.removeCallbacks(thumbKick); handler.postDelayed(thumbKick, 280);   // fetch once the scrubbing pauses, the frame you are on first
     }
-    private final Runnable thumbKick = () -> {
-        if (thumbsBroken || player == null || player.getPlaybackState() != Player.STATE_READY) return;   // the player is loading: it gets the connection, not the preview
+    private final Runnable thumbKick = new Runnable() { @Override public void run() {
+        if (thumbsBroken || player == null || thumbStrip == null || thumbStrip.getVisibility() != View.VISIBLE) return;
+        if (player.getPlaybackState() != Player.STATE_READY) { handler.postDelayed(this, 400); return; }   // the player is loading after a jump: it gets the connection first, the preview waits
         for (int i : new int[]{2, 1, 3, 0, 4}) { long k = thumbKeys[i]; if (k >= 0 && thumbWant.contains(k) && thumbCache.get(k) == null) requestThumb(k); }
-    };
+    } };
 
     private void refreshThumbs() {
         if (thumbStrip == null) return;
