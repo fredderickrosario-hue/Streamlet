@@ -3669,7 +3669,11 @@ function streamSummary(st){
 }
 const badStreams = new WeakSet(), streamEls = new WeakMap();
 /* what worked and what failed is remembered on this device */
-const sigOf = st => String((st && st.name) || '').replace(/\s+/g, ' ').trim().toLowerCase();
+const sigOf = st => {                                                  // the release itself, not just its label ("Torrentio 1080p" fits dozens): the addon's binge group, or the label + file name
+  if (!st) return '';
+  const bg = st.behaviorHints && st.behaviorHints.bingeGroup; if (bg) return 'bg:' + String(bg).toLowerCase();
+  return (String(st.name || '') + ' | ' + String(st.title || st.description || '').split('\n')[0]).replace(/\s+/g, ' ').trim().toLowerCase();
+};
 const urlKey = u => { try { const x = new URL(u); return x.origin + x.pathname; } catch { return String(u || ''); } };
 const mapGet = k => { const v = lsGet(k, {}); return v && typeof v === 'object' && !Array.isArray(v) ? v : {}; };
 const prefOf = id => mapGet('streamlet.srcpref')[id];
@@ -3687,9 +3691,11 @@ const resOf = st => { const t = String((st.name || '') + ' ' + (st.title || '') 
 function rankStreams(all, itemId){                                    // best first: what worked before, your audio language, quality up to your limit, ready-to-stream links, seeds
   const cap = Number(lsGet('streamlet.ui', {}).maxQ) || 99999, pref = prefOf(itemId), pc = effAudio() === 'any' ? null : code2(effAudio());
   const lang = x => { if (!pc) return 0; const l = streamLangs(x); return l.includes(pc) ? 0 : l.includes('multi') ? 1 : 2; };
+  const sl = effSub(), sc = sl && sl !== 'off' ? code2(sl) : null, want = new Set([pc, sc, 'en', 'multi'].filter(Boolean));
+  const extra = x => (pc || sc) && streamLangs(x).some(l => !want.has(l)) ? 1 : 0;      // a release that also carries other dubs (Japanese + Brazilian) comes after a clean one
   const key = x => {
     const r = resOf(x), t = String(x.name || '') + ' ' + String(x.title || ''), seeds = Number((/\u{1F464}\s*(\d+)/u.exec(t) || [])[1]) || 0;
-    return [pref && sigOf(x) === pref ? 0 : 1, lang(x), r > cap ? 1 : 0, r === 0 ? 1 : 0, -Math.min(r, cap), /\[[A-Z]{2}\+\]|cached|\u26A1/i.test(t) ? 0 : 1, -seeds];
+    return [pref && sigOf(x) === pref ? 0 : 1, lang(x), extra(x), r > cap ? 1 : 0, r === 0 ? 1 : 0, -Math.min(r, cap), /\[[A-Z]{2}\+\]|cached|\u26A1/i.test(t) ? 0 : 1, -seeds];
   };
   const ok = all.filter(x => x && x.url), good = ok.filter(x => !isBadStream(x));          // a source flagged bad earlier is only skipped when something else is available
   return (good.length ? good : ok).map((x, i) => [x, key(x), i]).sort((a, b) => { for (let k = 0; k < a[1].length; k++) if (a[1][k] !== b[1][k]) return a[1][k] - b[1][k]; return a[2] - b[2]; }).map(x => x[0]);
