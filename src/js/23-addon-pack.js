@@ -31,10 +31,10 @@ async function packOffer(u){
   m.onclick = ev => { if (ev.target === m) popLayer('menu'); };
 }
 /* the owner's side: copy the installed addons (without Torrentio or the built-in ones) in the pack's format */
-$('#packExport').onclick = async () => {
+async function packExport(){
   const list = addons.filter(a => /^https?:/.test(a.url) && !PACK_SKIP.test(a.url) && !PACK_SKIP.test(a.manifest && a.manifest.id || ''))
     .map(a => ({name:an(a), url:a.url, ...(a.label ? {label:a.label} : {})}));
   const text = JSON.stringify({addons:list}, null, 2);
   try { await navigator.clipboard.writeText(text); toast(`Copied ${list.length} addons`); }
   catch { const ta = h('textarea', {class:'f', rows:'8', style:'width:100%'}); ta.value = text; $('#packExport').after(ta); ta.focus(); ta.select(); toast('Select the text and copy it'); }
-};
+}

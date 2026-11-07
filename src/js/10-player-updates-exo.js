@@ -162,8 +162,8 @@ async function checkUpdate(){
   return (updInfo = {cur, latest, newer: latest > cur});
 }
 /* one button: "Download v1.0.N" -> progress inside the button -> "Install" */
-async function runUpdate(){
-  const N = nativePlayer(), msg = $('#apkMsg'), btn = $('#apkInstall');
+async function runUpdate(btn = $('#apkInstall'), msg = $('#apkMsg')){
+  const N = nativePlayer();
   if (btn.dataset.busy) return;                                           // not 'disabled': that would take the remote's focus away
   const permMsg = 'Allow Streamlet to install apps in the settings screen that just opened, come back and press Install again.';
   if (btn.dataset.ready) {
@@ -184,7 +184,7 @@ function showUpdState(){
   if (!updInfo) return;
   $('#tabSettings').classList.toggle('upd', !!updInfo.newer);
   inst.hidden = !updInfo.newer;
-  if (updInfo.newer) { if (!inst.dataset.ready && !inst.dataset.busy) inst.textContent = `Download ${vName(updInfo.latest)}`; inst.onclick = runUpdate; msg.textContent = `Installed: ${vName(updInfo.cur)}. ${vName(updInfo.latest)} is available.`; }
+  if (updInfo.newer) { if (!inst.dataset.ready && !inst.dataset.busy) inst.textContent = `Download ${vName(updInfo.latest)}`; inst.onclick = () => runUpdate(); msg.textContent = `Installed: ${vName(updInfo.cur)}. ${vName(updInfo.latest)} is available.`; }
   else msg.textContent = `You're up to date (${vName(updInfo.cur)}).`;
 }
 async function manualCheck(){
@@ -194,7 +194,20 @@ async function manualCheck(){
 function initUpdates(){
   const N = nativePlayer(); if (!N || !N.appVersion) return;
   $('#apkRow').hidden = false; $('#apkBtn').onclick = manualCheck;
-  checkUpdate().then(i => { if (!i) return; showUpdState(); if (i.newer) toast('A new version of Streamlet is available. See Settings.'); }).catch(() => {});
+  checkUpdate().then(i => { if (!i) return; showUpdState(); if (i.newer) updPopup(); }).catch(() => {});
+}
+/* at boot: a new version gets its own card, once the intro is gone; Skip leaves it for Settings */
+function updPopup(){
+  const d = $('#updDlg');
+  if ($('#intro') && !$('#intro').hidden && $('#intro').isConnected && getComputedStyle($('#intro')).display !== 'none') { setTimeout(updPopup, 800); return; }
+  if (!$('#menu').hidden || !$('#player').hidden || !$('#exitDlg').hidden) { setTimeout(updPopup, 1500); return; }
+  $('#updVer').textContent = `${vName(updInfo.cur)}  →  ${vName(updInfo.latest)}`;
+  const go = $('#updGo'), msg = $('#updMsg');
+  go.onclick = () => runUpdate(go, msg);
+  $('#updSkip').onclick = () => popLayer('upd');
+  d.onclick = ev => { if (ev.target === d) popLayer('upd'); };
+  d.hidden = false; pushLayer('upd');
+  requestAnimationFrame(() => go.focus({preventScroll:true}));
 }
 setTimeout(initUpdates, 1500);
 

@@ -221,6 +221,7 @@ function renderAddons(){
         a.pending ? h('div', {class:'awarn'}, "Couldn't load yet. It will retry.") : (a.label ? h('div', {class:'asub'}, a.manifest.name) : null)),
       h('span', {class:'achev'}, '›')));
   }
+  if (addons.length) list.append(h('button', {id:'packExport', class:'btn ghost sm', type:'button', style:'margin:16px 0 8px;align-self:flex-start', onclick:packExport}, 'Copy addons as the sign-in pack'));
 }
 
 function editAddon(uid){

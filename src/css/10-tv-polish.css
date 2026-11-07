@@ -73,3 +73,25 @@ select.sel option{background:#15151d;color:#fff}
 button[hidden],.btn[hidden],select[hidden]{display:none !important}
 /* "New season" sits centred at the bottom of the poster; "New episode" keeps the top-left corner */
 .poster .rtag.season{left:50%;right:auto;top:auto;bottom:10px;transform:translateX(-50%);border-radius:6px;padding:3px 9px;white-space:nowrap}
+/* TV cover focus ring: drawn over the artwork (an inset outline sits behind the image and barely shows), inside the card so a row never crops it */
+body.tv :is(button.card,.cwb,.wlb) .poster::after{content:'';position:absolute;inset:0;border-radius:inherit;box-shadow:inset 0 0 0 3px #fff;opacity:0;z-index:6;pointer-events:none;transition:opacity .12s}
+body.tv :is(button.card,.cwb,.wlb):is(:focus-visible,:hover) .poster::after{opacity:1}
+body.tv :is(button.card,.cwb,.wlb):is(:focus-visible,:hover) .poster{outline:0 !important}
+/* update card: Streamlet's glass panel, the plug logo with soft accent rings, one accent button */
+#updDlg{z-index:120;background:rgba(4,4,10,.72);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}
+#updDlg .updbox{max-width:380px;padding:30px 26px 22px;text-align:center;border-radius:22px;position:relative;overflow:visible;
+  background:linear-gradient(180deg,color-mix(in srgb,var(--acc) 22%,var(--panel)) 0%,var(--panel) 46%);border:1px solid rgba(255,255,255,.08);box-shadow:0 30px 80px rgba(0,0,0,.55)}
+#updDlg .updart{position:relative;width:96px;height:96px;margin:-6px auto 16px;display:grid;place-items:center}
+#updDlg .updart img{width:66px;height:66px;position:relative;z-index:2;filter:drop-shadow(0 8px 22px color-mix(in srgb,var(--acc) 70%,transparent));animation:updFloat 3.2s ease-in-out infinite}
+#updDlg .updart i{position:absolute;inset:0;border-radius:50%;border:2px solid color-mix(in srgb,var(--acc) 55%,transparent);opacity:0;animation:updRing 2.6s ease-out infinite}
+#updDlg .updart i:nth-child(3){animation-delay:.85s}#updDlg .updart i:nth-child(4){animation-delay:1.7s}
+@keyframes updRing{0%{transform:scale(.55);opacity:.8}100%{transform:scale(1.35);opacity:0}}
+@keyframes updFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-5px)}}
+#updDlg h3{margin:0 0 4px;font-size:22px;font-weight:800;letter-spacing:-.01em}
+#updDlg .updver{margin:0 0 12px;font-size:13px;font-weight:700;color:var(--acc);letter-spacing:.02em}
+#updDlg .updtx{margin:0 0 20px;font-size:14px;line-height:1.45;color:rgba(255,255,255,.72)}
+#updDlg .btn{display:flex;width:100%;justify-content:center;min-height:46px;margin:0 0 10px}
+#updDlg .btn:not(.ghost){font-size:16px;font-weight:700}
+#updDlg .updmsg{margin:4px 0 0;font-size:12px;color:rgba(255,255,255,.5)}
+body.tv #updDlg .updbox{max-width:440px}
+body.tv #updDlg .btn:focus-visible{outline:3px solid #fff;outline-offset:3px}

@@ -101,7 +101,7 @@ try { if (window.tizen && tizen.tvinputdevice) ['MediaPlayPause','MediaPlay','Me
 
 const FOCUSABLE = 'a[href],button:not([disabled]),input:not([type=hidden]):not([disabled]),select:not([disabled]),textarea:not([disabled]),summary,[tabindex]:not([tabindex="-1"])';
 function ctxRoot(){
-  for (const id of ['#loadov', '#exitDlg', '#menu', '#ppanel', '#player', '#addonEd', '#profEd', '#spaceEd', '#episode', '#detail']) { const e = $(id); if (e && !e.hidden) return e; }
+  for (const id of ['#loadov', '#exitDlg', '#updDlg', '#menu', '#ppanel', '#player', '#addonEd', '#profEd', '#spaceEd', '#episode', '#detail']) { const e = $(id); if (e && !e.hidden) return e; }
   return document.body;
 }
 function focusables(root){
@@ -115,7 +115,7 @@ function focusables(root){
 let lastContentEl = null;
 document.addEventListener('focusin', e => { if (e.target.closest && !e.target.closest('#nav')) lastContentEl = e.target; });
 function focusNav(){
-  const b = $('#nav button.on:not(.gone)') || $('#tabHome');
+  const b = [...document.querySelectorAll('#nav button.on:not(.gone)')].find(x => x.offsetParent) || $('#tabHome');   // a hidden tab (Addons on TV) can't take focus
   if (b) { b.focus({preventScroll:true}); return true; }
   return false;
 }

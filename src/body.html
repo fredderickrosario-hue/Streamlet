@@ -141,7 +141,6 @@
         <div class="msg" id="addMsg"></div>
       </details>
       <div id="list"></div>
-      <button id="packExport" class="btn ghost sm" type="button" style="margin-top:16px">Copy addons as the sign-in pack</button>
     </div>
     <div class="pad" id="adBrowse" hidden>
       <p class="hint">Popular addons. Choose Install to add one.</p>
@@ -169,6 +168,15 @@
 </div>
 <div id="exitDlg" class="dlg" hidden><div class="box"><h3>Close Streamlet?</h3><p>You're at the very beginning, so going back again will close the app.</p><div class="dbtns"><button class="btn ghost" id="exStay" type="button">Stay</button><button class="btn" id="exGo" type="button">Close app</button></div></div></div>
 <div id="menu" class="dlg menu" hidden></div>
+<div id="updDlg" class="dlg" hidden><div class="box updbox">
+  <div class="updart" aria-hidden="true"><img src="logo.svg" alt=""><i></i><i></i><i></i></div>
+  <h3>Update available</h3>
+  <p class="updver" id="updVer"></p>
+  <p class="updtx">A new version of Streamlet is ready, with new features and fixes.</p>
+  <button class="btn" id="updGo" type="button">Update now</button>
+  <button class="btn ghost" id="updSkip" type="button">Skip</button>
+  <p class="updmsg" id="updMsg">You can update anytime from Settings.</p>
+</div></div>
 <div id="toast"></div>
 <nav id="nav">
   <i class="navpill" id="navPill"></i>

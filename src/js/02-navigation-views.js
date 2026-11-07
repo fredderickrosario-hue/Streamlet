@@ -54,6 +54,7 @@ const LAYER_CLOSERS = {
   editor: () => { $('#spaceEd').hidden = true; applyTheme(cur ? cur.theme : 'violet'); },
   pedit:  () => { $('#profEd').hidden = true; if (!$('#me').hidden) renderMe(); },
   menu:   () => { $('#menu').hidden = true; },
+  upd:    () => { $('#updDlg').hidden = true; },
   nfimp:  () => { $('#nfImp').hidden = true; },
   episode: () => { $('#episode').hidden = true; },
   aedit:  () => { $('#addonEd').hidden = true; if (!$('#addons').hidden) renderAddons(); }
@@ -75,6 +76,7 @@ function tvBackStep(){
   if (!document.body.classList.contains('tv') || document.body.classList.contains('launch') || !cur) return false;
   const inNav = document.activeElement && document.activeElement.closest && document.activeElement.closest('#nav');
   const repush = () => { if (history.state && history.state.guard) { pageKey = ''; pushPage(); } };
+  if (!$('#addons').hidden) { showTab('settings'); requestAnimationFrame(() => { const b = $('#setAddons'); if (b) b.focus({preventScroll:true}); }); repush(); return true; }   // Addons opens from Settings on TV: Back goes there
   if (!inNav) {
     if (!$('#home').hidden && view.genre) { view = {tab:view.tab, genre:''}; renderHome(); repush(); return true; }
     if (!$('#search').hidden && sQuery) { sQuery = ''; sPaint(); sRun(); repush(); return true; }
