@@ -32,17 +32,6 @@ const TM_CATS = {
     {type:'movie',  id:'nf.top',  name:'Top rated on Netflix',   disc:{with_watch_providers:'prov:Netflix', sort_by:'vote_average.desc', 'vote_count.gte':'400'}},
     {type:'series', id:'nf.top',  name:'Top rated shows on Netflix', disc:{with_watch_providers:'prov:Netflix', sort_by:'vote_average.desc', 'vote_count.gte':'300'}}
   ],
-  disney: [
-    {type:'movie',  id:'dz.disney', name:'Disney',             disc:{with_companies:'co:Walt Disney Pictures'}},
-    {type:'movie',  id:'dz.pixar',  name:'Pixar',              disc:{with_companies:'co:Pixar'}},
-    {type:'movie',  id:'dz.anim',   name:'Disney Animation',   disc:{with_companies:'co:Walt Disney Animation Studios'}},
-    {type:'movie',  id:'dz.marvel', name:'Marvel',             disc:{with_companies:'co:Marvel Studios'}},
-    {type:'movie',  id:'dz.sw',     name:'Star Wars',          disc:{with_companies:'co:Lucasfilm Ltd.'}},
-    {type:'series', id:'dz.plus',   name:'Popular on Disney+', disc:{with_watch_providers:'prov:Disney Plus'}},
-    {type:'series', id:'dz.chan',   name:'Disney Channel',     disc:{with_networks:'54'}},
-    {type:'series', id:'dz.marvel', name:'Marvel shows',       disc:{with_companies:'co:Marvel Studios'}},
-    {type:'series', id:'dz.sw',     name:'Star Wars shows',    disc:{with_companies:'co:Lucasfilm Ltd.'}}
-  ],
   kids: [
     {type:'movie',  id:'kd.pop',    name:'Family movies',      disc:{...TM_KIDM, with_genres:'10751'}},
     {type:'movie',  id:'kd.anim',   name:'Animated movies',    disc:{...TM_KIDM, with_genres:'16'}},
@@ -108,6 +97,58 @@ TM_CATS.marvel = [
   ...MCU_HEROES.map(([n, l], i) => tmCur('mv.h' + i, n, l.map(mcuEntry))),
   ...MARVEL_MORE.map(([n, l], i) => tmCur('mv.m' + i, n, l))
 ];
+/* ---------- Disney+ (TMDB): kept lists by studio and era, matched on TMDB by name and year ('|tv' = a series) ---------- */
+const DZ = {
+  golden:  ['Snow White and the Seven Dwarfs|1937', 'Pinocchio|1940', 'Fantasia|1940', 'Dumbo|1941', 'Bambi|1942'],
+  wartime: ['Saludos Amigos|1942', 'The Three Caballeros|1944', 'Make Mine Music|1946', 'Fun and Fancy Free|1947', 'Melody Time|1948', 'The Adventures of Ichabod and Mr. Toad|1949'],
+  silver:  ['Cinderella|1950', 'Alice in Wonderland|1951', 'Peter Pan|1953', 'Lady and the Tramp|1955', 'Sleeping Beauty|1959', 'One Hundred and One Dalmatians|1961', 'The Sword in the Stone|1963', 'The Jungle Book|1967'],
+  bronze:  ['The Aristocats|1970', 'Robin Hood|1973', 'The Many Adventures of Winnie the Pooh|1977', 'The Rescuers|1977', 'The Fox and the Hound|1981', 'The Black Cauldron|1985', 'The Great Mouse Detective|1986', 'Oliver & Company|1988'],
+  renaissance: ['The Little Mermaid|1989', 'The Rescuers Down Under|1990', 'Beauty and the Beast|1991', 'Aladdin|1992', 'The Lion King|1994', 'Pocahontas|1995', 'The Hunchback of Notre Dame|1996', 'Hercules|1997', 'Mulan|1998', 'Tarzan|1999'],
+  post:    ['Fantasia 2000|1999', 'Dinosaur|2000', "The Emperor's New Groove|2000", 'Atlantis: The Lost Empire|2001', 'Lilo & Stitch|2002', 'Treasure Planet|2002', 'Brother Bear|2003', 'Home on the Range|2004', 'Chicken Little|2005', 'Meet the Robinsons|2007', 'Bolt|2008', 'The Princess and the Frog|2009'],
+  modern:  ['Tangled|2010', 'Winnie the Pooh|2011', 'Wreck-It Ralph|2012', 'Frozen|2013', 'Big Hero 6|2014', 'Zootopia|2016', 'Moana|2016', 'Ralph Breaks the Internet|2018', 'Frozen II|2019', 'Raya and the Last Dragon|2021', 'Encanto|2021', 'Strange World|2022', 'Wish|2023', 'Moana 2|2024', 'Zootopia 2|2025'],
+  pixar:   ['Toy Story|1995', "A Bug's Life|1998", 'Toy Story 2|1999', 'Monsters, Inc.|2001', 'Finding Nemo|2003', 'The Incredibles|2004', 'Cars|2006', 'Ratatouille|2007', 'WALL·E|2008', 'Up|2009', 'Toy Story 3|2010', 'Cars 2|2011', 'Brave|2012', 'Monsters University|2013', 'Inside Out|2015', 'The Good Dinosaur|2015', 'Finding Dory|2016', 'Cars 3|2017', 'Coco|2017', 'Incredibles 2|2018', 'Toy Story 4|2019', 'Onward|2020', 'Soul|2020', 'Luca|2021', 'Turning Red|2022', 'Lightyear|2022', 'Elemental|2023', 'Inside Out 2|2024', 'Elio|2025', 'Hoppers|2026', 'Toy Story 5|2026'],
+  toystory: ['Toy Story|1995', 'Toy Story 2|1999', 'Toy Story 3|2010', 'Toy Story 4|2019', 'Lightyear|2022', 'Toy Story 5|2026'],
+  cars:    ['Cars|2006', 'Cars 2|2011', 'Planes|2013', 'Planes: Fire & Rescue|2014', 'Cars 3|2017', 'Cars on the Road|2022|tv'],
+  incredibles: ['The Incredibles|2004', 'Incredibles 2|2018'],
+  pixarMore: ['Finding Nemo|2003', 'Finding Dory|2016', 'Monsters, Inc.|2001', 'Monsters University|2013', 'Monsters at Work|2021|tv', 'Inside Out|2015', 'Inside Out 2|2024', 'Dream Productions|2024|tv'],
+  remakes: ['101 Dalmatians|1996', 'Alice in Wonderland|2010', 'Maleficent|2014', 'Cinderella|2015', 'The Jungle Book|2016', "Pete's Dragon|2016", 'Beauty and the Beast|2017', 'Christopher Robin|2018', 'Dumbo|2019', 'Aladdin|2019', 'The Lion King|2019', 'Lady and the Tramp|2019', 'Maleficent: Mistress of Evil|2019', 'Mulan|2020', 'Cruella|2021', 'Pinocchio|2022', 'Peter Pan & Wendy|2023', 'The Little Mermaid|2023', 'Mufasa: The Lion King|2024', 'Snow White|2025', 'Lilo & Stitch|2025'],
+  live:    ['The Parent Trap|1961', 'Mary Poppins|1964', 'Tron|1982', 'Honey, I Shrunk the Kids|1989', 'Hocus Pocus|1993', 'The Santa Clause|1994', 'The Parent Trap|1998', 'The Princess Diaries|2001', 'Freaky Friday|2003', 'Holes|2003', 'National Treasure|2004', 'Enchanted|2007', 'Tron: Legacy|2010', 'Mary Poppins Returns|2018', 'Jungle Cruise|2021', 'Hocus Pocus 2|2022', 'Disenchanted|2022', 'Freakier Friday|2025', 'Tron: Ares|2025'],
+  pirates: ['Pirates of the Caribbean: The Curse of the Black Pearl|2003', "Pirates of the Caribbean: Dead Man's Chest|2006", "Pirates of the Caribbean: At World's End|2007", 'Pirates of the Caribbean: On Stranger Tides|2011', 'Pirates of the Caribbean: Dead Men Tell No Tales|2017'],
+  channel: ['Even Stevens|2000|tv', 'Lizzie McGuire|2001|tv', "That's So Raven|2003|tv", 'The Suite Life of Zack & Cody|2005|tv', 'Hannah Montana|2006|tv', 'Wizards of Waverly Place|2007|tv', 'The Suite Life on Deck|2008|tv', 'Sonny with a Chance|2009|tv', 'Good Luck Charlie|2010|tv', 'Jessie|2011|tv', 'Austin & Ally|2011|tv', 'Liv and Maddie|2013|tv', 'Girl Meets World|2014|tv', 'K.C. Undercover|2015|tv', 'Bunk\'d|2015|tv', 'Andi Mack|2017|tv', "Raven's Home|2017|tv", 'Wizards Beyond Waverly Place|2024|tv'],
+  dcom:    ['Halloweentown|1998', 'Smart House|1999', 'Cadet Kelly|2002', 'High School Musical|2006', 'High School Musical 2|2007', 'Camp Rock|2008', 'High School Musical 3: Senior Year|2008', 'Starstruck|2010', 'Teen Beach Movie|2013', 'Descendants|2015', 'Descendants 2|2017', 'Zombies|2018', 'Descendants 3|2019', 'Zombies 2|2020', 'Descendants: The Rise of Red|2024'],
+  toons:   ['DuckTales|1987|tv', "Chip 'n' Dale: Rescue Rangers|1989|tv", 'TaleSpin|1990|tv', 'Darkwing Duck|1991|tv', 'Goof Troop|1992|tv', 'Gargoyles|1994|tv', 'Recess|1997|tv', 'The Proud Family|2001|tv', 'Kim Possible|2002|tv', 'Lilo & Stitch: The Series|2003|tv', 'American Dragon: Jake Long|2005|tv', 'The Replacements|2006|tv', 'Phineas and Ferb|2007|tv', 'Gravity Falls|2012|tv', 'Star vs. the Forces of Evil|2015|tv', 'DuckTales|2017|tv', 'Tangled: The Series|2017|tv', 'Big City Greens|2018|tv', 'Amphibia|2019|tv', 'The Owl House|2020|tv', 'Moon Girl and Devil Dinosaur|2023|tv'],
+  junior:  ['Little Einsteins|2005|tv', 'Mickey Mouse Clubhouse|2006|tv', 'Handy Manny|2006|tv', 'Special Agent Oso|2009|tv', 'Jake and the Never Land Pirates|2011|tv', 'Doc McStuffins|2012|tv', 'Sofia the First|2013|tv', 'The Lion Guard|2016|tv', 'Elena of Avalor|2016|tv', 'Puppy Dog Pals|2017|tv', 'Vampirina|2017|tv', 'Mickey and the Roadster Racers|2017|tv', 'T.O.T.S.|2019|tv', 'Spidey and His Amazing Friends|2021|tv', 'Mickey Mouse Funhouse|2021|tv', "Alice's Wonderland Bakery|2022|tv", 'SuperKitties|2023|tv', 'Star Wars: Young Jedi Adventures|2023|tv', 'Ariel|2024|tv'],
+  plusLive: ['The Mandalorian|2019|tv', 'High School Musical: The Musical: The Series|2019|tv', 'Diary of a Future President|2020|tv', 'The Book of Boba Fett|2021|tv', 'Big Shot|2021|tv', 'The Mighty Ducks: Game Changers|2021|tv', 'Doogie Kameāloha, M.D.|2021|tv', 'Obi-Wan Kenobi|2022|tv', 'Andor|2022|tv', 'The Santa Clauses|2022|tv', 'Willow|2022|tv', 'National Treasure: Edge of History|2022|tv', 'Ahsoka|2023|tv', 'Percy Jackson and the Olympians|2023|tv', 'The Acolyte|2024|tv', 'Star Wars: Skeleton Crew|2024|tv'],
+  plusAnim: ['Star Wars: The Bad Batch|2021|tv', 'Star Wars: Visions|2021|tv', 'Monsters at Work|2021|tv', 'Zootopia+|2022|tv', 'Baymax!|2022|tv', 'Cars on the Road|2022|tv', 'Tales of the Jedi|2022|tv', 'Iwájú|2024|tv', 'Dream Productions|2024|tv', 'Win or Lose|2025|tv'],
+  plusDocs: ['The Imagineering Story|2019|tv', 'The World According to Jeff Goldblum|2019|tv', 'Encore!|2019|tv', 'Disney Gallery: The Mandalorian|2020|tv', 'Prop Culture|2020|tv', 'Behind the Attraction|2021|tv']
+};
+TM_CATS.disney = [
+  {type:'series', id:'dz.plus', name:'Popular on Disney+', disc:{with_watch_providers:'prov:Disney Plus'}},   // the one row that follows what's new by itself
+  tmCur('dz.golden', 'Disney Animation · Golden Age', DZ.golden),
+  tmCur('dz.wartime', 'Disney Animation · Wartime era', DZ.wartime),
+  tmCur('dz.silver', 'Disney Animation · Silver Age', DZ.silver),
+  tmCur('dz.bronze', 'Disney Animation · Bronze Age', DZ.bronze),
+  tmCur('dz.ren', 'Disney Animation · Renaissance', DZ.renaissance),
+  tmCur('dz.post', 'Disney Animation · Post-Renaissance', DZ.post),
+  tmCur('dz.modern', 'Disney Animation · Modern era', DZ.modern),
+  tmCur('dz.pixar', 'Pixar · All movies, newest first', DZ.pixar.slice().reverse()),
+  tmCur('dz.pixarRel', 'Pixar · Release order', DZ.pixar),
+  tmCur('dz.toy', 'Toy Story collection', DZ.toystory),
+  tmCur('dz.cars', 'Cars collection', DZ.cars),
+  tmCur('dz.inc', 'Incredibles collection', DZ.incredibles),
+  tmCur('dz.pixMore', 'Nemo, Monsters and Inside Out', DZ.pixarMore),
+  tmCur('dz.remakes', 'Live-action remakes', DZ.remakes),
+  tmCur('dz.live', 'Original live-action Disney films', DZ.live),
+  tmCur('dz.pirates', 'Pirates of the Caribbean', DZ.pirates),
+  tmCur('dz.channel', 'Disney Channel series', DZ.channel),
+  tmCur('dz.dcom', 'Disney Channel Original Movies', DZ.dcom),
+  tmCur('dz.toons', 'Disney Television Animation', DZ.toons),
+  tmCur('dz.junior', 'Disney Junior', DZ.junior),
+  tmCur('dz.plusLive', 'Disney+ Originals · Series', DZ.plusLive),
+  tmCur('dz.plusAnim', 'Disney+ Originals · Animated', DZ.plusAnim),
+  tmCur('dz.plusDocs', 'Disney+ Originals · Docuseries', DZ.plusDocs)
+];
+TM_FLAVORS.disney.desc = 'Disney Animation by era, Pixar and its collections, live action, Disney Channel, Disney TV Animation, Disney Junior and Disney+ Originals.';
 TM_FLAVORS.marvel.desc = 'The MCU only (story order, release order, the six phases, each hero), then the rest of Marvel sorted by family: X-Men, Sony Spider-Man, Fantastic Four, Marvel Television, animation.';
 /* one title from the list -> its TMDB entry (looked up once, kept on this device) */
 const tmCurMap = (() => { let m = null; return () => (m = m || lsGet('streamlet.tmcur', {})); })();
