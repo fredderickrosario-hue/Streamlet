@@ -309,7 +309,7 @@ async function showPairing(){
 }
 /*@end*/
 function showLogin(){
-  applyTheme('violet'); cur = null; document.body.classList.add('launch'); document.body.style.overflow = '';
+  applyTheme('ember'); cur = null; document.body.classList.add('launch'); document.body.style.overflow = '';
   $('#launcher').hidden = true; $('#profiles').hidden = true; $('#detail').hidden = true; $('#player').hidden = true;
   const L = $('#login'); L.hidden = false; L.style.maxWidth = '';
   const email = h('input', {class:'f', type:'email', placeholder:'Email', autocomplete:'email', inputmode:'email', autocapitalize:'off'});

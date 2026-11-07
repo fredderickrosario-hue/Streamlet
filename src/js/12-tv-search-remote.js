@@ -124,13 +124,15 @@ function focusNav(){
    Left / Right walk along the line; past its start, Left opens the side menu. Up / Down go to the line above / below and land on
    the card you last had in that row, or the one under where you were. Columns (side menu, search keyboard, search results) keep
    Up / Down to themselves; Left / Right cross between them. */
-const ROW_SEL = '.strip,.dacts2,.srow,.sfilter,.eplist,.slist,.cchips,.dsim,.tbtns,.dptabs';
-const ZONE_SEL = '#nav,#search .skb,#search .sres';
+const ROW_SEL = '.strip,.dacts2,.srow,.sfilter,.eplist,.slist,.cchips,.dsim,.tbtns,.dptabs,.rrow';
+const ZONE_SEL = '#nav,#search .skb,#search .sres,#profEd .pecol,#spaceEd .sedcol';
+const zoneMem = new WeakMap();                                            // column -> where you were in it
 const rowMem = new WeakMap();                                             // row -> the card you were on
 let navEl = null, navVert = false;                                         // the card that set the column you are travelling down (kept across short lines)
 document.addEventListener('focusin', e => {
   const el = e.target; if (!el || !el.closest) return;
   const row = el.closest(ROW_SEL); if (row) rowMem.set(row, el);
+  const zone = el.closest(ZONE_SEL); if (zone) zoneMem.set(zone, el);
   if (!navVert) navEl = el;
 });
 const midX = r => (r.left + r.right) / 2, midY = r => (r.top + r.bottom) / 2;
@@ -168,6 +170,14 @@ function navLand(L, x, fromRow){
   for (const e of L.els) { const r = e.getBoundingClientRect(), d = x >= r.left && x <= r.right ? -1 : Math.abs(midX(r) - x); if (d < bd) { bd = d; best = e; } }
   return best;
 }
+/* the other columns of this screen (never the side menu) */
+const navZones = (root, list) => [...new Set(list.map(e => e.closest(ZONE_SEL)).filter(z => z && !z.matches('#nav') && root.contains(z)))];
+function zoneEnter(z, list, y, x){                                         // back where you were in that column, or the item level with you
+  const els = list.filter(e => z.contains(e)); if (!els.length) return null;
+  const m = zoneMem.get(z); if (m && m.isConnected && els.includes(m)) return m;
+  if (y == null) return navLines(els)[0] ? navLand(navLines(els)[0], x, null) : els[0];
+  return els.reduce((b, e) => { const r = e.getBoundingClientRect(), d = Math.abs(midY(r) - y) * 3 + Math.abs(midX(r) - x); return !b || d < b.d ? {e, d} : b; }, null).e;
+}
 function navGo(t, dir, rep, revealIt, edge){
   t.focus({preventScroll:true});
   if (revealIt) revealEl(t, dir, rep, document.body.classList.contains('tv') && ctxRoot() === document.body, edge);
@@ -189,19 +199,34 @@ function moveFocus(dir, rep){
       if (dir === 'right') { const content = list.filter(e => !e.closest('#nav')); const back = lastContentEl && lastContentEl.isConnected && content.includes(lastContentEl) ? lastContentEl : firstFocus(root, content); if (back) back.focus({preventScroll:true}); }
       return;
     }
-    if (zone && zone.matches('#search .sres') && dir === 'left') { const kb = list.filter(e => e.closest('#search .skb')); const t2 = kb.reduce((b, e) => !b || Math.abs(midY(e.getBoundingClientRect()) - midY(cr)) < Math.abs(midY(b.getBoundingClientRect()) - midY(cr)) ? e : b, null); if (t2) { t2.focus({preventScroll:true}); return; } }
-    if (zone && zone.matches('#search .skb') && dir === 'right') {
-      const rs = list.filter(e => e.closest('#search .sres')); if (rs.length) { const m = lastContentEl && rs.includes(lastContentEl) ? lastContentEl : rs[0]; navGo(m, dir, rep, true, null); return; }
-      return;
+    {                                                                      // the next column over (search keyboard / results, editor columns)
+      const zr = (zone || cur).getBoundingClientRect();
+      const side = navZones(root, list).filter(z => z !== zone).map(z => ({z, r:z.getBoundingClientRect()}))
+        .filter(({r}) => (dir === 'right' ? r.left >= zr.right - 8 : r.right <= zr.left + 8) && r.bottom > cr.top - 40 && r.top < cr.bottom + 40)
+        .sort((a, b) => dir === 'right' ? a.r.left - b.r.left : b.r.right - a.r.right)[0];
+      if (side) { const t2 = zoneEnter(side.z, list, midY(cr), midX(cr)); if (t2) { navGo(t2, dir, rep, true, null); return; } }
     }
     if (root.id === 'episode' && document.body.classList.contains('tv') && cur.closest('.dleft') && root._step) { root._step(dir === 'right' ? 1 : -1); return; }   // episode page: previous / next episode
     if (tv && dir === 'left') focusNav();
     return;
   }
   /* Up / Down: the next line, same column */
-  const N = lines[li + (dir === 'down' ? 1 : -1)];
+  let N = lines[li + (dir === 'down' ? 1 : -1)];
+  const cols = inNav ? [] : navZones(root, list).filter(z => z !== zone && !(zone && zone.matches('#search .skb, #search .sres') && z.matches('#search .skb, #search .sres')));
+  if (!inNav && (!zone || !N)) {                                            // a column below / above may be nearer than the next line: enter it (the left one first)
+    const ref = zone && !N ? zone.getBoundingClientRect() : cr;
+    const zs = cols.map(z => ({z, r:z.getBoundingClientRect()})).filter(({r}) => dir === 'down' ? r.top >= ref.bottom - 8 : r.bottom <= ref.top + 8);
+    const nearest = zs.length ? zs.reduce((b, c) => (dir === 'down' ? c.r.top < b.r.top - 40 || (Math.abs(c.r.top - b.r.top) <= 40 && c.r.left < b.r.left) : c.r.bottom > b.r.bottom + 40 || (Math.abs(c.r.bottom - b.r.bottom) <= 40 && c.r.left < b.r.left)) ? c : b) : null;
+    const nY = N ? N.y : null;
+    if (nearest && (nY == null || (dir === 'down' ? nearest.r.top < nY : nearest.r.bottom > nY))) { const t2 = zoneEnter(nearest.z, list, null, nearest.r.left); if (t2) { navGo(t2, dir, rep, true, null); return; } }
+    if (zone && !N) {                                                       // the end of a column: carry on into whatever is above / below it on the page
+      const outer = list.filter(e => !e.closest(ZONE_SEL)).map(e => ({e, r:e.getBoundingClientRect()})).filter(({r}) => dir === 'down' ? r.top >= ref.bottom - 4 : r.bottom <= ref.top + 4);
+      if (outer.length) { const best = outer.reduce((b, c) => (dir === 'down' ? c.r.top < b.r.top - 4 : c.r.bottom > b.r.bottom + 4) || (Math.abs(c.r.top - b.r.top) <= 4 && Math.abs(midX(c.r) - midX(cr)) < Math.abs(midX(b.r) - midX(cr))) ? c : b); navGo(best.e, dir, rep, true, null); return; }
+    }
+  }
   if (!N) return;                                                          // first / last line: stay put
-  const x = navEl && navEl.isConnected && navEl !== cur && !navEl.closest('#nav') === !inNav ? midX(navEl.getBoundingClientRect()) : midX(cr);
+  const xr = navEl && navEl.isConnected && navEl !== cur && !navEl.closest('#nav') === !inNav ? navEl.getBoundingClientRect() : cr;
+  const x = xr.width > 280 ? xr.left + 30 : midX(xr);                      // from a wide field, the line below starts at its left
   const t = navLand(N, x, L.row);
   const edge = N === lines[0] ? 'top' : N === lines[lines.length - 1] ? 'bottom' : null;
   navVert = true;                                                          // focus events run inside .focus(): the column stays the one you started in

@@ -12,7 +12,7 @@
   const PRONG = new Path2D(); PRONG.roundRect ? (PRONG.roundRect(-74, -148, 38, 104, 19), PRONG.roundRect(36, -148, 38, 104, 19)) : (PRONG.rect(-74, -148, 38, 104), PRONG.rect(36, -148, 38, 104));
   const fit = () => { const d = Math.min(window.devicePixelRatio || 1, 1.5); W = innerWidth; H = innerHeight; cv.width = Math.round(W * d); cv.height = Math.round(H * d); ctx.setTransform(d, 0, 0, d, 0, 0); S = H / 1080; };
   const mix = (a, b, k) => a.map((v, i) => Math.round(v + (b[i] - v) * k));
-  const TAIL = [162, 75, 255], HEAD = [32, 216, 245];
+  const TAIL = [255, 155, 61], HEAD = [239, 58, 110];
   const PS = .3;                                                           // plug scale (about 80 px wide on a 1080p screen)
   function frame(ts){
     if (!on) return;
@@ -37,7 +37,7 @@
     }
     if (n) { const l = trail[n - 1]; ctx.strokeStyle = `rgb(${HEAD[0]},${HEAD[1]},${HEAD[2]})`; ctx.lineWidth = 12.5 * S; ctx.beginPath(); ctx.moveTo(l[0], l[1]); ctx.lineTo(bx, by); ctx.stroke(); }
     ctx.save(); ctx.translate(bx, by); ctx.rotate(Math.atan2(ny, nx) + Math.PI / 2); ctx.scale(PS * S, PS * S); ctx.translate(0, -112);
-    const g = ctx.createLinearGradient(-124, -66, 124, 120); g.addColorStop(0, '#ffffff'); g.addColorStop(1, '#ddd3ff');
+    const g = ctx.createLinearGradient(-124, -66, 124, 120); g.addColorStop(0, '#ffffff'); g.addColorStop(1, '#ffe4d6');
     ctx.fillStyle = g; ctx.fill(PRONG); ctx.fill(BODY); ctx.restore();
   }
   function start(){

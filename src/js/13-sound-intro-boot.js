@@ -183,9 +183,9 @@ $('#pseek').addEventListener('click', e => { const v = $('#vid'), r = e.currentT
     plug.setAttribute('transform', `rotate(${ang} 765 424)`);
     if (lk.w == null) {                                              // measured once, in layout pixels, before anything moves
       lk.w = lock.offsetWidth; lk.wl = w.offsetLeft; lk.ww = w.offsetWidth;
-      const gap = parseFloat(getComputedStyle(lock).columnGap) || 0; lk.lw = lk.wl - gap;
+      lk.lw = el.querySelector('.ilogo').getBoundingClientRect().width;                  // the logo's own width (the name now overlaps its empty right margin)
       lk.l = lk.w / 2 - lk.lw / 2;                                   // logo starts in the middle of the screen
-      lk.p = lk.lw * .8;                                             // the plug's right edge: the name comes out from right behind it
+      lk.p = Math.min(lk.lw * .86, lk.wl - 2);                                            // the plug's right edge: the name comes out from right behind it
       lk.t = lk.p + lk.l - lk.ww - lk.wl;                            // and starts completely hidden there
     }
     const k = inout(seg(n, 2650, 900)), tl = (1 - k) * lk.l, tw = (1 - k) * lk.t;

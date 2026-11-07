@@ -98,7 +98,7 @@ $('#updBtn').onclick = async () => {                                  // clears 
 /* ---------- profile picker ---------- */
 let manageProfiles = false;
 function showProfiles(){
-  cur = null; applyTheme('violet');
+  cur = null; applyTheme('ember');
   document.body.classList.add('launch'); document.body.style.overflow = '';
   $('#launcher').hidden = true; $('#login').hidden = true; $('#detail').hidden = true; $('#player').hidden = true; $('#spaceEd').hidden = true; $('#profEd').hidden = true;
   manageProfiles = false; renderProfiles();
@@ -163,7 +163,7 @@ function renderProfiles(){
     h('h1', null, manageProfiles ? 'Manage profiles' : "Who's watching?"),
     h('div', {class:'pgrid'},
       ...profiles.map(pr => h('button', {class:'ptile', type:'button', onclick:ev => manageProfiles ? editProfile(pr.id) : pickProfileFx(pr, ev.currentTarget)},
-        h('div', {class:'pav'}, avatarEl(pr, 88), manageProfiles ? h('span', {class:'pbadge', 'aria-hidden':'true'}, PENCIL_SVG()) : null), h('div', null, pr.name))),
+        h('div', {class:'pav'}, avatarEl(pr, 88), manageProfiles ? h('span', {class:'pbadge', 'aria-hidden':'true'}, PENCIL_SVG()) : null, pr.kids ? h('span', {class:'kidtag'}, 'KIDS') : null), h('div', null, pr.name))),
       manageProfiles && profiles.length < 8 ? h('button', {class:'ptile', type:'button', onclick:() => editProfile(null)}, h('div', {class:'pav add'}, '+'), h('div', null, 'Add profile')) : null),
     h('div', {class:'lnks', style:'justify-content:center;margin-top:22px'},
       h('button', {class:'lnk', type:'button', onclick:() => { manageProfiles = !manageProfiles; renderProfiles(); }}, manageProfiles ? 'Done' : 'Manage profiles')),

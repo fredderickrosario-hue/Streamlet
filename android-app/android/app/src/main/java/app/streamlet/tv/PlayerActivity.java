@@ -192,8 +192,10 @@ public class PlayerActivity extends Activity {
     private static final String[] SUB_NAMES = {"Small", "Medium", "Large", "Extra large"};
     private final Runnable hideRun = new Runnable() { @Override public void run() {
         if (player != null && player.isPlaying() && !menuOn) hideControls(); else scheduleHide(); } };
+    private long seekTo = -1, seekAt = 0;                                  // the last jump: a retry after it resumes there, not before it
     private final Runnable seekRun = new Runnable() { @Override public void run() {
-        if (player != null) player.seekTo(seek.getProgress()); seekPending = false; } };
+        thumbWant.clear();                                                  // the jump is happening: frames still queued for the preview are dropped
+        if (player != null) { seekTo = seek.getProgress(); seekAt = System.currentTimeMillis(); player.seekTo(seekTo); } seekPending = false; } };
     private final Runnable uiTick = new Runnable() { @Override public void run() {
         refreshProgress();
         if (player != null && player.isPlaying()) goodPos = Math.max(0L, player.getCurrentPosition());
@@ -420,7 +422,7 @@ public class PlayerActivity extends Activity {
         if (reported || errOn || player == null) return false;
         if (!played && !network) return false;
         handler.removeCallbacks(stallRun); handler.removeCallbacks(retryReset);
-        final long pos = goodPos > 0 ? goodPos : Math.max(0L, startMsIn);
+        final long pos = seekTo >= 0 && System.currentTimeMillis() - seekAt < 20000 ? seekTo : goodPos > 0 ? goodPos : Math.max(0L, startMsIn);
         if (retries < 3) {
             retries++; recovering = true; spinner.setVisibility(View.VISIBLE); hideControls();
             AppLog.add("RECOVER", why + ": retrying this source (" + retries + "/3) at " + pos / 1000 + " s");
@@ -484,7 +486,7 @@ public class PlayerActivity extends Activity {
     private void buildThumbStrip(LinearLayout parent) {
         thumbStrip = new LinearLayout(this);
         thumbStrip.setOrientation(LinearLayout.HORIZONTAL);
-        thumbStrip.setGravity(Gravity.CENTER_VERTICAL);
+        thumbStrip.setGravity(Gravity.CENTER);
         thumbStrip.setClipChildren(false); thumbStrip.setClipToPadding(false);
         for (int i = 0; i < 5; i++) {
             ImageView iv = new ImageView(this);
@@ -493,14 +495,15 @@ public class PlayerActivity extends Activity {
             if (i == 2) { bg.setStroke(dp(3), Color.WHITE); iv.setPadding(dp(3), dp(3), dp(3), dp(3)); }
             iv.setBackground(bg);
             iv.setClipToOutline(true);
-            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(0, i == 2 ? -1 : dp(phone ? 54 : 88), 1f);
+            int th = i == 2 ? (phone ? 77 : 125) : (phone ? 65 : 106);                  // 16:9 frames; the outer ones run off the edges
+            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(dp(th * 16f / 9f), dp(th));
             lp.leftMargin = dp(5); lp.rightMargin = dp(5);
             thumbStrip.addView(iv, lp);
             seekThumbs[i] = iv;
         }
         thumbStrip.setVisibility(View.GONE);
         if (streamUrl.toLowerCase(Locale.ROOT).contains(".m3u8") || streamUrl.isEmpty()) thumbsBroken = true;
-        LinearLayout.LayoutParams sp = new LinearLayout.LayoutParams(-1, dp(phone ? 64 : 104));
+        LinearLayout.LayoutParams sp = new LinearLayout.LayoutParams(-1, dp(phone ? 77 : 125));
         sp.bottomMargin = dp(14);
         parent.addView(thumbStrip, sp);
     }
@@ -521,9 +524,14 @@ public class PlayerActivity extends Activity {
             thumbKeys[i] = key;
             Bitmap b = thumbCache.get(key);
             iv.setImageBitmap(b);
-            if (b == null) { thumbWant.add(key); requestThumb(key); }
+            if (b == null) thumbWant.add(key);
         }
+        handler.removeCallbacks(thumbKick); handler.postDelayed(thumbKick, 280);   // fetch once the scrubbing pauses, the frame you are on first
     }
+    private final Runnable thumbKick = () -> {
+        if (thumbsBroken || player == null || player.getPlaybackState() != Player.STATE_READY) return;   // the player is loading: it gets the connection, not the preview
+        for (int i : new int[]{2, 1, 3, 0, 4}) { long k = thumbKeys[i]; if (k >= 0 && thumbWant.contains(k) && thumbCache.get(k) == null) requestThumb(k); }
+    };
 
     private void refreshThumbs() {
         if (thumbStrip == null) return;
@@ -543,11 +551,14 @@ public class PlayerActivity extends Activity {
                     else m.setDataSource(this, Uri.parse(streamUrl));
                     thumbMmr = m;
                 }
+                if (player == null) return;
+                final long t0 = System.currentTimeMillis();
                 Bitmap b = android.os.Build.VERSION.SDK_INT >= 27
                         ? thumbMmr.getScaledFrameAtTime(key * 1000L, android.media.MediaMetadataRetriever.OPTION_CLOSEST_SYNC, 384, 216)
                         : thumbMmr.getFrameAtTime(key * 1000L, android.media.MediaMetadataRetriever.OPTION_CLOSEST_SYNC);
                 if (b == null) { if (++thumbFails >= 3) { thumbsBroken = true; AppLog.add("seekThumbs", "seek preview: no frames from this stream"); } }
                 else { thumbFails = 0; thumbCache.put(key, b); }
+                if (System.currentTimeMillis() - t0 > 3500) { thumbsBroken = true; AppLog.add("thumbs", "seek preview off: frames from this stream are too slow"); }
             } catch (Throwable e) { thumbsBroken = true; AppLog.add("seekThumbs", "seek preview unavailable: " + e); }
             finally { thumbPending.remove(key); }
             runOnUiThread(this::refreshThumbs);
@@ -1244,7 +1255,8 @@ public class PlayerActivity extends Activity {
         long d = player.getDuration();
         long t = player.getCurrentPosition() + delta;
         if (d != C.TIME_UNSET && d > 0) t = Math.min(t, d - 500);
-        player.seekTo(Math.max(0, t));
+        seekTo = Math.max(0, t); seekAt = System.currentTimeMillis();
+        player.seekTo(seekTo);
         refreshProgress();
         showThumbs(Math.max(0, t)); handler.removeCallbacks(thumbHide); handler.postDelayed(thumbHide, 1800);
         flash(delta < 0 ? "\u2212" + Math.abs(delta / 1000) + " s" : "+" + (delta / 1000) + " s");

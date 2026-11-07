@@ -8,9 +8,9 @@
 <title>Streamlet</title>
 <link rel="icon" href="../icon.svg" type="image/svg+xml">
 <style>
-:root{--bg:#0e0f13;--panel:#181a21;--panel2:#20232c;--text:#eceef3;--mut:#8b90a0;--acc:#7c5cff;--err:#ff6b6b;--ok:#4ad295}
+:root{--bg:#0e0f13;--panel:#181a21;--panel2:#20232c;--text:#eceef3;--mut:#8b90a0;--acc:#ff6b3d;--err:#ff6b6b;--ok:#4ad295}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-:root{--font:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;--r:10px;--rb:10px;--tt:none;--ls:0;--hw:650;--clip:none;--pb:none;--btn:#7c5cff;--btnt:#fff}
+:root{--font:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;--r:10px;--rb:10px;--tt:none;--ls:0;--hw:650;--clip:none;--pb:none;--btn:#ff6b3d;--btnt:#fff}
 html,body{margin:0;background:var(--bg);color:var(--text);font:15px/1.4 var(--font)}
 button{font:inherit;color:inherit;cursor:pointer}
 header{position:sticky;top:0;z-index:5;background:var(--bg);padding:calc(10px + env(safe-area-inset-top)) 14px 10px;display:flex;gap:10px;align-items:center}
@@ -200,7 +200,7 @@ body.tv .ppanel{max-width:760px;left:auto;right:0;top:0;bottom:0;max-height:none
 textarea.f{resize:vertical}
 
 /* ================= v2: gradient backgrounds + liquid glass ================= */
-:root{--blur:20px;--acc2:#ff5cc8;--panel-s:#181a21;
+:root{--blur:20px;--acc2:#ffb547;--panel-s:#181a21;
   --grad:radial-gradient(1100px 720px at 6% -10%,color-mix(in srgb,var(--acc) 58%,transparent),transparent 64%),
          radial-gradient(900px 640px at 108% 6%,color-mix(in srgb,var(--acc2) 46%,transparent),transparent 60%),
          radial-gradient(1000px 820px at 48% 118%,color-mix(in srgb,var(--acc) 36%,transparent),transparent 64%)}
@@ -571,22 +571,22 @@ body.tv .gtile{height:52px;min-width:130px;font-size:15px}
 .sres .row h2{margin-left:0}
 .sres .strip{padding-left:0}
 /* intro */
-#intro{position:fixed;inset:0;z-index:9999;background:radial-gradient(circle at 50% 42%,#241a45,#0a0a12 70%);display:flex;flex-direction:column;align-items:center;justify-content:center;transition:opacity .6s ease}
+#intro{position:fixed;inset:0;z-index:9999;background:radial-gradient(circle at 50% 42%,#2c1712,#0c0909 70%);display:flex;flex-direction:column;align-items:center;justify-content:center;transition:opacity .6s ease}
 #intro[hidden]{display:none}
 #intro.out{opacity:0;pointer-events:none}
-#intro.vid{background:#0a0a12}
+#intro.vid{background:#0c0909}
 #intro.vid .ilock{visibility:hidden}
-#ivid{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:#0a0a12;opacity:0}
+#ivid{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:#0c0909;opacity:0}
 .ilogo,.iword{opacity:0}
 nav button.upd>svg{animation:updspin 9s linear infinite;transform-origin:50% 50%}
 nav button.upd{position:relative}
 nav button.upd::after{content:'';position:absolute;top:6px;right:calc(50% - 20px);width:9px;height:9px;border-radius:50%;background:var(--acc);box-shadow:0 0 0 2px #0e0f13,0 0 8px var(--acc)}
 body.tv nav button.upd::after{top:8px;left:34px;right:auto}
 @keyframes updspin{to{transform:rotate(360deg)}}
-.ilock{display:flex;align-items:center;gap:2vmin;position:relative}
+.ilock{display:flex;align-items:center;gap:0;position:relative}
 .ilogo{width:min(34vmin,290px);height:auto;overflow:visible;position:relative;z-index:2;flex:0 0 auto}
-.lgr{background:linear-gradient(90deg,#a98bff 0%,#a24bff 30%,#2fb6ff 72%,#16e0f2 100%);-webkit-background-clip:text;background-clip:text;color:transparent;-webkit-text-fill-color:transparent}
-.iword{font-size:clamp(32px,10vmin,96px);font-weight:800;letter-spacing:.5px;color:#fff;display:flex;position:relative;z-index:1;flex:0 0 auto}
+.lgr{background:linear-gradient(90deg,#ffd56b 0%,#ff9b3d 30%,#ff5b4f 72%,#ef3a6e 100%);-webkit-background-clip:text;background-clip:text;color:transparent;-webkit-text-fill-color:transparent}
+.iword{font-size:clamp(32px,10vmin,96px);font-weight:800;letter-spacing:.5px;color:#fff;display:flex;position:relative;z-index:1;flex:0 0 auto;margin-left:calc(min(34vmin,290px) * -.15)}   /* the name sits close to the plug */
 @keyframes idraw{to{stroke-dashoffset:0}}
 @keyframes ipop{to{opacity:1;transform:scale(1)}}
 @keyframes iplug{to{opacity:1;transform:translate(0,0) rotate(0)}}
@@ -1369,17 +1369,24 @@ body.tv #updDlg .btn:focus-visible{outline:3px solid #fff;outline-offset:3px}
 /* kids profiles: no addon management, no New & Hot, no space editing */
 body.kids :is(#tabAddons,#nvNew,#setAddons,.lfoot,.newwrap,.sedit){display:none !important}
 body.kids #settings .addon.tvonly{display:none !important}
+/* "Manage profiles" / "Done": a soft pill when focused instead of a white box */
+.lnk{border-radius:999px;padding:8px 16px;transition:background .15s,color .15s}
+.lnk:focus-visible,.lnk:hover{outline:none !important;box-shadow:none;background:rgba(255,255,255,.12);color:#fff;text-decoration:none}
+/* kids profiles: a small tag on the avatar */
+.pav{position:relative}
+.kidtag{position:absolute;left:50%;bottom:-7px;transform:translateX(-50%);padding:2px 8px;border-radius:999px;font-size:10px;font-weight:800;letter-spacing:.08em;color:#1a0f08;background:linear-gradient(90deg,#ffd56b,#ff9b3d);box-shadow:0 2px 8px rgba(0,0,0,.35);white-space:nowrap;z-index:2}
+body.tv .kidtag{font-size:12px;bottom:-8px}
 </style>
 </head>
 <body>
-<div id="loadov" hidden aria-label="Loading"><svg viewBox="0 0 1024 1024" class="lo-logo" aria-hidden="true"><defs><linearGradient id="lg1" gradientUnits="userSpaceOnUse" x1="230" y1="250" x2="790" y2="800"><stop offset="0" stop-color="#9a8cff"/><stop offset=".35" stop-color="#a24bff"/><stop offset=".72" stop-color="#2fb6ff"/><stop offset="1" stop-color="#16e0f2"/></linearGradient><linearGradient id="lg2" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff"/><stop offset="1" stop-color="#ddd3ff"/></linearGradient></defs><g class="lo-spin"><path d="M563.1 236.0 A294 294 0 1 0 765.0 424.3" fill="none" stroke="url(#lg1)" stroke-width="66" stroke-linecap="round"/><g transform="translate(710 338) rotate(-33) scale(.86)"><rect x="-74" y="-148" width="38" height="104" rx="19" fill="url(#lg2)"/><rect x="36" y="-148" width="38" height="104" rx="19" fill="url(#lg2)"/><path d="M-100 -66H100Q124 -66 124 -42V12Q124 74 62 82L38 120H-38L-62 82Q-124 74 -124 12V-42Q-124 -66 -100 -66Z" fill="url(#lg2)"/></g></g></svg></div>
+<div id="loadov" hidden aria-label="Loading"><svg viewBox="0 0 1024 1024" class="lo-logo" aria-hidden="true"><defs><linearGradient id="lg1" gradientUnits="userSpaceOnUse" x1="230" y1="250" x2="790" y2="800"><stop offset="0" stop-color="#ffd56b"/><stop offset=".35" stop-color="#ff9b3d"/><stop offset=".72" stop-color="#ff5b4f"/><stop offset="1" stop-color="#ef3a6e"/></linearGradient><linearGradient id="lg2" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff"/><stop offset="1" stop-color="#ffe4d6"/></linearGradient></defs><g class="lo-spin"><path d="M563.1 236.0 A294 294 0 1 0 765.0 424.3" fill="none" stroke="url(#lg1)" stroke-width="66" stroke-linecap="round"/><g transform="translate(710 338) rotate(-33) scale(.86)"><rect x="-74" y="-148" width="38" height="104" rx="19" fill="url(#lg2)"/><rect x="36" y="-148" width="38" height="104" rx="19" fill="url(#lg2)"/><path d="M-100 -66H100Q124 -66 124 -42V12Q124 74 62 82L38 120H-38L-62 82Q-124 74 -124 12V-42Q-124 -66 -100 -66Z" fill="url(#lg2)"/></g></g></svg></div>
 <div id="intro">
   <div class="ilock">
   <svg viewBox="0 0 1024 1024" class="ilogo" aria-hidden="true">
     <defs>
-      <linearGradient id="ig1" gradientUnits="userSpaceOnUse" x1="230" y1="250" x2="790" y2="800"><stop offset="0" stop-color="#9a8cff"/><stop offset=".35" stop-color="#a24bff"/><stop offset=".72" stop-color="#2fb6ff"/><stop offset="1" stop-color="#16e0f2"/></linearGradient>
-      <radialGradient id="iglg"><stop offset="0" stop-color="#7c5cff" stop-opacity=".55"/><stop offset="1" stop-color="#7c5cff" stop-opacity="0"/></radialGradient>
-      <linearGradient id="ig2" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff"/><stop offset="1" stop-color="#ddd3ff"/></linearGradient>
+      <linearGradient id="ig1" gradientUnits="userSpaceOnUse" x1="230" y1="250" x2="790" y2="800"><stop offset="0" stop-color="#ffd56b"/><stop offset=".35" stop-color="#ff9b3d"/><stop offset=".72" stop-color="#ff5b4f"/><stop offset="1" stop-color="#ef3a6e"/></linearGradient>
+      <radialGradient id="iglg"><stop offset="0" stop-color="#ff7a3d" stop-opacity=".55"/><stop offset="1" stop-color="#ff7a3d" stop-opacity="0"/></radialGradient>
+      <linearGradient id="ig2" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff"/><stop offset="1" stop-color="#ffe4d6"/></linearGradient>
     </defs>
     <circle class="iglow" cx="487" cy="520" r="400" fill="url(#iglg)" style="opacity:0"/>
     <g class="ispin">
@@ -1839,7 +1846,7 @@ const LAYER_CLOSERS = {
   panel:  () => { $('#ppanel').hidden = true; $('#pback').hidden = true; showBar(); },
   player: () => stopPlayer(),
   detail: () => { $('#detail').hidden = true; document.body.style.overflow = ''; if (!$('#home').hidden) renderCW(); },
-  editor: () => { $('#spaceEd').hidden = true; applyTheme(cur ? cur.theme : 'violet'); },
+  editor: () => { $('#spaceEd').hidden = true; applyTheme(cur ? cur.theme : 'ember'); },
   pedit:  () => { $('#profEd').hidden = true; if (!$('#me').hidden) renderMe(); },
   menu:   () => { $('#menu').hidden = true; },
   upd:    () => { $('#updDlg').hidden = true; },
@@ -1963,6 +1970,7 @@ function syncNav(){
 
 /* ---------- spaces (front menu) ---------- */
 const THEMES = {
+  ember: {n:'Ember',  acc:'#ff6b3d', bg:'#110c0a', panel:'#211714', panel2:'#2c1f1a'},   /* Streamlet's own colours: the launcher and new spaces */
   /* originals (kept so older saved spaces still work) */
   violet:{n:'Violet', acc:'#7c5cff', bg:'#0e0f13', panel:'#181a21', panel2:'#20232c'},
   sakura:{n:'Sakura', acc:'#ff5c93', bg:'#150d12', panel:'#22141c', panel2:'#2e1b26'},
@@ -1983,11 +1991,11 @@ const THEMES = {
     font:"sans-serif-condensed,'Roboto Condensed','Arial Narrow',Impact,sans-serif", r:'0px', rb:'0px', hw:'800', up:true, ls:'.09em',
     clip:'polygon(0 0,100% 0,100% calc(100% - 16px),calc(100% - 16px) 100%,0 100%)'}
 };
-Object.entries({violet:'#ff5cc8', sakura:'#ffb36b', sky:'#7c5cff', sun:'#ff5c5c', gold:'#b06b2a', mint:'#25b9ff', googletv:'#c58af9', netflix:'#8a1c24', disney:'#8b5cff', anime:'#ff4f7a', marvel:'#f7b500'})
+Object.entries({ember:'#ffb547', violet:'#ff5cc8', sakura:'#ffb36b', sky:'#7c5cff', sun:'#ff5c5c', gold:'#b06b2a', mint:'#25b9ff', googletv:'#c58af9', netflix:'#8a1c24', disney:'#8b5cff', anime:'#ff4f7a', marvel:'#f7b500'})
   .forEach(([k, v]) => { if (THEMES[k]) THEMES[k].acc2 = v; });
 const THEME_DEFAULTS = {font:"system-ui,-apple-system,Segoe UI,Roboto,sans-serif", r:'10px', rb:'10px', up:false, ls:'0', hw:'650', clip:'none', pb:'none', btnt:'#fff'};
 function applyTheme(key){
-  const th = THEMES[key] || THEMES.violet;
+  const th = THEMES[key] || THEMES.ember;
   const t = {...THEME_DEFAULTS, ...th, font:THEME_DEFAULTS.font, r:THEME_DEFAULTS.r, rb:THEME_DEFAULTS.rb, hw:THEME_DEFAULTS.hw, up:false, ls:'0', clip:'none', pb:'none'}, r = document.documentElement.style;   // spaces differ by colors only
   const set = (k,v) => r.setProperty(k,v);
   set('--acc',t.acc); set('--acc2',t.acc2 || t.acc); set('--bg',t.bg); set('--panel-s',t.panel);
@@ -2021,14 +2029,14 @@ function enterSpace(id){
 let spEdit = false;
 const PENCIL_SVG = () => { const d = document.createElement('span'); d.innerHTML = '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20l1-4L16.5 4.5a2 2 0 0 1 3 0l0 0a2 2 0 0 1 0 3L8 19z"/><path d="M14 7l3 3"/></svg>'; return d.firstChild; };
 function showLauncher(){
-  cur = null; applyTheme('violet');
+  cur = null; applyTheme('ember');
   document.body.classList.add('launch'); document.body.style.overflow = '';
   $('#detail').hidden = true; $('#player').hidden = true; $('#spaceEd').hidden = true;
   $('#profiles').hidden = true; $('#login').hidden = true; const L = $('#launcher'); L.hidden = false;
   const editBtn = h('button', {class:'chip' + (spEdit ? ' on' : ''), type:'button'}, spEdit ? 'Done' : 'Edit spaces');
   editBtn.onclick = () => { spEdit = !spEdit; editBtn.textContent = spEdit ? 'Done' : 'Edit spaces'; editBtn.classList.toggle('on', spEdit); L.classList.toggle('editing', spEdit); };
   const tile = sp => {
-    const t = THEMES[sp.theme] || THEMES.violet;
+    const t = THEMES[sp.theme] || THEMES.ember;
     const nInst = sp.catalogs.filter(id => addons.find(x => x.uid === id)).length;
     const names = sp.catalogs.length ? (nInst ? nInst + (nInst === 1 ? ' addon' : ' addons') : '') : 'All addons';
     const btn = h('button', {class:'stile', type:'button', style:`--c1:${t.acc};--c2:${t.acc2 || t.acc}`, onclick:() => { if (spEdit) editSpace(sp.id); else openSpace(sp.id); }},
@@ -2053,7 +2061,7 @@ function showLauncher(){
 }
 function editSpace(id){
   const isNew = !id;
-  const s = isNew ? {id:'s'+Date.now().toString(36), name:'', emoji:'📺', theme:'violet', catalogs:[]} : JSON.parse(JSON.stringify(spaces.find(x=>x.id===id)));
+  const s = isNew ? {id:'s'+Date.now().toString(36), name:'', emoji:'📺', theme:'ember', catalogs:[]} : JSON.parse(JSON.stringify(spaces.find(x=>x.id===id)));
   const ed = $('#spaceEd'); ed.hidden = false; ed.scrollTop = 0; applyTheme(s.theme); pushLayer('editor');
   const close = () => popLayer('editor');
   const name = h('input', {class:'f', placeholder:'Name (e.g. Anime)', style:'flex:1'}); name.value = s.name;
@@ -2078,7 +2086,7 @@ function editSpace(id){
   };
   const prev = h('div', {class:'swrap sprev'});
   const paintPrev = () => {
-    const t = THEMES[s.theme] || THEMES.violet;
+    const t = THEMES[s.theme] || THEMES.ember;
     prev.replaceChildren(h('div', {class:'stile', style:`--c1:${t.acc};--c2:${t.acc2 || t.acc}`},
       h('span', {class:'sem'}, emoji.value.trim() || '📺'), h('span', {class:'stx'}, h('span', {class:'snm'}, name.value.trim() || 'New space'), h('span', {class:'sds'}, 'Preview'))));
   };
@@ -2500,7 +2508,7 @@ $('#updBtn').onclick = async () => {                                  // clears 
 /* ---------- profile picker ---------- */
 let manageProfiles = false;
 function showProfiles(){
-  cur = null; applyTheme('violet');
+  cur = null; applyTheme('ember');
   document.body.classList.add('launch'); document.body.style.overflow = '';
   $('#launcher').hidden = true; $('#login').hidden = true; $('#detail').hidden = true; $('#player').hidden = true; $('#spaceEd').hidden = true; $('#profEd').hidden = true;
   manageProfiles = false; renderProfiles();
@@ -2565,7 +2573,7 @@ function renderProfiles(){
     h('h1', null, manageProfiles ? 'Manage profiles' : "Who's watching?"),
     h('div', {class:'pgrid'},
       ...profiles.map(pr => h('button', {class:'ptile', type:'button', onclick:ev => manageProfiles ? editProfile(pr.id) : pickProfileFx(pr, ev.currentTarget)},
-        h('div', {class:'pav'}, avatarEl(pr, 88), manageProfiles ? h('span', {class:'pbadge', 'aria-hidden':'true'}, PENCIL_SVG()) : null), h('div', null, pr.name))),
+        h('div', {class:'pav'}, avatarEl(pr, 88), manageProfiles ? h('span', {class:'pbadge', 'aria-hidden':'true'}, PENCIL_SVG()) : null, pr.kids ? h('span', {class:'kidtag'}, 'KIDS') : null), h('div', null, pr.name))),
       manageProfiles && profiles.length < 8 ? h('button', {class:'ptile', type:'button', onclick:() => editProfile(null)}, h('div', {class:'pav add'}, '+'), h('div', null, 'Add profile')) : null),
     h('div', {class:'lnks', style:'justify-content:center;margin-top:22px'},
       h('button', {class:'lnk', type:'button', onclick:() => { manageProfiles = !manageProfiles; renderProfiles(); }}, manageProfiles ? 'Done' : 'Manage profiles')),
@@ -4690,7 +4698,7 @@ async function showPairing(){
 }
 
 function showLogin(){
-  applyTheme('violet'); cur = null; document.body.classList.add('launch'); document.body.style.overflow = '';
+  applyTheme('ember'); cur = null; document.body.classList.add('launch'); document.body.style.overflow = '';
   $('#launcher').hidden = true; $('#profiles').hidden = true; $('#detail').hidden = true; $('#player').hidden = true;
   const L = $('#login'); L.hidden = false; L.style.maxWidth = '';
   const email = h('input', {class:'f', type:'email', placeholder:'Email', autocomplete:'email', inputmode:'email', autocapitalize:'off'});
@@ -4915,13 +4923,15 @@ function focusNav(){
    Left / Right walk along the line; past its start, Left opens the side menu. Up / Down go to the line above / below and land on
    the card you last had in that row, or the one under where you were. Columns (side menu, search keyboard, search results) keep
    Up / Down to themselves; Left / Right cross between them. */
-const ROW_SEL = '.strip,.dacts2,.srow,.sfilter,.eplist,.slist,.cchips,.dsim,.tbtns,.dptabs';
-const ZONE_SEL = '#nav,#search .skb,#search .sres';
+const ROW_SEL = '.strip,.dacts2,.srow,.sfilter,.eplist,.slist,.cchips,.dsim,.tbtns,.dptabs,.rrow';
+const ZONE_SEL = '#nav,#search .skb,#search .sres,#profEd .pecol,#spaceEd .sedcol';
+const zoneMem = new WeakMap();                                            // column -> where you were in it
 const rowMem = new WeakMap();                                             // row -> the card you were on
 let navEl = null, navVert = false;                                         // the card that set the column you are travelling down (kept across short lines)
 document.addEventListener('focusin', e => {
   const el = e.target; if (!el || !el.closest) return;
   const row = el.closest(ROW_SEL); if (row) rowMem.set(row, el);
+  const zone = el.closest(ZONE_SEL); if (zone) zoneMem.set(zone, el);
   if (!navVert) navEl = el;
 });
 const midX = r => (r.left + r.right) / 2, midY = r => (r.top + r.bottom) / 2;
@@ -4959,6 +4969,14 @@ function navLand(L, x, fromRow){
   for (const e of L.els) { const r = e.getBoundingClientRect(), d = x >= r.left && x <= r.right ? -1 : Math.abs(midX(r) - x); if (d < bd) { bd = d; best = e; } }
   return best;
 }
+/* the other columns of this screen (never the side menu) */
+const navZones = (root, list) => [...new Set(list.map(e => e.closest(ZONE_SEL)).filter(z => z && !z.matches('#nav') && root.contains(z)))];
+function zoneEnter(z, list, y, x){                                         // back where you were in that column, or the item level with you
+  const els = list.filter(e => z.contains(e)); if (!els.length) return null;
+  const m = zoneMem.get(z); if (m && m.isConnected && els.includes(m)) return m;
+  if (y == null) return navLines(els)[0] ? navLand(navLines(els)[0], x, null) : els[0];
+  return els.reduce((b, e) => { const r = e.getBoundingClientRect(), d = Math.abs(midY(r) - y) * 3 + Math.abs(midX(r) - x); return !b || d < b.d ? {e, d} : b; }, null).e;
+}
 function navGo(t, dir, rep, revealIt, edge){
   t.focus({preventScroll:true});
   if (revealIt) revealEl(t, dir, rep, document.body.classList.contains('tv') && ctxRoot() === document.body, edge);
@@ -4980,19 +4998,34 @@ function moveFocus(dir, rep){
       if (dir === 'right') { const content = list.filter(e => !e.closest('#nav')); const back = lastContentEl && lastContentEl.isConnected && content.includes(lastContentEl) ? lastContentEl : firstFocus(root, content); if (back) back.focus({preventScroll:true}); }
       return;
     }
-    if (zone && zone.matches('#search .sres') && dir === 'left') { const kb = list.filter(e => e.closest('#search .skb')); const t2 = kb.reduce((b, e) => !b || Math.abs(midY(e.getBoundingClientRect()) - midY(cr)) < Math.abs(midY(b.getBoundingClientRect()) - midY(cr)) ? e : b, null); if (t2) { t2.focus({preventScroll:true}); return; } }
-    if (zone && zone.matches('#search .skb') && dir === 'right') {
-      const rs = list.filter(e => e.closest('#search .sres')); if (rs.length) { const m = lastContentEl && rs.includes(lastContentEl) ? lastContentEl : rs[0]; navGo(m, dir, rep, true, null); return; }
-      return;
+    {                                                                      // the next column over (search keyboard / results, editor columns)
+      const zr = (zone || cur).getBoundingClientRect();
+      const side = navZones(root, list).filter(z => z !== zone).map(z => ({z, r:z.getBoundingClientRect()}))
+        .filter(({r}) => (dir === 'right' ? r.left >= zr.right - 8 : r.right <= zr.left + 8) && r.bottom > cr.top - 40 && r.top < cr.bottom + 40)
+        .sort((a, b) => dir === 'right' ? a.r.left - b.r.left : b.r.right - a.r.right)[0];
+      if (side) { const t2 = zoneEnter(side.z, list, midY(cr), midX(cr)); if (t2) { navGo(t2, dir, rep, true, null); return; } }
     }
     if (root.id === 'episode' && document.body.classList.contains('tv') && cur.closest('.dleft') && root._step) { root._step(dir === 'right' ? 1 : -1); return; }   // episode page: previous / next episode
     if (tv && dir === 'left') focusNav();
     return;
   }
   /* Up / Down: the next line, same column */
-  const N = lines[li + (dir === 'down' ? 1 : -1)];
+  let N = lines[li + (dir === 'down' ? 1 : -1)];
+  const cols = inNav ? [] : navZones(root, list).filter(z => z !== zone && !(zone && zone.matches('#search .skb, #search .sres') && z.matches('#search .skb, #search .sres')));
+  if (!inNav && (!zone || !N)) {                                            // a column below / above may be nearer than the next line: enter it (the left one first)
+    const ref = zone && !N ? zone.getBoundingClientRect() : cr;
+    const zs = cols.map(z => ({z, r:z.getBoundingClientRect()})).filter(({r}) => dir === 'down' ? r.top >= ref.bottom - 8 : r.bottom <= ref.top + 8);
+    const nearest = zs.length ? zs.reduce((b, c) => (dir === 'down' ? c.r.top < b.r.top - 40 || (Math.abs(c.r.top - b.r.top) <= 40 && c.r.left < b.r.left) : c.r.bottom > b.r.bottom + 40 || (Math.abs(c.r.bottom - b.r.bottom) <= 40 && c.r.left < b.r.left)) ? c : b) : null;
+    const nY = N ? N.y : null;
+    if (nearest && (nY == null || (dir === 'down' ? nearest.r.top < nY : nearest.r.bottom > nY))) { const t2 = zoneEnter(nearest.z, list, null, nearest.r.left); if (t2) { navGo(t2, dir, rep, true, null); return; } }
+    if (zone && !N) {                                                       // the end of a column: carry on into whatever is above / below it on the page
+      const outer = list.filter(e => !e.closest(ZONE_SEL)).map(e => ({e, r:e.getBoundingClientRect()})).filter(({r}) => dir === 'down' ? r.top >= ref.bottom - 4 : r.bottom <= ref.top + 4);
+      if (outer.length) { const best = outer.reduce((b, c) => (dir === 'down' ? c.r.top < b.r.top - 4 : c.r.bottom > b.r.bottom + 4) || (Math.abs(c.r.top - b.r.top) <= 4 && Math.abs(midX(c.r) - midX(cr)) < Math.abs(midX(b.r) - midX(cr))) ? c : b); navGo(best.e, dir, rep, true, null); return; }
+    }
+  }
   if (!N) return;                                                          // first / last line: stay put
-  const x = navEl && navEl.isConnected && navEl !== cur && !navEl.closest('#nav') === !inNav ? midX(navEl.getBoundingClientRect()) : midX(cr);
+  const xr = navEl && navEl.isConnected && navEl !== cur && !navEl.closest('#nav') === !inNav ? navEl.getBoundingClientRect() : cr;
+  const x = xr.width > 280 ? xr.left + 30 : midX(xr);                      // from a wide field, the line below starts at its left
   const t = navLand(N, x, L.row);
   const edge = N === lines[0] ? 'top' : N === lines[lines.length - 1] ? 'bottom' : null;
   navVert = true;                                                          // focus events run inside .focus(): the column stays the one you started in
@@ -5339,9 +5372,9 @@ $('#pseek').addEventListener('click', e => { const v = $('#vid'), r = e.currentT
     plug.setAttribute('transform', `rotate(${ang} 765 424)`);
     if (lk.w == null) {                                              // measured once, in layout pixels, before anything moves
       lk.w = lock.offsetWidth; lk.wl = w.offsetLeft; lk.ww = w.offsetWidth;
-      const gap = parseFloat(getComputedStyle(lock).columnGap) || 0; lk.lw = lk.wl - gap;
+      lk.lw = el.querySelector('.ilogo').getBoundingClientRect().width;                  // the logo's own width (the name now overlaps its empty right margin)
       lk.l = lk.w / 2 - lk.lw / 2;                                   // logo starts in the middle of the screen
-      lk.p = lk.lw * .8;                                             // the plug's right edge: the name comes out from right behind it
+      lk.p = Math.min(lk.lw * .86, lk.wl - 2);                                            // the plug's right edge: the name comes out from right behind it
       lk.t = lk.p + lk.l - lk.ww - lk.wl;                            // and starts completely hidden there
     }
     const k = inout(seg(n, 2650, 900)), tl = (1 - k) * lk.l, tw = (1 - k) * lk.t;
@@ -5997,7 +6030,7 @@ async function renderNewHot(box, tok, key){
   const PRONG = new Path2D(); PRONG.roundRect ? (PRONG.roundRect(-74, -148, 38, 104, 19), PRONG.roundRect(36, -148, 38, 104, 19)) : (PRONG.rect(-74, -148, 38, 104), PRONG.rect(36, -148, 38, 104));
   const fit = () => { const d = Math.min(window.devicePixelRatio || 1, 1.5); W = innerWidth; H = innerHeight; cv.width = Math.round(W * d); cv.height = Math.round(H * d); ctx.setTransform(d, 0, 0, d, 0, 0); S = H / 1080; };
   const mix = (a, b, k) => a.map((v, i) => Math.round(v + (b[i] - v) * k));
-  const TAIL = [162, 75, 255], HEAD = [32, 216, 245];
+  const TAIL = [255, 155, 61], HEAD = [239, 58, 110];
   const PS = .3;                                                           // plug scale (about 80 px wide on a 1080p screen)
   function frame(ts){
     if (!on) return;
@@ -6022,7 +6055,7 @@ async function renderNewHot(box, tok, key){
     }
     if (n) { const l = trail[n - 1]; ctx.strokeStyle = `rgb(${HEAD[0]},${HEAD[1]},${HEAD[2]})`; ctx.lineWidth = 12.5 * S; ctx.beginPath(); ctx.moveTo(l[0], l[1]); ctx.lineTo(bx, by); ctx.stroke(); }
     ctx.save(); ctx.translate(bx, by); ctx.rotate(Math.atan2(ny, nx) + Math.PI / 2); ctx.scale(PS * S, PS * S); ctx.translate(0, -112);
-    const g = ctx.createLinearGradient(-124, -66, 124, 120); g.addColorStop(0, '#ffffff'); g.addColorStop(1, '#ddd3ff');
+    const g = ctx.createLinearGradient(-124, -66, 124, 120); g.addColorStop(0, '#ffffff'); g.addColorStop(1, '#ffe4d6');
     ctx.fillStyle = g; ctx.fill(PRONG); ctx.fill(BODY); ctx.restore();
   }
   function start(){

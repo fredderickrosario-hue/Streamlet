@@ -7,7 +7,8 @@ const FPS = 60, MS = 5600, W = 1280, H = 720;
   fs.rmSync('/tmp/bootf', { recursive: true, force: true }); fs.mkdirSync('/tmp/bootf');
   const b = await chromium.launch(), p = await b.newPage({ viewport: { width: W, height: H } });
   await p.goto('http://localhost:8125/tv/index.html?intro'); await p.waitForTimeout(1500);
-  await p.addStyleTag({ content: '#intro{background:radial-gradient(circle closest-side at 50% 48%,#241a45 0%,#0a0a12 100%) !important;transition:none !important}' });
+  await p.evaluate(() => { const v = document.querySelector('#ivid'); if (v) v.remove(); document.querySelector('#intro').classList.remove('vid'); });   // draw the live animation, not the previous video
+  await p.addStyleTag({ content: '#intro{background:radial-gradient(circle closest-side at 50% 48%,#2c1712 0%,#0c0909 100%) !important;transition:none !important}' });
   const N = Math.round(MS / 1000 * FPS);
   for (let i = 0; i < N; i++) {
     await p.evaluate(t => window.__introSet(t), i * 1000 / FPS);

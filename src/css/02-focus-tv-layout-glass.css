@@ -44,7 +44,7 @@ body.tv .ppanel{max-width:760px;left:auto;right:0;top:0;bottom:0;max-height:none
 textarea.f{resize:vertical}
 
 /* ================= v2: gradient backgrounds + liquid glass ================= */
-:root{--blur:20px;--acc2:#ff5cc8;--panel-s:#181a21;
+:root{--blur:20px;--acc2:#ffb547;--panel-s:#181a21;
   --grad:radial-gradient(1100px 720px at 6% -10%,color-mix(in srgb,var(--acc) 58%,transparent),transparent 64%),
          radial-gradient(900px 640px at 108% 6%,color-mix(in srgb,var(--acc2) 46%,transparent),transparent 60%),
          radial-gradient(1000px 820px at 48% 118%,color-mix(in srgb,var(--acc) 36%,transparent),transparent 64%)}

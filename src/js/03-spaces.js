@@ -1,5 +1,6 @@
 /* ---------- spaces (front menu) ---------- */
 const THEMES = {
+  ember: {n:'Ember',  acc:'#ff6b3d', bg:'#110c0a', panel:'#211714', panel2:'#2c1f1a'},   /* Streamlet's own colours: the launcher and new spaces */
   /* originals (kept so older saved spaces still work) */
   violet:{n:'Violet', acc:'#7c5cff', bg:'#0e0f13', panel:'#181a21', panel2:'#20232c'},
   sakura:{n:'Sakura', acc:'#ff5c93', bg:'#150d12', panel:'#22141c', panel2:'#2e1b26'},
@@ -20,11 +21,11 @@ const THEMES = {
     font:"sans-serif-condensed,'Roboto Condensed','Arial Narrow',Impact,sans-serif", r:'0px', rb:'0px', hw:'800', up:true, ls:'.09em',
     clip:'polygon(0 0,100% 0,100% calc(100% - 16px),calc(100% - 16px) 100%,0 100%)'}
 };
-Object.entries({violet:'#ff5cc8', sakura:'#ffb36b', sky:'#7c5cff', sun:'#ff5c5c', gold:'#b06b2a', mint:'#25b9ff', googletv:'#c58af9', netflix:'#8a1c24', disney:'#8b5cff', anime:'#ff4f7a', marvel:'#f7b500'})
+Object.entries({ember:'#ffb547', violet:'#ff5cc8', sakura:'#ffb36b', sky:'#7c5cff', sun:'#ff5c5c', gold:'#b06b2a', mint:'#25b9ff', googletv:'#c58af9', netflix:'#8a1c24', disney:'#8b5cff', anime:'#ff4f7a', marvel:'#f7b500'})
   .forEach(([k, v]) => { if (THEMES[k]) THEMES[k].acc2 = v; });
 const THEME_DEFAULTS = {font:"system-ui,-apple-system,Segoe UI,Roboto,sans-serif", r:'10px', rb:'10px', up:false, ls:'0', hw:'650', clip:'none', pb:'none', btnt:'#fff'};
 function applyTheme(key){
-  const th = THEMES[key] || THEMES.violet;
+  const th = THEMES[key] || THEMES.ember;
   const t = {...THEME_DEFAULTS, ...th, font:THEME_DEFAULTS.font, r:THEME_DEFAULTS.r, rb:THEME_DEFAULTS.rb, hw:THEME_DEFAULTS.hw, up:false, ls:'0', clip:'none', pb:'none'}, r = document.documentElement.style;   // spaces differ by colors only
   const set = (k,v) => r.setProperty(k,v);
   set('--acc',t.acc); set('--acc2',t.acc2 || t.acc); set('--bg',t.bg); set('--panel-s',t.panel);
@@ -58,14 +59,14 @@ function enterSpace(id){
 let spEdit = false;
 const PENCIL_SVG = () => { const d = document.createElement('span'); d.innerHTML = '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20l1-4L16.5 4.5a2 2 0 0 1 3 0l0 0a2 2 0 0 1 0 3L8 19z"/><path d="M14 7l3 3"/></svg>'; return d.firstChild; };
 function showLauncher(){
-  cur = null; applyTheme('violet');
+  cur = null; applyTheme('ember');
   document.body.classList.add('launch'); document.body.style.overflow = '';
   $('#detail').hidden = true; $('#player').hidden = true; $('#spaceEd').hidden = true;
   $('#profiles').hidden = true; $('#login').hidden = true; const L = $('#launcher'); L.hidden = false;
   const editBtn = h('button', {class:'chip' + (spEdit ? ' on' : ''), type:'button'}, spEdit ? 'Done' : 'Edit spaces');
   editBtn.onclick = () => { spEdit = !spEdit; editBtn.textContent = spEdit ? 'Done' : 'Edit spaces'; editBtn.classList.toggle('on', spEdit); L.classList.toggle('editing', spEdit); };
   const tile = sp => {
-    const t = THEMES[sp.theme] || THEMES.violet;
+    const t = THEMES[sp.theme] || THEMES.ember;
     const nInst = sp.catalogs.filter(id => addons.find(x => x.uid === id)).length;
     const names = sp.catalogs.length ? (nInst ? nInst + (nInst === 1 ? ' addon' : ' addons') : '') : 'All addons';
     const btn = h('button', {class:'stile', type:'button', style:`--c1:${t.acc};--c2:${t.acc2 || t.acc}`, onclick:() => { if (spEdit) editSpace(sp.id); else openSpace(sp.id); }},
@@ -90,7 +91,7 @@ function showLauncher(){
 }
 function editSpace(id){
   const isNew = !id;
-  const s = isNew ? {id:'s'+Date.now().toString(36), name:'', emoji:'📺', theme:'violet', catalogs:[]} : JSON.parse(JSON.stringify(spaces.find(x=>x.id===id)));
+  const s = isNew ? {id:'s'+Date.now().toString(36), name:'', emoji:'📺', theme:'ember', catalogs:[]} : JSON.parse(JSON.stringify(spaces.find(x=>x.id===id)));
   const ed = $('#spaceEd'); ed.hidden = false; ed.scrollTop = 0; applyTheme(s.theme); pushLayer('editor');
   const close = () => popLayer('editor');
   const name = h('input', {class:'f', placeholder:'Name (e.g. Anime)', style:'flex:1'}); name.value = s.name;
@@ -115,7 +116,7 @@ function editSpace(id){
   };
   const prev = h('div', {class:'swrap sprev'});
   const paintPrev = () => {
-    const t = THEMES[s.theme] || THEMES.violet;
+    const t = THEMES[s.theme] || THEMES.ember;
     prev.replaceChildren(h('div', {class:'stile', style:`--c1:${t.acc};--c2:${t.acc2 || t.acc}`},
       h('span', {class:'sem'}, emoji.value.trim() || '📺'), h('span', {class:'stx'}, h('span', {class:'snm'}, name.value.trim() || 'New space'), h('span', {class:'sds'}, 'Preview'))));
   };

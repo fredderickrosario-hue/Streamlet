@@ -51,7 +51,7 @@ const LAYER_CLOSERS = {
   panel:  () => { $('#ppanel').hidden = true; $('#pback').hidden = true; showBar(); },
   player: () => stopPlayer(),
   detail: () => { $('#detail').hidden = true; document.body.style.overflow = ''; if (!$('#home').hidden) renderCW(); },
-  editor: () => { $('#spaceEd').hidden = true; applyTheme(cur ? cur.theme : 'violet'); },
+  editor: () => { $('#spaceEd').hidden = true; applyTheme(cur ? cur.theme : 'ember'); },
   pedit:  () => { $('#profEd').hidden = true; if (!$('#me').hidden) renderMe(); },
   menu:   () => { $('#menu').hidden = true; },
   upd:    () => { $('#updDlg').hidden = true; },
