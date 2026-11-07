@@ -222,7 +222,7 @@ public class PlayerActivity extends Activity {
         if (player != null) { seekTo = seek.getProgress(); seekAt = System.currentTimeMillis(); player.seekTo(seekTo); } seekPending = false; } };
     private final Runnable uiTick = new Runnable() { @Override public void run() {
         refreshProgress();
-        if (player != null && player.isPlaying()) goodPos = Math.max(0L, player.getCurrentPosition());
+        if (player != null && player.isPlaying()) { goodPos = Math.max(0L, player.getCurrentPosition()); if (fx == null && !thumbsBroken && player.getTotalBufferedDuration() > 20000) thumbWarm(); }
         if (player != null && player.isPlaying() && System.currentTimeMillis() - wnLast > 60000) wnSync(false);   // keep the home-screen position about a minute fresh
         handler.postDelayed(this, 500);
     } };
@@ -467,7 +467,7 @@ public class PlayerActivity extends Activity {
     }
     private void reload(long pos, String newUrl) {
         if (reported || player == null || mediaItem == null) return;
-        if (newUrl != null) { streamUrl = newUrl; mediaItem = mediaItem.buildUpon().setUri(Uri.parse(newUrl)).build(); thumbsBroken = newUrl.toLowerCase(Locale.ROOT).contains(".m3u8"); thumbCache.evictAll(); if (fx != null) { try { fx.setMediaItem(MediaItem.fromUri(newUrl), Collections.singletonList(androidx.media3.effect.Presentation.createForHeight(216))); } catch (Throwable e) { thumbsBroken = true; } } }
+        if (newUrl != null) { streamUrl = newUrl; mediaItem = mediaItem.buildUpon().setUri(Uri.parse(newUrl)).build(); thumbsBroken = newUrl.toLowerCase(Locale.ROOT).contains(".m3u8"); thumbCache.evictAll(); if (fx != null) { try { fx.setMediaItem(MediaItem.fromUri(newUrl), Collections.singletonList(androidx.media3.effect.Presentation.createForHeight(180))); } catch (Throwable e) { thumbsBroken = true; } } }
         player.setMediaItem(mediaItem, pos);
         player.prepare();
         player.play();
@@ -497,7 +497,8 @@ public class PlayerActivity extends Activity {
     private LinearLayout thumbStrip;
     private final ImageView[] seekThumbs = new ImageView[5];
     private final long[] thumbKeys = new long[5];
-    private final LruCache<Long, Bitmap> thumbCache = new LruCache<>(32);
+    private final LruCache<Long, Bitmap> thumbCache = new LruCache<Long, Bitmap>(28 * 1024 * 1024) { @Override protected int sizeOf(Long k, Bitmap b) { return b.getByteCount(); } };   // ~28 MB of small frames
+    private static final long GRID = 60000;                                  // background frames: one a minute across the timeline
     private final Set<Long> thumbWant = Collections.synchronizedSet(new HashSet<>());
     private final Set<Long> thumbPending = Collections.synchronizedSet(new HashSet<>());
     private volatile boolean thumbsBroken = false;
@@ -545,7 +546,7 @@ public class PlayerActivity extends Activity {
             long key = (t / 5000) * 5000;
             thumbKeys[i] = key;
             Bitmap b = thumbCache.get(key);
-            iv.setImageBitmap(b);
+            iv.setImageBitmap(b != null ? b : thumbNear(key));                   // until the exact frame arrives, the closest one already fetched
             if (b == null) thumbWant.add(key);
         }
         handler.removeCallbacks(thumbKick); handler.postDelayed(thumbKick, 280);   // fetch once the scrubbing pauses, the frame you are on first
@@ -556,6 +557,34 @@ public class PlayerActivity extends Activity {
         thumbPump();
     } };
 
+    /** the closest frame already fetched, within 45 s */
+    private Bitmap thumbNear(long key) {
+        Bitmap best = null; long bd = 45001;
+        for (java.util.Map.Entry<Long, Bitmap> e : thumbCache.snapshot().entrySet()) { long d = Math.abs(e.getKey() - key); if (d < bd) { bd = d; best = e.getValue(); } }
+        return best;
+    }
+    /** start the frame reader before you seek: the controls are up, or the video has played a little */
+    private void thumbWarm() {
+        if (thumbsBroken || player == null || fx != null) return;
+        try {
+            fx = new androidx.media3.transformer.ExperimentalFrameExtractor(this,
+                    new androidx.media3.transformer.ExperimentalFrameExtractor.Configuration.Builder().setSeekParameters(androidx.media3.exoplayer.SeekParameters.CLOSEST_SYNC).build());
+            fx.setMediaItem(MediaItem.fromUri(streamUrl), Collections.singletonList(androidx.media3.effect.Presentation.createForHeight(180)));
+            AppLog.add("thumbs", "frame reader started");
+        } catch (Throwable e) { thumbsBroken = true; AppLog.add("thumbs", "seek preview unavailable: " + e); }
+        handler.removeCallbacks(gridRun); handler.postDelayed(gridRun, 1500);
+    }
+    /** while it plays with plenty buffered, fetch frames quietly: right around where you are first, then one a minute outward */
+    private final Runnable gridRun = new Runnable() { @Override public void run() {
+        if (thumbsBroken || player == null || isFinishing()) return;
+        handler.postDelayed(this, 1500);
+        if (fxBusy || scrubbing || !thumbWant.isEmpty() || !player.isPlaying() || player.getTotalBufferedDuration() < 15000) return;
+        long dur = player.getDuration(); if (dur == C.TIME_UNSET || dur <= 0) return;
+        long pos = player.getCurrentPosition(), here = (pos / 5000) * 5000;
+        for (long d : new long[]{10000, -10000, 20000, -20000}) { long k = here + d; if (k >= 0 && k <= dur && thumbCache.get(k) == null) { thumbFetch(k, false); return; } }
+        long g = (pos / GRID) * GRID;
+        for (long step = 0; step <= dur; step += GRID) for (long k : new long[]{g + step, g - step}) if (k >= 0 && k <= dur && thumbCache.get(k) == null) { thumbFetch(k, false); return; }
+    } };
     private void refreshThumbs() {
         if (thumbStrip == null) return;
         if (thumbsBroken) { thumbStrip.setVisibility(View.GONE); return; }
@@ -567,31 +596,25 @@ public class PlayerActivity extends Activity {
     private boolean fxBusy = false;
     private void thumbPump() {
         if (fxBusy || thumbsBroken || player == null || isFinishing()) return;
-        long key = -1;
-        for (int i : new int[]{2, 1, 3, 0, 4}) { long k = thumbKeys[i]; if (k >= 0 && thumbWant.contains(k) && thumbCache.get(k) == null) { key = k; break; } }
-        if (key < 0) return;
-        try {
-            if (fx == null) {
-                fx = new androidx.media3.transformer.ExperimentalFrameExtractor(this,
-                        new androidx.media3.transformer.ExperimentalFrameExtractor.Configuration.Builder().setSeekParameters(androidx.media3.exoplayer.SeekParameters.CLOSEST_SYNC).build());
-                fx.setMediaItem(MediaItem.fromUri(streamUrl), Collections.singletonList(androidx.media3.effect.Presentation.createForHeight(216)));
-                AppLog.add("thumbs", "frame reader started");
-            }
-        } catch (Throwable e) { thumbsBroken = true; AppLog.add("thumbs", "seek preview unavailable: " + e); refreshThumbs(); return; }
+        for (int i : new int[]{2, 1, 3, 0, 4}) { long k = thumbKeys[i]; if (k >= 0 && thumbWant.contains(k) && thumbCache.get(k) == null) { thumbFetch(k, true); return; } }
+    }
+    private void thumbFetch(final long k, final boolean wanted) {
+        thumbWarm();
+        if (fx == null || fxBusy || thumbsBroken) return;
         fxBusy = true;
-        final long k = key, t0 = System.currentTimeMillis();
+        final long t0 = System.currentTimeMillis();
         final com.google.common.util.concurrent.ListenableFuture<androidx.media3.transformer.ExperimentalFrameExtractor.Frame> f = fx.getFrame(k);
-        final Runnable dog = () -> { if (fxBusy && !f.isDone()) { thumbsBroken = true; AppLog.add("thumbs", "seek preview off: no frame after 10 s"); refreshThumbs(); } };
-        handler.postDelayed(dog, 10000);
+        final Runnable dog = () -> { if (fxBusy && !f.isDone()) { thumbsBroken = true; AppLog.add("thumbs", "seek preview off: no frame after 12 s"); refreshThumbs(); } };
+        handler.postDelayed(dog, 12000);
         f.addListener(() -> {
             handler.removeCallbacks(dog);
             fxBusy = false;
             try {
                 Bitmap b = f.get().bitmap;
                 if (b != null) { if (thumbCache.size() == 0) AppLog.add("thumbs", "first frame in " + (System.currentTimeMillis() - t0) + " ms (" + b.getWidth() + "x" + b.getHeight() + ")"); thumbCache.put(k, b); thumbFails = 0; }
-                else AppLog.add("thumbs", "empty frame at " + k / 1000 + " s");
-                if (System.currentTimeMillis() - t0 > 8000) { thumbsBroken = true; AppLog.add("thumbs", "seek preview off: frames from this stream are too slow"); }
+                if (wanted && System.currentTimeMillis() - t0 > 9000) { thumbsBroken = true; AppLog.add("thumbs", "seek preview off: frames from this stream are too slow"); }
             } catch (Throwable e) { if (++thumbFails >= 2) { thumbsBroken = true; AppLog.add("thumbs", "seek preview unavailable: " + e); } }
+            if (thumbStrip != null && thumbStrip.getVisibility() == View.VISIBLE) { for (int i = 0; i < 5; i++) if (thumbKeys[i] >= 0 && thumbCache.get(thumbKeys[i]) == null) { Bitmap nb = thumbNear(thumbKeys[i]); if (nb != null) seekThumbs[i].setImageBitmap(nb); } }
             refreshThumbs();
             thumbPump();
         }, handler::post);
@@ -1306,6 +1329,7 @@ public class PlayerActivity extends Activity {
 
     private void showControls(View focus) {
         if (menuOn) return;
+        if (seek != null) thumbWarm();
         controlsOn = true;
         controls.setVisibility(View.VISIBLE);
         controls.animate().alpha(1f).setDuration(180).start();
