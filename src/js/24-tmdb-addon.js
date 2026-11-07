@@ -43,14 +43,6 @@ const TM_CATS = {
     {type:'series', id:'dz.marvel', name:'Marvel shows',       disc:{with_companies:'co:Marvel Studios'}},
     {type:'series', id:'dz.sw',     name:'Star Wars shows',    disc:{with_companies:'co:Lucasfilm Ltd.'}}
   ],
-  marvel: [
-    {type:'movie',  id:'mv.mcu',    name:'MCU in release order', disc:{with_companies:'co:Marvel Studios', sort_by:'primary_release_date.asc', 'primary_release_date.lte':'today'}},
-    {type:'series', id:'mv.shows',  name:'Marvel shows',       disc:{with_companies:'co:Marvel Studios|co:Marvel Television', sort_by:'first_air_date.desc', 'first_air_date.lte':'today'}},
-    {type:'movie',  id:'mv.xmen',   name:'X-Men',              disc:{with_keywords:'kw:x-men', sort_by:'primary_release_date.asc', 'primary_release_date.lte':'today'}},
-    {type:'movie',  id:'mv.spidey', name:'Spider-Man',         disc:{with_keywords:'kw:spider-man', sort_by:'primary_release_date.asc', 'primary_release_date.lte':'today'}},
-    {type:'series', id:'mv.anim',   name:'Marvel Animation',   disc:{with_companies:'co:Marvel Animation'}},
-    {type:'movie',  id:'mv.pop',    name:'Popular Marvel movies', disc:{with_companies:'co:Marvel Studios|co:Marvel Entertainment'}}
-  ],
   kids: [
     {type:'movie',  id:'kd.pop',    name:'Family movies',      disc:{...TM_KIDM, with_genres:'10751'}},
     {type:'movie',  id:'kd.anim',   name:'Animated movies',    disc:{...TM_KIDM, with_genres:'16'}},
@@ -60,7 +52,92 @@ const TM_CATS = {
     {type:'series', id:'kd.chan',   name:'Disney Channel',     disc:{with_networks:'54'}}
   ]
 };
+/* ---------- Marvel (TMDB): the MCU from a hand-kept list (only titles Marvel Studios counts as the MCU), then the rest of Marvel, sorted by family.
+   Titles are found on TMDB by name and year, so nothing here depends on an id typed by hand. 't|year|tv' marks a series. ---------- */
+const MCU_PHASES = [
+  ['Iron Man|2008', 'The Incredible Hulk|2008', 'Iron Man 2|2010', 'Thor|2011', 'Captain America: The First Avenger|2011', 'The Avengers|2012'],
+  ['Iron Man 3|2013', 'Thor: The Dark World|2013', 'Captain America: The Winter Soldier|2014', 'Guardians of the Galaxy|2014', 'Avengers: Age of Ultron|2015', 'Ant-Man|2015'],
+  ['Captain America: Civil War|2016', 'Doctor Strange|2016', 'Guardians of the Galaxy Vol. 2|2017', 'Spider-Man: Homecoming|2017', 'Thor: Ragnarok|2017', 'Black Panther|2018', 'Avengers: Infinity War|2018', 'Ant-Man and the Wasp|2018', 'Captain Marvel|2019', 'Avengers: Endgame|2019', 'Spider-Man: Far From Home|2019'],
+  ['WandaVision|2021|tv', 'The Falcon and the Winter Soldier|2021|tv', 'Loki|2021|tv', 'Black Widow|2021', 'Shang-Chi and the Legend of the Ten Rings|2021', 'Eternals|2021', 'Hawkeye|2021|tv', 'Spider-Man: No Way Home|2021', 'Moon Knight|2022|tv', 'Doctor Strange in the Multiverse of Madness|2022', 'Ms. Marvel|2022|tv', 'Thor: Love and Thunder|2022', 'She-Hulk: Attorney at Law|2022|tv', 'Werewolf by Night|2022', 'Black Panther: Wakanda Forever|2022', 'The Guardians of the Galaxy Holiday Special|2022'],
+  ['Ant-Man and the Wasp: Quantumania|2023', 'Guardians of the Galaxy Vol. 3|2023', 'Secret Invasion|2023|tv', 'The Marvels|2023', 'Echo|2024|tv', 'Deadpool & Wolverine|2024', 'Agatha All Along|2024|tv', 'Captain America: Brave New World|2025', 'Daredevil: Born Again|2025|tv', 'Thunderbolts*|2025', 'Ironheart|2025|tv'],
+  ['The Fantastic Four: First Steps|2025', 'Wonder Man|2026|tv', 'Spider-Man: Brand New Day|2026', 'Avengers: Doomsday|2026']
+];
+const MCU_PHASE_NAMES = ['Phase One', 'Phase Two', 'Phase Three', 'Phase Four', 'Phase Five', 'Phase Six'];
+/* the story's own order (Marvel's official timeline); The Fantastic Four: First Steps happens on another Earth, so it closes the list */
+const MCU_CHRONO = ['Captain America: The First Avenger', 'Captain Marvel', 'Iron Man', 'Iron Man 2', 'The Incredible Hulk', 'Thor', 'The Avengers', 'Thor: The Dark World', 'Iron Man 3',
+  'Captain America: The Winter Soldier', 'Guardians of the Galaxy', 'Guardians of the Galaxy Vol. 2', 'Avengers: Age of Ultron', 'Ant-Man', 'Captain America: Civil War', 'Black Widow',
+  'Black Panther', 'Spider-Man: Homecoming', 'Doctor Strange', 'Thor: Ragnarok', 'Ant-Man and the Wasp', 'Avengers: Infinity War', 'Avengers: Endgame', 'Loki', 'WandaVision',
+  'The Falcon and the Winter Soldier', 'Spider-Man: Far From Home', 'Shang-Chi and the Legend of the Ten Rings', 'Eternals', 'Spider-Man: No Way Home', 'Hawkeye',
+  'Doctor Strange in the Multiverse of Madness', 'Moon Knight', 'Black Panther: Wakanda Forever', 'Echo', 'She-Hulk: Attorney at Law', 'Ms. Marvel', 'Thor: Love and Thunder',
+  'Werewolf by Night', 'The Guardians of the Galaxy Holiday Special', 'Ant-Man and the Wasp: Quantumania', 'Guardians of the Galaxy Vol. 3', 'Secret Invasion', 'The Marvels',
+  'Deadpool & Wolverine', 'Agatha All Along', 'Daredevil: Born Again', 'Captain America: Brave New World', 'Thunderbolts*', 'Ironheart', 'Wonder Man', 'Spider-Man: Brand New Day',
+  'Avengers: Doomsday', 'The Fantastic Four: First Steps'];
+const MCU_HEROES = [
+  ['The Avengers',       ['The Avengers', 'Avengers: Age of Ultron', 'Avengers: Infinity War', 'Avengers: Endgame', 'Avengers: Doomsday']],
+  ['Iron Man',           ['Iron Man', 'Iron Man 2', 'Iron Man 3']],
+  ['Captain America',    ['Captain America: The First Avenger', 'Captain America: The Winter Soldier', 'Captain America: Civil War', 'The Falcon and the Winter Soldier', 'Captain America: Brave New World']],
+  ['Thor',               ['Thor', 'Thor: The Dark World', 'Thor: Ragnarok', 'Thor: Love and Thunder']],
+  ['Spider-Man',         ['Spider-Man: Homecoming', 'Spider-Man: Far From Home', 'Spider-Man: No Way Home', 'Spider-Man: Brand New Day']],
+  ['Guardians of the Galaxy', ['Guardians of the Galaxy', 'Guardians of the Galaxy Vol. 2', 'The Guardians of the Galaxy Holiday Special', 'Guardians of the Galaxy Vol. 3']],
+  ['Hulk',               ['The Incredible Hulk', 'She-Hulk: Attorney at Law']],
+  ['Doctor Strange',     ['Doctor Strange', 'Doctor Strange in the Multiverse of Madness']],
+  ['Ant-Man',            ['Ant-Man', 'Ant-Man and the Wasp', 'Ant-Man and the Wasp: Quantumania']],
+  ['Black Panther',      ['Black Panther', 'Black Panther: Wakanda Forever', 'Ironheart']],
+  ['Captain Marvel',     ['Captain Marvel', 'Ms. Marvel', 'The Marvels']],
+  ['Black Widow and Hawkeye', ['Black Widow', 'Hawkeye', 'Echo', 'Thunderbolts*']],
+  ['Wanda and Agatha',   ['WandaVision', 'Agatha All Along']],
+  ['Loki',               ['Loki']],
+  ['Daredevil',          ['Daredevil: Born Again']]
+];
+/* the rest of Marvel: never in the MCU lists above */
+const MARVEL_MORE = [
+  ['X-Men (before the MCU)', ['X-Men|2000', 'X2|2003', 'X-Men: The Last Stand|2006', 'X-Men Origins: Wolverine|2009', 'X-Men: First Class|2011', 'The Wolverine|2013', 'X-Men: Days of Future Past|2014', 'Deadpool|2016', 'X-Men: Apocalypse|2016', 'Logan|2017', 'Deadpool 2|2018', 'Dark Phoenix|2019', 'The New Mutants|2020', 'Legion|2017|tv', 'The Gifted|2017|tv']],
+  ['Spider-Man (Sony)', ['Spider-Man|2002', 'Spider-Man 2|2004', 'Spider-Man 3|2007', 'The Amazing Spider-Man|2012', 'The Amazing Spider-Man 2|2014', 'Spider-Man: Into the Spider-Verse|2018', 'Spider-Man: Across the Spider-Verse|2023']],
+  ['Venom and Sony villains', ['Venom|2018', 'Venom: Let There Be Carnage|2021', 'Morbius|2022', 'Madame Web|2024', 'Venom: The Last Dance|2024', 'Kraven the Hunter|2024']],
+  ['Fantastic Four (before the MCU)', ['Fantastic Four|2005', 'Fantastic Four: Rise of the Silver Surfer|2007', 'Fantastic Four|2015']],
+  ['Marvel Television', ['Agents of S.H.I.E.L.D.|2013|tv', 'Agent Carter|2015|tv', 'Daredevil|2015|tv', 'Jessica Jones|2015|tv', 'Luke Cage|2016|tv', 'Iron Fist|2017|tv', 'The Defenders|2017|tv', 'The Punisher|2017|tv', 'Inhumans|2017|tv', 'Runaways|2017|tv', 'Cloak & Dagger|2018|tv', 'Helstrom|2020|tv']],
+  ['Marvel animation', ['What If...?|2021|tv', 'I Am Groot|2022|tv', "X-Men '97|2024|tv", 'Your Friendly Neighborhood Spider-Man|2025|tv', 'Eyes of Wakanda|2025|tv', 'Marvel Zombies|2025|tv', 'X-Men: The Animated Series|1992|tv', 'Spider-Man: The Animated Series|1994|tv', 'The Spectacular Spider-Man|2008|tv', 'Avengers Assemble|2013|tv']],
+  ['More Marvel movies', ['Blade|1998', 'Blade II|2002', 'Blade: Trinity|2004', 'Hulk|2003', 'Daredevil|2003', 'Elektra|2005', 'The Punisher|2004', 'Punisher: War Zone|2008', 'Ghost Rider|2007', 'Ghost Rider: Spirit of Vengeance|2012']]
+];
+const MCU_ALL = MCU_PHASES.flat(), mcuEntry = t => MCU_ALL.find(x => x.split('|')[0] === t) || t;
+const tmCur = (id, name, list) => ({type:'movie', id, name, cur:list});
+TM_CATS.marvel = [
+  tmCur('mv.chrono', 'MCU in story order', MCU_CHRONO.map(mcuEntry)),
+  tmCur('mv.release', 'MCU in release order', MCU_ALL),
+  ...MCU_PHASES.map((p, i) => tmCur('mv.p' + (i + 1), 'MCU ' + MCU_PHASE_NAMES[i], p)),
+  ...MCU_HEROES.map(([n, l], i) => tmCur('mv.h' + i, n, l.map(mcuEntry))),
+  ...MARVEL_MORE.map(([n, l], i) => tmCur('mv.m' + i, n, l))
+];
+TM_FLAVORS.marvel.desc = 'The MCU only (story order, release order, the six phases, each hero), then the rest of Marvel sorted by family: X-Men, Sony Spider-Man, Fantastic Four, Marvel Television, animation.';
+/* one title from the list -> its TMDB entry (looked up once, kept on this device) */
+const tmCurMap = (() => { let m = null; return () => (m = m || lsGet('streamlet.tmcur', {})); })();
+let tmCurT = 0;
+async function tmFind(spec){
+  const [t, y, k] = spec.split('|'), kind = k === 'tv' ? 'tv' : 'movie', key = kind + '|' + t + '|' + y, map = tmCurMap();
+  if (map[key]) return map[key];
+  const r = await tmLimit(() => tmdbGet(`/search/${kind}?query=${enc(t.replace(/\*$/, ''))}&include_adult=false`, tmKey())), res = r.results || [];
+  const norm = s => String(s || '').toLowerCase().replace(/&/g, 'and').replace(/[^a-z0-9]/g, ''), yr = x => +String(x.release_date || x.first_air_date || '').slice(0, 4);
+  const near = res.filter(x => Math.abs(yr(x) - +y) <= 1);
+  const hit = near.find(x => norm(x.title || x.name) === norm(t)) || near[0] || res.find(x => norm(x.title || x.name) === norm(t));
+  if (!hit) return null;
+  const v = {id:hit.id, title:hit.title, name:hit.name, poster_path:hit.poster_path, backdrop_path:hit.backdrop_path, overview:hit.overview, release_date:hit.release_date, first_air_date:hit.first_air_date, vote_average:hit.vote_average, _k:kind};
+  map[key] = v; clearTimeout(tmCurT); tmCurT = setTimeout(() => lsSet('streamlet.tmcur', map), 1500);
+  return v;
+}
+async function tmCurated(c, skip){
+  const part = c.cur.slice(skip, skip + 20);
+  const found = await Promise.all(part.map(s => tmFind(s).catch(() => null)));
+  return {metas:(await Promise.all(found.filter(x => x && x.poster_path).map(x => tmPreview(x, x._k)))).filter(Boolean)};
+}
 const tmKey = () => lsGet('streamlet.tmdb', '');
+/* at most 6 TMDB lookups at a time: a fresh Marvel space looks up a few hundred titles, and TMDB slows down past ~40 a second */
+const tmSlots = {n:0, q:[]};
+function tmLimit(fn){
+  return new Promise((ok, no) => {
+    const run = () => { tmSlots.n++; fn().then(ok, no).finally(() => { tmSlots.n--; const nx = tmSlots.q.shift(); if (nx) nx(); }); };
+    if (tmSlots.n < 6) run(); else tmSlots.q.push(run);
+  });
+}
 const tmGenres = (fl, type) => fl === 'kids' ? (type === 'movie' ? TM_KID_MG : TM_KID_TG) : Object.keys(type === 'movie' ? TM_MG : TM_TG);
 const tmListName = id => (lsGet('streamlet.tmlists', {}) || {})[id] || 'TMDB list';
 function tmManifest(fl){
@@ -69,8 +146,8 @@ function tmManifest(fl){
     resources:['catalog', {name:'meta', types:['movie', 'series'], idPrefixes:['tt', 'tmdb:']}], types:['movie', 'series'], idPrefixes:['tt', 'tmdb:'],
     catalogs:[{type:'movie', id:'ls.' + lm[1], name:tmListName(lm[1]), extra:[{name:'skip', isRequired:false}]}]};
   const f = TM_FLAVORS[fl] || TM_FLAVORS.all;
-  const catalogs = (TM_CATS[fl] || TM_CATS.all).map(c => ({type:c.type, id:c.id, name:c.name, genres:tmGenres(fl, c.type),
-    extra:[{name:'genre', options:tmGenres(fl, c.type), isRequired:false}, {name:'skip', isRequired:false}]}));
+  const catalogs = (TM_CATS[fl] || TM_CATS.all).map(c => c.cur ? {type:c.type, id:c.id, name:c.name, extra:[{name:'skip', isRequired:false}]}
+    : {type:c.type, id:c.id, name:c.name, genres:tmGenres(fl, c.type), extra:[{name:'genre', options:tmGenres(fl, c.type), isRequired:false}, {name:'skip', isRequired:false}]});
   for (const type of ['movie', 'series']) catalogs.push({type, id:'tm.search', name:'Search', extra:[{name:'search', isRequired:true}]});
   return {id:'app.streamlet.tmdb.' + fl, version:'1.0.0', name:f.name, description:f.desc + ' Needs your TMDB key in Settings.',
     resources:['catalog', {name:'meta', types:['movie', 'series'], idPrefixes:['tt', 'tmdb:']}], types:['movie', 'series'], idPrefixes:['tt', 'tmdb:'], catalogs};
@@ -117,7 +194,7 @@ async function tmImdb(kind, id){
   const map = tmImdbMap(), k = kind[0] + id;
   if (k in map) return map[k];
   let tt = '';
-  try { const r = await tmdbGet(`/${kind}/${id}/external_ids`, tmKey()); tt = r.imdb_id || ''; } catch { return ''; }
+  try { const r = await tmLimit(() => tmdbGet(`/${kind}/${id}/external_ids`, tmKey())); tt = r.imdb_id || ''; } catch { return ''; }
   map[k] = tt; clearTimeout(tmImdbT); tmImdbT = setTimeout(() => lsSet('streamlet.tmimdb', map), 1500);
   return tt;
 }
@@ -149,6 +226,7 @@ async function tmCatalog(fl, type, id, extra){
     if (fl === 'kids') r.results = (r.results || []).filter(x => tmKidOk(x, kind));
   } else {
     const c = (TM_CATS[fl] || []).find(x => x.id === id && x.type === type); if (!c) return {metas:[]};
+    if (c.cur) return tmCurated(c, +extra.skip || 0);
     const gmap = kind === 'movie' ? TM_MG : TM_TG, gid = extra.genre && gmap[extra.genre];
     if (c.list && !gid) r = await tmdbGet(c.list + (c.list.includes('?') ? '&' : '?') + 'page=' + page, tmKey());
     else {

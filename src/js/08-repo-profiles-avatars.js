@@ -7,7 +7,7 @@ const STARTER_REPO = [
   {name:'TMDB', url:'tmdb://all', desc:'Built in. Trending, popular and top rated movies and shows, with search. Needs your TMDB key in Settings.'},
   {name:'Netflix (TMDB)', url:'tmdb://netflix', desc:'Built in. What is on Netflix in Canada, and Netflix originals. Needs your TMDB key.'},
   {name:'Disney+ (TMDB)', url:'tmdb://disney', desc:'Built in. Disney, Pixar, Marvel, Star Wars and Disney Channel. Needs your TMDB key.'},
-  {name:'Marvel (TMDB)', url:'tmdb://marvel', desc:'Built in. The MCU in release order, Marvel shows, X-Men, Spider-Man and Marvel Animation. Needs your TMDB key.'},
+  {name:'Marvel (TMDB)', url:'tmdb://marvel', desc:'Built in. The MCU only: story order, release order, the six phases and each hero. Then the rest of Marvel: X-Men, Sony Spider-Man, Fantastic Four, Marvel Television, animation. Needs your TMDB key.'},
   {name:'Kids (TMDB)', url:'tmdb://kids', desc:'Built in. Family movies rated G and PG, cartoons and kids shows. Needs your TMDB key.'},
   {name:'Blender open movies (demo)', url:'demo', desc:'Built-in sample: free, openly licensed short films.'}
 ];
