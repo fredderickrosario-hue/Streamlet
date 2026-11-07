@@ -119,111 +119,93 @@ function focusNav(){
   if (b) { b.focus({preventScroll:true}); return true; }
   return false;
 }
-/* TV rows: Up / Down go to the next row and land on its first item (a short row can't make you skip one). Sideways never leaves the row. */
+/* ---------- remote navigation: predictable lines instead of "nearest thing on screen" ----------
+   A screen is a stack of lines. A line is a row of cards (one strip, even the cards scrolled off it) or the controls that sit side by side.
+   Left / Right walk along the line; past its start, Left opens the side menu. Up / Down go to the line above / below and land on
+   the card you last had in that row, or the one under where you were. Columns (side menu, search keyboard, search results) keep
+   Up / Down to themselves; Left / Right cross between them. */
 const ROW_SEL = '.strip,.dacts2,.srow,.sfilter,.eplist,.slist,.cchips,.dsim,.tbtns,.dptabs';
-function moveRow(dir, list, cur){
-  const mine = cur.closest(ROW_SEL); if (!mine) return null;
-  const seen = new Set(), rows = [];
+const ZONE_SEL = '#nav,#search .skb,#search .sres';
+const rowMem = new WeakMap();                                             // row -> the card you were on
+let navEl = null, navVert = false;                                         // the card that set the column you are travelling down (kept across short lines)
+document.addEventListener('focusin', e => {
+  const el = e.target; if (!el || !el.closest) return;
+  const row = el.closest(ROW_SEL); if (row) rowMem.set(row, el);
+  if (!navVert) navEl = el;
+});
+const midX = r => (r.left + r.right) / 2, midY = r => (r.top + r.bottom) / 2;
+function navLines(list){
+  const rows = new Map(), loose = [];
   for (const el of list) {
-    const k = el.closest(ROW_SEL) || el; if (seen.has(k)) continue; seen.add(k);
-    const r = el.getBoundingClientRect(); rows.push({k, y:(r.top + r.bottom) / 2, first:el});
+    const row = el.closest(ROW_SEL);
+    if (row) { if (!rows.has(row)) rows.set(row, {row, els:[]}); rows.get(row).els.push(el); }
+    else loose.push({el, r:el.getBoundingClientRect()});
   }
-  const cr = cur.getBoundingClientRect(), cy = (cr.top + cr.bottom) / 2;
-  const cand = rows.filter(r => r.k !== mine && (dir === 'down' ? r.y > cy + 8 : r.y < cy - 8)).sort((p, q) => dir === 'down' ? p.y - q.y : q.y - p.y)[0];
-  return cand ? cand.first : null;
+  const lines = [];
+  for (const L of rows.values()) { const r = L.els[0].getBoundingClientRect(); L.y = midY(r); L.top = r.top; L.bottom = r.bottom; lines.push(L); }
+  loose.sort((p, q) => midY(p.r) - midY(q.r));
+  let band = null;
+  for (const x of loose) {
+    const y = midY(x.r);
+    if (band && y >= band.top && y <= band.bottom) { band.els.push(x.el); band.top = Math.min(band.top, x.r.top); band.bottom = Math.max(band.bottom, x.r.bottom); continue; }
+    band = {row:null, els:[x.el], y, top:x.r.top, bottom:x.r.bottom}; lines.push(band);
+  }
+  lines.sort((p, q) => p.y - q.y);
+  for (const L of lines) if (!L.row) L.els.sort((p, q) => midX(p.getBoundingClientRect()) - midX(q.getBoundingClientRect()));
+  return lines;
 }
-/* any page: Up / Down goes to the nearest visual row, then to the item in it closest to where you were (rows = items sharing a line) */
-function moveVisualRow(dir, list, cur){
-  const cr = cur.getBoundingClientRect(), cy = (cr.top + cr.bottom) / 2, cx = (cr.left + cr.right) / 2, ch = cr.height;
-  let best = null, by = Infinity;
-  for (const el of list) {
-    if (el === cur) continue;
-    const r = el.getBoundingClientRect(), y = (r.top + r.bottom) / 2, mid = Math.min(ch, r.height) / 2;
-    if (Math.abs(y - cy) < mid) continue;                              // same line as where you are
-    if (dir === 'down' ? y <= cy : y >= cy) continue;
-    const d = Math.abs(y - cy); if (d < by - 2) by = d;
+/* where Up / Down lands in a line */
+function navLand(L, x, fromRow){
+  if (L.row) {
+    if (L.row.matches('.eplist') && L.row !== fromRow) { const p = L.els.find(e => e.matches('.ep[data-pref]')); if (p) return p; }   // episode rows: the first one not watched
+    const m = rowMem.get(L.row); if (m && m.isConnected && L.els.includes(m)) return m;
+    const sr = L.row.getBoundingClientRect();
+    const shown = L.els.filter(e => { const r = e.getBoundingClientRect(); return r.right > sr.left + 4 && r.left < sr.right - 4; });
+    const pool = shown.length ? shown : L.els;
+    return pool.reduce((b, e) => Math.abs(midX(e.getBoundingClientRect()) - x) < Math.abs(midX(b.getBoundingClientRect()) - x) ? e : b, pool[0]);
   }
-  if (by === Infinity) return null;
-  let bd = Infinity;
-  for (const el of list) {
-    if (el === cur) continue;
-    const r = el.getBoundingClientRect(), y = (r.top + r.bottom) / 2, mid = Math.min(ch, r.height) / 2;
-    if (Math.abs(y - cy) < mid || (dir === 'down' ? y <= cy : y >= cy)) continue;
-    if (Math.abs(Math.abs(y - cy) - by) > Math.max(12, r.height / 2)) continue;     // not the nearest line
-    const dx = Math.abs((r.left + r.right) / 2 - cx) + (cx >= r.left && cx <= r.right ? -1e4 : 0);
-    if (dx < bd) { bd = dx; best = el; }
-  }
+  let best = L.els[0], bd = Infinity;
+  for (const e of L.els) { const r = e.getBoundingClientRect(), d = x >= r.left && x <= r.right ? -1 : Math.abs(midX(r) - x); if (d < bd) { bd = d; best = e; } }
   return best;
 }
+function navGo(t, dir, rep, revealIt, edge){
+  t.focus({preventScroll:true});
+  if (revealIt) revealEl(t, dir, rep, document.body.classList.contains('tv') && ctxRoot() === document.body, edge);
+}
 function moveFocus(dir, rep){
-  const root = ctxRoot(), cur = document.activeElement;
-  const tv = document.body.classList.contains('tv') && root === document.body, inNav = !!(tv && cur && cur.closest && cur.closest('#nav'));
-  if (tv && !inNav && (dir === 'left' || dir === 'right') && cur && cur.closest) {       // along a row: the neighbour is the next card, no need to measure everything
-    const strip = cur.closest('.strip'), item = strip && (cur.closest('.strip > *') || cur);
-    for (let sib = item && (dir === 'right' ? item.nextElementSibling : item.previousElementSibling); sib; sib = dir === 'right' ? sib.nextElementSibling : sib.previousElementSibling) {
-      const t = sib.matches(FOCUSABLE) ? sib : sib.querySelector(FOCUSABLE);
-      if (t && t.tabIndex >= 0 && !t.closest('.off,[hidden]')) { t.focus({preventScroll:true}); revealEl(t, dir, rep, tv, null); return; }
-    }
-  }
+  const root = ctxRoot(), cur = document.activeElement, body = root === document.body;
+  const tv = document.body.classList.contains('tv') && body, inNav = !!(tv && cur && cur.closest && cur.closest('#nav'));
   let list = focusables(root);
-  if (tv) {
+  if (!cur || cur === document.body || !list.includes(cur)) { const f = firstFocus(root, inNav ? list : list.filter(e => !e.closest('#nav'))); if (f) f.focus({preventScroll:true}); return; }
+  const zone = cur.closest(ZONE_SEL), zoneList = zone ? list.filter(e => zone.contains(e)) : list.filter(e => !e.closest(ZONE_SEL));
+  const lines = navLines(zoneList), li = lines.findIndex(L => L.els.includes(cur)), L = lines[li];
+  const cr = cur.getBoundingClientRect();
+  if (dir === 'left' || dir === 'right') {
+    navVert = false;
+    const i = L.els.indexOf(cur), t = L.els[i + (dir === 'right' ? 1 : -1)];
+    if (t) { navGo(t, dir, rep, !inNav, null); return; }
+    /* end of the line: cross to the next column */
     if (inNav) {
-      if (dir === 'left') return;
-      if (dir === 'right') {
-        const content = list.filter(e => !e.closest('#nav'));
-        const t = lastContentEl && lastContentEl.isConnected && content.includes(lastContentEl) ? lastContentEl : firstFocus(root, content);
-        if (t) t.focus({preventScroll:true});
-        return;
-      }
-      list = list.filter(e => e.closest('#nav'));
-    } else list = list.filter(e => !e.closest('#nav'));
-  }
-  if (!cur || cur === document.body || !list.includes(cur)) { const f = firstFocus(root, list); if (f) f.focus({preventScroll:true}); return; }
-  const entryTV = document.body.classList.contains('tv') && (root.id === 'detail' || root.id === 'episode');
-  if ((dir === 'up' || dir === 'down') && !inNav && document.body.classList.contains('tv')) {
-    const col = cur.closest('#search .skb, #search .sres');                // search: the keyboard and the results are separate columns, Up / Down stays in yours
-    if (col) { list = list.filter(e => col.contains(e)); const v = moveVisualRow(dir, list, cur); if (v) { v.focus({preventScroll:true}); revealEl(v, dir, rep, tv, null); } return; }
-    let t = moveRow(dir, list, cur);
-    const ep = t && t.closest('.eplist');                                   // entering an episode row: land on the first episode not watched yet
-    if (ep && ep !== cur.closest('.eplist')) { const p = ep.querySelector('.ep[data-pref]'); if (p) t = p; }
-    if (t) { t.focus({preventScroll:true}); if (root === document.body) revealEl(t, dir, rep, tv, null); else revealEl(t, dir, rep, false, null); return; }
-    if (cur.closest(ROW_SEL)) return;                       // already on the last (or first) row: stay put
-    if (!entryTV) {
-      const v = moveVisualRow(dir, list, cur);
-      if (v) { v.focus({preventScroll:true}); if (root === document.body) revealEl(v, dir, rep, tv, null); else revealEl(v, dir, rep, false, null); return; }
+      if (dir === 'right') { const content = list.filter(e => !e.closest('#nav')); const back = lastContentEl && lastContentEl.isConnected && content.includes(lastContentEl) ? lastContentEl : firstFocus(root, content); if (back) back.focus({preventScroll:true}); }
+      return;
     }
-  }
-  const a = cur.getBoundingClientRect(), ax = (a.left + a.right) / 2, ay = (a.top + a.bottom) / 2;
-  let best = null, bs = Infinity;
-  for (const el of list) {
-    if (el === cur) continue;
-    const r = el.getBoundingClientRect(), cx = (r.left + r.right) / 2, cy = (r.top + r.bottom) / 2;
-    let prim, gap, off;
-    if (dir === 'right' || dir === 'left') {
-      if (dir === 'right' ? !(cx > ax + 1 && r.right > a.right) : !(cx < ax - 1 && r.left < a.left)) continue;
-      prim = dir === 'right' ? Math.max(0, r.left - a.right) : Math.max(0, a.left - r.right);
-      gap = Math.max(0, Math.max(a.top, r.top) - Math.min(a.bottom, r.bottom)); off = Math.abs(cy - ay);
-      if ((tv || entryTV) && gap > 2) continue;           // never jump to another row sideways
-    } else {
-      if (dir === 'down' ? !(cy > ay + 1 && r.bottom > a.bottom) : !(cy < ay - 1 && r.top < a.top)) continue;
-      prim = dir === 'down' ? Math.max(0, r.top - a.bottom) : Math.max(0, a.top - r.bottom);
-      gap = Math.max(0, Math.max(a.left, r.left) - Math.min(a.right, r.right)); off = Math.abs(cx - ax);
+    if (zone && zone.matches('#search .sres') && dir === 'left') { const kb = list.filter(e => e.closest('#search .skb')); const t2 = kb.reduce((b, e) => !b || Math.abs(midY(e.getBoundingClientRect()) - midY(cr)) < Math.abs(midY(b.getBoundingClientRect()) - midY(cr)) ? e : b, null); if (t2) { t2.focus({preventScroll:true}); return; } }
+    if (zone && zone.matches('#search .skb') && dir === 'right') {
+      const rs = list.filter(e => e.closest('#search .sres')); if (rs.length) { const m = lastContentEl && rs.includes(lastContentEl) ? lastContentEl : rs[0]; navGo(m, dir, rep, true, null); return; }
+      return;
     }
-    const score = prim + gap * 4 + off * 0.5;
-    if (score < bs) { bs = score; best = el; }
+    if (root.id === 'episode' && document.body.classList.contains('tv') && cur.closest('.dleft') && root._step) { root._step(dir === 'right' ? 1 : -1); return; }   // episode page: previous / next episode
+    if (tv && dir === 'left') focusNav();
+    return;
   }
-  if (!best) {
-    if (entryTV && root.id === 'episode' && (dir === 'left' || dir === 'right') && cur.closest('.dleft') && root._step) { root._step(dir === 'right' ? 1 : -1); return; }   // episode page: previous / next episode
-    if (tv && !inNav && dir === 'left') focusNav(); return;
-  }
-  best.focus({preventScroll:true});
-  let edge = null;
-  if (document.body.classList.contains('tv') && (dir === 'up' || dir === 'down')) {
-    const br = best.getBoundingClientRect();
-    const more = list.some(e => e !== best && (dir === 'up' ? e.getBoundingClientRect().bottom < br.top + 2 : e.getBoundingClientRect().top > br.bottom - 2));
-    if (!more) edge = dir === 'up' ? 'top' : 'bottom';
-  }
-  if (!inNav) revealEl(best, dir, rep, tv, edge);
+  /* Up / Down: the next line, same column */
+  const N = lines[li + (dir === 'down' ? 1 : -1)];
+  if (!N) return;                                                          // first / last line: stay put
+  const x = navEl && navEl.isConnected && navEl !== cur && !navEl.closest('#nav') === !inNav ? midX(navEl.getBoundingClientRect()) : midX(cr);
+  const t = navLand(N, x, L.row);
+  const edge = N === lines[0] ? 'top' : N === lines[lines.length - 1] ? 'bottom' : null;
+  navVert = true;                                                          // focus events run inside .focus(): the column stays the one you started in
+  try { navGo(t, dir, rep, !inNav, document.body.classList.contains('tv') ? edge : null); } finally { navVert = false; }
 }
 /* keep strips aligned to the card grid, scroll one card at a time, short eased animation */
 let scrollAnim = 0;
