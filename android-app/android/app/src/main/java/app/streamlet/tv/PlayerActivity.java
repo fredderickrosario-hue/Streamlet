@@ -442,7 +442,7 @@ public class PlayerActivity extends Activity {
     }
     private void reload(long pos, String newUrl) {
         if (reported || player == null || mediaItem == null) return;
-        if (newUrl != null) { streamUrl = newUrl; mediaItem = mediaItem.buildUpon().setUri(Uri.parse(newUrl)).build(); thumbsBroken = newUrl.toLowerCase(Locale.ROOT).contains(".m3u8"); thumbCache.evictAll(); try { if (thumbMmr != null) { final android.media.MediaMetadataRetriever old = thumbMmr; thumbMmr = null; if (thumbExec != null) thumbExec.execute(() -> { try { old.release(); } catch (Exception ignored) { } }); } } catch (Exception ignored) { } }
+        if (newUrl != null) { streamUrl = newUrl; mediaItem = mediaItem.buildUpon().setUri(Uri.parse(newUrl)).build(); thumbsBroken = newUrl.toLowerCase(Locale.ROOT).contains(".m3u8"); thumbCache.evictAll(); if (fx != null) { try { fx.setMediaItem(MediaItem.fromUri(newUrl), Collections.singletonList(androidx.media3.effect.Presentation.createForHeight(216))); } catch (Throwable e) { thumbsBroken = true; } } }); } } catch (Exception ignored) { } }
         player.setMediaItem(mediaItem, pos);
         player.prepare();
         player.play();
@@ -475,8 +475,6 @@ public class PlayerActivity extends Activity {
     private final LruCache<Long, Bitmap> thumbCache = new LruCache<>(32);
     private final Set<Long> thumbWant = Collections.synchronizedSet(new HashSet<>());
     private final Set<Long> thumbPending = Collections.synchronizedSet(new HashSet<>());
-    private ExecutorService thumbExec;
-    private android.media.MediaMetadataRetriever thumbMmr;
     private volatile boolean thumbsBroken = false;
     private int thumbFails = 0;
     private static final long THUMB_STEP = 10000;
@@ -530,7 +528,7 @@ public class PlayerActivity extends Activity {
     private final Runnable thumbKick = new Runnable() { @Override public void run() {
         if (thumbsBroken || player == null || thumbStrip == null || thumbStrip.getVisibility() != View.VISIBLE) return;
         if (player.getPlaybackState() != Player.STATE_READY) { handler.postDelayed(this, 400); return; }   // the player is loading after a jump: it gets the connection first, the preview waits
-        for (int i : new int[]{2, 1, 3, 0, 4}) { long k = thumbKeys[i]; if (k >= 0 && thumbWant.contains(k) && thumbCache.get(k) == null) requestThumb(k); }
+        thumbPump();
     } };
 
     private void refreshThumbs() {
@@ -539,30 +537,34 @@ public class PlayerActivity extends Activity {
         for (int i = 0; i < 5; i++) { if (thumbKeys[i] < 0) continue; Bitmap b = thumbCache.get(thumbKeys[i]); if (b != null) seekThumbs[i].setImageBitmap(b); }
     }
 
-    private void requestThumb(final long key) {
-        if (!thumbPending.add(key)) return;
-        if (thumbExec == null) thumbExec = Executors.newSingleThreadExecutor();
-        thumbExec.execute(() -> {
+    /** frames come from a second, silent ExoPlayer (Media3's frame extractor): the same fast MKV / MP4 seeking as playback, scaled down on the GPU. One at a time. */
+    private androidx.media3.transformer.ExperimentalFrameExtractor fx;
+    private boolean fxBusy = false;
+    private void thumbPump() {
+        if (fxBusy || thumbsBroken || player == null || isFinishing()) return;
+        long key = -1;
+        for (int i : new int[]{2, 1, 3, 0, 4}) { long k = thumbKeys[i]; if (k >= 0 && thumbWant.contains(k) && thumbCache.get(k) == null) { key = k; break; } }
+        if (key < 0) return;
+        try {
+            if (fx == null) {
+                fx = new androidx.media3.transformer.ExperimentalFrameExtractor(this,
+                        new androidx.media3.transformer.ExperimentalFrameExtractor.Configuration.Builder().setSeekParameters(androidx.media3.exoplayer.SeekParameters.CLOSEST_SYNC).build());
+                fx.setMediaItem(MediaItem.fromUri(streamUrl), Collections.singletonList(androidx.media3.effect.Presentation.createForHeight(216)));
+            }
+        } catch (Throwable e) { thumbsBroken = true; AppLog.add("thumbs", "seek preview unavailable: " + e); refreshThumbs(); return; }
+        fxBusy = true;
+        final long k = key, t0 = System.currentTimeMillis();
+        final com.google.common.util.concurrent.ListenableFuture<androidx.media3.transformer.ExperimentalFrameExtractor.Frame> f = fx.getFrame(k);
+        f.addListener(() -> {
+            fxBusy = false;
             try {
-                if (thumbsBroken || !thumbWant.contains(key)) return;          // you have moved on: skip it
-                if (thumbMmr == null) {
-                    android.media.MediaMetadataRetriever m = new android.media.MediaMetadataRetriever();
-                    if (streamUrl.startsWith("http")) { Map<String, String> hd = new HashMap<>(); hd.put("User-Agent", UA); m.setDataSource(streamUrl, hd); }
-                    else m.setDataSource(this, Uri.parse(streamUrl));
-                    thumbMmr = m;
-                }
-                if (player == null) return;
-                final long t0 = System.currentTimeMillis();
-                Bitmap b = android.os.Build.VERSION.SDK_INT >= 27
-                        ? thumbMmr.getScaledFrameAtTime(key * 1000L, android.media.MediaMetadataRetriever.OPTION_CLOSEST_SYNC, 384, 216)
-                        : thumbMmr.getFrameAtTime(key * 1000L, android.media.MediaMetadataRetriever.OPTION_CLOSEST_SYNC);
-                if (b == null) { if (++thumbFails >= 3) { thumbsBroken = true; AppLog.add("seekThumbs", "seek preview: no frames from this stream"); } }
-                else { thumbFails = 0; thumbCache.put(key, b); }
-                if (System.currentTimeMillis() - t0 > 3500) { thumbsBroken = true; AppLog.add("thumbs", "seek preview off: frames from this stream are too slow"); }
-            } catch (Throwable e) { thumbsBroken = true; AppLog.add("seekThumbs", "seek preview unavailable: " + e); }
-            finally { thumbPending.remove(key); }
-            runOnUiThread(this::refreshThumbs);
-        });
+                Bitmap b = f.get().bitmap;
+                if (b != null) { thumbCache.put(k, b); thumbFails = 0; }
+                if (System.currentTimeMillis() - t0 > 8000) { thumbsBroken = true; AppLog.add("thumbs", "seek preview off: frames from this stream are too slow"); }
+            } catch (Throwable e) { if (++thumbFails >= 2) { thumbsBroken = true; AppLog.add("thumbs", "seek preview unavailable: " + e); } }
+            refreshThumbs();
+            thumbPump();
+        }, handler::post);
     }
 
     private GradientDrawable shape(boolean oval, int fill, int stroke, int strokeW, float radiusDp) {
@@ -1941,7 +1943,7 @@ public class PlayerActivity extends Activity {
     protected void onDestroy() {
         handler.removeCallbacksAndMessages(null);
         thumbWant.clear(); thumbsBroken = true;
-        if (thumbExec != null) { thumbExec.execute(() -> { try { if (thumbMmr != null) thumbMmr.release(); } catch (Exception ignored) { } }); thumbExec.shutdown(); }
+        if (fx != null) { try { fx.release(); } catch (Throwable ignored) { } fx = null; }
         if (!reported) {
             snapshot();
             reported = true;
