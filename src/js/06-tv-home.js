@@ -169,7 +169,7 @@ function renderTabs(){
   if (!spaceTabs() || !addons.length) { bar.hidden = true; bar.replaceChildren(); return; }
   bar.hidden = false;
   const chip = (id, label) => h('button', {class:'chip'+(view.tab===id ? ' on' : ''), onclick:() => { view = {tab:id, genre:''}; pushPage(); renderHome(); }}, label);
-  bar.replaceChildren(chip('home','Home'), chip('movie','Movies'), chip('series','Shows'), chip('new','New & Hot'));
+  bar.replaceChildren(...[chip('home','Home'), chip('movie','Movies'), chip('series','Shows'), isKid() ? null : chip('new','New & Hot')].filter(Boolean));
   if (had) { const t = [...bar.children].find(c => c.id === had || c.textContent === had); if (t) t.focus({preventScroll:true}); }
 }
 

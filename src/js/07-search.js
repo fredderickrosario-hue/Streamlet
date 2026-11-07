@@ -80,7 +80,7 @@ function runSearch(query, items, onHit){                                   // as
       }
     }
   };
-  run(lsGet('streamlet.ui', {}).srchAll === false ? spaceAddons() : addons);   // by default every installed addon is searched, not just this space's
+  run(lsGet('streamlet.ui', {}).srchAll === false || isKid() ? spaceAddons() : addons);   // by default every installed addon is searched, not just this space's
   if (!jobs.length) run(addons);                                           // this space's addons can't search: use everything installed
   return jobs;
 }
@@ -132,7 +132,7 @@ async function renderHome(query = $('#q').value.trim(), target){
   const skipP = personalSkip; personalSkip = false;
   const personal = !skipP && !query && !target && !(tabs && view.genre) && (!tabs || view.tab === 'home') && personalSeeds().any;
   const hideCats = personal && tabs;                                            // with tabs, the catalogs live in Movies / Shows as discoveries
-  const nhKey = tabs && !target && view.tab === 'new' && !view.genre ? lsGet('streamlet.tmdb', '') : '';
+  const nhKey = tabs && !target && !isKid() && view.tab === 'new' && !view.genre ? lsGet('streamlet.tmdb', '') : '';
   if (nhKey) { box.append(h('div', {class:'tspace'})); renderNewHot(box, tok, nhKey).catch(() => {}); return; }
   const heroBox = h('div'); if (!query && !(tabs && view.genre)) box.append(heroBox); else if (!target) box.append(h('div', {class:'tspace'}));
   if (tabs && !target) box.append(genreStrip());

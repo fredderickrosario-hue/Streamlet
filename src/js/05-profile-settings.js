@@ -200,6 +200,8 @@ function editProfile(id){
     if (profile && profile.id === pr.id) profile = pr;
     saveProfiles(); launcherDirty = true; close();
   }}, isNew ? 'Create profile' : 'Save');
+  const kidCb = h('input', {type:'checkbox'}); kidCb.checked = !!pr.kids; kidCb.onchange = () => { pr.kids = kidCb.checked; };
+  const kidRow = h('label', {class:'tgl', style:'margin-top:14px'}, h('span', null, h('b', null, 'Kids profile'), h('small', null, 'Only sees spaces made for kids. No Addons, New & Hot or space editing, and search stays in the kids catalogs')), kidCb);
   const liveName = h('div', {class:'pe-name'}, pr.name || 'New profile');
   name.oninput = () => { liveName.textContent = name.value.trim() || 'New profile'; };
   ed.replaceChildren(
@@ -208,7 +210,7 @@ function editProfile(id){
       h('div', {class:'pecol pecol-l'},
         h('h2', {class:'sedh'}, isNew ? 'New profile' : 'Edit profile'),
         h('div', {class:'pe-prev'}, prev, liveName),
-        h('div', {class:'lbl'}, 'Name'), name,
+        h('div', {class:'lbl'}, 'Name'), name, kidRow,
         h('div', {class:'pe-act'}, save, isNew ? null : del)),
       h('div', {class:'pecol pecol-r'},
         h('div', {class:'lbl', style:'margin-top:0'}, 'Choose an avatar'), grid,

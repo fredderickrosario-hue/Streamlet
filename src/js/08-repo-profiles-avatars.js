@@ -4,6 +4,10 @@ const STARTER_REPO = [
   {name:'OpenSubtitles v3', url:'https://opensubtitles-v3.strem.io/manifest.json', desc:'Subtitles in many languages.'},
   {name:'Kitsu Anime', url:'https://anime-kitsu.strem.fun/manifest.json', desc:'Anime catalogs and metadata.'},
   {name:'Québec (TVA+)', url:'quebec', desc:'Quebec series from TVA+ such as Les armes and Indéfendable. Built in, no account needed. Android apps only.'},
+  {name:'TMDB', url:'tmdb://all', desc:'Built in. Trending, popular and top rated movies and shows, with search. Needs your TMDB key in Settings.'},
+  {name:'Netflix (TMDB)', url:'tmdb://netflix', desc:'Built in. What is on Netflix in Canada, and Netflix originals. Needs your TMDB key.'},
+  {name:'Disney+ (TMDB)', url:'tmdb://disney', desc:'Built in. Disney, Pixar, Marvel, Star Wars and Disney Channel. Needs your TMDB key.'},
+  {name:'Kids (TMDB)', url:'tmdb://kids', desc:'Built in. Family movies rated G and PG, cartoons and kids shows. Needs your TMDB key.'},
   {name:'Blender open movies (demo)', url:'demo', desc:'Built-in sample: free, openly licensed short films.'}
 ];
 const reposGet = () => lsGet('streamlet.repos', []);
@@ -226,8 +230,10 @@ function loadProfileData(){
 async function selectProfile(p){
   profile = p; try { navAvatar(); } catch {} lsSet('streamlet.profile.last', p.id);
   loadProfileData(); epReset(); try { fillTmdb(); qcFillShows(); } catch {} try { epMigrate(); } catch {} try { for (const q of profiles) showsBackfill(q.id); epReset(); } catch {}
+  document.body.classList.toggle('kids', !!p.kids);
+  if (p.kids) await kidsReady();
   const last = pget('last', null);
-  const sp = last && spaces.find(x => x.id === last);
+  const sp = last && spacesFor().find(x => x.id === last) || (p.kids ? spacesFor()[0] : null);
   if (!sp) { showLauncher(); return; }
   const done = (!pfx && !document.getElementById('intro') && !$('#profiles').hidden) ? warmCover(profile.name) : null;   // the boot logo / the profile animation already cover the wait
   try { await warmSpace(sp, 8000); } catch {}

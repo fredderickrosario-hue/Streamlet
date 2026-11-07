@@ -43,6 +43,8 @@ const DEFAULT_SPACES = [
 let spaces = null;
 try { spaces = JSON.parse(localStorage.getItem('streamlet.spaces2') || 'null'); } catch {}
 if (!Array.isArray(spaces) || !spaces.length) spaces = JSON.parse(JSON.stringify(DEFAULT_SPACES));
+const isKid = () => !!(profile && profile.kids);
+const spacesFor = () => isKid() ? spaces.filter(s => s.kids) : spaces;      // what this profile may open
 const saveSpaces = () => { try { localStorage.setItem('streamlet.spaces2', JSON.stringify(spaces)); } catch {} stamp('spacesT'); };
 let cur = null; // the space you're currently in
 const spaceAddons = () => (cur && cur.catalogs.length) ? addons.filter(a => cur.catalogs.includes(a.uid)) : addons;
@@ -68,7 +70,7 @@ function showLauncher(){
     const names = sp.catalogs.length ? (nInst ? nInst + (nInst === 1 ? ' addon' : ' addons') : '') : 'All addons';
     const btn = h('button', {class:'stile', type:'button', style:`--c1:${t.acc};--c2:${t.acc2 || t.acc}`, onclick:() => { if (spEdit) editSpace(sp.id); else openSpace(sp.id); }},
       h('span', {class:'sem'}, sp.emoji), h('span', {class:'stx'}, h('span', {class:'snm'}, sp.name), h('span', {class:'sds'}, names || 'Selected addon not installed')));
-    attachLong(btn, () => editSpace(sp.id));
+    attachLong(btn, () => { if (!isKid()) editSpace(sp.id); });
     return h('div', {class:'swrap'}, btn, h('span', {class:'sedit', 'aria-hidden':'true'}, PENCIL_SVG()));
   };
   L.replaceChildren(
@@ -77,7 +79,7 @@ function showLauncher(){
     h('div', {class:'lmid'},
       h('h2', {class:'ltitle' + (addons.length ? '' : ' noadd')}, addons.length ? 'What are we watching?' : 'Add an addon first'),
       addons.length ? null : h('p', {class:'lsub'}, 'Open Addons, install one, then pick a space.'),
-      h('div', {class:'sgrid'}, ...spaces.map(tile),
+      h('div', {class:'sgrid'}, ...spacesFor().map(tile),
         h('div', {class:'swrap newwrap'}, h('button', {class:'stile new', type:'button', onclick:() => editSpace(null)}, h('span', {class:'sem'}, '＋'), h('span', {class:'stx'}, h('span', {class:'snm'}, 'New space')))))),
     h('div', {class:'lfoot'},
       h('button', {class:'chip', type:'button', onclick:() => { document.body.classList.remove('launch'); $('#launcher').hidden = true; $('#profiles').hidden = true; $('#login').hidden = true; showTab('addons'); }}, 'Addons'),
@@ -96,6 +98,7 @@ function editSpace(id){
   const sw = h('div', {class:'swatches'});
   const tabsCb = h('input', {type:'checkbox'}); tabsCb.checked = !!(s.tabs ?? (THEMES[s.theme] || {}).tabs);
   tabsCb.onchange = () => { s.tabs = tabsCb.checked; };
+  const kidsCb = h('input', {type:'checkbox'}); kidsCb.checked = !!s.kids; kidsCb.onchange = () => { s.kids = kidsCb.checked; };
   const paintSw = () => { sw.replaceChildren(...Object.entries(THEMES).map(([k,t]) =>
     h('button', {type:'button', class:'sw'+(s.theme===k?' on':''), title:t.n, style:`background:${t.acc}`, onclick:()=>{ s.theme=k; applyTheme(k); if (s.tabs === undefined) tabsCb.checked = !!THEMES[k].tabs; paintSw(); }}))); };
   paintSw();
@@ -136,7 +139,7 @@ function editSpace(id){
         h('div', {class:'sedcol'}, prev, h('div', {class:'lbl'}, 'Name'), name, quick, h('div', {class:'lbl'}, 'Icon'), eg),
         h('div', {class:'sedcol'},
           h('div', {class:'lbl'}, 'Theme'), sw,
-          h('div', {class:'lbl'}, 'Options'), tgl(tabsCb, 'Browse tabs', 'Home, Movies, Shows and genre tiles'),
+          h('div', {class:'lbl'}, 'Options'), tgl(tabsCb, 'Browse tabs', 'Home, Movies, Shows and genre tiles'), tgl(kidsCb, 'For kids', 'Kids profiles can open this space'),
           h('div', {class:'lbl'}, 'Language in this space'), langRow('Audio', 'audio', ['any', 'Any']), langRow('Subtitles', 'subs', ['off', 'Off']), h('p', {class:'spin hint2'}, 'For example anime: Japanese audio with English subtitles.'),
           h('div', {class:'lbl'}, 'Catalog addons'),
           withCats.length ? h('div', null, boxes.map(({a, cb}) => tgl(cb, an(a)))) : h('p', {class:'spin', style:'padding:0'}, 'No catalog addons installed yet.'),

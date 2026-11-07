@@ -77,6 +77,7 @@ async function getJSON(url){
   const w = warmC.get(url); if (w && Date.now() - w.t < 120000) return w.j;
   if (url.startsWith('demo://sample/')) return demoRoute(url.slice('demo://sample/'.length));
   if (url.startsWith('qc://')) return qcRoute(url);
+  if (url.startsWith('tmdb://')) return tmRoute(url);
   const hit = await dataGet(url);
   if (hit) { if (hit.age > dFresh(url)) fetchJSON(url).then(j => dataPut(url, j)).catch(() => {}); return hit.json; }
   const j = await fetchJSON(url);
@@ -101,8 +102,9 @@ function parseAddonUrl(input){
   if (!u) throw new Error('Paste an addon URL first.');
   if (u.toLowerCase()==='demo') u = 'demo://sample';
   if (/^(qu[eé]bec|qc)$/i.test(u)) u = 'qc://tva';
-  u = u.replace(/^stremio:\/\//i, 'https://').replace(/^https?:\/\/(qc:\/\/)/i, '$1');      // 'https://qc://tva' was saved by an older build: repair it
-  if (!/^(https?|demo|qc):\/\//i.test(u)) u = 'https://' + u;
+  const tm = /^tmdb(?::\/\/|\s+)?(all|netflix|disney|kids)?\/?$/i.exec(u); if (tm) u = 'tmdb://' + (tm[1] || 'all').toLowerCase();
+  u = u.replace(/^stremio:\/\//i, 'https://').replace(/^https?:\/\/((qc|tmdb):\/\/)/i, '$1');      // 'https://qc://tva' was saved by an older build: repair it
+  if (!/^(https?|demo|qc|tmdb):\/\//i.test(u)) u = 'https://' + u;
   if (!/manifest\.json(\?.*)?$/.test(u)) u = u.replace(/\/+$/,'') + '/manifest.json';
   return { url:u, base:u.replace(/\/manifest\.json(\?.*)?$/,'') };
 }

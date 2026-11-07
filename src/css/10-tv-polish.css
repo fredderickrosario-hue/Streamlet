@@ -95,3 +95,6 @@ body.tv :is(button.card,.cwb,.wlb):is(:focus-visible,:hover) .poster{outline:0 !
 #updDlg .updmsg{margin:4px 0 0;font-size:12px;color:rgba(255,255,255,.5)}
 body.tv #updDlg .updbox{max-width:440px}
 body.tv #updDlg .btn:focus-visible{outline:3px solid #fff;outline-offset:3px}
+/* kids profiles: no addon management, no New & Hot, no space editing */
+body.kids :is(#tabAddons,#nvNew,#setAddons,.lfoot,.newwrap,.sedit){display:none !important}
+body.kids #settings .addon.tvonly{display:none !important}
