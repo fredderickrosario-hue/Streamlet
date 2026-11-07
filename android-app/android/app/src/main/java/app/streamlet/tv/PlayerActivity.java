@@ -192,7 +192,32 @@ public class PlayerActivity extends Activity {
     private static final String[] SUB_NAMES = {"Small", "Medium", "Large", "Extra large"};
     private final Runnable hideRun = new Runnable() { @Override public void run() {
         if (player != null && player.isPlaying() && !menuOn) hideControls(); else scheduleHide(); } };
-    private long seekTo = -1, seekAt = 0;                                  // the last jump: a retry after it resumes there, not before it
+    private long seekTo = -1, seekAt = 0;
+    private boolean scrubbing = false, scrubResume = false, justCommitted = false;
+    /** remote on the seek bar: the video pauses and only the marker (and the preview) move */
+    private void scrubKey(int p) {
+        if (player == null) return;
+        if (!scrubbing) { scrubbing = true; seekPending = true; scrubResume = player.isPlaying(); player.pause(); }
+        handler.removeCallbacks(hideRun); handler.removeCallbacks(thumbHide);
+        posTx.setText(fmt(p));
+        showThumbs(p);
+    }
+    /** OK: jump to the marker and carry on as before */
+    private void scrubCommit() {
+        if (!scrubbing || player == null) return;
+        scrubbing = false; justCommitted = true;
+        seekTo = seek.getProgress(); seekAt = System.currentTimeMillis();
+        player.seekTo(seekTo); seekPending = false;
+        if (scrubResume) player.play();
+        thumbHide.run(); scheduleHide();
+    }
+    /** Back, or leaving the bar: the marker returns to where the video is */
+    private void scrubCancel() {
+        if (!scrubbing) return;
+        scrubbing = false; seekPending = false;
+        if (player != null) { seek.setProgress((int) player.getCurrentPosition()); posTx.setText(fmt(player.getCurrentPosition())); if (scrubResume) player.play(); }
+        thumbHide.run(); scheduleHide();
+    }                                  // the last jump: a retry after it resumes there, not before it
     private final Runnable seekRun = new Runnable() { @Override public void run() {
         if (player != null) { seekTo = seek.getProgress(); seekAt = System.currentTimeMillis(); player.seekTo(seekTo); } seekPending = false; } };
     private final Runnable uiTick = new Runnable() { @Override public void run() {
@@ -550,16 +575,21 @@ public class PlayerActivity extends Activity {
                 fx = new androidx.media3.transformer.ExperimentalFrameExtractor(this,
                         new androidx.media3.transformer.ExperimentalFrameExtractor.Configuration.Builder().setSeekParameters(androidx.media3.exoplayer.SeekParameters.CLOSEST_SYNC).build());
                 fx.setMediaItem(MediaItem.fromUri(streamUrl), Collections.singletonList(androidx.media3.effect.Presentation.createForHeight(216)));
+                AppLog.add("thumbs", "frame reader started");
             }
         } catch (Throwable e) { thumbsBroken = true; AppLog.add("thumbs", "seek preview unavailable: " + e); refreshThumbs(); return; }
         fxBusy = true;
         final long k = key, t0 = System.currentTimeMillis();
         final com.google.common.util.concurrent.ListenableFuture<androidx.media3.transformer.ExperimentalFrameExtractor.Frame> f = fx.getFrame(k);
+        final Runnable dog = () -> { if (fxBusy && !f.isDone()) { thumbsBroken = true; AppLog.add("thumbs", "seek preview off: no frame after 10 s"); refreshThumbs(); } };
+        handler.postDelayed(dog, 10000);
         f.addListener(() -> {
+            handler.removeCallbacks(dog);
             fxBusy = false;
             try {
                 Bitmap b = f.get().bitmap;
-                if (b != null) { thumbCache.put(k, b); thumbFails = 0; }
+                if (b != null) { if (thumbCache.size() == 0) AppLog.add("thumbs", "first frame in " + (System.currentTimeMillis() - t0) + " ms (" + b.getWidth() + "x" + b.getHeight() + ")"); thumbCache.put(k, b); thumbFails = 0; }
+                else AppLog.add("thumbs", "empty frame at " + k / 1000 + " s");
                 if (System.currentTimeMillis() - t0 > 8000) { thumbsBroken = true; AppLog.add("thumbs", "seek preview off: frames from this stream are too slow"); }
             } catch (Throwable e) { if (++thumbFails >= 2) { thumbsBroken = true; AppLog.add("thumbs", "seek preview unavailable: " + e); } }
             refreshThumbs();
@@ -662,7 +692,7 @@ public class PlayerActivity extends Activity {
         int getProgress() { return prog; }
         void setSecondaryProgress(int p) { sec = Math.max(0, Math.min(max, p)); invalidate(); }
         void setKeyProgressIncrement(int i) { inc = i; }
-        @Override protected void onFocusChanged(boolean g, int d, Rect r) { super.onFocusChanged(g, d, r); invalidate(); }
+        @Override protected void onFocusChanged(boolean g, int d, Rect r) { super.onFocusChanged(g, d, r); invalidate(); if (!g && scrubbing) scrubCancel(); }
         @Override protected void onDraw(Canvas cv) {
             float pad = dp(7), x0 = pad, x1 = getWidth() - pad, w = x1 - x0, cy = getHeight() / 2f;
             float h = dp(isFocused() ? 6 : 4), rad = h / 2f;
@@ -678,16 +708,18 @@ public class PlayerActivity extends Activity {
             if (isFocused()) { pt.setColor(Color.WHITE); cv.drawCircle(px, cy, dp(6), pt); }
         }
         @Override public boolean onKeyDown(int k, KeyEvent e) {
-            if (k == KeyEvent.KEYCODE_DPAD_LEFT || k == KeyEvent.KEYCODE_DPAD_RIGHT) {
+            if (k == KeyEvent.KEYCODE_DPAD_LEFT || k == KeyEvent.KEYCODE_DPAD_RIGHT) {   // remote: only the marker moves; OK jumps there, Back cancels
                 int step = e.getRepeatCount() > 8 ? inc * 3 : inc;
                 setProgress(prog + (k == KeyEvent.KEYCODE_DPAD_LEFT ? -step : step));
-                if (l != null) { if (e.getRepeatCount() == 0) l.onStart(); l.onChange(prog, true); }
+                scrubKey(prog);
                 return true;
             }
+            if ((k == KeyEvent.KEYCODE_DPAD_CENTER || k == KeyEvent.KEYCODE_ENTER || k == KeyEvent.KEYCODE_NUMPAD_ENTER) && scrubbing) { scrubCommit(); return true; }
             return super.onKeyDown(k, e);
         }
         @Override public boolean onKeyUp(int k, KeyEvent e) {
-            if ((k == KeyEvent.KEYCODE_DPAD_LEFT || k == KeyEvent.KEYCODE_DPAD_RIGHT) && l != null) { l.onStop(); return true; }
+            if (k == KeyEvent.KEYCODE_DPAD_LEFT || k == KeyEvent.KEYCODE_DPAD_RIGHT) return true;
+            if ((k == KeyEvent.KEYCODE_DPAD_CENTER || k == KeyEvent.KEYCODE_ENTER || k == KeyEvent.KEYCODE_NUMPAD_ENTER) && justCommitted) { justCommitted = false; return true; }   // the OK that applied a jump doesn't also pause
             return super.onKeyUp(k, e);
         }
         @Override public boolean onTouchEvent(MotionEvent ev) {
@@ -1290,6 +1322,7 @@ public class PlayerActivity extends Activity {
 
     private void scheduleHide() {
         handler.removeCallbacks(hideRun);
+        if (scrubbing) return;                                              // the bar stays while you pick a spot
         if (controlsOn) handler.postDelayed(hideRun, System.currentTimeMillis() < quickHideUntil ? 700 : 4500);
     }
 
@@ -1894,6 +1927,7 @@ public class PlayerActivity extends Activity {
             return super.onKeyDown(keyCode, event);
         }
         if (keyCode == KeyEvent.KEYCODE_BACK) {
+            if (scrubbing) { scrubCancel(); return true; }
             if (menuOn) { closeMenu(); return true; }
             if (controlsOn) { hideControls(); return true; }
             finishWith(false);
