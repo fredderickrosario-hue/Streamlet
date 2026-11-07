@@ -34,6 +34,7 @@ import com.getcapacitor.annotation.CapacitorPlugin;
 public class ExoPlayerPlugin extends Plugin {
     static ExoPlayerPlugin instance;
     static PluginCall pending;
+    static int altUsed = -1;                 // which of the backup sources the player ended on (-1: the one it was given)
     static long subDelay = Long.MIN_VALUE;   // set by the player when it knows the subtitle delay
     static boolean autoNext = false;
     static int pickSeason = -1, pickEpisode = -1;   // set when the viewer picks another episode inside the player
@@ -217,6 +218,8 @@ public class ExoPlayerPlugin extends Plugin {
         i.putExtra("curSeason", call.getInt("curSeason", 1));
         i.putExtra("curEpisode", call.getInt("curEpisode", 0));
         i.putExtra("subDelay", call.getData().optLong("subDelay", 0L));
+        i.putExtra("autoPick", call.getBoolean("autoPick", false));
+        i.putExtra("alts", call.getString("alts", "[]"));
         i.putExtra("wnProfile", call.getString("wnProfile", ""));
         i.putExtra("wnItem", call.getString("wnItem", ""));
         i.putExtra("wnKind", call.getString("wnKind", "movie"));
@@ -246,6 +249,7 @@ public class ExoPlayerPlugin extends Plugin {
         if (subDelay != Long.MIN_VALUE) o.put("subDelay", subDelay);
         subDelay = Long.MIN_VALUE; autoNext = false; pickSeason = -1; pickEpisode = -1;
         o.put("next", next);
+        o.put("alt", altUsed); altUsed = -1;
         o.put("error", code);
         pending.resolve(o);
         pending = null;
@@ -259,6 +263,7 @@ public class ExoPlayerPlugin extends Plugin {
         o.put("ended", ended);
         if (subDelay != Long.MIN_VALUE) o.put("subDelay", subDelay);
         o.put("autoNext", autoNext);
+        o.put("alt", altUsed); altUsed = -1;
         if (pickEpisode >= 0) { JSObject pk = new JSObject(); pk.put("season", pickSeason); pk.put("episode", pickEpisode); o.put("pick", pk); }
         pickSeason = -1; pickEpisode = -1;
         subDelay = Long.MIN_VALUE; autoNext = false;

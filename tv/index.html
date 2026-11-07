@@ -4294,8 +4294,12 @@ async function playNative(s, title, ctx){
   try {
     const epLine = ctx && ctx.ep ? `S${ctx.ep.season ?? 1}:E${ctx.ep.episode ?? ''}` + (ctx.ep.title ? ' · ' + ctx.ep.title : '') : '';
     const itemId = ctx && ctx.info && ctx.info.item.id, nextTitle = ctx && ctx.next ? `S${ctx.next.season ?? 1}:E${ctx.next.episode ?? ''}` + (ctx.next.title ? ' · ' + ctx.next.title : '') : '';
-    const r = await N.play({nextTitle, episode:!!(ctx && ctx.ep), subDelay:(mapGet('streamlet.subdelay')[itemId] || 0), url:s.url, title:title || '', autoNext:uiPlay('autonext', true), autoSkip:uiPlay('autoskip', false), hw:uiPlay('hw', true), fps:uiPlay('fps', true), tunnel:uiPlay('tunnel', false), pass:uiPlay('pass', true), skip:Number(lsGet('streamlet.ui', {}).skip) || 10, segs:segs ? JSON.stringify(segs) : '', eps:(ctx && ctx.eps && ctx.ep ? JSON.stringify(ctx.eps.map(x => ({s:x.season, e:x.episode, t:x.title || '', th:x.thumb || ''}))) : ''), curSeason:(ctx && ctx.ep ? ctx.ep.season ?? 1 : 1), curEpisode:(ctx && ctx.ep ? ctx.ep.episode ?? 0 : 0), subtitle:epLine, wnProfile:(profile ? profile.id : ''), wnItem:(itemId || ''), wnKind:(ctx && ctx.ep ? 'episode' : 'movie'), wnTitle:((ctx && ctx.info && ctx.info.item && ctx.info.item.name) || title || ''), wnPoster:((ctx && ctx.info && ctx.info.item && (ctx.info.item.poster || ctx.info.item.background)) || ''), accent:(getComputedStyle(document.documentElement).getPropertyValue('--acc') || '').trim(), startMs, subtitles:picked, audioLang:code2(effAudio()) || null, subLang:pref ? (code2(pref) || pref) : null});
+    const alts = autoPickOn() ? ((ctx && ctx._list) || []).filter(x => x && x !== s && x.url && !isBadStream(x) && !/\.m3u8/i.test(x.url)).slice(0, 4) : [];   // automatic pick: the player moves to these by itself if this one keeps failing
+    const r = await N.play({nextTitle, autoPick:autoPickOn(), alts:JSON.stringify(alts.map(x => ({url:x.url}))), episode:!!(ctx && ctx.ep), subDelay:(mapGet('streamlet.subdelay')[itemId] || 0), url:s.url, title:title || '', autoNext:uiPlay('autonext', true), autoSkip:uiPlay('autoskip', false), hw:uiPlay('hw', true), fps:uiPlay('fps', true), tunnel:uiPlay('tunnel', false), pass:uiPlay('pass', true), skip:Number(lsGet('streamlet.ui', {}).skip) || 10, segs:segs ? JSON.stringify(segs) : '', eps:(ctx && ctx.eps && ctx.ep ? JSON.stringify(ctx.eps.map(x => ({s:x.season, e:x.episode, t:x.title || '', th:x.thumb || ''}))) : ''), curSeason:(ctx && ctx.ep ? ctx.ep.season ?? 1 : 1), curEpisode:(ctx && ctx.ep ? ctx.ep.episode ?? 0 : 0), subtitle:epLine, wnProfile:(profile ? profile.id : ''), wnItem:(itemId || ''), wnKind:(ctx && ctx.ep ? 'episode' : 'movie'), wnTitle:((ctx && ctx.info && ctx.info.item && ctx.info.item.name) || title || ''), wnPoster:((ctx && ctx.info && ctx.info.item && (ctx.info.item.poster || ctx.info.item.background)) || ''), accent:(getComputedStyle(document.documentElement).getPropertyValue('--acc') || '').trim(), startMs, subtitles:picked, audioLang:code2(effAudio()) || null, subLang:pref ? (code2(pref) || pref) : null});
+    const used = r && r.alt >= 0 && alts[r.alt] ? alts[r.alt] : s;      // the player may have moved to a backup source by itself
+    if (r && r.alt >= 0) { badStreams.add(s); badSet(s); for (let k = 0; k < r.alt; k++) { badStreams.add(alts[k]); badSet(alts[k]); } }
     if (r && r.failed) {
+      if (r.alt >= 0) { badStreams.add(used); badSet(used); }
       badStreams.add(s); badSet(s); logErr(title, s, r.error); const el = streamEls.get(s); if (el) el.classList.add('bad');
       const list = (ctx && ctx._list) || [], i = list.indexOf(s);
       const nx = r.next && i >= 0 ? list.slice(i + 1).find(x => x && x.url && !badStreams.has(x)) : null;
@@ -4303,10 +4307,10 @@ async function playNative(s, title, ctx){
       toast(r.next ? 'No other sources to try.' : 'That source failed. Pick another one.');
     } else {
       if (r && r.duration) recordProgress(ctx, stream, r.position / 1000, r.duration / 1000, true);
-      if (r && itemId && r.position > 20000) prefSet(itemId, sigOf(s));
+      if (r && itemId && r.position > 20000) prefSet(itemId, sigOf(used));
       if (r && itemId && typeof r.subDelay === 'number') { const m = mapGet('streamlet.subdelay'); if (r.subDelay) m[itemId] = r.subDelay; else delete m[itemId]; lsSet('streamlet.subdelay', m); }
-      if (r && r.autoNext && ctx && ctx.next) setTimeout(() => autoPlayNext(ctx, s), 60);
-      else if (r && r.pick && ctx && ctx.eps) setTimeout(() => playEpisodeOf(ctx, r.pick.season, r.pick.episode, s), 60);
+      if (r && r.autoNext && ctx && ctx.next) setTimeout(() => autoPlayNext(ctx, used), 60);
+      else if (r && r.pick && ctx && ctx.eps) setTimeout(() => playEpisodeOf(ctx, r.pick.season, r.pick.episode, used), 60);
     }
   } catch (e) { toast("Couldn't start the native player: " + ((e && e.message) || e)); }
   finally { try { handle.remove(); } catch {} if (!$('#home').hidden) renderCW(); }

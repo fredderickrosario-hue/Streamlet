@@ -113,7 +113,13 @@ public class PlayerActivity extends Activity {
     private TextView errNextLabel;
     private View errNextBtn;
     private boolean errOn = false;
-    private final Runnable stallRun = new Runnable() { @Override public void run() { if (!errOn && !reported) { AppLog.add("STALL", "no data for 45 s from " + String.valueOf(android.net.Uri.parse(String.valueOf(getIntent().getStringExtra("url"))).getHost())); showError("This source isn't loading.", "STALLED"); } } };
+    /* automatic source pick on: an error is retried on the same source behind the loading logo, then the next source takes over at the same spot */
+    private boolean autoRecover = false, recovering = false, played = false;
+    private JSONArray alts = new JSONArray();
+    private int altAt = -1, retries = 0;
+    private long goodPos = 0;
+    private final Runnable retryReset = () -> { retries = 0; };
+    private final Runnable stallRun = new Runnable() { @Override public void run() { if (!errOn && !reported && autoRecover && recover(true, "STALLED")) return; if (!errOn && !reported) { AppLog.add("STALL", "no data for 45 s from " + String.valueOf(android.net.Uri.parse(String.valueOf(getIntent().getStringExtra("url"))).getHost())); showError("This source isn't loading.", "STALLED"); } } };
     private MediaItem mediaItem;
     private TrackSelectionParameters trackParams;
     private Player.Listener playerListener;
@@ -190,6 +196,7 @@ public class PlayerActivity extends Activity {
         if (player != null) player.seekTo(seek.getProgress()); seekPending = false; } };
     private final Runnable uiTick = new Runnable() { @Override public void run() {
         refreshProgress();
+        if (player != null && player.isPlaying()) goodPos = Math.max(0L, player.getCurrentPosition());
         if (player != null && player.isPlaying() && System.currentTimeMillis() - wnLast > 60000) wnSync(false);   // keep the home-screen position about a minute fresh
         handler.postDelayed(this, 500);
     } };
@@ -241,6 +248,8 @@ public class PlayerActivity extends Activity {
         wnSeason = in.getIntExtra("curSeason", 1); wnEpisode = in.getIntExtra("curEpisode", 0);
         long startMs = in.getLongExtra("startMs", 0L);
         String nt = in.getStringExtra("nextTitle"); nextTitle = nt == null ? "" : nt;
+        autoRecover = in.getBooleanExtra("autoPick", false);
+        try { alts = new JSONArray(in.getStringExtra("alts") == null ? "[]" : in.getStringExtra("alts")); } catch (Exception e) { alts = new JSONArray(); }
         autoNextOn = in.getBooleanExtra("autoNext", true); autoSkipOn = in.getBooleanExtra("autoSkip", false);
         isEpisode = in.getBooleanExtra("episode", false);
         try {                                                                  // intro / recap / credits times from the intro database
@@ -319,7 +328,8 @@ public class PlayerActivity extends Activity {
                         if (got < want - 5000 && player.isCurrentMediaItemSeekable()) player.seekTo(want);
                     }
                 }
-                spinner.setVisibility(state == Player.STATE_BUFFERING ? View.VISIBLE : View.GONE);
+                spinner.setVisibility(state == Player.STATE_BUFFERING || recovering ? View.VISIBLE : View.GONE);
+                if (state == Player.STATE_READY && recovering) { recovering = false; spinner.setVisibility(View.GONE); handler.removeCallbacks(retryReset); handler.postDelayed(retryReset, 20000); }
                 handler.removeCallbacks(stallRun);                                   // a source that sits buffering for 45 s counts as failed (the next-source screen takes over)
                 if (state == Player.STATE_BUFFERING && !errOn && !reported) handler.postDelayed(stallRun, 45000);
                 refreshProgress();
@@ -345,6 +355,7 @@ public class PlayerActivity extends Activity {
             @Override
             public void onIsPlayingChanged(boolean playing) {
                 playIcon.setImageResource(playing ? R.drawable.ic_p_pause : R.drawable.ic_p_play);
+                if (playing) played = true;
                 if (playing) scheduleHide(); else if (controlsOn) handler.removeCallbacks(hideRun);
             }
 
@@ -353,6 +364,7 @@ public class PlayerActivity extends Activity {
                 int ec = error.errorCode;
                 AppLog.add("EXO", error.getErrorCodeName() + " (" + ec + ") " + String.valueOf(error.getMessage()));
                 boolean network = ec >= 2000 && ec < 3000;            // connection / HTTP problems: the other player would fail too
+                if (autoRecover && recover(network, error.getErrorCodeName())) return;
                 if (!network && !errOn) { handler.post(() -> switchToVlc()); return; }
                 showError(friendly(error), error.getErrorCodeName());
             }
@@ -402,6 +414,40 @@ public class PlayerActivity extends Activity {
         return p;
     }
 
+    /** Retry this source (3 times, a little longer each time), then move to the next one, at the same spot and behind the loading logo.
+     *  A file this player can't read at all (never played, not a connection problem) still goes to the backup player. */
+    private boolean recover(boolean network, String why) {
+        if (reported || errOn || player == null) return false;
+        if (!played && !network) return false;
+        handler.removeCallbacks(stallRun); handler.removeCallbacks(retryReset);
+        final long pos = goodPos > 0 ? goodPos : Math.max(0L, startMsIn);
+        if (retries < 3) {
+            retries++; recovering = true; spinner.setVisibility(View.VISIBLE); hideControls();
+            AppLog.add("RECOVER", why + ": retrying this source (" + retries + "/3) at " + pos / 1000 + " s");
+            handler.postDelayed(() -> reload(pos, null), 1200L * retries);
+            return true;
+        }
+        while (altAt + 1 < alts.length()) {
+            altAt++;
+            JSONObject a = alts.optJSONObject(altAt); String u = a == null ? "" : a.optString("url", "");
+            if (u.isEmpty()) continue;
+            retries = 0; recovering = true; spinner.setVisibility(View.VISIBLE); hideControls();
+            AppLog.add("RECOVER", why + ": moving to the next source (" + (altAt + 1) + "/" + alts.length() + ") at " + pos / 1000 + " s");
+            reload(pos, u);
+            return true;
+        }
+        recovering = false;
+        return false;                                                    // nothing left to try: the usual message
+    }
+    private void reload(long pos, String newUrl) {
+        if (reported || player == null || mediaItem == null) return;
+        if (newUrl != null) { streamUrl = newUrl; mediaItem = mediaItem.buildUpon().setUri(Uri.parse(newUrl)).build(); thumbsBroken = newUrl.toLowerCase(Locale.ROOT).contains(".m3u8"); thumbCache.evictAll(); try { if (thumbMmr != null) { final android.media.MediaMetadataRetriever old = thumbMmr; thumbMmr = null; if (thumbExec != null) thumbExec.execute(() -> { try { old.release(); } catch (Exception ignored) { } }); } } catch (Exception ignored) { } }
+        player.setMediaItem(mediaItem, pos);
+        player.prepare();
+        player.play();
+        handler.removeCallbacks(stallRun); handler.postDelayed(stallRun, 45000);
+    }
+
     /** Hand the stream to the backup player (libVLC), keeping the position and the bridge call. */
     private void switchToVlc() {
         if (reported) return;
@@ -410,6 +456,8 @@ public class PlayerActivity extends Activity {
         AppLog.add("FALLBACK", "ExoPlayer could not play it, switching to the backup player");
         Intent v = new Intent(this, VlcActivity.class);
         v.putExtras(getIntent());
+        v.putExtra("url", streamUrl);                                    // after a source change: the one in use now
+        ExoPlayerPlugin.altUsed = altAt;
         v.putExtra("startMs", Math.max(lastPos, startMsIn));              // the failed first try may never have played: keep where the viewer was
         startActivity(v);
         finish();
@@ -1751,6 +1799,7 @@ public class PlayerActivity extends Activity {
         snapshot();
         reported = true;
         ExoPlayerPlugin.subDelay = subDelayMs;
+        ExoPlayerPlugin.altUsed = altAt;
         ExoPlayerPlugin.failed(lastPos, lastDur, next, errCode != null ? String.valueOf(errCode.getText()) : "");
         finish();
     }
@@ -1761,7 +1810,7 @@ public class PlayerActivity extends Activity {
         reported = true;
         wnSync(ended);
         ExoPlayerPlugin.subDelay = subDelayMs;
-        ExoPlayerPlugin.finished(ended && lastDur > 0 ? lastDur : lastPos, lastDur, ended);
+        ExoPlayerPlugin.altUsed = altAt; ExoPlayerPlugin.finished(ended && lastDur > 0 ? lastDur : lastPos, lastDur, ended);
         finish();
     }
 
@@ -1885,7 +1934,7 @@ public class PlayerActivity extends Activity {
             snapshot();
             reported = true;
             wnSync(false);
-            ExoPlayerPlugin.finished(lastPos, lastDur, false);
+            ExoPlayerPlugin.altUsed = altAt; ExoPlayerPlugin.finished(lastPos, lastDur, false);
         }
         if (player != null) {
             player.release();
