@@ -18,8 +18,12 @@ final class WatchNext {
         return new Uri.Builder().scheme("streamlet").authority("resume").appendQueryParameter("p", profile).appendQueryParameter("i", item).build();
     }
 
+    /** only TVs have the "Continue watching" home row; on a phone there is nothing to write to */
+    static boolean supported(Context c) { return c.getPackageManager().hasSystemFeature("android.software.leanback"); }
+
     static void publish(Context c, String profile, String item, boolean episode, String title, String description,
                         int season, int number, String poster, long pos, long dur) {
+        if (!supported(c)) return;
         try {
             SharedPreferences sp = c.getSharedPreferences(PREFS, Context.MODE_PRIVATE);
             String key = profile + "|" + item;
@@ -46,6 +50,7 @@ final class WatchNext {
 
     /** the title is finished (or its entry was taken off): it leaves the row */
     static void remove(Context c, String profile, String item) {
+        if (!supported(c)) return;
         try {
             SharedPreferences sp = c.getSharedPreferences(PREFS, Context.MODE_PRIVATE);
             String key = profile + "|" + item;

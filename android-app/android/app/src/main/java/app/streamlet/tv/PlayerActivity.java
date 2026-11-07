@@ -442,7 +442,7 @@ public class PlayerActivity extends Activity {
     }
     private void reload(long pos, String newUrl) {
         if (reported || player == null || mediaItem == null) return;
-        if (newUrl != null) { streamUrl = newUrl; mediaItem = mediaItem.buildUpon().setUri(Uri.parse(newUrl)).build(); thumbsBroken = newUrl.toLowerCase(Locale.ROOT).contains(".m3u8"); thumbCache.evictAll(); if (fx != null) { try { fx.setMediaItem(MediaItem.fromUri(newUrl), Collections.singletonList(androidx.media3.effect.Presentation.createForHeight(216))); } catch (Throwable e) { thumbsBroken = true; } } }); } } catch (Exception ignored) { } }
+        if (newUrl != null) { streamUrl = newUrl; mediaItem = mediaItem.buildUpon().setUri(Uri.parse(newUrl)).build(); thumbsBroken = newUrl.toLowerCase(Locale.ROOT).contains(".m3u8"); thumbCache.evictAll(); if (fx != null) { try { fx.setMediaItem(MediaItem.fromUri(newUrl), Collections.singletonList(androidx.media3.effect.Presentation.createForHeight(216))); } catch (Throwable e) { thumbsBroken = true; } } }
         player.setMediaItem(mediaItem, pos);
         player.prepare();
         player.play();
@@ -1080,7 +1080,7 @@ public class PlayerActivity extends Activity {
                 scheduleHide();
             }
             @Override public void onStart() { seekPending = true; handler.removeCallbacks(hideRun); }
-            @Override public void onStop() { handler.removeCallbacks(seekRun); seekRun.run(); scheduleHide(); handler.removeCallbacks(thumbHide); handler.postDelayed(thumbHide, 1800); }
+            @Override public void onStop() { handler.removeCallbacks(seekRun); seekRun.run(); scheduleHide(); handler.removeCallbacks(thumbHide); handler.postDelayed(thumbHide, 2600); }
         });
         LinearLayout.LayoutParams pt = new LinearLayout.LayoutParams(-2, -2);
         pt.leftMargin = dp(14);
