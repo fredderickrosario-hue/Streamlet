@@ -125,7 +125,8 @@ async function tmFind(spec){
   return v;
 }
 async function tmCurated(c, skip){
-  const part = c.cur.slice(skip, skip + 20);
+  if (skip) return {metas:[]};                                            // a kept list is short: the whole of it comes back at once (rows only load their first page)
+  const part = c.cur;
   const found = await Promise.all(part.map(s => tmFind(s).catch(() => null)));
   return {metas:(await Promise.all(found.filter(x => x && x.poster_path).map(x => tmPreview(x, x._k)))).filter(Boolean)};
 }
@@ -146,7 +147,7 @@ function tmManifest(fl){
     resources:['catalog', {name:'meta', types:['movie', 'series'], idPrefixes:['tt', 'tmdb:']}], types:['movie', 'series'], idPrefixes:['tt', 'tmdb:'],
     catalogs:[{type:'movie', id:'ls.' + lm[1], name:tmListName(lm[1]), extra:[{name:'skip', isRequired:false}]}]};
   const f = TM_FLAVORS[fl] || TM_FLAVORS.all;
-  const catalogs = (TM_CATS[fl] || TM_CATS.all).map(c => c.cur ? {type:c.type, id:c.id, name:c.name, extra:[{name:'skip', isRequired:false}]}
+  const catalogs = (TM_CATS[fl] || TM_CATS.all).map(c => c.cur ? {type:c.type, id:c.id, name:c.name, extra:[]}
     : {type:c.type, id:c.id, name:c.name, genres:tmGenres(fl, c.type), extra:[{name:'genre', options:tmGenres(fl, c.type), isRequired:false}, {name:'skip', isRequired:false}]});
   for (const type of ['movie', 'series']) catalogs.push({type, id:'tm.search', name:'Search', extra:[{name:'search', isRequired:true}]});
   return {id:'app.streamlet.tmdb.' + fl, version:'1.0.0', name:f.name, description:f.desc + ' Needs your TMDB key in Settings.',
@@ -226,7 +227,7 @@ async function tmCatalog(fl, type, id, extra){
     if (fl === 'kids') r.results = (r.results || []).filter(x => tmKidOk(x, kind));
   } else {
     const c = (TM_CATS[fl] || []).find(x => x.id === id && x.type === type); if (!c) return {metas:[]};
-    if (c.cur) return tmCurated(c, +extra.skip || 0);
+    if (c.cur) return tmCurated(c, +extra.skip || 0);   // whole list in one go
     const gmap = kind === 'movie' ? TM_MG : TM_TG, gid = extra.genre && gmap[extra.genre];
     if (c.list && !gid) r = await tmdbGet(c.list + (c.list.includes('?') ? '&' : '?') + 'page=' + page, tmKey());
     else {
