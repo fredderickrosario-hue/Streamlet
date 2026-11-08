@@ -2463,8 +2463,8 @@ function applyUI(){
   document.body.classList.toggle('noanim', u.anim === false);
   document.body.classList.toggle('noglass', u.glass === undefined ? tv : u.glass === false);
 }
-async function renderLog(){
-  const box = $('#logBody'), when = t => new Date(t).toLocaleString([], {month:'short', day:'numeric', hour:'2-digit', minute:'2-digit'});
+async function logText(nativeN = 40){
+  const when = t => new Date(t).toLocaleString([], {month:'short', day:'numeric', hour:'2-digit', minute:'2-digit'});
   const play = lsGet('streamlet.errlog', []), sys = lsGet('streamlet.syslog', []), N = nativePlayer();
   let native = ''; try { if (N && N.getLog) native = ((await N.getLog()) || {}).log || ''; } catch {}
   const lines = [`Streamlet ${APP_BUILD} · ${document.body.classList.contains('tv') ? 'TV' : 'phone/web'} · ${innerWidth}x${innerHeight} · ${navigator.onLine ? 'online' : 'offline'}`, ''];
@@ -2477,14 +2477,41 @@ async function renderLog(){
       `episode records: ${eps.length} · shows in them: ${[...new Set(eps.map(r => r.itemId.slice(0, 28)))].join(', ') || 'none'} · taken off: ${Object.keys(rem).slice(0, 6).map(k => k.slice(-34)).join(', ') || 'none'}`, ...cwDiag.map(x => '  ' + x)); }
   const ls = lsGet('streamlet.lastsearch', null);
   if (ls && ls.rows) { lines.push('', `LAST SEARCH: "${ls.q}" at ${when(ls.t)}`); for (const r of ls.rows.slice(0, 40)) lines.push(r); }
-  if (N) lines.push('', 'ANDROID LOG' + (native.trim() ? '' : ': empty'), ...native.trim().split('\n').slice(-40));
-  const text = lines.join('\n'), ta = h('textarea', {readonly:'', rows:'10', class:'f', style:'width:100%;font:12px/1.4 monospace;white-space:pre'}); ta.value = text;
+  if (N) lines.push('', 'ANDROID LOG' + (native.trim() ? '' : ': empty'), ...native.trim().split('\n').slice(-nativeN));
+  return lines.join('\n');
+}
+/* the TV's log, sent to your account so the phone can read and copy it (Settings > Diagnostics on the phone) */
+const logDev = () => document.body.classList.contains('tv') ? 'tv' : 'phone';
+async function sendLog(quiet){
+  if (!user || !db || !FB) { if (!quiet) toast('Sign in on both devices to send the log'); return false; }
+  try {
+    const text = (await logText(200)).slice(-60000);
+    await FB.fs.setDoc(FB.fs.doc(db, 'users', user.uid, 'sync', 'diag_' + logDev()), {text, t:Date.now(), dev:logDev()});
+    if (!quiet) toast(logDev() === 'tv' ? 'Sent: open Settings > Diagnostics on your phone' : 'Sent: open Settings > Diagnostics on your TV');
+    return true;
+  } catch (e) { if (!quiet) toast("Couldn't send the log: " + (e.message || e)); return false; }
+}
+let logAutoT = 0;
+function sendLogSoon(){ if (logDev() !== 'tv') return; clearTimeout(logAutoT); logAutoT = setTimeout(() => sendLog(true), 4000); }   // a playback problem on the TV: the log goes to the phone by itself
+async function renderLog(){
+  const box = $('#logBody'), N = nativePlayer(), when = t => new Date(t).toLocaleString([], {month:'short', day:'numeric', hour:'2-digit', minute:'2-digit'});
+  const text = await logText(), ta = h('textarea', {readonly:'', rows:'10', class:'f', style:'width:100%;font:12px/1.4 monospace;white-space:pre'}); ta.value = text;
   const copy = h('button', {class:'btn ghost sm', type:'button', onclick:async () => {
     try { await navigator.clipboard.writeText(text); toast('Copied'); } catch { ta.focus(); ta.select(); try { document.execCommand('copy'); toast('Copied'); } catch { toast('Select the text and copy it'); } }
   }}, 'Copy');
   const share = navigator.share ? h('button', {class:'btn ghost sm', type:'button', onclick:() => navigator.share({title:'Streamlet log', text}).catch(() => {})}, 'Share') : null;
   const clear = h('button', {class:'btn ghost sm', type:'button', onclick:async () => { lsSet('streamlet.errlog', []); lsSet('streamlet.syslog', []); try { if (N && N.clearLog) await N.clearLog(); } catch {} renderLog(); }}, 'Clear');
-  box.replaceChildren(ta, h('div', {style:'display:flex;gap:8px;margin-top:8px;flex-wrap:wrap'}, copy, share, clear));
+  const send = h('button', {class:'btn ghost sm', type:'button', onclick:() => sendLog(false)}, logDev() === 'tv' ? 'Send to my phone' : 'Send to my TV');
+  box.replaceChildren(ta, h('div', {style:'display:flex;gap:8px;margin-top:8px;flex-wrap:wrap'}, copy, share, send, clear));
+  if (user && db && FB) try {                                           // the other device's last log, ready to copy here
+    const other = logDev() === 'tv' ? 'phone' : 'tv', d = await FB.fs.getDoc(FB.fs.doc(db, 'users', user.uid, 'sync', 'diag_' + other));
+    if (d.exists()) {
+      const r = d.data(), ta2 = h('textarea', {readonly:'', rows:'10', class:'f', style:'width:100%;font:12px/1.4 monospace;white-space:pre'}); ta2.value = r.text || '';
+      const cp2 = h('button', {class:'btn ghost sm', type:'button', onclick:async () => { try { await navigator.clipboard.writeText(r.text || ''); toast('Copied'); } catch { ta2.focus(); ta2.select(); try { document.execCommand('copy'); toast('Copied'); } catch { toast('Select the text and copy it'); } } }}, 'Copy');
+      const sh2 = navigator.share ? h('button', {class:'btn ghost sm', type:'button', onclick:() => navigator.share({title:'Streamlet ' + other + ' log', text:r.text || ''}).catch(() => {})}, 'Share') : null;
+      box.append(h('h4', {style:'margin:18px 0 8px'}, `Log from your ${other === 'tv' ? 'TV' : 'phone'} · sent ${when(r.t)}`), ta2, h('div', {style:'display:flex;gap:8px;margin-top:8px;flex-wrap:wrap'}, cp2, sh2));
+    }
+  } catch {}
 }
 $('#logBox').addEventListener('toggle', () => { if ($('#logBox').open) renderLog(); });
 { const sync = () => { $('#offline').hidden = navigator.onLine; }; addEventListener('online', sync); addEventListener('offline', sync); sync(); }
@@ -3915,7 +3942,7 @@ const prefOf = id => mapGet('streamlet.srcpref')[id];
 const prefSet = (id, sig) => { if (!id || !sig) return; const m = mapGet('streamlet.srcpref'); m[id] = sig; const ks = Object.keys(m); if (ks.length > 150) delete m[ks[0]]; lsSet('streamlet.srcpref', m); };
 const badSet = st => { const m = mapGet('streamlet.badsrc'), now = Date.now(); for (const k of Object.keys(m)) if (now - m[k] > 7 * 864e5) delete m[k]; m[urlKey(st.url)] = now; const ks = Object.keys(m); if (ks.length > 200) delete m[ks[0]]; lsSet('streamlet.badsrc', m); };
 const isBadStream = st => badStreams.has(st) || (st.url && Date.now() - (mapGet('streamlet.badsrc')[urlKey(st.url)] || 0) < 7 * 864e5);
-const logErr = (title, st, code) => { const a = lsGet('streamlet.errlog', []); a.unshift({t:Date.now(), title:title || '', src:String((st && st.name) || '').replace(/\n+/g, ' '), code:code || ''}); lsSet('streamlet.errlog', a.slice(0, 30)); };
+const logErr = (title, st, code) => { const a = lsGet('streamlet.errlog', []); a.unshift({t:Date.now(), title:title || '', src:String((st && st.name) || '').replace(/\n+/g, ' '), code:code || ''}); lsSet('streamlet.errlog', a.slice(0, 30)); try { sendLogSoon(); } catch {} };
 function orderStreams(ss, itemId){                                    // the source that worked last time first, ones that failed recently last
   const pref = prefOf(itemId), rank = x => isBadStream(x) ? 2 : (pref && sigOf(x) === pref ? 0 : 1);
   return ss.map((x, i) => [x, i]).sort((a, b) => rank(a[0]) - rank(b[0]) || a[1] - b[1]).map(x => x[0]);
