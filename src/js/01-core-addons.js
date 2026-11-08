@@ -73,11 +73,7 @@ async function dataPut(url, json){
 }
 
 const warmC = new Map();                                                       // catalogs fetched ahead of time by warmSpace (used for 2 minutes)
-async function getJSON(url){                                            // a show's episodes may be swapped for TMDB's order (26-ep-order.js)
-  const j = await getJSON0(url);
-  return /\/meta\/series\//.test(url) ? eoApply(url, j) : j;
-}
-async function getJSON0(url){
+async function getJSON(url){
   const w = warmC.get(url); if (w && Date.now() - w.t < 120000) return w.j;
   if (url.startsWith('demo://sample/')) return demoRoute(url.slice('demo://sample/'.length));
   if (url.startsWith('qc://')) return qcRoute(url);
@@ -106,8 +102,7 @@ function parseAddonUrl(input){
   if (!u) throw new Error('Paste an addon URL first.');
   if (u.toLowerCase()==='demo') u = 'demo://sample';
   if (/^(qu[eé]bec|qc)$/i.test(u)) u = 'qc://tva';
-  const tm = /^tmdb(?::\/\/|\s+)?(all|netflix|disney|marvel|kids)?\/?$/i.exec(u); if (tm) u = 'tmdb://' + (tm[1] || 'all').toLowerCase();
-  const tl = /themoviedb\.org\/list\/(\d+)/i.exec(u) || /^tmdb(?::\/\/|\s+)list[-\s]?(\d+)\/?$/i.exec(u); if (tl) u = 'tmdb://list-' + tl[1];      // a TMDB list link becomes a row
+  const tm = /^tmdb(?::\/\/|\s+)?(all|netflix|disney|kids)?\/?$/i.exec(u); if (tm) u = 'tmdb://' + (tm[1] || 'all').toLowerCase();
   u = u.replace(/^stremio:\/\//i, 'https://').replace(/^https?:\/\/((qc|tmdb):\/\/)/i, '$1');      // 'https://qc://tva' was saved by an older build: repair it
   if (!/^(https?|demo|qc|tmdb):\/\//i.test(u)) u = 'https://' + u;
   if (!/manifest\.json(\?.*)?$/.test(u)) u = u.replace(/\/+$/,'') + '/manifest.json';

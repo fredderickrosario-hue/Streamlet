@@ -279,7 +279,7 @@ async function playNative(s, title, ctx){
       toast(r.next ? 'No other sources to try.' : 'That source failed. Pick another one.');
     } else {
       if (r && r.duration) recordProgress(ctx, stream, r.position / 1000, r.duration / 1000, true);
-      if (r && itemId && r.position > 20000) prefSet(itemId, used);
+      if (r && itemId && r.position > 20000) prefSet(itemId, sigOf(used));
       if (r && itemId && typeof r.subDelay === 'number') { const m = mapGet('streamlet.subdelay'); if (r.subDelay) m[itemId] = r.subDelay; else delete m[itemId]; lsSet('streamlet.subdelay', m); }
       if (r && r.autoNext && ctx && ctx.next) setTimeout(() => autoPlayNext(ctx, used), 60);
       else if (r && r.pick && ctx && ctx.eps) setTimeout(() => playEpisodeOf(ctx, r.pick.season, r.pick.episode, used), 60);
@@ -306,8 +306,8 @@ async function playEpisode(ctx, nx, prev, rest, next){
   toast('Loading ' + (nx.title ? nx.title : 'episode ' + nx.episode) + '…');
   let all = [];
   await Promise.all(srcs.map(async ({a, sid}) => { try { const r = await withTimeout(getJSON(`${a.base}/stream/${ctx.type}/${enc(sid)}.json`), 12000); all.push(...(r.streams || []).filter(x => x && x.url)); } catch {} }));
-  const sig = sigOf(prev), sid = ctx.info.item.id;
-  all = rankStreams(sortByLang(all), sid);                                  // your source first: the same release, or the same kind (group, quality, addon)
+  const sig = sigOf(prev);
+  all = sortByLang(all);
   const st = all.find(x => !isBadStream(x) && sigOf(x) === sig) || all.find(x => !isBadStream(x));
   if (!st) { toast('No sources found for that episode.'); return; }
   return playNative(st, ctx.info.item.name, {type:ctx.type, id:nx.id, info:ctx.info, alt, eps:ctx.eps, ep:{season:nx.season, episode:nx.episode, title:nx.title}, next:next || null, rest:rest || [], _list:all});

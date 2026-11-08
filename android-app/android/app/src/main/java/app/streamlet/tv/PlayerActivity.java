@@ -192,37 +192,13 @@ public class PlayerActivity extends Activity {
     private static final String[] SUB_NAMES = {"Small", "Medium", "Large", "Extra large"};
     private final Runnable hideRun = new Runnable() { @Override public void run() {
         if (player != null && player.isPlaying() && !menuOn) hideControls(); else scheduleHide(); } };
-    private long seekTo = -1, seekAt = 0;
-    private boolean scrubbing = false, scrubResume = false, justCommitted = false;
-    /** remote on the seek bar: the video pauses and only the marker (and the preview) move */
-    private void scrubKey(int p) {
-        if (player == null) return;
-        if (!scrubbing) { scrubbing = true; seekPending = true; scrubResume = player.isPlaying(); player.pause(); }
-        handler.removeCallbacks(hideRun); handler.removeCallbacks(thumbHide);
-        posTx.setText(fmt(p));
-        showThumbs(p);
-    }
-    /** OK: jump to the marker and carry on as before */
-    private void scrubCommit() {
-        if (!scrubbing || player == null) return;
-        scrubbing = false; justCommitted = true;
-        seekTo = seek.getProgress(); seekAt = System.currentTimeMillis();
-        player.seekTo(seekTo); seekPending = false;
-        if (scrubResume) player.play();
-        thumbHide.run(); scheduleHide();
-    }
-    /** Back, or leaving the bar: the marker returns to where the video is */
-    private void scrubCancel() {
-        if (!scrubbing) return;
-        scrubbing = false; seekPending = false;
-        if (player != null) { seek.setProgress((int) player.getCurrentPosition()); posTx.setText(fmt(player.getCurrentPosition())); if (scrubResume) player.play(); }
-        thumbHide.run(); scheduleHide();
-    }                                  // the last jump: a retry after it resumes there, not before it
+    private long seekTo = -1, seekAt = 0;                                  // the last jump: a retry after it resumes there, not before it
     private final Runnable seekRun = new Runnable() { @Override public void run() {
+        thumbWant.clear();                                                  // the jump is happening: frames still queued for the preview are dropped
         if (player != null) { seekTo = seek.getProgress(); seekAt = System.currentTimeMillis(); player.seekTo(seekTo); } seekPending = false; } };
     private final Runnable uiTick = new Runnable() { @Override public void run() {
         refreshProgress();
-        if (player != null && player.isPlaying()) { goodPos = Math.max(0L, player.getCurrentPosition()); if (fx == null && !thumbsBroken && startPos >= 0 && player.getCurrentPosition() - startPos > 20000 && player.getTotalBufferedDuration() > 25000) thumbWarm(); }
+        if (player != null && player.isPlaying()) goodPos = Math.max(0L, player.getCurrentPosition());
         if (player != null && player.isPlaying() && System.currentTimeMillis() - wnLast > 60000) wnSync(false);   // keep the home-screen position about a minute fresh
         handler.postDelayed(this, 500);
     } };
@@ -346,7 +322,6 @@ public class PlayerActivity extends Activity {
             @Override
             public void onPlaybackStateChanged(int state) {
                 if (state == Player.STATE_ENDED) onEnded();
-                if (state == Player.STATE_READY && startPos < 0) startPos = player.getCurrentPosition();   // where this video started (a resume point counts as the start)
                 if (state == Player.STATE_READY && !resumeChecked) {                 // some files ignore the start position until they know their length: seek again once
                     resumeChecked = true;
                     long want = startMsIn, got = Math.max(0L, player.getCurrentPosition());
@@ -391,8 +366,6 @@ public class PlayerActivity extends Activity {
                 int ec = error.errorCode;
                 AppLog.add("EXO", error.getErrorCodeName() + " (" + ec + ") " + String.valueOf(error.getMessage()));
                 boolean network = ec >= 2000 && ec < 3000;            // connection / HTTP problems: the other player would fail too
-                busy = String.valueOf(error.getMessage()).contains("429") || String.valueOf(error.getCause()).contains("429");
-                if (network && !busy) forgetFinal(streamUrl);           // the real link may have expired: ask the addon again next time
                 if (autoRecover && recover(network, error.getErrorCodeName())) return;
                 if (!network && !errOn) { handler.post(() -> switchToVlc()); return; }
                 showError(friendly(error), error.getErrorCodeName());
@@ -408,43 +381,6 @@ public class PlayerActivity extends Activity {
         handler.post(uiTick);
         controls.setVisibility(View.GONE); controls.setAlpha(0f); controlsOn = false;           // the video starts clean: no controls until you press OK or tap
     }
-
-    /* Addons like Torrentio hand out a link that redirects to the real file, and every opening of that link
-       makes the addon ask the debrid service again. The player opens the file many times (start, cues, seeks,
-       reconnects, preview frames), so the addon starts refusing (HTTP 429). The redirect is followed once and
-       the real file link is reused for a few hours. */
-    static final java.util.concurrent.ConcurrentHashMap<String, String> FINAL = new java.util.concurrent.ConcurrentHashMap<>();
-    static final java.util.concurrent.ConcurrentHashMap<String, Long> FINAL_AT = new java.util.concurrent.ConcurrentHashMap<>();
-    static String finalOf(String u) { Long t = FINAL_AT.get(u); return t != null && System.currentTimeMillis() - t < 3 * 3600_000L ? FINAL.get(u) : null; }
-    static void forgetFinal(String u) { if (u != null) { FINAL.remove(u); FINAL_AT.remove(u); } }
-    static String resolveFinal(String u) {
-        if (u == null || !u.startsWith("http")) return u;
-        String hit = finalOf(u); if (hit != null) return hit;
-        for (int attempt = 0; attempt < 3; attempt++) {
-            String cur = u; int rc = -1; String retryAfter = null;
-            try {
-                for (int hop = 0; hop < 6; hop++) {
-                    HttpURLConnection c = (HttpURLConnection) new URL(cur).openConnection();
-                    c.setInstanceFollowRedirects(false); c.setConnectTimeout(10000); c.setReadTimeout(10000);
-                    c.setRequestProperty("User-Agent", UA); c.setRequestProperty("Range", "bytes=0-0");
-                    rc = c.getResponseCode();
-                    if (rc / 100 == 3) { String loc = c.getHeaderField("Location"); c.disconnect(); if (loc == null) break; cur = new URL(new URL(cur), loc).toString(); continue; }
-                    retryAfter = c.getHeaderField("Retry-After"); c.disconnect(); break;
-                }
-            } catch (Exception e) { AppLog.add("LINK", "couldn't follow the link: " + e.getClass().getSimpleName()); return u; }
-            if (rc == 200 || rc == 206) {
-                if (!cur.equals(u)) AppLog.add("LINK", "real file link found (" + hostOf(cur) + "), reused for this video");
-                FINAL.put(u, cur); FINAL_AT.put(u, System.currentTimeMillis()); return cur;
-            }
-            if (rc != 429 && rc != 503) { AppLog.add("LINK", "link answered HTTP " + rc); return u; }
-            long wait = 3000L * (attempt + 1);
-            try { if (retryAfter != null) wait = Math.min(8000L, Math.max(1000L, Long.parseLong(retryAfter.trim()) * 1000L)); } catch (Exception ignored) { }
-            AppLog.add("LINK", "addon busy (HTTP " + rc + "): waiting " + wait / 1000 + " s");
-            try { Thread.sleep(wait); } catch (InterruptedException ie) { return u; }
-        }
-        return u;
-    }
-    static String hostOf(String u) { try { return new URL(u).getHost(); } catch (Exception e) { return "?"; } }
 
     private ExoPlayer makePlayer(boolean compat) {
         DefaultHttpDataSource.Factory http = new DefaultHttpDataSource.Factory()
@@ -474,9 +410,7 @@ public class PlayerActivity extends Activity {
         tsel = new DefaultTrackSelector(this);
         ExoPlayer p = new ExoPlayer.Builder(this, rf)
                 .setTrackSelector(tsel)
-                .setMediaSourceFactory(new DefaultMediaSourceFactory(new androidx.media3.datasource.ResolvingDataSource.Factory(new DefaultDataSource.Factory(this, http),
-                        spec -> { String u = spec.uri.toString(); if (!u.equals(streamUrl)) return spec;   // only the video link itself (not subtitles or stream pieces)
-                            String f = resolveFinal(u); return f == null || f.equals(u) ? spec : spec.withUri(Uri.parse(f)); }), ex))
+                .setMediaSourceFactory(new DefaultMediaSourceFactory(new DefaultDataSource.Factory(this, http), ex))
                 .build();
         p.setVideoChangeFrameRateStrategy(optFps ? C.VIDEO_CHANGE_FRAME_RATE_STRATEGY_ONLY_IF_SEAMLESS : C.VIDEO_CHANGE_FRAME_RATE_STRATEGY_OFF);
         return p;
@@ -492,7 +426,7 @@ public class PlayerActivity extends Activity {
         if (retries < 3) {
             retries++; recovering = true; spinner.setVisibility(View.VISIBLE); hideControls();
             AppLog.add("RECOVER", why + ": retrying this source (" + retries + "/3) at " + pos / 1000 + " s");
-            handler.postDelayed(() -> reload(pos, null), (busy ? 5000L : 1200L) * retries);   // a busy addon (HTTP 429) gets real breathing room
+            handler.postDelayed(() -> reload(pos, null), 1200L * retries);
             return true;
         }
         while (altAt + 1 < alts.length()) {
@@ -509,7 +443,7 @@ public class PlayerActivity extends Activity {
     }
     private void reload(long pos, String newUrl) {
         if (reported || player == null || mediaItem == null) return;
-        if (newUrl != null) { streamUrl = newUrl; mediaItem = mediaItem.buildUpon().setUri(Uri.parse(newUrl)).build(); thumbsBroken = newUrl.toLowerCase(Locale.ROOT).contains(".m3u8"); thumbCache.evictAll(); startPos = -1; gridLevel = 0; gridNext = 0; gridDone = false; gridTried.clear(); if (fx != null) { try { fx.release(); } catch (Throwable ignored) { } fx = null; } handler.removeCallbacks(gridRun); }   // the reader restarts on the new source once it plays
+        if (newUrl != null) { streamUrl = newUrl; mediaItem = mediaItem.buildUpon().setUri(Uri.parse(newUrl)).build(); thumbsBroken = newUrl.toLowerCase(Locale.ROOT).contains(".m3u8"); thumbCache.evictAll(); try { if (thumbMmr != null) { final android.media.MediaMetadataRetriever old = thumbMmr; thumbMmr = null; if (thumbExec != null) thumbExec.execute(() -> { try { old.release(); } catch (Exception ignored) { } }); } } catch (Exception ignored) { } }
         player.setMediaItem(mediaItem, pos);
         player.prepare();
         player.play();
@@ -539,14 +473,11 @@ public class PlayerActivity extends Activity {
     private LinearLayout thumbStrip;
     private final ImageView[] seekThumbs = new ImageView[5];
     private final long[] thumbKeys = new long[5];
-    private final LruCache<Long, Bitmap> thumbCache = new LruCache<Long, Bitmap>(44 * 1024 * 1024) { @Override protected int sizeOf(Long k, Bitmap b) { return b.getByteCount(); } };   // ~44 MB of small 16-bit frames: a whole timeline
-    private static final long[] GRID_LEVELS = {60000, 30000, 15000, 10000};   // the timeline is filled in passes: one frame a minute everywhere, then every 30 s, 15 s, 10 s
-    private static final int GRID_MAX = 360;                                 // frames that fit in the cache: long movies stop at a coarser pass
-    private long startPos = -1;
-    private boolean busy = false;
-    private int gridLevel = 0; private long gridNext = 0; private boolean gridDone = false;
+    private final LruCache<Long, Bitmap> thumbCache = new LruCache<>(32);
     private final Set<Long> thumbWant = Collections.synchronizedSet(new HashSet<>());
     private final Set<Long> thumbPending = Collections.synchronizedSet(new HashSet<>());
+    private ExecutorService thumbExec;
+    private android.media.MediaMetadataRetriever thumbMmr;
     private volatile boolean thumbsBroken = false;
     private int thumbFails = 0;
     private static final long THUMB_STEP = 10000;
@@ -592,95 +523,46 @@ public class PlayerActivity extends Activity {
             long key = (t / 5000) * 5000;
             thumbKeys[i] = key;
             Bitmap b = thumbCache.get(key);
-            iv.setImageBitmap(b != null ? b : thumbNear(key));                   // until the exact frame arrives, the closest one already fetched
+            iv.setImageBitmap(b);
             if (b == null) thumbWant.add(key);
         }
         handler.removeCallbacks(thumbKick); handler.postDelayed(thumbKick, 280);   // fetch once the scrubbing pauses, the frame you are on first
     }
-    private final Runnable thumbKick = new Runnable() { @Override public void run() {
-        if (thumbsBroken || player == null || thumbStrip == null || thumbStrip.getVisibility() != View.VISIBLE) return;
-        if (player.getPlaybackState() != Player.STATE_READY) { handler.postDelayed(this, 400); return; }   // the player is loading after a jump: it gets the connection first, the preview waits
-        thumbPump();
-    } };
+    private final Runnable thumbKick = () -> {
+        if (thumbsBroken || player == null || player.getPlaybackState() != Player.STATE_READY) return;   // the player is loading: it gets the connection, not the preview
+        for (int i : new int[]{2, 1, 3, 0, 4}) { long k = thumbKeys[i]; if (k >= 0 && thumbWant.contains(k) && thumbCache.get(k) == null) requestThumb(k); }
+    };
 
-    /** the closest frame already fetched, within 45 s */
-    private Bitmap thumbNear(long key) {
-        Bitmap best = null; long bd = 45001;
-        for (java.util.Map.Entry<Long, Bitmap> e : thumbCache.snapshot().entrySet()) { long d = Math.abs(e.getKey() - key); if (d < bd) { bd = d; best = e.getValue(); } }
-        return best;
-    }
-    /** start the frame reader before you seek: the controls are up, or the video has played a little */
-    private void thumbWarm() {
-        if (thumbsBroken || player == null || fx != null) return;
-        try {
-            fx = new androidx.media3.transformer.ExperimentalFrameExtractor(this,
-                    new androidx.media3.transformer.ExperimentalFrameExtractor.Configuration.Builder().setSeekParameters(androidx.media3.exoplayer.SeekParameters.CLOSEST_SYNC).build());
-            String fu = finalOf(streamUrl);                                    // the real file link the player found: preview frames never go through the addon
-            fx.setMediaItem(MediaItem.fromUri(fu != null ? fu : streamUrl), Collections.singletonList(androidx.media3.effect.Presentation.createForHeight(180)));
-            AppLog.add("thumbs", "frame reader started");
-        } catch (Throwable e) { thumbsBroken = true; AppLog.add("thumbs", "seek preview unavailable: " + e); }
-        gridLevel = 0; gridNext = 0; gridDone = false; gridTried.clear();
-        handler.removeCallbacks(gridRun); handler.postDelayed(gridRun, 400);
-    }
-    /** from the start, fill the whole timeline back to back: around where you are first, then the passes across the video.
-     *  It only steps aside for the frames you are scrubbing to, and while playback itself is short of buffer. */
-    private final Runnable gridRun = new Runnable() { @Override public void run() {
-        handler.removeCallbacks(this);
-        if (thumbsBroken || player == null || isFinishing() || gridDone) return;
-        if (fxBusy) return;                                                      // the frame being read calls back here when it is done
-        boolean waiting = false;                                                 // frames you are scrubbing to that are still missing come first
-        if (thumbStrip != null && thumbStrip.getVisibility() == View.VISIBLE) synchronized (thumbWant) { for (Long w : thumbWant) if (thumbCache.get(w) == null) { waiting = true; break; } }
-        if (waiting) { handler.postDelayed(this, 500); return; }
-        long dur = player.getDuration();
-        boolean ready = player.getPlaybackState() == Player.STATE_READY, roomy = player.getTotalBufferedDuration() >= 30000;   // only with a good cushion of video loaded, so the preview never slows playback
-        if (dur == C.TIME_UNSET || dur <= 0 || !ready || !roomy) { handler.postDelayed(this, 700); return; }
-        long pos = player.getCurrentPosition(), here = (pos / 10000) * 10000;
-        for (long d : new long[]{0, 10000, -10000, 20000, -20000}) { long k = here + d; if (k >= 0 && k <= dur && thumbCache.get(k) == null && !gridTried.contains(k)) { gridTried.add(k); thumbFetch(k, false); return; } }
-        while (gridLevel < GRID_LEVELS.length) {
-            long step = GRID_LEVELS[gridLevel];
-            if (gridLevel > 0 && dur / step > GRID_MAX) break;                   // finer than the cache can hold
-            while (gridNext <= dur) { long k = gridNext; gridNext += step; if (thumbCache.get(k) == null && !gridTried.contains(k)) { gridTried.add(k); thumbFetch(k, false); return; } }
-            gridLevel++; gridNext = 0;
-            AppLog.add("thumbs", "timeline pass done: every " + (step / 1000) + " s (" + thumbCache.size() + " frames)");
-        }
-        gridDone = true;
-    } };
-    private final Set<Long> gridTried = new HashSet<>();
     private void refreshThumbs() {
         if (thumbStrip == null) return;
         if (thumbsBroken) { thumbStrip.setVisibility(View.GONE); return; }
         for (int i = 0; i < 5; i++) { if (thumbKeys[i] < 0) continue; Bitmap b = thumbCache.get(thumbKeys[i]); if (b != null) seekThumbs[i].setImageBitmap(b); }
     }
 
-    /** frames come from a second, silent ExoPlayer (Media3's frame extractor): the same fast MKV / MP4 seeking as playback, scaled down on the GPU. One at a time. */
-    private androidx.media3.transformer.ExperimentalFrameExtractor fx;
-    private boolean fxBusy = false;
-    private void thumbPump() {
-        if (fxBusy || thumbsBroken || player == null || isFinishing()) return;
-        for (int i : new int[]{2, 1, 3, 0, 4}) { long k = thumbKeys[i]; if (k >= 0 && thumbWant.contains(k) && thumbCache.get(k) == null) { thumbFetch(k, true); return; } }
-    }
-    private void thumbFetch(final long k, final boolean wanted) {
-        thumbWarm();
-        if (fx == null || fxBusy || thumbsBroken) return;
-        fxBusy = true;
-        final long t0 = System.currentTimeMillis();
-        final com.google.common.util.concurrent.ListenableFuture<androidx.media3.transformer.ExperimentalFrameExtractor.Frame> f = fx.getFrame(k);
-        final Runnable dog = () -> { if (fxBusy && !f.isDone()) { thumbsBroken = true; AppLog.add("thumbs", "seek preview off: no frame after 12 s"); refreshThumbs(); } };
-        handler.postDelayed(dog, 12000);
-        f.addListener(() -> {
-            handler.removeCallbacks(dog);
-            fxBusy = false;
+    private void requestThumb(final long key) {
+        if (!thumbPending.add(key)) return;
+        if (thumbExec == null) thumbExec = Executors.newSingleThreadExecutor();
+        thumbExec.execute(() -> {
             try {
-                Bitmap b = f.get().bitmap;
-                if (b != null && b.getConfig() != Bitmap.Config.RGB_565) { Bitmap s16 = b.copy(Bitmap.Config.RGB_565, false); if (s16 != null) { b.recycle(); b = s16; } }
-                if (b != null) { if (thumbCache.size() == 0) AppLog.add("thumbs", "first frame in " + (System.currentTimeMillis() - t0) + " ms (" + b.getWidth() + "x" + b.getHeight() + ")"); thumbCache.put(k, b); thumbFails = 0; }
-                if (wanted && System.currentTimeMillis() - t0 > 9000) { thumbsBroken = true; AppLog.add("thumbs", "seek preview off: frames from this stream are too slow"); }
-            } catch (Throwable e) { if (++thumbFails >= 2) { thumbsBroken = true; AppLog.add("thumbs", "seek preview unavailable: " + e); } }
-            if (thumbStrip != null && thumbStrip.getVisibility() == View.VISIBLE) { for (int i = 0; i < 5; i++) if (thumbKeys[i] >= 0 && thumbCache.get(thumbKeys[i]) == null) { Bitmap nb = thumbNear(thumbKeys[i]); if (nb != null) seekThumbs[i].setImageBitmap(nb); } }
-            refreshThumbs();
-            thumbPump();
-            if (!fxBusy) handler.post(gridRun);                                  // straight on to the next frame of the timeline
-        }, handler::post);
+                if (thumbsBroken || !thumbWant.contains(key)) return;          // you have moved on: skip it
+                if (thumbMmr == null) {
+                    android.media.MediaMetadataRetriever m = new android.media.MediaMetadataRetriever();
+                    if (streamUrl.startsWith("http")) { Map<String, String> hd = new HashMap<>(); hd.put("User-Agent", UA); m.setDataSource(streamUrl, hd); }
+                    else m.setDataSource(this, Uri.parse(streamUrl));
+                    thumbMmr = m;
+                }
+                if (player == null) return;
+                final long t0 = System.currentTimeMillis();
+                Bitmap b = android.os.Build.VERSION.SDK_INT >= 27
+                        ? thumbMmr.getScaledFrameAtTime(key * 1000L, android.media.MediaMetadataRetriever.OPTION_CLOSEST_SYNC, 384, 216)
+                        : thumbMmr.getFrameAtTime(key * 1000L, android.media.MediaMetadataRetriever.OPTION_CLOSEST_SYNC);
+                if (b == null) { if (++thumbFails >= 3) { thumbsBroken = true; AppLog.add("seekThumbs", "seek preview: no frames from this stream"); } }
+                else { thumbFails = 0; thumbCache.put(key, b); }
+                if (System.currentTimeMillis() - t0 > 3500) { thumbsBroken = true; AppLog.add("thumbs", "seek preview off: frames from this stream are too slow"); }
+            } catch (Throwable e) { thumbsBroken = true; AppLog.add("seekThumbs", "seek preview unavailable: " + e); }
+            finally { thumbPending.remove(key); }
+            runOnUiThread(this::refreshThumbs);
+        });
     }
 
     private GradientDrawable shape(boolean oval, int fill, int stroke, int strokeW, float radiusDp) {
@@ -778,7 +660,7 @@ public class PlayerActivity extends Activity {
         int getProgress() { return prog; }
         void setSecondaryProgress(int p) { sec = Math.max(0, Math.min(max, p)); invalidate(); }
         void setKeyProgressIncrement(int i) { inc = i; }
-        @Override protected void onFocusChanged(boolean g, int d, Rect r) { super.onFocusChanged(g, d, r); invalidate(); if (!g && scrubbing) scrubCancel(); }
+        @Override protected void onFocusChanged(boolean g, int d, Rect r) { super.onFocusChanged(g, d, r); invalidate(); }
         @Override protected void onDraw(Canvas cv) {
             float pad = dp(7), x0 = pad, x1 = getWidth() - pad, w = x1 - x0, cy = getHeight() / 2f;
             float h = dp(isFocused() ? 6 : 4), rad = h / 2f;
@@ -794,18 +676,16 @@ public class PlayerActivity extends Activity {
             if (isFocused()) { pt.setColor(Color.WHITE); cv.drawCircle(px, cy, dp(6), pt); }
         }
         @Override public boolean onKeyDown(int k, KeyEvent e) {
-            if (k == KeyEvent.KEYCODE_DPAD_LEFT || k == KeyEvent.KEYCODE_DPAD_RIGHT) {   // remote: only the marker moves; OK jumps there, Back cancels
+            if (k == KeyEvent.KEYCODE_DPAD_LEFT || k == KeyEvent.KEYCODE_DPAD_RIGHT) {
                 int step = e.getRepeatCount() > 8 ? inc * 3 : inc;
                 setProgress(prog + (k == KeyEvent.KEYCODE_DPAD_LEFT ? -step : step));
-                scrubKey(prog);
+                if (l != null) { if (e.getRepeatCount() == 0) l.onStart(); l.onChange(prog, true); }
                 return true;
             }
-            if ((k == KeyEvent.KEYCODE_DPAD_CENTER || k == KeyEvent.KEYCODE_ENTER || k == KeyEvent.KEYCODE_NUMPAD_ENTER) && scrubbing) { scrubCommit(); return true; }
             return super.onKeyDown(k, e);
         }
         @Override public boolean onKeyUp(int k, KeyEvent e) {
-            if (k == KeyEvent.KEYCODE_DPAD_LEFT || k == KeyEvent.KEYCODE_DPAD_RIGHT) return true;
-            if ((k == KeyEvent.KEYCODE_DPAD_CENTER || k == KeyEvent.KEYCODE_ENTER || k == KeyEvent.KEYCODE_NUMPAD_ENTER) && justCommitted) { justCommitted = false; return true; }   // the OK that applied a jump doesn't also pause
+            if ((k == KeyEvent.KEYCODE_DPAD_LEFT || k == KeyEvent.KEYCODE_DPAD_RIGHT) && l != null) { l.onStop(); return true; }
             return super.onKeyUp(k, e);
         }
         @Override public boolean onTouchEvent(MotionEvent ev) {
@@ -1198,7 +1078,7 @@ public class PlayerActivity extends Activity {
                 scheduleHide();
             }
             @Override public void onStart() { seekPending = true; handler.removeCallbacks(hideRun); }
-            @Override public void onStop() { handler.removeCallbacks(seekRun); seekRun.run(); scheduleHide(); handler.removeCallbacks(thumbHide); handler.postDelayed(thumbHide, 2600); }
+            @Override public void onStop() { handler.removeCallbacks(seekRun); seekRun.run(); scheduleHide(); handler.removeCallbacks(thumbHide); handler.postDelayed(thumbHide, 1800); }
         });
         LinearLayout.LayoutParams pt = new LinearLayout.LayoutParams(-2, -2);
         pt.leftMargin = dp(14);
@@ -1392,7 +1272,6 @@ public class PlayerActivity extends Activity {
 
     private void showControls(View focus) {
         if (menuOn) return;
-        if (seek != null && player != null && player.isPlaying() && startPos >= 0 && player.getCurrentPosition() - startPos > 20000) thumbWarm();   // never while the video is starting: the player gets the connection to itself
         controlsOn = true;
         controls.setVisibility(View.VISIBLE);
         controls.animate().alpha(1f).setDuration(180).start();
@@ -1409,7 +1288,6 @@ public class PlayerActivity extends Activity {
 
     private void scheduleHide() {
         handler.removeCallbacks(hideRun);
-        if (scrubbing) return;                                              // the bar stays while you pick a spot
         if (controlsOn) handler.postDelayed(hideRun, System.currentTimeMillis() < quickHideUntil ? 700 : 4500);
     }
 
@@ -2014,7 +1892,6 @@ public class PlayerActivity extends Activity {
             return super.onKeyDown(keyCode, event);
         }
         if (keyCode == KeyEvent.KEYCODE_BACK) {
-            if (scrubbing) { scrubCancel(); return true; }
             if (menuOn) { closeMenu(); return true; }
             if (controlsOn) { hideControls(); return true; }
             finishWith(false);
@@ -2064,7 +1941,7 @@ public class PlayerActivity extends Activity {
     protected void onDestroy() {
         handler.removeCallbacksAndMessages(null);
         thumbWant.clear(); thumbsBroken = true;
-        if (fx != null) { try { fx.release(); } catch (Throwable ignored) { } fx = null; }
+        if (thumbExec != null) { thumbExec.execute(() -> { try { if (thumbMmr != null) thumbMmr.release(); } catch (Exception ignored) { } }); thumbExec.shutdown(); }
         if (!reported) {
             snapshot();
             reported = true;

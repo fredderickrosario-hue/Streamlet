@@ -209,4 +209,5 @@ body.tv .dtop{padding-left:150px}
 
 /* episode counter on a poster corner instead of the eye */
 .rib.cnt::after{content:attr(data-n);top:5px;right:6px;width:auto;height:auto;background:none;-webkit-mask:none;mask:none;color:var(--btnt);font-weight:900;font-size:14px;line-height:1}
+body.tv.navheld{--blur:0px}
 body.tv.navheld *,body.tv.navheld *::before,body.tv.navheld *::after{transition:none !important}
