@@ -210,6 +210,7 @@ function tvRowsFor(addon, type, meta, title, els, opts = {}){
     h('section', {class:'drow dmain'}, h('h3', {class:'drt'}, title), ...els.filter(Boolean)),
     ...(opts.rows || []),
     people.length ? h('section', {class:'drow dpeople'}, h('h3', {class:'drt'}, 'Cast & crew'), h('div', {class:'dpl'}, ...people)) : null,
+    ...(opts.after || []),
     simRow));
 }
 
@@ -276,7 +277,7 @@ async function openDetail(addon, type, item, opts = {}){
       acts, infoPanel(meta, genres), hintEl(),
       ph(genres.length ? h('div', {class:'dgen'}, genres.map(g => h('button', {class:'pillx', type:'button', onclick:() => searchFor(g)}, g))) : null),
       ph(chipsSection('Cast', listOf(meta, 'cast', 'cast'))), ph(chipsSection('Director', listOf(meta, 'director', 'director'))), ph(chipsSection('Writer', listOf(meta, 'writer', 'writer')))));
-    const tvRows = (title, els) => tvRowsFor(addon, type, meta, title, els);
+    const tvRows = (title, els) => tvRowsFor(addon, type, meta, title, els, type === 'series' && withStreams ? {after:[eoSection(meta, reloadMeta)]} : {});
     if (withStreams && sorted.length) {                                    // ---- series: seasons + episodes
       const seasons = [...new Set(sorted.map(v => v.season ?? 1))];
       if (curSeason === null || !seasons.includes(curSeason)) { const nx = profile ? epNext(meta.id, sorted).v : null; curSeason = nx && seasons.includes(nx.season ?? 1) ? (nx.season ?? 1) : (seasons.find(x => x >= 1) ?? seasons[0]); }
@@ -322,6 +323,7 @@ async function openDetail(addon, type, item, opts = {}){
   build(false);
   const ma = supports(addon, 'meta', type, item.id) ? addon : addons.find(x => supports(x, 'meta', type, item.id));
   if (ma) { try { const r = await getJSON(`${ma.base}/meta/${type}/${enc(item.id)}.json`); meta = {...item, ...r.meta}; } catch {} }
+  async function reloadMeta(){ if (ma) { try { const r = await getJSON(`${ma.base}/meta/${type}/${enc(item.id)}.json`); meta = {...item, ...r.meta}; if (!r.meta._rawVideos) delete meta._rawVideos; } catch {} } curSeason = null; build(true); }
   const {sorted} = build(true);
   const rs = opts.resume;
   if (rs && type === 'series') { const rv = sorted.find(v => v.id === rs.id); if (rv) openEpisode(addon, type, meta, rv, sorted); }
@@ -354,26 +356,63 @@ const sigOf = st => {                                                  // the re
 };
 const urlKey = u => { try { const x = new URL(u); return x.origin + x.pathname; } catch { return String(u || ''); } };
 const mapGet = k => { const v = lsGet(k, {}); return v && typeof v === 'object' && !Array.isArray(v) ? v : {}; };
-const prefOf = id => mapGet('streamlet.srcpref')[id];
-const prefSet = (id, sig) => { if (!id || !sig) return; const m = mapGet('streamlet.srcpref'); m[id] = sig; const ks = Object.keys(m); if (ks.length > 150) delete m[ks[0]]; lsSet('streamlet.srcpref', m); };
+/* the kind of source, not one file: addon, quality, release group, rip type, HDR, codec, cache, languages.
+   The next episode's file has another name, but the same group / quality / addon is "the same source". */
+function srcLike(st){
+  if (!st) return null;
+  const name = String(st.name || ''), title = String(st.title || st.description || ''), t = name + ' ' + title, file = title.split('\n')[0];
+  const low = t.toLowerCase();
+  const grp = ((/^\s*\[([^\]]{2,30})\]/.exec(file) || [])[1] || (/-([A-Za-z0-9]{2,20})(?:\.(?:mkv|mp4|avi|webm))?\s*$/.exec(file) || [])[1] || '').toLowerCase();
+  const kind = /remux/.test(low) ? 'remux' : /blu-?ray|bdrip|brrip/.test(low) ? 'bluray' : /web-?dl/.test(low) ? 'webdl' : /webrip/.test(low) ? 'webrip' : /hdtv/.test(low) ? 'hdtv' : '';
+  const hdr = /\b(dv|dovi|dolby.?vision)\b/.test(low) ? 'dv' : /hdr/.test(low) ? 'hdr' : '';
+  const codec = /x265|hevc|h\.?265/.test(low) ? 'hevc' : /x264|h\.?264|avc/.test(low) ? 'avc' : /\bav1\b/.test(low) ? 'av1' : '';
+  return {ad:name.split('\n')[0].replace(/\[[^\]]*\]/g, '').replace(/\b(2160p|4k|1080p|720p|480p|uhd|hdr|dv)\b/gi, '').trim().toLowerCase(),
+    res:resOf(st), grp, kind, hdr, codec, rd:/\[[A-Z]{2}\+\]|cached|\u26A1/i.test(t) ? 1 : 0, lang:streamLangs(st).slice().sort().join(',')};
+}
+function likeScore(p, st){                                              // how close a source is to the one you chose (12 = same kind of release)
+  if (!p || !st) return 0;
+  const q = srcLike(st); if (!q) return 0;
+  let n = 0;
+  if (p.grp && q.grp === p.grp) n += 4;
+  if (p.ad && q.ad === p.ad) n += 2;
+  if (p.res && q.res === p.res) n += 2;
+  if (p.kind && q.kind === p.kind) n += 1;
+  if (q.hdr === p.hdr) n += 1;
+  if (p.codec && q.codec === p.codec) n += 1;
+  if (q.rd === p.rd) n += 1;
+  if (p.lang && q.lang === p.lang) n += 2;
+  return n;
+}
+const LIKE_MIN = 8;                                                     // close enough to count as "your source"
+const prefRaw = id => { const v = mapGet('streamlet.srcpref')[id]; return !v ? null : typeof v === 'string' ? {sig:v} : v; };
+const prefOf = id => (prefRaw(id) || {}).sig;
+function prefSet(id, st, manual){                                       // you picked it, or it played for a while: next time (and the next episodes) start from the same kind of source
+  if (!id || !st) return;
+  const m = mapGet('streamlet.srcpref'), old = prefRaw(id), like = srcLike(st);
+  if (!manual && old && old.manual && old.like && likeScore(old.like, st) < LIKE_MIN && old.sig !== sigOf(st)) return;   // an automatic fallback never replaces a source you chose yourself
+  m[id] = {sig:sigOf(st), like, manual:!!(manual || (old && old.manual && old.like && likeScore(old.like, st) >= LIKE_MIN))};
+  const ks = Object.keys(m); if (ks.length > 150) delete m[ks[0]]; lsSet('streamlet.srcpref', m);
+}
+const prefTier = (id, st) => { const p = prefRaw(id); if (!p) return 2; if (p.sig && sigOf(st) === p.sig) return 0; if (!p.like || likeScore(p.like, st) < LIKE_MIN) return 2; return p.like.rd && !srcLike(st).rd ? 2 : 1; };   // your kind of source, but never one that isn't ready on the debrid service when yours was
 const badSet = st => { const m = mapGet('streamlet.badsrc'), now = Date.now(); for (const k of Object.keys(m)) if (now - m[k] > 7 * 864e5) delete m[k]; m[urlKey(st.url)] = now; const ks = Object.keys(m); if (ks.length > 200) delete m[ks[0]]; lsSet('streamlet.badsrc', m); };
 const isBadStream = st => badStreams.has(st) || (st.url && Date.now() - (mapGet('streamlet.badsrc')[urlKey(st.url)] || 0) < 7 * 864e5);
 const logErr = (title, st, code) => { const a = lsGet('streamlet.errlog', []); a.unshift({t:Date.now(), title:title || '', src:String((st && st.name) || '').replace(/\n+/g, ' '), code:code || ''}); lsSet('streamlet.errlog', a.slice(0, 30)); try { sendLogSoon(); } catch {} };
 function orderStreams(ss, itemId){                                    // the source that worked last time first, ones that failed recently last
-  const pref = prefOf(itemId), rank = x => isBadStream(x) ? 2 : (pref && sigOf(x) === pref ? 0 : 1);
-  return ss.map((x, i) => [x, i]).sort((a, b) => rank(a[0]) - rank(b[0]) || a[1] - b[1]).map(x => x[0]);
+  const p = prefRaw(itemId), rank = x => isBadStream(x) ? 9 : prefTier(itemId, x), near = x => p && p.like ? -likeScore(p.like, x) : 0;
+  return ss.map((x, i) => [x, i]).sort((a, b) => rank(a[0]) - rank(b[0]) || (rank(a[0]) === 1 ? near(a[0]) - near(b[0]) : 0) || a[1] - b[1]).map(x => x[0]);
 }
 /* ---------- best source: picked from your preferences ---------- */
 const autoPickOn = () => lsGet('streamlet.ui', {}).autoPick !== false;
 const resOf = st => { const t = String((st.name || '') + ' ' + (st.title || '') + ' ' + (st.description || '')); return /\b(2160p|4k|uhd)\b/i.test(t) ? 2160 : /\b1440p\b/i.test(t) ? 1440 : /\b1080p\b/i.test(t) ? 1080 : /\b720p\b/i.test(t) ? 720 : /\b(480p|576p|sd)\b/i.test(t) ? 480 : 0; };
 function rankStreams(all, itemId){                                    // best first: what worked before, your audio language, quality up to your limit, ready-to-stream links, seeds
-  const cap = Number(lsGet('streamlet.ui', {}).maxQ) || 99999, pref = prefOf(itemId), pc = effAudio() === 'any' ? null : code2(effAudio());
+  const cap = Number(lsGet('streamlet.ui', {}).maxQ) || 99999, pp = prefRaw(itemId), pc = effAudio() === 'any' ? null : code2(effAudio());
   const lang = x => { if (!pc) return 0; const l = streamLangs(x); return l.includes(pc) ? 0 : l.includes('multi') ? 1 : 2; };
   const sl = effSub(), sc = sl && sl !== 'off' ? code2(sl) : null, want = new Set([pc, sc, 'en', 'multi'].filter(Boolean));
   const extra = x => (pc || sc) && streamLangs(x).some(l => !want.has(l)) ? 1 : 0;      // a release that also carries other dubs (Japanese + Brazilian) comes after a clean one
   const key = x => {
     const r = resOf(x), t = String(x.name || '') + ' ' + String(x.title || ''), seeds = Number((/\u{1F464}\s*(\d+)/u.exec(t) || [])[1]) || 0;
-    return [pref && sigOf(x) === pref ? 0 : 1, lang(x), extra(x), r > cap ? 1 : 0, r === 0 ? 1 : 0, -Math.min(r, cap), /\[[A-Z]{2}\+\]|cached|\u26A1/i.test(t) ? 0 : 1, -seeds];
+    const tier = prefTier(itemId, x);
+    return [tier, tier === 1 ? -likeScore(pp.like, x) : 0, lang(x), extra(x), r > cap ? 1 : 0, r === 0 ? 1 : 0, -Math.min(r, cap), /\[[A-Z]{2}\+\]|cached|\u26A1/i.test(t) ? 0 : 1, -seeds];
   };
   const ok = all.filter(x => x && x.url), good = ok.filter(x => !isBadStream(x));          // a source flagged bad earlier is only skipped when something else is available
   return (good.length ? good : ok).map((x, i) => [x, key(x), i]).sort((a, b) => { for (let k = 0; k < a[1].length; k++) if (a[1][k] !== b[1][k]) return a[1][k] - b[1][k]; return a[2] - b[2]; }).map(x => x[0]);
@@ -428,9 +467,9 @@ function sortByLang(ss){
 }
 function streamCard(st, title, ctx){
   const playable = !!(st.url || st.externalUrl || st.ytId), langs = streamLangs(st);
-  const card = h('button', {class:'scard' + (playable ? '' : ' dis') + (isBadStream(st) ? ' bad' : ''), type:'button', onclick:() => playStream(st, title, ctx)},
+  const card = h('button', {class:'scard' + (playable ? '' : ' dis') + (isBadStream(st) ? ' bad' : ''), type:'button', onclick:() => { if (ctx && ctx.info && st.url) prefSet(ctx.info.item.id, st, true); playStream(st, title, ctx); }},
     h('span', {class:'splay'}, playable ? '▶' : '✕'),
-    h('div', {class:'sbody'}, h('b', {class:'sname'}, String(st.name || 'Stream').replace(/\n+/g, ' · '), ctx && ctx.info && prefOf(ctx.info.item.id) === sigOf(st) ? h('span', {class:'lastu'}, 'Last used') : null), h('div', {class:'sinfo'}, streamSummary(st)), h('div', {class:'stxt'}, st.title || st.description || ''),
+    h('div', {class:'sbody'}, h('b', {class:'sname'}, String(st.name || 'Stream').replace(/\n+/g, ' · '), ctx && ctx.info && prefTier(ctx.info.item.id, st) < 2 ? h('span', {class:'lastu'}, (prefRaw(ctx.info.item.id) || {}).manual ? 'Your pick' : 'Last used') : null), h('div', {class:'sinfo'}, streamSummary(st)), h('div', {class:'stxt'}, st.title || st.description || ''),
       langs.length ? h('div', {class:'slall', style:'margin-top:6px'}, langs.map(l => h('span', {class:'lc'}, l.toUpperCase()))) : null,
       langs.length ? h('div', {class:'slangs'}, langs.slice(0, 6).map(l => h('span', {class:'lc'}, l.toUpperCase())), langs.length > 6 ? h('span', {class:'lc more'}, '+' + (langs.length - 6)) : null) : null));
   streamEls.set(st, card);

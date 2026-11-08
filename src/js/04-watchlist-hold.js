@@ -218,6 +218,7 @@ function renderWatch(noRefresh){
   $('#mlTabs').replaceChildren(...ML_TABS.map(([id, label]) => h('button', {class:'chip' + (mlTab === id ? ' on' : ''), type:'button', onclick:() => { mlTab = id; renderWatch(); }}, label)));
   $('#wlTabs').hidden = mlTab !== 'list' || !wl.length;
   $('#wlCount').textContent = mlTab === 'list' && wl.length ? `${wl.length} saved` : '';
+  if (mlTab !== 'foryou') mlPrefetch();
   if (mlTab === 'list') {
     const list = wl.filter(e => wlFilter === 'all' || (wlFilter === 'movie' ? e.type === 'movie' : e.type !== 'movie'));
     const chip = (id, label) => h('button', {class:'chip' + (wlFilter === id ? ' on' : ''), type:'button', onclick:() => { wlFilter = id; renderWatch(); }}, label);
@@ -243,23 +244,28 @@ function renderWatch(noRefresh){
     return;
   }
   // For you: titles like the shows you watch most recently
-  grid.replaceChildren(h('div', {class:'spin', style:'grid-column:1/-1;padding:16px'}, 'Looking for shows you might like…'));
+  if (!mlShows().slice(0, 4).every(s => recsCache.has(s.id))) grid.replaceChildren(h('div', {class:'spin', style:'grid-column:1/-1;padding:16px'}, 'Looking for shows you might like…'));
   mlRecs(tok);
 }
+const mlRecWait = new Map();
+function mlRecList(s){                                                       // suggestions for one show, fetched once and kept
+  if (recsCache.has(s.id)) return Promise.resolve(recsCache.get(s.id));
+  if (mlRecWait.has(s.id)) return mlRecWait.get(s.id);
+  const p = (async () => {
+    const a = addons.find(x => x.uid === s.a) || spaceAddons()[0] || addons[0], ma = addons.find(x => supports(x, 'meta', 'series', s.id)) || a;
+    let meta = {id:s.id, type:'series', name:s.n}; if (ma) { const r = await getJSON(`${ma.base}/meta/series/${enc(s.id)}.json`); meta = {...meta, ...r.meta}; }
+    const list = (await findSimilar(a, 'series', meta)).slice(0, 12); recsCache.set(s.id, list); return list;
+  })().finally(() => mlRecWait.delete(s.id));
+  mlRecWait.set(s.id, p); return p;
+}
+/* while My List is open on another tab, get "For you" ready so it shows at once */
+function mlPrefetch(){ setTimeout(() => { if ($('#watch').hidden || mlTab === 'foryou') return; for (const s of mlShows().slice(0, 4)) mlRecList(s).catch(() => {}); }, 700); }
 async function mlRecs(tok){
   const grid = $('#wlGrid'), seeds = mlShows().slice(0, 4);
   if (!seeds.length) { grid.replaceChildren(mlEmpty('Nothing to go on yet', 'Watch a few shows and suggestions based on them appear here.')); return; }
   const secs = [];
   await Promise.all(seeds.map(async (s, i) => {
-    try {
-      let list = recsCache.get(s.id);
-      if (!list) {
-        const a = addons.find(x => x.uid === s.a) || spaceAddons()[0] || addons[0], ma = addons.find(x => supports(x, 'meta', 'series', s.id)) || a;
-        let meta = {id:s.id, type:'series', name:s.n}; if (ma) { const r = await getJSON(`${ma.base}/meta/series/${enc(s.id)}.json`); meta = {...meta, ...r.meta}; }
-        list = (await findSimilar(a, 'series', meta)).slice(0, 12); recsCache.set(s.id, list);
-      }
-      secs[i] = {name:s.n, list};
-    } catch {}
+    try { secs[i] = {name:s.n, list:await mlRecList(s)}; } catch {}
   }));
   if (tok !== mlTok || mlTab !== 'foryou') return;
   const mine = new Set(Object.keys(pget('shows', {}))), out = [];

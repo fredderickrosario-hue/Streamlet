@@ -1,0 +1,59 @@
+/* ---------- spaces page v4: the page never scrolls, only the spaces do; new cards ---------- */
+body.launch #launcher:not([hidden]){height:calc(var(--vh,1vh) * 100);min-height:0;box-sizing:border-box;overflow:hidden;display:flex;flex-direction:column}
+body.launch:not(.tv) #launcher:not([hidden]){height:100vh;height:100dvh}
+body.launch.tv{overflow:hidden}
+#launcher .lhead,#launcher .lfoot{flex:0 0 auto}
+#launcher .lmid{flex:1 1 auto;min-height:0;display:flex;flex-direction:column;padding-top:clamp(10px,4vh,40px)}
+#launcher .lmid .ltitle,#launcher .lmid .lsub{flex:0 0 auto}
+#launcher .sgrid{flex:1 1 auto;min-height:0;overflow-y:auto;overscroll-behavior:contain;scrollbar-width:none;align-content:start;
+  margin:10px -14px 0;padding:14px 14px 24px;
+  -webkit-mask-image:linear-gradient(to bottom,transparent 0,#000 14px,#000 calc(100% - 24px),transparent);mask-image:linear-gradient(to bottom,transparent 0,#000 14px,#000 calc(100% - 24px),transparent)}
+#launcher .sgrid::-webkit-scrollbar{display:none}
+#launcher .lfoot{padding-top:10px}
+body.tv #launcher .lmid{padding-top:clamp(6px,2vh,24px)}
+body.tv #launcher .lmid .ltitle{font-size:34px}
+body.tv #launcher .sgrid{grid-template-columns:repeat(4,minmax(0,1fr));gap:22px}
+
+/* the card: dark glass, the space's colours glow from one corner, a coloured line along the bottom */
+#launcher .stile{position:relative;isolation:isolate;overflow:hidden;display:flex;flex-direction:column;align-items:flex-start;justify-content:space-between;text-align:left;
+  height:auto;min-height:0;aspect-ratio:16/11;padding:16px 16px 18px;gap:8px;border:0;border-radius:22px;color:#fff;
+  background:linear-gradient(160deg,rgba(255,255,255,.075),rgba(255,255,255,.025)) #141218;
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.08),0 12px 28px rgba(0,0,0,.35);transition:transform .18s ease,box-shadow .18s ease}
+#launcher .stile::before{content:'';position:absolute;z-index:-1;inset:-30% -30% 30% 25%;border-radius:50%;
+  background:radial-gradient(closest-side,var(--c1),transparent);opacity:.55;filter:blur(18px);transition:opacity .2s ease}
+#launcher .stile::after{content:'';position:absolute;left:0;right:0;bottom:0;height:3px;background:linear-gradient(90deg,var(--c1),var(--c2));opacity:.9}
+#launcher .stile .sem{width:auto;height:auto;background:none;border-radius:0;font-size:38px;line-height:1;filter:drop-shadow(0 6px 12px rgba(0,0,0,.45))}
+#launcher .stile .stx{display:block;min-width:0;max-width:100%}
+#launcher .stile .snm{display:block;font-size:19px;font-weight:800;letter-spacing:-.2px;line-height:1.15;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#launcher .stile .sds{display:block;margin-top:3px;font-size:12.5px;font-weight:550;color:rgba(255,255,255,.62);opacity:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#launcher .stile:is(:focus-visible,:hover){outline:3px solid #fff;outline-offset:3px;transform:scale(1.035);box-shadow:inset 0 0 0 1px rgba(255,255,255,.12),0 18px 36px rgba(0,0,0,.45)}
+#launcher .stile:is(:focus-visible,:hover)::before{opacity:.85}
+#launcher .stile:active{transform:scale(.97)}
+#launcher .stile.new{align-items:center;justify-content:center;background:rgba(255,255,255,.03);box-shadow:none;border:2px dashed rgba(255,255,255,.22);color:rgba(255,255,255,.8)}
+#launcher .stile.new::before,#launcher .stile.new::after{display:none}
+#launcher .stile.new .sem{font-size:30px;filter:none}
+body.tv #launcher .stile{padding:18px 20px 20px}
+body.tv #launcher .stile .sem{font-size:46px}
+body.tv #launcher .stile .snm{font-size:22px}
+body.tv #launcher .stile .sds{font-size:15px}
+#launcher .sedit{top:10px;right:10px;width:34px;height:34px;background:rgba(0,0,0,.5);z-index:2}
+
+/* opening a space: its colours fill the screen, the emoji breathes, a thin bar runs */
+.spload{background:#0d0b10;gap:0;overflow:hidden}
+.spload .splglow{position:absolute;inset:0;pointer-events:none;
+  background:radial-gradient(60% 55% at 50% 42%,var(--c1),transparent 70%),radial-gradient(45% 40% at 70% 75%,var(--c2),transparent 70%);opacity:.32;filter:blur(30px);animation:splpulse 2.4s ease-in-out infinite}
+.spload .splbox{position:relative;display:flex;flex-direction:column;align-items:center;text-align:center;padding:0 24px}
+.spload .splem{font-size:84px;line-height:1;filter:drop-shadow(0 14px 26px rgba(0,0,0,.5));animation:splbreathe 1.8s ease-in-out infinite}
+.spload .splnm{margin-top:22px;font-size:30px;font-weight:800;letter-spacing:-.4px}
+.spload .splsub{margin-top:6px;font-size:15px;color:rgba(255,255,255,.62)}
+.spload .splbar{position:relative;width:180px;height:4px;margin-top:26px;border-radius:4px;background:rgba(255,255,255,.12);overflow:hidden}
+.spload .splbar i{position:absolute;top:0;bottom:0;left:0;width:40%;border-radius:4px;background:linear-gradient(90deg,var(--c1),var(--c2));animation:splrun 1.1s ease-in-out infinite}
+.spload .splring{display:none}
+body.tv .spload .splem{font-size:96px}
+body.tv .spload .splnm{font-size:34px}
+body.tv .spload .splsub{font-size:17px}
+body.tv .spload .splbar{width:240px}
+@keyframes splbreathe{50%{transform:scale(1.06) translateY(-4px)}}
+@keyframes splpulse{50%{opacity:.45}}
+@keyframes splrun{0%{transform:translateX(-100%)}100%{transform:translateX(260%)}}
+@media (prefers-reduced-motion:reduce){.spload .splem,.spload .splglow{animation:none}}

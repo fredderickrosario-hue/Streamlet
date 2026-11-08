@@ -136,23 +136,33 @@ document.addEventListener('focusin', e => {
   if (!navVert) navEl = el;
 });
 const midX = r => (r.left + r.right) / 2, midY = r => (r.top + r.bottom) / 2;
+/* the box an element scrolls inside: items scrolled up under a fixed header never join the header's line */
+let scMemo = new Map();
+function scrollerOf(el){
+  for (let p = el.parentElement; p && p !== document.body; p = p.parentElement) {
+    let v = scMemo.get(p); if (v === undefined) { const o = getComputedStyle(p).overflowY; v = (o === 'auto' || o === 'scroll') && p.scrollHeight > p.clientHeight + 2; scMemo.set(p, v); }   // only boxes that really scroll up and down
+    if (v) return p;
+  }
+  return null;
+}
 function navLines(list){
-  const rows = new Map(), loose = [];
+  const rows = new Map(), loose = []; scMemo = new Map();
   for (const el of list) {
     const row = el.closest(ROW_SEL);
     if (row) { if (!rows.has(row)) rows.set(row, {row, els:[]}); rows.get(row).els.push(el); }
-    else loose.push({el, r:el.getBoundingClientRect()});
+    else loose.push({el, r:el.getBoundingClientRect(), sc:scrollerOf(el)});
   }
   const lines = [];
-  for (const L of rows.values()) { const r = L.els[0].getBoundingClientRect(); L.y = midY(r); L.top = r.top; L.bottom = r.bottom; lines.push(L); }
+  for (const L of rows.values()) { const r = L.els[0].getBoundingClientRect(); L.sc = scrollerOf(L.row); L.y = midY(r); L.top = r.top; L.bottom = r.bottom; lines.push(L); }
   loose.sort((p, q) => midY(p.r) - midY(q.r));
   let band = null;
   for (const x of loose) {
     const y = midY(x.r);
-    if (band && y >= band.top && y <= band.bottom) { band.els.push(x.el); band.top = Math.min(band.top, x.r.top); band.bottom = Math.max(band.bottom, x.r.bottom); continue; }
-    band = {row:null, els:[x.el], y, top:x.r.top, bottom:x.r.bottom}; lines.push(band);
+    if (band && band.sc === x.sc && y >= band.top && y <= band.bottom) { band.els.push(x.el); band.top = Math.min(band.top, x.r.top); band.bottom = Math.max(band.bottom, x.r.bottom); continue; }
+    band = {row:null, els:[x.el], y, top:x.r.top, bottom:x.r.bottom, sc:x.sc}; lines.push(band);
   }
-  lines.sort((p, q) => p.y - q.y);
+  for (const L of lines) L.g = L.sc ? L.sc.getBoundingClientRect().top : L.y;   // the lines of one scrolling box stay together, in the box's place
+  lines.sort((p, q) => p.g - q.g || p.y - q.y);
   for (const L of lines) if (!L.row) L.els.sort((p, q) => midX(p.getBoundingClientRect()) - midX(q.getBoundingClientRect()));
   return lines;
 }
@@ -256,14 +266,36 @@ function tvEntryReveal(el, lock){
   }
 }
 /* pages whose title stays fixed (watchlist, addons, settings, profile, search): only their own scroller moves */
+/* a list that scrolls inside the page (Settings, My List, editors): one glide that follows a moving target.
+   Each key press only moves the target, so a held key gives one steady motion instead of a restart per step. */
+const glides = new WeakMap();
+function glideTo(a, target, held){
+  const max = Math.max(0, a.scrollHeight - a.clientHeight); target = Math.max(0, Math.min(max, target));
+  let g = glides.get(a);
+  if (!g) { g = {pos:a.scrollTop, target, raf:0, last:0}; glides.set(a, g); }
+  if (!g.raf) g.pos = a.scrollTop;                                           // nothing running: start from where the list really is
+  g.target = target; g.tau = held ? 150 : 90;                                    // held: a longer lag, so the list never catches up and stops between steps
+  if (g.raf) return;
+  g.last = performance.now();
+  const step = t => {
+    const dt = Math.min(48, t - g.last); g.last = t;
+    g.pos += (g.target - g.pos) * (1 - Math.exp(-dt / g.tau));
+    if (Math.abs(g.target - g.pos) < .5) { g.pos = g.target; a.scrollTop = g.pos; g.raf = 0; return; }
+    a.scrollTop = g.pos; g.raf = requestAnimationFrame(step);
+  };
+  g.raf = requestAnimationFrame(step);
+}
 function scrollNested(el, edge){
   for (let a = el.parentElement; a && a !== document.body; a = a.parentElement) {
     const c = getComputedStyle(a);
     if ((c.overflowY === 'auto' || c.overflowY === 'scroll') && a.scrollHeight > a.clientHeight + 4) {
-      const ar = a.getBoundingClientRect(), er = el.getBoundingClientRect(), k = ar.height / (a.clientHeight || ar.height) || 1, m = 64 * k;
-      if (edge === 'top') a.scrollTo({top:0, behavior:'smooth'});
-      else if (edge === 'bottom') a.scrollTo({top:a.scrollHeight, behavior:'smooth'});
-      else { const off = ((er.top + er.bottom) - (ar.top + ar.bottom)) / 2 / k; if (Math.abs(off) > 40) a.scrollTo({top:Math.max(0, a.scrollTop + off), behavior:'smooth'}); }   // keep the focused item mid-screen
+      const held = document.body.classList.contains('navheld');
+      if (edge === 'top') { glideTo(a, 0, held); return true; }
+      if (edge === 'bottom') { glideTo(a, 1e9, held); return true; }
+      const ar = a.getBoundingClientRect(), er = el.getBoundingClientRect(), k = ar.height / (a.clientHeight || ar.height) || 1;
+      const g = glides.get(a), now = a.scrollTop;                           // where the list is drawn right now (mid-glide included), the same moment the boxes were measured
+      const off = ((er.top + er.bottom) - (ar.top + ar.bottom)) / 2 / k;  // focused item vs the middle of the list, at the drawn position
+      if (Math.abs(off) > 2 || (g && g.raf)) glideTo(a, now + off, held);   // always follow the focus: no dead zone, so every step moves the same way
       return true;
     }
   }
