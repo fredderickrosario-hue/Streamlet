@@ -6360,6 +6360,11 @@ const TM_OSCARS = ['Anora|2024', 'Oppenheimer|2023', 'Everything Everywhere All 
   'Spotlight|2015', 'Birdman or (The Unexpected Virtue of Ignorance)|2014', '12 Years a Slave|2013', 'Argo|2012', 'The Artist|2011', "The King's Speech|2010", 'The Hurt Locker|2008', 'Slumdog Millionaire|2008',
   'No Country for Old Men|2007', 'The Departed|2006', 'Crash|2005', 'Million Dollar Baby|2004', 'The Lord of the Rings: The Return of the King|2003', 'Chicago|2002', 'A Beautiful Mind|2001', 'Gladiator|2000',
   'American Beauty|1999', 'Shakespeare in Love|1998', 'Titanic|1997', 'The English Patient|1996', 'Braveheart|1995'];
+const TM_TV_FRANCHISES = ['Star Trek: The Next Generation|1987|tv', 'Game of Thrones|2011|tv', 'Breaking Bad|2008|tv', 'The Walking Dead|2010|tv', "Grey's Anatomy|2005|tv", 'Law & Order|1990|tv',
+  'NCIS|2003|tv', 'CSI: Crime Scene Investigation|2000|tv', 'The Simpsons|1989|tv', 'Doctor Who|2005|tv', 'Pokémon|1997|tv', 'Chicago Fire|2012|tv', 'Yellowstone|2018|tv', 'American Horror Story|2011|tv', 'Stranger Things|2016|tv', 'The Office|2005|tv'];
+const TM_EMMYS = ['The Pitt|2025|tv', 'Shōgun|2024|tv', 'The Bear|2022|tv', 'Hacks|2021|tv', 'Succession|2018|tv', 'Ted Lasso|2020|tv', 'The Crown|2016|tv', "Schitt's Creek|2015|tv", 'Game of Thrones|2011|tv',
+  'The Marvelous Mrs. Maisel|2017|tv', "The Handmaid's Tale|2017|tv", 'Veep|2012|tv', 'Breaking Bad|2008|tv', 'Modern Family|2009|tv', 'Homeland|2011|tv', 'Mad Men|2007|tv', '30 Rock|2006|tv', 'The Sopranos|1999|tv', 'Lost|2004|tv', 'The West Wing|1999|tv'];
+const tmMix = (a, b) => { const out = []; for (let i = 0; i < Math.max(a.length, b.length); i++) { if (a[i]) out.push(a[i]); if (b[i]) out.push(b[i]); } return out; };   // movie, show, movie, show…
 const tmDay = () => Math.floor(Date.now() / 864e5);
 TM_CATS.all = [
   {type:'movie', id:'tm.byw1', name:'Because you watched', mine:'byw', n:0},
@@ -6368,11 +6373,11 @@ TM_CATS.all = [
   {type:'movie', id:'tm.wl',   name:'Your watchlist', mine:'wl'},
   {type:'movie', id:'tm.rec',  name:'Recommended for you', mine:'rec'},
   {type:'movie', id:'tm.week', name:'Popular this week', list:'/trending/all/week', mixed:true},
-  {type:'movie', id:'tm.gems', name:'Hidden gems', rot:6, disc:{sort_by:'vote_average.desc', 'vote_average.gte':'7.3', 'vote_count.gte':'250', 'vote_count.lte':'2500'}},
-  tmCur('tm.fran', 'Popular franchises', TM_FRANCHISES),
+  {type:'movie', id:'tm.gems', name:'Hidden gems', mine:'gems'},
+  tmCur('tm.fran', 'Popular franchises', tmMix(TM_FRANCHISES, TM_TV_FRANCHISES)),
   {type:'movie', id:'tm.dec',  name:'Decades', mine:'dec'},
-  tmCur('tm.oscar', 'Award winners · Best Picture', TM_OSCARS),
-  {type:'movie', id:'tm.new',  name:'Recently added', disc:{with_release_type:'4|5', region:TM_REGION, 'release_date.lte':'today', sort_by:'primary_release_date.desc', 'vote_count.gte':'15'}},
+  tmCur('tm.oscar', 'Award winners · Oscars and Emmys', tmMix(TM_OSCARS, TM_EMMYS)),
+  {type:'movie', id:'tm.new',  name:'Recently added', mine:'new'},
   {type:'movie', id:'tm.pop',  name:'Popular movies', list:'/movie/popular?region=' + TM_REGION},
   {type:'series', id:'tm.pop', name:'Popular shows', list:'/tv/popular'}
 ];
@@ -6432,12 +6437,28 @@ async function tmMine(c, extra){
     if (best.length < 8) { const tr = await tmLimit(() => tmdbGet('/trending/all/day', tmKey())); best = [...best, ...(tr.results || []).filter(x => x.poster_path && (x.media_type === 'movie' || x.media_type === 'tv'))]; }
     return {metas:(await toMetas(best.slice(0, 30))).slice(0, 20)};
   }
+  const both = async (mq, tq) => {                                            // a movie query and a show query, woven together
+    const [m, t] = await Promise.all([tmLimit(() => tmdbGet(`/discover/movie?${new URLSearchParams({include_adult:'false', ...mq})}`, tmKey())), tmLimit(() => tmdbGet(`/discover/tv?${new URLSearchParams({include_adult:'false', ...tq})}`, tmKey()))]);
+    const pick = (r, k) => (r.results || []).filter(x => x.poster_path).map(x => ({...x, media_type:k}));
+    return tmMix(pick(m, 'movie'), pick(t, 'tv'));
+  };
+  const today = new Date().toISOString().slice(0, 10), ago = d => new Date(Date.now() - d * 864e5).toISOString().slice(0, 10), pg = String(1 + ((tmDay() + tmPid()) % 6));
+  if (c.mine === 'gems') {
+    const v = {sort_by:'vote_average.desc', 'vote_average.gte':'7.3', 'vote_count.lte':'2500', page:pg};
+    return {metas:await toMetas((await both({...v, 'vote_count.gte':'250'}, {...v, 'vote_count.gte':'120', 'vote_count.lte':'1500'})).slice(0, 24))};
+  }
+  if (c.mine === 'new') {
+    const list = await both({with_release_type:'4|5', region:TM_REGION, 'release_date.lte':today, 'release_date.gte':ago(90), sort_by:'popularity.desc', 'vote_count.gte':'10'},
+      {'first_air_date.lte':today, 'first_air_date.gte':ago(90), sort_by:'popularity.desc', 'vote_count.gte':'5'});
+    return {metas:await toMetas(list.slice(0, 24))};
+  }
   if (c.mine === 'dec') {
     // a different decade each day: its best-loved films
     const decs = [2010, 2000, 1990, 1980, 1970, 2020, 1960], d = decs[(tmDay() + tmPid()) % decs.length];
-    const q = new URLSearchParams({sort_by:'vote_count.desc', include_adult:'false', 'primary_release_date.gte':d + '-01-01', 'primary_release_date.lte':(d + 9) + '-12-31', 'vote_average.gte':'6.8', page:String(1 + (tmDay() % 3))});
-    const r = await tmLimit(() => tmdbGet(`/discover/movie?${q}`, tmKey()));
-    return {name:'Best of the ' + d + 's', metas:await toMetas((r.results || []).filter(x => x.poster_path).map(x => ({...x, media_type:'movie'})))};
+    const p3 = String(1 + (tmDay() % 3));
+    const list = await both({sort_by:'vote_count.desc', 'primary_release_date.gte':d + '-01-01', 'primary_release_date.lte':(d + 9) + '-12-31', 'vote_average.gte':'6.8', page:p3},
+      {sort_by:'vote_count.desc', 'first_air_date.gte':d + '-01-01', 'first_air_date.lte':(d + 9) + '-12-31', 'vote_average.gte':'7', page:p3});
+    return {name:'Best of the ' + d + 's', metas:await toMetas(list.slice(0, 24))};
   }
   return {metas:[]};
 }
