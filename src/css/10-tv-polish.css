@@ -134,3 +134,9 @@ body:not(.tv) .tvhero .tnav{display:none}
 body:not(.tv) .tvhero .tkick{justify-content:center}
 body:not(.tv) .tvhero .tseg{margin:16px auto 0;width:min(220px,60%)}
 body:not(.tv) .tvhero .ttag{margin:0 auto 12px}
+/* My List: the grid gets room on the left so the first card's focus ring isn't cut when it grows */
+body.tv.pgfix:not(.launch) #watch:not([hidden]){overflow:visible}
+body.tv.pgfix:not(.launch) #wlGrid{padding-left:18px;margin-left:-18px;padding-top:14px}
+/* Add profile: a thin ring at rest, the same white focus ring as the profile pictures */
+#profiles .pav.add{box-sizing:border-box;border:2px solid rgba(255,255,255,.22);box-shadow:none;transition:border-color .18s ease,color .18s ease}
+#profiles .ptile:is(:hover,:focus-visible) .pav.add{outline:3px solid rgba(255,255,255,.95) !important;outline-offset:5px;border-color:transparent;color:#fff}

@@ -164,17 +164,17 @@ const TM_EMMYS = ['The Pitt|2025|tv', 'Shōgun|2024|tv', 'The Bear|2022|tv', 'Ha
 const tmMix = (a, b) => { const out = []; for (let i = 0; i < Math.max(a.length, b.length); i++) { if (a[i]) out.push(a[i]); if (b[i]) out.push(b[i]); } return out; };   // movie, show, movie, show…
 const tmDay = () => Math.floor(Date.now() / 864e5);
 TM_CATS.all = [
-  {type:'movie', id:'tm.byw1', name:'Because you watched', mine:'byw', n:0},
-  {type:'movie', id:'tm.byw2', name:'Because you watched', mine:'byw', n:1},
-  {type:'movie', id:'tm.byw3', name:'Because you watched', mine:'byw', n:2},
-  {type:'movie', id:'tm.wl',   name:'Your watchlist', mine:'wl'},
-  {type:'movie', id:'tm.rec',  name:'Recommended for you', mine:'rec'},
-  {type:'movie', id:'tm.week', name:'Popular this week', list:'/trending/all/week', mixed:true},
-  {type:'movie', id:'tm.gems', name:'Hidden gems', mine:'gems'},
-  tmCur('tm.fran', 'Popular franchises', tmMix(TM_FRANCHISES, TM_TV_FRANCHISES)),
-  {type:'movie', id:'tm.dec',  name:'Decades', mine:'dec'},
-  tmCur('tm.oscar', 'Award winners · Oscars and Emmys', tmMix(TM_OSCARS, TM_EMMYS)),
-  {type:'movie', id:'tm.new',  name:'Recently added', mine:'new'},
+  {tri:true, type:'movie', id:'tm.byw1', name:'Because you watched', mine:'byw', n:0},
+  {tri:true, type:'movie', id:'tm.byw2', name:'Because you watched', mine:'byw', n:1},
+  {tri:true, type:'movie', id:'tm.byw3', name:'Because you watched', mine:'byw', n:2},
+  {tri:true, type:'movie', id:'tm.wl',   name:'Your watchlist', mine:'wl'},
+  {tri:true, type:'movie', id:'tm.rec',  name:'Recommended for you', mine:'rec'},
+  {tri:true, type:'movie', id:'tm.week', name:'Popular this week', list:'/trending/all/week', mixed:true},
+  {tri:true, type:'movie', id:'tm.gems', name:'Hidden gems', mine:'gems'},
+  {...tmCur('tm.fran', 'Popular franchises', tmMix(TM_FRANCHISES, TM_TV_FRANCHISES)), tri:true},
+  {tri:true, type:'movie', id:'tm.dec',  name:'Decades', mine:'dec'},
+  {...tmCur('tm.oscar', 'Award winners · Oscars and Emmys', tmMix(TM_OSCARS, TM_EMMYS)), tri:true},
+  {tri:true, type:'movie', id:'tm.new',  name:'Recently added', mine:'new'},
   {type:'movie', id:'tm.pop',  name:'Popular movies', list:'/movie/popular?region=' + TM_REGION},
   {type:'series', id:'tm.pop', name:'Popular shows', list:'/tv/popular'}
 ];
@@ -199,30 +199,31 @@ async function tmRecsOf(k, id){
 function tmSeeds(){
   if (!profile) return {watched:[], liked:[], mine:new Set()};
   let ps; try { ps = personalSeeds(); } catch { ps = {seeds:[], mine:new Set()}; }
-  const hist = histForSpace().filter(e => /^tt\d+$/.test(e.itemId)).map(e => ({id:e.itemId, name:e.name, t:e.t || 0}));                 // this space only (unless Settings shares history across spaces)
-  const movies = wdGet().filter(m => /^tt\d+$/.test(m.itemId) && mlHere(m.space)).map(m => ({id:m.itemId, name:m.name, t:m.t || 0}));
+  const hist = histForSpace().filter(e => /^tt\d+$/.test(e.itemId)).map(e => ({id:e.itemId, name:e.name, t:e.t || 0, k:(e.itemType || e.type) === 'movie' ? 'movie' : 'tv'}));                 // this space only (unless Settings shares history across spaces)
+  const movies = wdGet().filter(m => /^tt\d+$/.test(m.itemId) && mlHere(m.space)).map(m => ({id:m.itemId, name:m.name, t:m.t || 0, k:(m.type || m.itemType || 'movie') === 'movie' ? 'movie' : 'tv'}));
   const seen = new Set(), watched = [];
   for (const x of [...hist, ...movies].sort((a, b) => b.t - a.t)) if (!seen.has(x.id) && x.name) { seen.add(x.id); watched.push(x); }
-  const liked = [...likeHere(), ...wlHere()].filter(e => /^tt\d+$/.test(e.itemId)).map(e => ({id:e.itemId, name:e.name}));
+  const liked = [...likeHere(), ...wlHere()].filter(e => /^tt\d+$/.test(e.itemId)).map(e => ({id:e.itemId, name:e.name, k:(e.type || e.itemType) === 'movie' ? 'movie' : 'tv'}));
   return {watched, liked, mine:new Set([...(ps.mine || []), ...seen])};
 }
 const tmShuffle = (arr, seed) => { const a = arr.slice(); let s = seed || 1; for (let i = a.length - 1; i > 0; i--) { s = (s * 9301 + 49297) % 233280; const j = Math.floor(s / 233280 * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
 const tmPid = () => { let h = 0; for (const c of String(profile ? profile.id : 'x')) h = (h * 31 + c.charCodeAt(0)) % 9973; return h; };
-async function tmMine(c, extra){
-  const S = tmSeeds(), notMine = x => !S.mine.has(x.id);
+async function tmMine(c, extra, only){
+  const S0 = tmSeeds(), S = only ? {...S0, watched:S0.watched.filter(x => x.k === only), liked:S0.liked.filter(x => x.k === only)} : S0, notMine = x => !S.mine.has(x.id);
+  const kindOK = x => !only || (x.media_type || only) === only, trend = only || 'all';
   const toMetas = async list => (await Promise.all(list.map(x => tmPreview(x, x.media_type === 'tv' ? 'tv' : 'movie')))).filter(m => !S.mine.has(m.id));
   if (c.mine === 'wl') {
-    return {metas:wlHere().filter(e => e.poster || e.background).map(e => ({id:e.itemId, type:e.type, name:e.name, poster:e.poster, background:e.background, releaseInfo:e.year || ''}))};
+    return {metas:wlHere().filter(e => (e.poster || e.background) && (!only || (only === 'tv') === ((e.type || e.itemType) !== 'movie'))).map(e => ({id:e.itemId, type:e.type, name:e.name, poster:e.poster, background:e.background, releaseInfo:e.year || ''}))};
   }
   if (c.mine === 'byw') {
     // three different titles you watched lately (the pick changes each day); someone new gets "because you might like" a trending title
     const pool = tmShuffle(S.watched.slice(0, 10), tmDay() + tmPid()), seed = pool[c.n];
     if (seed) {
-      const t = await tmIdOf(seed.id); if (t) { const recs = (await tmRecsOf(t.k, t.id)).filter(notMine); if (recs.length >= 4) return {name:'Because you watched ' + seed.name, metas:await toMetas(recs.slice(0, 20))}; }
+      const t = await tmIdOf(seed.id); if (t) { const recs = (await tmRecsOf(t.k, t.id)).filter(notMine).filter(kindOK); if (recs.length >= 4) return {name:'Because you watched ' + seed.name, metas:await toMetas(recs.slice(0, 20))}; }
     }
-    const tr = await tmLimit(() => tmdbGet('/trending/all/week', tmKey())), picks = tmShuffle((tr.results || []).filter(x => x.poster_path && (x.media_type === 'movie' || x.media_type === 'tv')), tmDay() + 7);
+    const tr = await tmLimit(() => tmdbGet(`/trending/${trend}/week`, tmKey())), picks = tmShuffle((tr.results || []).map(x => ({...x, media_type:x.media_type || only})).filter(x => x.poster_path && (x.media_type === 'movie' || x.media_type === 'tv')), tmDay() + 7);
     const p = picks[c.n]; if (!p) return {metas:[]};
-    const recs = (await tmRecsOf(p.media_type, p.id)).filter(notMine);
+    const recs = (await tmRecsOf(p.media_type, p.id)).filter(notMine).filter(kindOK);
     return {name:'Because you might like ' + (p.title || p.name), metas:await toMetas(recs.slice(0, 20))};
   }
   if (c.mine === 'rec') {
@@ -230,12 +231,13 @@ async function tmMine(c, extra){
     const seeds = [...S.watched.slice(0, 6), ...S.liked.slice(0, 4)].slice(0, 8), score = new Map();
     const lists = await Promise.all(seeds.map(async s => { const t = await tmIdOf(s.id); return t ? tmRecsOf(t.k, t.id).catch(() => []) : []; }));
     lists.forEach(l => l.forEach((x, i) => { const k = x.media_type + x.id, v = score.get(k) || {x, s:0}; v.s += 20 - Math.min(i, 19); score.set(k, v); }));
-    let best = [...score.values()].sort((a, b) => b.s - a.s).map(v => v.x);
-    if (best.length < 8) { const tr = await tmLimit(() => tmdbGet('/trending/all/day', tmKey())); best = [...best, ...(tr.results || []).filter(x => x.poster_path && (x.media_type === 'movie' || x.media_type === 'tv'))]; }
+    let best = [...score.values()].sort((a, b) => b.s - a.s).map(v => v.x).filter(kindOK);
+    if (best.length < 8) { const tr = await tmLimit(() => tmdbGet(`/trending/${trend}/day`, tmKey())); best = [...best, ...(tr.results || []).map(x => ({...x, media_type:x.media_type || only})).filter(x => x.poster_path && (x.media_type === 'movie' || x.media_type === 'tv'))]; }
     return {metas:(await toMetas(best.slice(0, 30))).slice(0, 20)};
   }
   const both = async (mq, tq) => {                                            // a movie query and a show query, woven together
-    const [m, t] = await Promise.all([tmLimit(() => tmdbGet(`/discover/movie?${new URLSearchParams({include_adult:'false', ...mq})}`, tmKey())), tmLimit(() => tmdbGet(`/discover/tv?${new URLSearchParams({include_adult:'false', ...tq})}`, tmKey()))]);
+    const none = Promise.resolve({results:[]});
+    const [m, t] = await Promise.all([only === 'tv' ? none : tmLimit(() => tmdbGet(`/discover/movie?${new URLSearchParams({include_adult:'false', ...mq})}`, tmKey())), only === 'movie' ? none : tmLimit(() => tmdbGet(`/discover/tv?${new URLSearchParams({include_adult:'false', ...tq})}`, tmKey()))]);
     const pick = (r, k) => (r.results || []).filter(x => x.poster_path).map(x => ({...x, media_type:k}));
     return tmMix(pick(m, 'movie'), pick(t, 'tv'));
   };
@@ -275,9 +277,9 @@ async function tmFind(spec){
   map[key] = v; clearTimeout(tmCurT); tmCurT = setTimeout(() => lsSet('streamlet.tmcur', map), 1500);
   return v;
 }
-async function tmCurated(c, skip){
+async function tmCurated(c, skip, only){
   if (skip) return {metas:[]};                                            // a kept list is short: the whole of it comes back at once (rows only load their first page)
-  const part = c.cur;
+  const part = only ? c.cur.filter(s => (s.split('|')[2] === 'tv') === (only === 'tv')) : c.cur;
   const found = await Promise.all(part.map(s => tmFind(s).catch(() => null)));
   return {metas:(await Promise.all(found.filter(x => x && x.poster_path).map(x => tmPreview(x, x._k)))).filter(Boolean)};
 }
@@ -298,7 +300,12 @@ function tmManifest(fl){
     resources:['catalog', {name:'meta', types:['movie', 'series'], idPrefixes:['tt', 'tmdb:']}], types:['movie', 'series'], idPrefixes:['tt', 'tmdb:'],
     catalogs:[{type:'movie', id:'ls.' + lm[1], name:tmListName(lm[1]), extra:[{name:'skip', isRequired:false}]}]};
   const f = TM_FLAVORS[fl] || TM_FLAVORS.all;
-  const catalogs = (TM_CATS[fl] || TM_CATS.all).map(c => c.cur || c.mine || c.mixed ? {type:c.type, id:c.id, name:c.name, extra:[]}
+  const catalogs = (TM_CATS[fl] || TM_CATS.all).flatMap(c => c.tri ? [                                      // a Home row, then the same row for the Movies tab and for the Shows tab
+      {type:'movie', id:c.id, name:c.name, extra:[], streamletTab:'home'},
+      {type:'movie', id:c.id + '.m', name:c.name, extra:[], streamletTab:'tabs'},
+      {type:'series', id:c.id + '.s', name:c.name, extra:[], streamletTab:'tabs'}]
+    : c.tabOnly ? [{type:c.type, id:c.id, name:c.name, genres:tmGenres(fl, c.type), extra:[{name:'genre', options:tmGenres(fl, c.type), isRequired:false}, {name:'skip', isRequired:false}], streamletTab:'tabs'}]
+    : [c]).map(c => c.streamletTab ? c : c.cur || c.mine || c.mixed ? {type:c.type, id:c.id, name:c.name, extra:[]}
     : {type:c.type, id:c.id, name:c.name, genres:tmGenres(fl, c.type), extra:[{name:'genre', options:tmGenres(fl, c.type), isRequired:false}, {name:'skip', isRequired:false}]});
   for (const type of ['movie', 'series']) catalogs.push({type, id:'tm.search', name:'Search', extra:[{name:'search', isRequired:true}]});
   return {id:'app.streamlet.tmdb.' + fl, version:'1.0.0', name:f.name, description:f.desc + ' Needs your TMDB key in Settings.',
@@ -364,7 +371,7 @@ function tmKidOk(x, kind){
   if (g.some(n => [27, 80, 53, 10752, 10749, 10768].includes(n))) return false;
   return kind === 'movie' ? g.includes(10751) || g.includes(16) : g.includes(10762) || g.includes(10751);
 }
-async function tmCatalog(fl, type, id, extra){
+async function tmCatalog(fl, type, id, extra){   // id may be reassigned below (tab twins)
   const kind = type === 'series' ? 'tv' : 'movie', page = Math.floor((+extra.skip || 0) / 20) + 1;
   let r;
   if (id.startsWith('ls.')) {                                              // a TMDB list: movies and shows mixed, in the list's order
@@ -377,9 +384,11 @@ async function tmCatalog(fl, type, id, extra){
     r = await tmdbGet(`/search/${kind}?query=${enc(extra.search)}&include_adult=false&page=${page}`, tmKey());
     if (fl === 'kids') r.results = (r.results || []).filter(x => tmKidOk(x, kind));
   } else {
-    const c = (TM_CATS[fl] || []).find(x => x.id === id && x.type === type); if (!c) return {metas:[]};
-    if (c.cur) return tmCurated(c, +extra.skip || 0);   // whole list in one go
-    if (c.mine) return +extra.skip ? {metas:[]} : tmMine(c, extra);
+    let only = null; const tw = /^(.+)\.(m|s)$/.exec(id); if (tw && (TM_CATS[fl] || []).some(x => x.id === tw[1] && x.tri)) { id = tw[1]; only = tw[2] === 'm' ? 'movie' : 'tv'; }   // the Movies / Shows tab twin of a Home row
+    const c = (TM_CATS[fl] || []).find(x => x.id === id && (only || x.type === type)); if (!c) return {metas:[]};
+    if (c.cur) return tmCurated(c, +extra.skip || 0, only);   // whole list in one go
+    if (c.mine) return +extra.skip ? {metas:[]} : tmMine(c, extra, only);
+    if (c.mixed && only) { const rm = await tmdbGet(`/trending/${only}/week?page=${page}`, tmKey()); return {metas:await Promise.all((rm.results || []).filter(x => x.poster_path).map(x => tmPreview(x, only)))}; }
     if (c.mixed) { const rm = await tmdbGet(c.list + (c.list.includes('?') ? '&' : '?') + 'page=' + page, tmKey()); return {metas:await Promise.all((rm.results || []).filter(x => x.poster_path && (x.media_type === 'movie' || x.media_type === 'tv')).map(x => tmPreview(x, x.media_type)))}; }
     const gmap = kind === 'movie' ? TM_MG : TM_TG, gid = extra.genre && gmap[extra.genre];
     if (c.list && !gid) r = await tmdbGet(c.list + (c.list.includes('?') ? '&' : '?') + 'page=' + page, tmKey());

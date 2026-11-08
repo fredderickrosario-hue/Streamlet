@@ -136,23 +136,33 @@ document.addEventListener('focusin', e => {
   if (!navVert) navEl = el;
 });
 const midX = r => (r.left + r.right) / 2, midY = r => (r.top + r.bottom) / 2;
+/* the box an element scrolls inside: items scrolled up under a fixed header never join the header's line */
+let scMemo = new Map();
+function scrollerOf(el){
+  for (let p = el.parentElement; p && p !== document.body; p = p.parentElement) {
+    let v = scMemo.get(p); if (v === undefined) { const o = getComputedStyle(p).overflowY; v = (o === 'auto' || o === 'scroll') && p.scrollHeight > p.clientHeight + 2; scMemo.set(p, v); }   // only boxes that really scroll up and down
+    if (v) return p;
+  }
+  return null;
+}
 function navLines(list){
-  const rows = new Map(), loose = [];
+  const rows = new Map(), loose = []; scMemo = new Map();
   for (const el of list) {
     const row = el.closest(ROW_SEL);
     if (row) { if (!rows.has(row)) rows.set(row, {row, els:[]}); rows.get(row).els.push(el); }
-    else loose.push({el, r:el.getBoundingClientRect()});
+    else loose.push({el, r:el.getBoundingClientRect(), sc:scrollerOf(el)});
   }
   const lines = [];
-  for (const L of rows.values()) { const r = L.els[0].getBoundingClientRect(); L.y = midY(r); L.top = r.top; L.bottom = r.bottom; lines.push(L); }
+  for (const L of rows.values()) { const r = L.els[0].getBoundingClientRect(); L.sc = scrollerOf(L.row); L.y = midY(r); L.top = r.top; L.bottom = r.bottom; lines.push(L); }
   loose.sort((p, q) => midY(p.r) - midY(q.r));
   let band = null;
   for (const x of loose) {
     const y = midY(x.r);
-    if (band && y >= band.top && y <= band.bottom) { band.els.push(x.el); band.top = Math.min(band.top, x.r.top); band.bottom = Math.max(band.bottom, x.r.bottom); continue; }
-    band = {row:null, els:[x.el], y, top:x.r.top, bottom:x.r.bottom}; lines.push(band);
+    if (band && band.sc === x.sc && y >= band.top && y <= band.bottom) { band.els.push(x.el); band.top = Math.min(band.top, x.r.top); band.bottom = Math.max(band.bottom, x.r.bottom); continue; }
+    band = {row:null, els:[x.el], y, top:x.r.top, bottom:x.r.bottom, sc:x.sc}; lines.push(band);
   }
-  lines.sort((p, q) => p.y - q.y);
+  for (const L of lines) L.g = L.sc ? L.sc.getBoundingClientRect().top : L.y;   // the lines of one scrolling box stay together, in the box's place
+  lines.sort((p, q) => p.g - q.g || p.y - q.y);
   for (const L of lines) if (!L.row) L.els.sort((p, q) => midX(p.getBoundingClientRect()) - midX(q.getBoundingClientRect()));
   return lines;
 }

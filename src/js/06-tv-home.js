@@ -146,6 +146,8 @@ let view = {tab:'home', genre:''};
 const NEW_RE = /\b(new|latest|recent|release|releases|airing|year)\b/i;
 const TYPE_LABEL = {movie:'Movies', series:'Shows', anime:'Anime', tv:'TV', channel:'Channels'};
 const spaceTabs = () => !!(cur && (cur.tabs ?? (THEMES[cur.theme] || {}).tabs));
+/* an addon row marked for Home only (mixed) or for the Movies / Shows tabs only (one kind) */
+const tabFit = (cat, tabs, tab) => !cat.streamletTab || (cat.streamletTab === 'home' ? !tabs || tab === 'home' || tab === 'new' : tabs && (tab === 'movie' || tab === 'series'));
 const typeOK = (tab, t) => tab==='home' || tab==='new' || (tab==='movie' ? t==='movie' : ['series','anime','tv'].includes(t));
 function genreExtra(cat){
   const e = (cat.extra || []).find(x => x.name === 'genre');

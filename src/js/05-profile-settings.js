@@ -96,12 +96,12 @@ $('#updBtn').onclick = async () => {                                  // clears 
 };
 
 /* ---------- profile picker ---------- */
-let manageProfiles = false;
+let manageProfiles = false, keepManage = false;
 function showProfiles(){
   cur = null; applyTheme('ember');
   document.body.classList.add('launch'); document.body.style.overflow = '';
   $('#launcher').hidden = true; $('#login').hidden = true; $('#detail').hidden = true; $('#player').hidden = true; $('#spaceEd').hidden = true; $('#profEd').hidden = true;
-  manageProfiles = false; renderProfiles();
+  manageProfiles = keepManage; keepManage = false; renderProfiles();      // back from editing a profile: still managing
   window.scrollTo(0,0); pushPage();
 }
 let pfx = false;
@@ -174,7 +174,7 @@ function editProfile(id){
   const pr = isNew ? {id:'p'+Date.now().toString(36), name:'', emoji:PROFILE_EMOJIS[profiles.length % PROFILE_EMOJIS.length], color:PROFILE_COLORS[profiles.length % PROFILE_COLORS.length], avatar:'a:' + ((profiles.length * 7 + 3) % AV_COUNT)}
                    : JSON.parse(JSON.stringify(profiles.find(x => x.id === id)));
   const ed = $('#profEd'); ed.hidden = false; ed.scrollTop = 0; pushLayer('pedit');
-  const close = () => popLayer('pedit');
+  const close = () => { keepManage = manageProfiles && !$('#profiles').hidden; popLayer('pedit'); setTimeout(() => { keepManage = false; }, 1500); };
   const name = h('input', {class:'f pe-input', placeholder:'Name', maxlength:'16'}); name.value = pr.name;
   const prev = h('div', {class:'avprev'});
   const grid = h('div', {class:'avgrid'});

@@ -144,6 +144,7 @@ async function renderHome(query = $('#q').value.trim(), target){
   const jobs = [];
   for (const a of spaceAddons()) for (const cat of (a.manifest.catalogs||[])) {
     if (hideCats && jobs.length >= 2) break;                                    // only needed for the hero picture
+    if (!query && !tabFit(cat, tabs, view.tab)) continue;
     const info = catInfo(cat), ge = genreExtra(cat);
     let path, title = cat.name || cat.id;
     if (query) {
