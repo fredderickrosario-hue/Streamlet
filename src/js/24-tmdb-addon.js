@@ -194,8 +194,8 @@ async function tmRecsOf(k, id){
 function tmSeeds(){
   if (!profile) return {watched:[], liked:[], mine:new Set()};
   let ps; try { ps = personalSeeds(); } catch { ps = {seeds:[], mine:new Set()}; }
-  const hist = histGet().filter(e => /^tt\d+$/.test(e.itemId)).map(e => ({id:e.itemId, name:e.name, t:e.t || 0}));
-  const movies = wdGet().filter(m => /^tt\d+$/.test(m.itemId)).map(m => ({id:m.itemId, name:m.name, t:m.t || 0}));
+  const hist = histForSpace().filter(e => /^tt\d+$/.test(e.itemId)).map(e => ({id:e.itemId, name:e.name, t:e.t || 0}));                 // this space only (unless Settings shares history across spaces)
+  const movies = wdGet().filter(m => /^tt\d+$/.test(m.itemId) && mlHere(m.space)).map(m => ({id:m.itemId, name:m.name, t:m.t || 0}));
   const seen = new Set(), watched = [];
   for (const x of [...hist, ...movies].sort((a, b) => b.t - a.t)) if (!seen.has(x.id) && x.name) { seen.add(x.id); watched.push(x); }
   const liked = [...likeHere(), ...wlHere()].filter(e => /^tt\d+$/.test(e.itemId)).map(e => ({id:e.itemId, name:e.name}));
@@ -418,7 +418,7 @@ async function tmRoute(url){
   if (!tmKey()) throw new Error('Add your TMDB key in Settings to use this addon');
   const isMine = /\/catalog\/[^/]+\/tm\.(byw\d|wl|rec|dec)/.test(url);
   if (isMine) {                                                               // made for this profile: kept a few minutes, per profile, never shared
-    const mk = (profile ? profile.id : '') + '|' + url, mh = tmMineMem.get(mk);
+    const mk = (profile ? profile.id : '') + '|' + (cur ? cur.id : '') + '|' + url, mh = tmMineMem.get(mk);   // per profile and per space
     if (mh && Date.now() - mh.t < (url.includes('tm.wl') ? 0 : 600000)) return mh.j;
     const parts0 = path.split('/'), j0 = await tmCatalog(fl, decodeURIComponent(parts0[1]), decodeURIComponent(parts0[2]), Object.fromEntries(new URLSearchParams(parts0[3] || '')));
     tmMineMem.set(mk, {t:Date.now(), j:j0}); return j0;
