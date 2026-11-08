@@ -149,6 +149,95 @@ TM_CATS.disney = [
   tmCur('dz.plusDocs', 'Disney+ Originals · Docuseries', DZ.plusDocs)
 ];
 TM_FLAVORS.disney.desc = 'Disney Animation by era, Pixar and its collections, live action, Disney Channel, Disney TV Animation, Disney Junior and Disney+ Originals.';
+/* ---------- TMDB (main): rows made for this profile first, never empty for someone new ---------- */
+const TM_FRANCHISES = ["Harry Potter and the Philosopher's Stone|2001", 'The Lord of the Rings: The Fellowship of the Ring|2001', 'Star Wars|1977', 'Jurassic Park|1993', 'The Fast and the Furious|2001',
+  'Mission: Impossible|1996', 'Dr. No|1962', 'Batman Begins|2005', 'Raiders of the Lost Ark|1981', 'Back to the Future|1985', 'The Matrix|1999', 'John Wick|2014', 'Pirates of the Caribbean: The Curse of the Black Pearl|2003',
+  'Toy Story|1995', 'Shrek|2001', 'The Hunger Games|2012', 'Despicable Me|2010', 'Rocky|1976', 'Alien|1979', 'Rise of the Planet of the Apes|2011', 'Transformers|2007', "Ocean's Eleven|2001", 'The Godfather|1972', 'Dune|2021'];
+const TM_OSCARS = ['Anora|2024', 'Oppenheimer|2023', 'Everything Everywhere All at Once|2022', 'CODA|2021', 'Nomadland|2020', 'Parasite|2019', 'Green Book|2018', 'The Shape of Water|2017', 'Moonlight|2016',
+  'Spotlight|2015', 'Birdman or (The Unexpected Virtue of Ignorance)|2014', '12 Years a Slave|2013', 'Argo|2012', 'The Artist|2011', "The King's Speech|2010", 'The Hurt Locker|2008', 'Slumdog Millionaire|2008',
+  'No Country for Old Men|2007', 'The Departed|2006', 'Crash|2005', 'Million Dollar Baby|2004', 'The Lord of the Rings: The Return of the King|2003', 'Chicago|2002', 'A Beautiful Mind|2001', 'Gladiator|2000',
+  'American Beauty|1999', 'Shakespeare in Love|1998', 'Titanic|1997', 'The English Patient|1996', 'Braveheart|1995'];
+const tmDay = () => Math.floor(Date.now() / 864e5);
+TM_CATS.all = [
+  {type:'movie', id:'tm.byw1', name:'Because you watched', mine:'byw', n:0},
+  {type:'movie', id:'tm.byw2', name:'Because you watched', mine:'byw', n:1},
+  {type:'movie', id:'tm.byw3', name:'Because you watched', mine:'byw', n:2},
+  {type:'movie', id:'tm.wl',   name:'Your watchlist', mine:'wl'},
+  {type:'movie', id:'tm.rec',  name:'Recommended for you', mine:'rec'},
+  {type:'movie', id:'tm.week', name:'Popular this week', list:'/trending/all/week', mixed:true},
+  {type:'movie', id:'tm.gems', name:'Hidden gems', rot:6, disc:{sort_by:'vote_average.desc', 'vote_average.gte':'7.3', 'vote_count.gte':'250', 'vote_count.lte':'2500'}},
+  tmCur('tm.fran', 'Popular franchises', TM_FRANCHISES),
+  {type:'movie', id:'tm.dec',  name:'Decades', mine:'dec'},
+  tmCur('tm.oscar', 'Award winners · Best Picture', TM_OSCARS),
+  {type:'movie', id:'tm.new',  name:'Recently added', disc:{with_release_type:'4|5', region:TM_REGION, 'release_date.lte':'today', sort_by:'primary_release_date.desc', 'vote_count.gte':'15'}},
+  {type:'movie', id:'tm.pop',  name:'Popular movies', list:'/movie/popular?region=' + TM_REGION},
+  {type:'series', id:'tm.pop', name:'Popular shows', list:'/tv/popular'}
+];
+TM_FLAVORS.all.desc = 'Made for you: because you watched, your watchlist, recommended for you. Then popular this week, hidden gems, franchises, decades, Best Picture winners and recently added.';
+/* tt id -> the TMDB entry (kept on this device) */
+const tmFindMap = (() => { let m = null; return () => (m = m || lsGet('streamlet.tmfind', {})); })();
+let tmFindT = 0;
+async function tmIdOf(tt){
+  const map = tmFindMap(); if (tt in map) return map[tt];
+  let v = null;
+  try { const f = await tmLimit(() => tmdbGet(`/find/${tt}?external_source=imdb_id`, tmKey())); const mv = (f.movie_results || [])[0], tv = (f.tv_results || [])[0]; v = mv ? {k:'movie', id:mv.id} : tv ? {k:'tv', id:tv.id} : null; } catch { return null; }
+  map[tt] = v; clearTimeout(tmFindT); tmFindT = setTimeout(() => lsSet('streamlet.tmfind', map), 1500);
+  return v;
+}
+const tmRecMem = new Map();
+async function tmRecsOf(k, id){
+  const key = k + id, hit = tmRecMem.get(key); if (hit) return hit;
+  const r = await tmLimit(() => tmdbGet(`/${k}/${id}/recommendations`, tmKey())), out = (r.results || []).filter(x => x.poster_path).map(x => ({...x, media_type:x.media_type || k}));
+  tmRecMem.set(key, out); return out;
+}
+/* what this profile watched / liked / saved, as TMDB entries (only titles with an IMDb id can be matched) */
+function tmSeeds(){
+  if (!profile) return {watched:[], liked:[], mine:new Set()};
+  let ps; try { ps = personalSeeds(); } catch { ps = {seeds:[], mine:new Set()}; }
+  const hist = histGet().filter(e => /^tt\d+$/.test(e.itemId)).map(e => ({id:e.itemId, name:e.name, t:e.t || 0}));
+  const movies = wdGet().filter(m => /^tt\d+$/.test(m.itemId)).map(m => ({id:m.itemId, name:m.name, t:m.t || 0}));
+  const seen = new Set(), watched = [];
+  for (const x of [...hist, ...movies].sort((a, b) => b.t - a.t)) if (!seen.has(x.id) && x.name) { seen.add(x.id); watched.push(x); }
+  const liked = [...likeHere(), ...wlHere()].filter(e => /^tt\d+$/.test(e.itemId)).map(e => ({id:e.itemId, name:e.name}));
+  return {watched, liked, mine:new Set([...(ps.mine || []), ...seen])};
+}
+const tmShuffle = (arr, seed) => { const a = arr.slice(); let s = seed || 1; for (let i = a.length - 1; i > 0; i--) { s = (s * 9301 + 49297) % 233280; const j = Math.floor(s / 233280 * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+const tmPid = () => { let h = 0; for (const c of String(profile ? profile.id : 'x')) h = (h * 31 + c.charCodeAt(0)) % 9973; return h; };
+async function tmMine(c, extra){
+  const S = tmSeeds(), notMine = x => !S.mine.has(x.id);
+  const toMetas = async list => (await Promise.all(list.map(x => tmPreview(x, x.media_type === 'tv' ? 'tv' : 'movie')))).filter(m => !S.mine.has(m.id));
+  if (c.mine === 'wl') {
+    return {metas:wlHere().filter(e => e.poster || e.background).map(e => ({id:e.itemId, type:e.type, name:e.name, poster:e.poster, background:e.background, releaseInfo:e.year || ''}))};
+  }
+  if (c.mine === 'byw') {
+    // three different titles you watched lately (the pick changes each day); someone new gets "because you might like" a trending title
+    const pool = tmShuffle(S.watched.slice(0, 10), tmDay() + tmPid()), seed = pool[c.n];
+    if (seed) {
+      const t = await tmIdOf(seed.id); if (t) { const recs = (await tmRecsOf(t.k, t.id)).filter(notMine); if (recs.length >= 4) return {name:'Because you watched ' + seed.name, metas:await toMetas(recs.slice(0, 20))}; }
+    }
+    const tr = await tmLimit(() => tmdbGet('/trending/all/week', tmKey())), picks = tmShuffle((tr.results || []).filter(x => x.poster_path && (x.media_type === 'movie' || x.media_type === 'tv')), tmDay() + 7);
+    const p = picks[c.n]; if (!p) return {metas:[]};
+    const recs = (await tmRecsOf(p.media_type, p.id)).filter(notMine);
+    return {name:'Because you might like ' + (p.title || p.name), metas:await toMetas(recs.slice(0, 20))};
+  }
+  if (c.mine === 'rec') {
+    // the titles that come up across what you watched and liked, most shared first
+    const seeds = [...S.watched.slice(0, 6), ...S.liked.slice(0, 4)].slice(0, 8), score = new Map();
+    const lists = await Promise.all(seeds.map(async s => { const t = await tmIdOf(s.id); return t ? tmRecsOf(t.k, t.id).catch(() => []) : []; }));
+    lists.forEach(l => l.forEach((x, i) => { const k = x.media_type + x.id, v = score.get(k) || {x, s:0}; v.s += 20 - Math.min(i, 19); score.set(k, v); }));
+    let best = [...score.values()].sort((a, b) => b.s - a.s).map(v => v.x);
+    if (best.length < 8) { const tr = await tmLimit(() => tmdbGet('/trending/all/day', tmKey())); best = [...best, ...(tr.results || []).filter(x => x.poster_path && (x.media_type === 'movie' || x.media_type === 'tv'))]; }
+    return {metas:(await toMetas(best.slice(0, 30))).slice(0, 20)};
+  }
+  if (c.mine === 'dec') {
+    // a different decade each day: its best-loved films
+    const decs = [2010, 2000, 1990, 1980, 1970, 2020, 1960], d = decs[(tmDay() + tmPid()) % decs.length];
+    const q = new URLSearchParams({sort_by:'vote_count.desc', include_adult:'false', 'primary_release_date.gte':d + '-01-01', 'primary_release_date.lte':(d + 9) + '-12-31', 'vote_average.gte':'6.8', page:String(1 + (tmDay() % 3))});
+    const r = await tmLimit(() => tmdbGet(`/discover/movie?${q}`, tmKey()));
+    return {name:'Best of the ' + d + 's', metas:await toMetas((r.results || []).filter(x => x.poster_path).map(x => ({...x, media_type:'movie'})))};
+  }
+  return {metas:[]};
+}
 TM_FLAVORS.marvel.desc = 'The MCU only (story order, release order, the six phases, each hero), then the rest of Marvel sorted by family: X-Men, Sony Spider-Man, Fantastic Four, Marvel Television, animation.';
 /* one title from the list -> its TMDB entry (looked up once, kept on this device) */
 const tmCurMap = (() => { let m = null; return () => (m = m || lsGet('streamlet.tmcur', {})); })();
@@ -188,7 +277,7 @@ function tmManifest(fl){
     resources:['catalog', {name:'meta', types:['movie', 'series'], idPrefixes:['tt', 'tmdb:']}], types:['movie', 'series'], idPrefixes:['tt', 'tmdb:'],
     catalogs:[{type:'movie', id:'ls.' + lm[1], name:tmListName(lm[1]), extra:[{name:'skip', isRequired:false}]}]};
   const f = TM_FLAVORS[fl] || TM_FLAVORS.all;
-  const catalogs = (TM_CATS[fl] || TM_CATS.all).map(c => c.cur ? {type:c.type, id:c.id, name:c.name, extra:[]}
+  const catalogs = (TM_CATS[fl] || TM_CATS.all).map(c => c.cur || c.mine || c.mixed ? {type:c.type, id:c.id, name:c.name, extra:[]}
     : {type:c.type, id:c.id, name:c.name, genres:tmGenres(fl, c.type), extra:[{name:'genre', options:tmGenres(fl, c.type), isRequired:false}, {name:'skip', isRequired:false}]});
   for (const type of ['movie', 'series']) catalogs.push({type, id:'tm.search', name:'Search', extra:[{name:'search', isRequired:true}]});
   return {id:'app.streamlet.tmdb.' + fl, version:'1.0.0', name:f.name, description:f.desc + ' Needs your TMDB key in Settings.',
@@ -269,13 +358,15 @@ async function tmCatalog(fl, type, id, extra){
   } else {
     const c = (TM_CATS[fl] || []).find(x => x.id === id && x.type === type); if (!c) return {metas:[]};
     if (c.cur) return tmCurated(c, +extra.skip || 0);   // whole list in one go
+    if (c.mine) return +extra.skip ? {metas:[]} : tmMine(c, extra);
+    if (c.mixed) { const rm = await tmdbGet(c.list + (c.list.includes('?') ? '&' : '?') + 'page=' + page, tmKey()); return {metas:await Promise.all((rm.results || []).filter(x => x.poster_path && (x.media_type === 'movie' || x.media_type === 'tv')).map(x => tmPreview(x, x.media_type)))}; }
     const gmap = kind === 'movie' ? TM_MG : TM_TG, gid = extra.genre && gmap[extra.genre];
     if (c.list && !gid) r = await tmdbGet(c.list + (c.list.includes('?') ? '&' : '?') + 'page=' + page, tmKey());
     else {
       const p = await tmParams(c.disc || {});
       if (gid) p.with_genres = p.with_genres ? p.with_genres + ',' + gid : String(gid);
       if (c.list && /top_rated/.test(c.list)) { p.sort_by = 'vote_average.desc'; p['vote_count.gte'] = '500'; }
-      const q = new URLSearchParams({sort_by:'popularity.desc', include_adult:'false', page:String(page), ...p});
+      const q = new URLSearchParams({sort_by:'popularity.desc', include_adult:'false', page:String(page + (c.rot ? (tmDay() % c.rot) : 0)), ...p});   // rot: a different page each day
       r = await tmdbGet(`/discover/${kind}?${q}`, tmKey());
     }
   }
@@ -315,6 +406,7 @@ async function tmMeta(type, id){
   }
   return {meta};
 }
+const tmMineMem = new Map();
 async function tmRoute(url){
   const m = /^tmdb:\/\/([^/]+)\/(.*?)(\.json)?(\?.*)?$/.exec(url); if (!m) throw new Error('Bad TMDB address');
   const fl = TM_FLAVORS[m[1]] || /^list-\d+$/.test(m[1]) ? m[1] : 'all', path = m[2];
@@ -324,6 +416,13 @@ async function tmRoute(url){
     return tmManifest(fl);
   }
   if (!tmKey()) throw new Error('Add your TMDB key in Settings to use this addon');
+  const isMine = /\/catalog\/[^/]+\/tm\.(byw\d|wl|rec|dec)/.test(url);
+  if (isMine) {                                                               // made for this profile: kept a few minutes, per profile, never shared
+    const mk = (profile ? profile.id : '') + '|' + url, mh = tmMineMem.get(mk);
+    if (mh && Date.now() - mh.t < (url.includes('tm.wl') ? 0 : 600000)) return mh.j;
+    const parts0 = path.split('/'), j0 = await tmCatalog(fl, decodeURIComponent(parts0[1]), decodeURIComponent(parts0[2]), Object.fromEntries(new URLSearchParams(parts0[3] || '')));
+    tmMineMem.set(mk, {t:Date.now(), j:j0}); return j0;
+  }
   const ck = url.replace(/^tmdb:\/\//, 'https://tmdb.streamlet.invalid/');      // the device cache only takes web addresses
   const hit = await dataGet(ck); if (hit && hit.age < dFresh(ck)) return hit.json;
   const parts = path.split('/').map((x, i) => i < 3 ? decodeURIComponent(x) : x);   // the extras stay encoded: a genre can hold '&'

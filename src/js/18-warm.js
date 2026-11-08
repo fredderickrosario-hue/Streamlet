@@ -7,11 +7,13 @@ async function warmSpace(sp, cap = 8000){
   try {
     let n = 0;
     for (const a of spaceAddons()) for (const cat of (a.manifest.catalogs || [])) {
-      if (n >= 12 || catInfo(cat).req.length) continue; n++;
+      if (n >= 18 || catInfo(cat).req.length) continue; n++;
       const url = `${a.base}/catalog/${cat.type}/${enc(cat.id)}.json`;
       jobs.push(getJSON(url).then(j => { warmC.set(url, {j, t:Date.now()}); (j.metas || []).filter(m => m.background).slice(0, 2).forEach(m => { const i = new Image(); i.src = m.background; }); }).catch(() => {}));
     }
-    if (profile) { try { for (const s of personalSeeds().seeds.slice(0, 6)) jobs.push(personalRecs(s).catch(() => {})); } catch {} }   // the "Because you watched / liked" rows
+    const tmMade = spaceAddons().some(a => a.url === 'tmdb://all/manifest.json');
+    if (profile && !tmMade) { try { for (const s of personalSeeds().seeds.slice(0, 6)) jobs.push(personalRecs(s).catch(() => {})); } catch {} }   // the "Because you watched / liked" rows
+    if (profile) jobs.push(heroFind(sp).catch(() => {}));                         // the hero's own slides: new episodes and returning seasons
   } finally { cur = oc; }
   await Promise.race([Promise.allSettled(jobs), sleep(cap)]);
 }

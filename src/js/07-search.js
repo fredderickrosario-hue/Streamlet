@@ -130,7 +130,8 @@ async function renderHome(query = $('#q').value.trim(), target){
   if (query) { await renderResults(query, box, tok); return; }
   const tabs = spaceTabs() && !query;
   const skipP = personalSkip; personalSkip = false;
-  const personal = !skipP && !query && !target && !(tabs && view.genre) && (!tabs || view.tab === 'home') && personalSeeds().any;
+  const tmMade = spaceAddons().some(a => a.url === 'tmdb://all/manifest.json');   // the TMDB rows already make these, per profile
+  const personal = !skipP && !tmMade && !query && !target && !(tabs && view.genre) && (!tabs || view.tab === 'home') && personalSeeds().any;
   const hideCats = personal && tabs;                                            // with tabs, the catalogs live in Movies / Shows as discoveries
   const nhKey = tabs && !target && !isKid() && view.tab === 'new' && !view.genre ? lsGet('streamlet.tmdb', '') : '';
   if (nhKey) { box.append(h('div', {class:'tspace'})); renderNewHot(box, tok, nhKey).catch(() => {}); return; }
@@ -139,7 +140,7 @@ async function renderHome(query = $('#q').value.trim(), target){
   if (tabs && !target && view.tab === 'new') box.append(h('div', {class:'empty', style:'padding:6px 16px 0'}, h('p', null, 'Add your TMDB key in Settings to turn this tab into New & Hot: coming soon, trending and top 10.')));
   if (!target) { box.append(h('div', {id:'cwBox'})); renderCW(); }
   if (personal) { const pbox = h('div', {id:'pBox'}); box.append(pbox); renderPersonal(pbox, tok).then(ok => { if (!ok && hideCats && tok === homeTok) { personalSkip = true; renderHome(query, target); } }).catch(() => { if (hideCats && tok === homeTok) { personalSkip = true; renderHome(query, target); } }); }
-  let heroDone = false, shown = 0;
+  let heroDone = false, shown = 0; heroPool = [];
   const jobs = [];
   for (const a of spaceAddons()) for (const cat of (a.manifest.catalogs||[])) {
     if (hideCats && jobs.length >= 2) break;                                    // only needed for the hero picture
@@ -172,13 +173,15 @@ async function renderHome(query = $('#q').value.trim(), target){
       if (tok!==homeTok) return;
       const metas = (r.metas||[]).filter(x => visibleMeta(x, x.type || cat.type));
       if (!metas.length) { sec.remove(); return; }
+      if (r.name) { const h2 = sec.querySelector('h2'); if (h2 && h2.firstChild) h2.firstChild.textContent = r.name; }   // rows that name themselves ("Because you watched …")
+      heroPool.push(...metas.filter(x => x.background).map(x => ({a, m:x, type:x.type || cat.type})));
       if (hideCats && heroDone) return;
       shown++; loading.remove();
       if (!heroDone && !query && heroBox.isConnected) {
         heroDone = true;
         const bgs = metas.filter(x => x.background).slice(0, 10), hm = bgs.length ? bgs[Math.floor(Math.random() * bgs.length)] : metas[0], ht = hm.type || cat.type;
         heroSlides = []; heroIdx = 0; heroBox.replaceChildren(buildTvHero()); setTvHero({a, m:hm, type:ht}, true);
-        if (profile && !(view.genre)) { const tk = ++heroTok, ex = metas.filter(x => x.background && x !== hm).sort(() => Math.random() - .5).slice(0, 5).map(x => ({a, m:x, type:x.type || cat.type})); heroBuild({a, m:hm, type:ht}, ex, tk).catch(() => {}); }
+        if (profile && !(view.genre)) { const tk = ++heroTok; setTimeout(() => heroBuild({a, m:hm, type:ht}, tk).catch(() => {}), 900); }   // a moment later: more rows are in to pick from
       }
       if (hideCats) return;
       for (const m of metas) {
