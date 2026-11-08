@@ -400,6 +400,8 @@ public class PlayerActivity extends Activity {
     static String resolveFinal(String u) {
         if (u == null || !u.startsWith("http")) return u;
         String hit = finalOf(u); if (hit != null) return hit;
+        String rd = rdDirect(u);                                                 // a Torrentio Real-Debrid link: ask Real-Debrid ourselves, Torrentio is never called
+        if (rd != null) { FINAL.put(u, rd); FINAL_AT.put(u, System.currentTimeMillis()); return rd; }
         for (int attempt = 0; attempt < 3; attempt++) {
             String cur = u; int rc = -1; String retryAfter = null;
             try {
@@ -423,6 +425,77 @@ public class PlayerActivity extends Activity {
             try { Thread.sleep(wait); } catch (InterruptedException ie) { return u; }
         }
         return u;
+    }
+    /* ---- Real-Debrid direct ----
+       A Torrentio link /resolve/realdebrid/<key>/<hash>/<cache>/<fileIndex>/<name> holds everything Torrentio
+       itself uses: your Real-Debrid key, the torrent and the file. Real-Debrid is asked directly (the torrent
+       already in your account is reused when it can be), so Torrentio's limits never stop a video. */
+    static final java.util.regex.Pattern TIO_RD = java.util.regex.Pattern.compile("/resolve/realdebrid/([^/]+)/([a-fA-F0-9]{40})/[^/]+/([^/]+)(?:/([^/?#]+))?");
+    static final String RD = "https://api.real-debrid.com/rest/1.0";
+    static String rdCall(String method, String path, String key, String form) throws Exception {
+        HttpURLConnection c = (HttpURLConnection) new URL(RD + path).openConnection();
+        c.setRequestMethod(method); c.setConnectTimeout(10000); c.setReadTimeout(15000);
+        c.setRequestProperty("Authorization", "Bearer " + key);
+        if (form != null) { c.setDoOutput(true); c.setRequestProperty("Content-Type", "application/x-www-form-urlencoded"); try (java.io.OutputStream o = c.getOutputStream()) { o.write(form.getBytes("UTF-8")); } }
+        int rc = c.getResponseCode();
+        InputStream in = rc >= 400 ? c.getErrorStream() : c.getInputStream();
+        String body = "";
+        if (in != null) { java.io.ByteArrayOutputStream b = new java.io.ByteArrayOutputStream(); byte[] buf = new byte[8192]; int n; while ((n = in.read(buf)) > 0) b.write(buf, 0, n); in.close(); body = b.toString("UTF-8"); }
+        c.disconnect();
+        if (rc >= 400) { String why = body; try { why = new JSONObject(body).optString("error", body); } catch (Exception ignored) { } throw new Exception("HTTP " + rc + " " + why); }
+        return body;
+    }
+    static String rdDirect(String u) {
+        java.util.regex.Matcher m = TIO_RD.matcher(u);
+        if (!m.find()) return null;
+        String key = m.group(1), hash = m.group(2).toLowerCase(Locale.ROOT), idxS = m.group(3), name = m.group(4);
+        try { name = name == null ? null : java.net.URLDecoder.decode(name, "UTF-8"); } catch (Exception ignored) { }
+        int fileIdx = -1; try { fileIdx = Integer.parseInt(idxS); } catch (Exception ignored) { }
+        long t0 = System.currentTimeMillis(); String added = null;
+        try {
+            String id = null;
+            org.json.JSONArray list = new org.json.JSONArray(rdCall("GET", "/torrents?limit=200", key, null));   // already in your account?
+            for (int i = 0; i < list.length(); i++) { JSONObject t = list.getJSONObject(i); if (hash.equals(t.optString("hash").toLowerCase(Locale.ROOT)) && "downloaded".equals(t.optString("status"))) { id = t.getString("id"); break; } }
+            String link = id == null ? null : rdLinkFor(key, id, fileIdx, name, false);
+            if (link == null) {                                                  // not there (or another file of it): add it, pick the file
+                id = new JSONObject(rdCall("POST", "/torrents/addMagnet", key, "magnet=" + java.net.URLEncoder.encode("magnet:?xt=urn:btih:" + hash, "UTF-8"))).getString("id"); added = id;
+                link = rdLinkFor(key, id, fileIdx, name, true);
+            }
+            if (link == null) { AppLog.add("RD", "not ready on Real-Debrid (still downloading): falling back to the addon's link"); if (added != null) try { rdCall("DELETE", "/torrents/delete/" + added, key, null); } catch (Exception ignored) { } return null; }
+            String dl = new JSONObject(rdCall("POST", "/unrestrict/link", key, "link=" + java.net.URLEncoder.encode(link, "UTF-8"))).getString("download");
+            AppLog.add("RD", "file link straight from Real-Debrid in " + (System.currentTimeMillis() - t0) + " ms (" + hostOf(dl) + "), the addon wasn't needed");
+            return dl;
+        } catch (Exception e) {
+            AppLog.add("RD", "Real-Debrid direct failed (" + e.getMessage() + "): using the addon's link");
+            return null;
+        }
+    }
+    /** the Real-Debrid link of the wanted file in a torrent; picks the file first when the torrent waits for it */
+    static String rdLinkFor(String key, String id, int fileIdx, String name, boolean select) throws Exception {
+        for (int round = 0; round < 8; round++) {
+            JSONObject info = new JSONObject(rdCall("GET", "/torrents/info/" + id, key, null));
+            org.json.JSONArray files = info.optJSONArray("files"); String st = info.optString("status");
+            if (files == null || files.length() == 0) { Thread.sleep(700); continue; }
+            int want = -1; long big = -1; int bigId = -1;
+            for (int i = 0; i < files.length(); i++) {
+                JSONObject f = files.getJSONObject(i); String p = f.optString("path"); int fid = f.optInt("id");
+                if (name != null && !name.isEmpty() && p.endsWith("/" + name) || (name != null && p.equals(name))) want = fid;
+                if (f.optLong("bytes") > big && p.toLowerCase(Locale.ROOT).matches(".*\\.(mkv|mp4|avi|m4v|webm|ts|mov)$")) { big = f.optLong("bytes"); bigId = fid; }
+            }
+            if (want < 0 && fileIdx >= 0) for (int i = 0; i < files.length(); i++) if (files.getJSONObject(i).optInt("id") == fileIdx + 1) want = fileIdx + 1;
+            if (want < 0) want = bigId;
+            if (want < 0) return null;
+            if ("waiting_files_selection".equals(st)) {
+                if (!select) return null;
+                rdCall("POST", "/torrents/selectFiles/" + id, key, "files=" + want); continue;
+            }
+            if (!"downloaded".equals(st)) { if (round < 3 && ("magnet_conversion".equals(st) || "queued".equals(st))) { Thread.sleep(800); continue; } return null; }   // not cached: a real download would take minutes
+            org.json.JSONArray links = info.optJSONArray("links"); if (links == null) return null;
+            int n = 0;                                                           // links follow the selected files in order
+            for (int i = 0; i < files.length(); i++) { JSONObject f = files.getJSONObject(i); if (f.optInt("selected") == 1) { if (f.optInt("id") == want) return n < links.length() ? links.getString(n) : null; n++; } }
+            return null;                                                         // that file isn't part of this copy
+        }
+        return null;
     }
     static String hostOf(String u) { try { return new URL(u).getHost(); } catch (Exception e) { return "?"; } }
     static int httpCode(Throwable e) {                                       // the HTTP status behind a player error, or -1
