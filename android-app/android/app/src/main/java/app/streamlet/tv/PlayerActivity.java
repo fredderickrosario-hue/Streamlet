@@ -391,6 +391,8 @@ public class PlayerActivity extends Activity {
                 int ec = error.errorCode;
                 AppLog.add("EXO", error.getErrorCodeName() + " (" + ec + ") " + String.valueOf(error.getMessage()));
                 boolean network = ec >= 2000 && ec < 3000;            // connection / HTTP problems: the other player would fail too
+                busy = String.valueOf(error.getMessage()).contains("429") || String.valueOf(error.getCause()).contains("429");
+                if (network && !busy) forgetFinal(streamUrl);           // the real link may have expired: ask the addon again next time
                 if (autoRecover && recover(network, error.getErrorCodeName())) return;
                 if (!network && !errOn) { handler.post(() -> switchToVlc()); return; }
                 showError(friendly(error), error.getErrorCodeName());
@@ -406,6 +408,43 @@ public class PlayerActivity extends Activity {
         handler.post(uiTick);
         controls.setVisibility(View.GONE); controls.setAlpha(0f); controlsOn = false;           // the video starts clean: no controls until you press OK or tap
     }
+
+    /* Addons like Torrentio hand out a link that redirects to the real file, and every opening of that link
+       makes the addon ask the debrid service again. The player opens the file many times (start, cues, seeks,
+       reconnects, preview frames), so the addon starts refusing (HTTP 429). The redirect is followed once and
+       the real file link is reused for a few hours. */
+    static final java.util.concurrent.ConcurrentHashMap<String, String> FINAL = new java.util.concurrent.ConcurrentHashMap<>();
+    static final java.util.concurrent.ConcurrentHashMap<String, Long> FINAL_AT = new java.util.concurrent.ConcurrentHashMap<>();
+    static String finalOf(String u) { Long t = FINAL_AT.get(u); return t != null && System.currentTimeMillis() - t < 3 * 3600_000L ? FINAL.get(u) : null; }
+    static void forgetFinal(String u) { if (u != null) { FINAL.remove(u); FINAL_AT.remove(u); } }
+    static String resolveFinal(String u) {
+        if (u == null || !u.startsWith("http")) return u;
+        String hit = finalOf(u); if (hit != null) return hit;
+        for (int attempt = 0; attempt < 3; attempt++) {
+            String cur = u; int rc = -1; String retryAfter = null;
+            try {
+                for (int hop = 0; hop < 6; hop++) {
+                    HttpURLConnection c = (HttpURLConnection) new URL(cur).openConnection();
+                    c.setInstanceFollowRedirects(false); c.setConnectTimeout(10000); c.setReadTimeout(10000);
+                    c.setRequestProperty("User-Agent", UA); c.setRequestProperty("Range", "bytes=0-0");
+                    rc = c.getResponseCode();
+                    if (rc / 100 == 3) { String loc = c.getHeaderField("Location"); c.disconnect(); if (loc == null) break; cur = new URL(new URL(cur), loc).toString(); continue; }
+                    retryAfter = c.getHeaderField("Retry-After"); c.disconnect(); break;
+                }
+            } catch (Exception e) { AppLog.add("LINK", "couldn't follow the link: " + e.getClass().getSimpleName()); return u; }
+            if (rc == 200 || rc == 206) {
+                if (!cur.equals(u)) AppLog.add("LINK", "real file link found (" + hostOf(cur) + "), reused for this video");
+                FINAL.put(u, cur); FINAL_AT.put(u, System.currentTimeMillis()); return cur;
+            }
+            if (rc != 429 && rc != 503) { AppLog.add("LINK", "link answered HTTP " + rc); return u; }
+            long wait = 3000L * (attempt + 1);
+            try { if (retryAfter != null) wait = Math.min(8000L, Math.max(1000L, Long.parseLong(retryAfter.trim()) * 1000L)); } catch (Exception ignored) { }
+            AppLog.add("LINK", "addon busy (HTTP " + rc + "): waiting " + wait / 1000 + " s");
+            try { Thread.sleep(wait); } catch (InterruptedException ie) { return u; }
+        }
+        return u;
+    }
+    static String hostOf(String u) { try { return new URL(u).getHost(); } catch (Exception e) { return "?"; } }
 
     private ExoPlayer makePlayer(boolean compat) {
         DefaultHttpDataSource.Factory http = new DefaultHttpDataSource.Factory()
@@ -435,7 +474,9 @@ public class PlayerActivity extends Activity {
         tsel = new DefaultTrackSelector(this);
         ExoPlayer p = new ExoPlayer.Builder(this, rf)
                 .setTrackSelector(tsel)
-                .setMediaSourceFactory(new DefaultMediaSourceFactory(new DefaultDataSource.Factory(this, http), ex))
+                .setMediaSourceFactory(new DefaultMediaSourceFactory(new androidx.media3.datasource.ResolvingDataSource.Factory(new DefaultDataSource.Factory(this, http),
+                        spec -> { String u = spec.uri.toString(); if (!u.equals(streamUrl)) return spec;   // only the video link itself (not subtitles or stream pieces)
+                            String f = resolveFinal(u); return f == null || f.equals(u) ? spec : spec.withUri(Uri.parse(f)); }), ex))
                 .build();
         p.setVideoChangeFrameRateStrategy(optFps ? C.VIDEO_CHANGE_FRAME_RATE_STRATEGY_ONLY_IF_SEAMLESS : C.VIDEO_CHANGE_FRAME_RATE_STRATEGY_OFF);
         return p;
@@ -451,7 +492,7 @@ public class PlayerActivity extends Activity {
         if (retries < 3) {
             retries++; recovering = true; spinner.setVisibility(View.VISIBLE); hideControls();
             AppLog.add("RECOVER", why + ": retrying this source (" + retries + "/3) at " + pos / 1000 + " s");
-            handler.postDelayed(() -> reload(pos, null), 1200L * retries);
+            handler.postDelayed(() -> reload(pos, null), (busy ? 5000L : 1200L) * retries);   // a busy addon (HTTP 429) gets real breathing room
             return true;
         }
         while (altAt + 1 < alts.length()) {
@@ -468,7 +509,7 @@ public class PlayerActivity extends Activity {
     }
     private void reload(long pos, String newUrl) {
         if (reported || player == null || mediaItem == null) return;
-        if (newUrl != null) { streamUrl = newUrl; mediaItem = mediaItem.buildUpon().setUri(Uri.parse(newUrl)).build(); thumbsBroken = newUrl.toLowerCase(Locale.ROOT).contains(".m3u8"); thumbCache.evictAll(); startPos = -1; gridLevel = 0; gridNext = 0; gridDone = false; gridTried.clear(); if (fx != null) { try { fx.setMediaItem(MediaItem.fromUri(newUrl), Collections.singletonList(androidx.media3.effect.Presentation.createForHeight(180))); } catch (Throwable e) { thumbsBroken = true; } }  handler.removeCallbacks(gridRun); handler.postDelayed(gridRun, 1500); }
+        if (newUrl != null) { streamUrl = newUrl; mediaItem = mediaItem.buildUpon().setUri(Uri.parse(newUrl)).build(); thumbsBroken = newUrl.toLowerCase(Locale.ROOT).contains(".m3u8"); thumbCache.evictAll(); startPos = -1; gridLevel = 0; gridNext = 0; gridDone = false; gridTried.clear(); if (fx != null) { try { fx.release(); } catch (Throwable ignored) { } fx = null; } handler.removeCallbacks(gridRun); }   // the reader restarts on the new source once it plays
         player.setMediaItem(mediaItem, pos);
         player.prepare();
         player.play();
@@ -502,6 +543,7 @@ public class PlayerActivity extends Activity {
     private static final long[] GRID_LEVELS = {60000, 30000, 15000, 10000};   // the timeline is filled in passes: one frame a minute everywhere, then every 30 s, 15 s, 10 s
     private static final int GRID_MAX = 360;                                 // frames that fit in the cache: long movies stop at a coarser pass
     private long startPos = -1;
+    private boolean busy = false;
     private int gridLevel = 0; private long gridNext = 0; private boolean gridDone = false;
     private final Set<Long> thumbWant = Collections.synchronizedSet(new HashSet<>());
     private final Set<Long> thumbPending = Collections.synchronizedSet(new HashSet<>());
@@ -573,7 +615,8 @@ public class PlayerActivity extends Activity {
         try {
             fx = new androidx.media3.transformer.ExperimentalFrameExtractor(this,
                     new androidx.media3.transformer.ExperimentalFrameExtractor.Configuration.Builder().setSeekParameters(androidx.media3.exoplayer.SeekParameters.CLOSEST_SYNC).build());
-            fx.setMediaItem(MediaItem.fromUri(streamUrl), Collections.singletonList(androidx.media3.effect.Presentation.createForHeight(180)));
+            String fu = finalOf(streamUrl);                                    // the real file link the player found: preview frames never go through the addon
+            fx.setMediaItem(MediaItem.fromUri(fu != null ? fu : streamUrl), Collections.singletonList(androidx.media3.effect.Presentation.createForHeight(180)));
             AppLog.add("thumbs", "frame reader started");
         } catch (Throwable e) { thumbsBroken = true; AppLog.add("thumbs", "seek preview unavailable: " + e); }
         gridLevel = 0; gridNext = 0; gridDone = false; gridTried.clear();
