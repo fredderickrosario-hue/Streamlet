@@ -210,6 +210,7 @@ function tvRowsFor(addon, type, meta, title, els, opts = {}){
     h('section', {class:'drow dmain'}, h('h3', {class:'drt'}, title), ...els.filter(Boolean)),
     ...(opts.rows || []),
     people.length ? h('section', {class:'drow dpeople'}, h('h3', {class:'drt'}, 'Cast & crew'), h('div', {class:'dpl'}, ...people)) : null,
+    ...(opts.after || []),
     simRow));
 }
 
@@ -276,7 +277,7 @@ async function openDetail(addon, type, item, opts = {}){
       acts, infoPanel(meta, genres), hintEl(),
       ph(genres.length ? h('div', {class:'dgen'}, genres.map(g => h('button', {class:'pillx', type:'button', onclick:() => searchFor(g)}, g))) : null),
       ph(chipsSection('Cast', listOf(meta, 'cast', 'cast'))), ph(chipsSection('Director', listOf(meta, 'director', 'director'))), ph(chipsSection('Writer', listOf(meta, 'writer', 'writer')))));
-    const tvRows = (title, els) => tvRowsFor(addon, type, meta, title, els);
+    const tvRows = (title, els) => tvRowsFor(addon, type, meta, title, els, type === 'series' && withStreams ? {after:[eoSection(meta, reloadMeta)]} : {});
     if (withStreams && sorted.length) {                                    // ---- series: seasons + episodes
       const seasons = [...new Set(sorted.map(v => v.season ?? 1))];
       if (curSeason === null || !seasons.includes(curSeason)) { const nx = profile ? epNext(meta.id, sorted).v : null; curSeason = nx && seasons.includes(nx.season ?? 1) ? (nx.season ?? 1) : (seasons.find(x => x >= 1) ?? seasons[0]); }
@@ -322,6 +323,7 @@ async function openDetail(addon, type, item, opts = {}){
   build(false);
   const ma = supports(addon, 'meta', type, item.id) ? addon : addons.find(x => supports(x, 'meta', type, item.id));
   if (ma) { try { const r = await getJSON(`${ma.base}/meta/${type}/${enc(item.id)}.json`); meta = {...item, ...r.meta}; } catch {} }
+  async function reloadMeta(){ if (ma) { try { const r = await getJSON(`${ma.base}/meta/${type}/${enc(item.id)}.json`); meta = {...item, ...r.meta}; if (!r.meta._rawVideos) delete meta._rawVideos; } catch {} } curSeason = null; build(true); }
   const {sorted} = build(true);
   const rs = opts.resume;
   if (rs && type === 'series') { const rv = sorted.find(v => v.id === rs.id); if (rv) openEpisode(addon, type, meta, rv, sorted); }

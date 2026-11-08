@@ -142,3 +142,7 @@ body.tv.pgfix:not(.launch) #wlGrid{padding-left:18px;margin-left:-18px;padding-t
 #profiles .ptile:is(:hover,:focus-visible) .pav.add{outline:3px solid rgba(255,255,255,.95) !important;outline-offset:5px;border-color:transparent;color:#fff}
 /* TV lists that scroll (Settings, Me, My List, addons): no glass blur inside them, so every scroll frame stays cheap */
 body.tv.pgfix :is(#settings>.pad,#me>.pad,#wlGrid,#adBrowse,#adInstalled #list) :is(select.sel,.chip,.f,.addon,.rcard,.spaceBtn){backdrop-filter:none !important;-webkit-backdrop-filter:none !important}
+/* episode order (only on shows numbered differently by the catalog and TMDB) */
+.deorder .eohint{margin:0 0 12px;color:var(--mut);font-size:14px;line-height:1.45;max-width:680px}
+body.tv .deorder .eohint{font-size:16px}
+.deorder .eochips{display:flex;gap:10px;flex-wrap:wrap;padding:4px 2px}

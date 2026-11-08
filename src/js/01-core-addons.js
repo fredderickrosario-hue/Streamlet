@@ -73,7 +73,11 @@ async function dataPut(url, json){
 }
 
 const warmC = new Map();                                                       // catalogs fetched ahead of time by warmSpace (used for 2 minutes)
-async function getJSON(url){
+async function getJSON(url){                                            // a show's episodes may be swapped for TMDB's order (26-ep-order.js)
+  const j = await getJSON0(url);
+  return /\/meta\/series\//.test(url) ? eoApply(url, j) : j;
+}
+async function getJSON0(url){
   const w = warmC.get(url); if (w && Date.now() - w.t < 120000) return w.j;
   if (url.startsWith('demo://sample/')) return demoRoute(url.slice('demo://sample/'.length));
   if (url.startsWith('qc://')) return qcRoute(url);
