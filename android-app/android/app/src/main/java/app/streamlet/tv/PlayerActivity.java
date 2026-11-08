@@ -114,7 +114,8 @@ public class PlayerActivity extends Activity {
     private View errNextBtn;
     private boolean errOn = false;
     /* automatic source pick on: an error is retried on the same source behind the loading logo, then the next source takes over at the same spot */
-    private boolean autoRecover = false, recovering = false, played = false;
+    private boolean autoRecover = false, recovering = false, played = false, pendingReload = false;
+    private int lastHttp = -1;
     private JSONArray alts = new JSONArray();
     private int altAt = -1, retries = 0;
     private long goodPos = 0;
@@ -227,6 +228,8 @@ public class PlayerActivity extends Activity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        { PlayerActivity old = live == null ? null : live.get(); live = new java.lang.ref.WeakReference<>(this);
+          if (old != null && old != this && !old.isFinishing()) { old.reported = true; old.handler.removeCallbacksAndMessages(null); AppLog.add("PLAYER", "a new video replaced the one still opening"); old.finish(); } }
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
         prefs = getSharedPreferences("streamlet_player", MODE_PRIVATE);
         root = new FrameLayout(this);
@@ -364,9 +367,13 @@ public class PlayerActivity extends Activity {
             @Override
             public void onPlayerError(PlaybackException error) {
                 int ec = error.errorCode;
-                AppLog.add("EXO", error.getErrorCodeName() + " (" + ec + ") " + String.valueOf(error.getMessage()));
+                int http = httpCode(error);
+                AppLog.add("EXO", error.getErrorCodeName() + " (" + ec + ")" + (http > 0 ? " HTTP " + http : "") + " " + String.valueOf(error.getMessage()) + (http > 0 ? " · " + hostOf(String.valueOf(finalOf(streamUrl) != null ? finalOf(streamUrl) : streamUrl)) : ""));
                 boolean network = ec >= 2000 && ec < 3000;            // connection / HTTP problems: the other player would fail too
-                if (autoRecover && recover(network, error.getErrorCodeName())) return;
+                lastHttp = http;
+                if (http != 429 && http != 503 && network) forgetFinal(streamUrl);   // the real link may have expired: ask the addon again next time
+                if (pendingReload) return;                             // a retry is already on its way: one at a time
+                if (autoRecover && recover(network, error.getErrorCodeName() + (http > 0 ? " HTTP " + http : ""))) return;
                 if (!network && !errOn) { handler.post(() -> switchToVlc()); return; }
                 showError(friendly(error), error.getErrorCodeName());
             }
@@ -381,6 +388,49 @@ public class PlayerActivity extends Activity {
         handler.post(uiTick);
         controls.setVisibility(View.GONE); controls.setAlpha(0f); controlsOn = false;           // the video starts clean: no controls until you press OK or tap
     }
+
+    /* Addons like Torrentio hand out a link that redirects to the real file, and every opening of that link
+       makes the addon ask the debrid service again. The player opens the file many times (start, cues, seeks,
+       reconnects, preview frames), so the addon starts refusing (HTTP 429). The redirect is followed once and
+       the real file link is reused for a few hours. */
+    static final java.util.concurrent.ConcurrentHashMap<String, String> FINAL = new java.util.concurrent.ConcurrentHashMap<>();
+    static final java.util.concurrent.ConcurrentHashMap<String, Long> FINAL_AT = new java.util.concurrent.ConcurrentHashMap<>();
+    static String finalOf(String u) { Long t = u == null ? null : FINAL_AT.get(u); return t != null && System.currentTimeMillis() - t < 3 * 3600_000L ? FINAL.get(u) : null; }
+    static void forgetFinal(String u) { if (u != null) { FINAL.remove(u); FINAL_AT.remove(u); } }
+    static String resolveFinal(String u) {
+        if (u == null || !u.startsWith("http")) return u;
+        String hit = finalOf(u); if (hit != null) return hit;
+        for (int attempt = 0; attempt < 3; attempt++) {
+            String cur = u; int rc = -1; String retryAfter = null;
+            try {
+                for (int hop = 0; hop < 6; hop++) {
+                    HttpURLConnection c = (HttpURLConnection) new URL(cur).openConnection();
+                    c.setInstanceFollowRedirects(false); c.setConnectTimeout(10000); c.setReadTimeout(10000);
+                    c.setRequestProperty("User-Agent", UA); c.setRequestProperty("Range", "bytes=0-0");
+                    rc = c.getResponseCode();
+                    if (rc / 100 == 3) { String loc = c.getHeaderField("Location"); c.disconnect(); if (loc == null) break; cur = new URL(new URL(cur), loc).toString(); continue; }
+                    retryAfter = c.getHeaderField("Retry-After"); c.disconnect(); break;
+                }
+            } catch (Exception e) { AppLog.add("LINK", "couldn't follow the link: " + e.getClass().getSimpleName()); return u; }
+            if (rc == 200 || rc == 206) {
+                AppLog.add("LINK", cur.equals(u) ? "direct link, HTTP " + rc : "real file link found (" + hostOf(cur) + "), reused for this video");
+                FINAL.put(u, cur); FINAL_AT.put(u, System.currentTimeMillis()); return cur;
+            }
+            if (rc != 429 && rc != 503) { AppLog.add("LINK", "the link answered HTTP " + rc + " (" + hostOf(cur) + ")"); return u; }
+            long wait = 4000L * (attempt + 1);
+            try { if (retryAfter != null) wait = Math.min(10000L, Math.max(1000L, Long.parseLong(retryAfter.trim()) * 1000L)); } catch (Exception ignored) { }
+            AppLog.add("LINK", "addon busy (HTTP " + rc + "): waiting " + wait / 1000 + " s before asking again");
+            try { Thread.sleep(wait); } catch (InterruptedException ie) { return u; }
+        }
+        return u;
+    }
+    static String hostOf(String u) { try { return new URL(u).getHost(); } catch (Exception e) { return "?"; } }
+    static int httpCode(Throwable e) {                                       // the HTTP status behind a player error, or -1
+        for (Throwable t = e; t != null; t = t.getCause()) if (t instanceof androidx.media3.datasource.HttpDataSource.InvalidResponseCodeException) return ((androidx.media3.datasource.HttpDataSource.InvalidResponseCodeException) t).responseCode;
+        return -1;
+    }
+    /* only one player at a time: a second one (a double press, a relaunch) silences the first so they never retry side by side */
+    private static java.lang.ref.WeakReference<PlayerActivity> live = null;
 
     private ExoPlayer makePlayer(boolean compat) {
         DefaultHttpDataSource.Factory http = new DefaultHttpDataSource.Factory()
@@ -410,7 +460,9 @@ public class PlayerActivity extends Activity {
         tsel = new DefaultTrackSelector(this);
         ExoPlayer p = new ExoPlayer.Builder(this, rf)
                 .setTrackSelector(tsel)
-                .setMediaSourceFactory(new DefaultMediaSourceFactory(new DefaultDataSource.Factory(this, http), ex))
+                .setMediaSourceFactory(new DefaultMediaSourceFactory(new androidx.media3.datasource.ResolvingDataSource.Factory(new DefaultDataSource.Factory(this, http),
+                        spec -> { String u = spec.uri.toString(); if (!u.equals(streamUrl)) return spec;   // only the video link itself (not subtitles or stream pieces)
+                            String f = resolveFinal(u); return f == null || f.equals(u) ? spec : spec.withUri(Uri.parse(f)); }), ex))
                 .build();
         p.setVideoChangeFrameRateStrategy(optFps ? C.VIDEO_CHANGE_FRAME_RATE_STRATEGY_ONLY_IF_SEAMLESS : C.VIDEO_CHANGE_FRAME_RATE_STRATEGY_OFF);
         return p;
@@ -423,10 +475,13 @@ public class PlayerActivity extends Activity {
         if (!played && !network) return false;
         handler.removeCallbacks(stallRun); handler.removeCallbacks(retryReset);
         final long pos = seekTo >= 0 && System.currentTimeMillis() - seekAt < 20000 ? seekTo : goodPos > 0 ? goodPos : Math.max(0L, startMsIn);
-        if (retries < 3) {
-            retries++; recovering = true; spinner.setVisibility(View.VISIBLE); hideControls();
-            AppLog.add("RECOVER", why + ": retrying this source (" + retries + "/3) at " + pos / 1000 + " s");
-            handler.postDelayed(() -> reload(pos, null), 1200L * retries);
+        boolean busy = lastHttp == 429 || lastHttp == 503, dead = lastHttp == 401 || lastHttp == 403 || lastHttp == 404 || lastHttp == 410 || lastHttp == 451;
+        int max = dead ? (played ? 1 : 0) : busy ? 2 : 3;                      // a refused / missing file won't come back by retrying: next source straight away
+        if (retries < max) {
+            retries++; recovering = true; pendingReload = true; spinner.setVisibility(View.VISIBLE); hideControls();
+            long wait = busy ? 10000L * retries : 1500L * retries;               // a busy addon gets real breathing room
+            AppLog.add("RECOVER", why + ": retrying this source (" + retries + "/" + max + ") in " + wait / 1000 + " s at " + pos / 1000 + " s");
+            handler.postDelayed(() -> { pendingReload = false; reload(pos, null); }, wait);
             return true;
         }
         while (altAt + 1 < alts.length()) {
@@ -435,7 +490,8 @@ public class PlayerActivity extends Activity {
             if (u.isEmpty()) continue;
             retries = 0; recovering = true; spinner.setVisibility(View.VISIBLE); hideControls();
             AppLog.add("RECOVER", why + ": moving to the next source (" + (altAt + 1) + "/" + alts.length() + ") at " + pos / 1000 + " s");
-            reload(pos, u);
+            if (busy) { pendingReload = true; final String nu = u; handler.postDelayed(() -> { pendingReload = false; reload(pos, nu); }, 5000); }   // same addon, so still give it a moment
+            else reload(pos, u);
             return true;
         }
         recovering = false;
@@ -547,7 +603,7 @@ public class PlayerActivity extends Activity {
                 if (thumbsBroken || !thumbWant.contains(key)) return;          // you have moved on: skip it
                 if (thumbMmr == null) {
                     android.media.MediaMetadataRetriever m = new android.media.MediaMetadataRetriever();
-                    if (streamUrl.startsWith("http")) { Map<String, String> hd = new HashMap<>(); hd.put("User-Agent", UA); m.setDataSource(streamUrl, hd); }
+                    if (streamUrl.startsWith("http")) { Map<String, String> hd = new HashMap<>(); hd.put("User-Agent", UA); String fu = finalOf(streamUrl); m.setDataSource(fu != null ? fu : streamUrl, hd); }   // the real file link: preview frames never go through the addon
                     else m.setDataSource(this, Uri.parse(streamUrl));
                     thumbMmr = m;
                 }
