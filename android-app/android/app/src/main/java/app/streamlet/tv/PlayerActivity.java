@@ -222,7 +222,7 @@ public class PlayerActivity extends Activity {
         if (player != null) { seekTo = seek.getProgress(); seekAt = System.currentTimeMillis(); player.seekTo(seekTo); } seekPending = false; } };
     private final Runnable uiTick = new Runnable() { @Override public void run() {
         refreshProgress();
-        if (player != null && player.isPlaying()) { goodPos = Math.max(0L, player.getCurrentPosition()); if (fx == null && !thumbsBroken && player.getTotalBufferedDuration() > 8000) thumbWarm(); }
+        if (player != null && player.isPlaying()) { goodPos = Math.max(0L, player.getCurrentPosition()); if (fx == null && !thumbsBroken && startPos >= 0 && player.getCurrentPosition() - startPos > 20000 && player.getTotalBufferedDuration() > 25000) thumbWarm(); }
         if (player != null && player.isPlaying() && System.currentTimeMillis() - wnLast > 60000) wnSync(false);   // keep the home-screen position about a minute fresh
         handler.postDelayed(this, 500);
     } };
@@ -346,6 +346,7 @@ public class PlayerActivity extends Activity {
             @Override
             public void onPlaybackStateChanged(int state) {
                 if (state == Player.STATE_ENDED) onEnded();
+                if (state == Player.STATE_READY && startPos < 0) startPos = player.getCurrentPosition();   // where this video started (a resume point counts as the start)
                 if (state == Player.STATE_READY && !resumeChecked) {                 // some files ignore the start position until they know their length: seek again once
                     resumeChecked = true;
                     long want = startMsIn, got = Math.max(0L, player.getCurrentPosition());
@@ -467,7 +468,7 @@ public class PlayerActivity extends Activity {
     }
     private void reload(long pos, String newUrl) {
         if (reported || player == null || mediaItem == null) return;
-        if (newUrl != null) { streamUrl = newUrl; mediaItem = mediaItem.buildUpon().setUri(Uri.parse(newUrl)).build(); thumbsBroken = newUrl.toLowerCase(Locale.ROOT).contains(".m3u8"); thumbCache.evictAll(); gridLevel = 0; gridNext = 0; gridDone = false; gridTried.clear(); if (fx != null) { try { fx.setMediaItem(MediaItem.fromUri(newUrl), Collections.singletonList(androidx.media3.effect.Presentation.createForHeight(180))); } catch (Throwable e) { thumbsBroken = true; } }  handler.removeCallbacks(gridRun); handler.postDelayed(gridRun, 1500); }
+        if (newUrl != null) { streamUrl = newUrl; mediaItem = mediaItem.buildUpon().setUri(Uri.parse(newUrl)).build(); thumbsBroken = newUrl.toLowerCase(Locale.ROOT).contains(".m3u8"); thumbCache.evictAll(); startPos = -1; gridLevel = 0; gridNext = 0; gridDone = false; gridTried.clear(); if (fx != null) { try { fx.setMediaItem(MediaItem.fromUri(newUrl), Collections.singletonList(androidx.media3.effect.Presentation.createForHeight(180))); } catch (Throwable e) { thumbsBroken = true; } }  handler.removeCallbacks(gridRun); handler.postDelayed(gridRun, 1500); }
         player.setMediaItem(mediaItem, pos);
         player.prepare();
         player.play();
@@ -500,6 +501,7 @@ public class PlayerActivity extends Activity {
     private final LruCache<Long, Bitmap> thumbCache = new LruCache<Long, Bitmap>(44 * 1024 * 1024) { @Override protected int sizeOf(Long k, Bitmap b) { return b.getByteCount(); } };   // ~44 MB of small 16-bit frames: a whole timeline
     private static final long[] GRID_LEVELS = {60000, 30000, 15000, 10000};   // the timeline is filled in passes: one frame a minute everywhere, then every 30 s, 15 s, 10 s
     private static final int GRID_MAX = 360;                                 // frames that fit in the cache: long movies stop at a coarser pass
+    private long startPos = -1;
     private int gridLevel = 0; private long gridNext = 0; private boolean gridDone = false;
     private final Set<Long> thumbWant = Collections.synchronizedSet(new HashSet<>());
     private final Set<Long> thumbPending = Collections.synchronizedSet(new HashSet<>());
@@ -587,7 +589,7 @@ public class PlayerActivity extends Activity {
         if (thumbStrip != null && thumbStrip.getVisibility() == View.VISIBLE) synchronized (thumbWant) { for (Long w : thumbWant) if (thumbCache.get(w) == null) { waiting = true; break; } }
         if (waiting) { handler.postDelayed(this, 500); return; }
         long dur = player.getDuration();
-        boolean ready = player.getPlaybackState() == Player.STATE_READY, roomy = !player.isPlaying() || player.getTotalBufferedDuration() >= 12000;
+        boolean ready = player.getPlaybackState() == Player.STATE_READY, roomy = player.getTotalBufferedDuration() >= 30000;   // only with a good cushion of video loaded, so the preview never slows playback
         if (dur == C.TIME_UNSET || dur <= 0 || !ready || !roomy) { handler.postDelayed(this, 700); return; }
         long pos = player.getCurrentPosition(), here = (pos / 10000) * 10000;
         for (long d : new long[]{0, 10000, -10000, 20000, -20000}) { long k = here + d; if (k >= 0 && k <= dur && thumbCache.get(k) == null && !gridTried.contains(k)) { gridTried.add(k); thumbFetch(k, false); return; } }
@@ -1347,7 +1349,7 @@ public class PlayerActivity extends Activity {
 
     private void showControls(View focus) {
         if (menuOn) return;
-        if (seek != null) thumbWarm();
+        if (seek != null && player != null && player.isPlaying() && startPos >= 0 && player.getCurrentPosition() - startPos > 20000) thumbWarm();   // never while the video is starting: the player gets the connection to itself
         controlsOn = true;
         controls.setVisibility(View.VISIBLE);
         controls.animate().alpha(1f).setDuration(180).start();

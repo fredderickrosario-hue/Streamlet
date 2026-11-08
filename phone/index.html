@@ -3856,7 +3856,7 @@ function prefSet(id, st, manual){                                       // you p
   m[id] = {sig:sigOf(st), like, manual:!!(manual || (old && old.manual && old.like && likeScore(old.like, st) >= LIKE_MIN))};
   const ks = Object.keys(m); if (ks.length > 150) delete m[ks[0]]; lsSet('streamlet.srcpref', m);
 }
-const prefTier = (id, st) => { const p = prefRaw(id); if (!p) return 2; if (p.sig && sigOf(st) === p.sig) return 0; return p.like && likeScore(p.like, st) >= LIKE_MIN ? 1 : 2; };
+const prefTier = (id, st) => { const p = prefRaw(id); if (!p) return 2; if (p.sig && sigOf(st) === p.sig) return 0; if (!p.like || likeScore(p.like, st) < LIKE_MIN) return 2; return p.like.rd && !srcLike(st).rd ? 2 : 1; };   // your kind of source, but never one that isn't ready on the debrid service when yours was
 const badSet = st => { const m = mapGet('streamlet.badsrc'), now = Date.now(); for (const k of Object.keys(m)) if (now - m[k] > 7 * 864e5) delete m[k]; m[urlKey(st.url)] = now; const ks = Object.keys(m); if (ks.length > 200) delete m[ks[0]]; lsSet('streamlet.badsrc', m); };
 const isBadStream = st => badStreams.has(st) || (st.url && Date.now() - (mapGet('streamlet.badsrc')[urlKey(st.url)] || 0) < 7 * 864e5);
 const logErr = (title, st, code) => { const a = lsGet('streamlet.errlog', []); a.unshift({t:Date.now(), title:title || '', src:String((st && st.name) || '').replace(/\n+/g, ' '), code:code || ''}); lsSet('streamlet.errlog', a.slice(0, 30)); };
