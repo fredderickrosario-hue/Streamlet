@@ -266,14 +266,36 @@ function tvEntryReveal(el, lock){
   }
 }
 /* pages whose title stays fixed (watchlist, addons, settings, profile, search): only their own scroller moves */
+/* a list that scrolls inside the page (Settings, My List, editors): one glide that follows a moving target.
+   Each key press only moves the target, so a held key gives one steady motion instead of a restart per step. */
+const glides = new WeakMap();
+function glideTo(a, target, held){
+  const max = Math.max(0, a.scrollHeight - a.clientHeight); target = Math.max(0, Math.min(max, target));
+  let g = glides.get(a);
+  if (!g) { g = {pos:a.scrollTop, target, raf:0, last:0}; glides.set(a, g); }
+  if (!g.raf) g.pos = a.scrollTop;                                           // nothing running: start from where the list really is
+  g.target = target; g.tau = held ? 150 : 90;                                    // held: a longer lag, so the list never catches up and stops between steps
+  if (g.raf) return;
+  g.last = performance.now();
+  const step = t => {
+    const dt = Math.min(48, t - g.last); g.last = t;
+    g.pos += (g.target - g.pos) * (1 - Math.exp(-dt / g.tau));
+    if (Math.abs(g.target - g.pos) < .5) { g.pos = g.target; a.scrollTop = g.pos; g.raf = 0; return; }
+    a.scrollTop = g.pos; g.raf = requestAnimationFrame(step);
+  };
+  g.raf = requestAnimationFrame(step);
+}
 function scrollNested(el, edge){
   for (let a = el.parentElement; a && a !== document.body; a = a.parentElement) {
     const c = getComputedStyle(a);
     if ((c.overflowY === 'auto' || c.overflowY === 'scroll') && a.scrollHeight > a.clientHeight + 4) {
-      const ar = a.getBoundingClientRect(), er = el.getBoundingClientRect(), k = ar.height / (a.clientHeight || ar.height) || 1, m = 64 * k;
-      if (edge === 'top') a.scrollTo({top:0, behavior:'smooth'});
-      else if (edge === 'bottom') a.scrollTo({top:a.scrollHeight, behavior:'smooth'});
-      else { const off = ((er.top + er.bottom) - (ar.top + ar.bottom)) / 2 / k; if (Math.abs(off) > 40) a.scrollTo({top:Math.max(0, a.scrollTop + off), behavior:'smooth'}); }   // keep the focused item mid-screen
+      const held = document.body.classList.contains('navheld');
+      if (edge === 'top') { glideTo(a, 0, held); return true; }
+      if (edge === 'bottom') { glideTo(a, 1e9, held); return true; }
+      const ar = a.getBoundingClientRect(), er = el.getBoundingClientRect(), k = ar.height / (a.clientHeight || ar.height) || 1;
+      const g = glides.get(a), now = a.scrollTop;                           // where the list is drawn right now (mid-glide included), the same moment the boxes were measured
+      const off = ((er.top + er.bottom) - (ar.top + ar.bottom)) / 2 / k;  // focused item vs the middle of the list, at the drawn position
+      if (Math.abs(off) > 2 || (g && g.raf)) glideTo(a, now + off, held);   // always follow the focus: no dead zone, so every step moves the same way
       return true;
     }
   }

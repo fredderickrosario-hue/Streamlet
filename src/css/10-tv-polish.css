@@ -140,3 +140,5 @@ body.tv.pgfix:not(.launch) #wlGrid{padding-left:18px;margin-left:-18px;padding-t
 /* Add profile: a thin ring at rest, the same white focus ring as the profile pictures */
 #profiles .pav.add{box-sizing:border-box;border:2px solid rgba(255,255,255,.22);box-shadow:none;transition:border-color .18s ease,color .18s ease}
 #profiles .ptile:is(:hover,:focus-visible) .pav.add{outline:3px solid rgba(255,255,255,.95) !important;outline-offset:5px;border-color:transparent;color:#fff}
+/* TV lists that scroll (Settings, Me, My List, addons): no glass blur inside them, so every scroll frame stays cheap */
+body.tv.pgfix :is(#settings>.pad,#me>.pad,#wlGrid,#adBrowse,#adInstalled #list) :is(select.sel,.chip,.f,.addon,.rcard,.spaceBtn){backdrop-filter:none !important;-webkit-backdrop-filter:none !important}
