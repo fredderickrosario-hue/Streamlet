@@ -222,7 +222,7 @@ public class PlayerActivity extends Activity {
         if (player != null) { seekTo = seek.getProgress(); seekAt = System.currentTimeMillis(); player.seekTo(seekTo); } seekPending = false; } };
     private final Runnable uiTick = new Runnable() { @Override public void run() {
         refreshProgress();
-        if (player != null && player.isPlaying()) { goodPos = Math.max(0L, player.getCurrentPosition()); if (fx == null && !thumbsBroken && player.getTotalBufferedDuration() > 20000) thumbWarm(); }
+        if (player != null && player.isPlaying()) { goodPos = Math.max(0L, player.getCurrentPosition()); if (fx == null && !thumbsBroken && player.getTotalBufferedDuration() > 8000) thumbWarm(); }
         if (player != null && player.isPlaying() && System.currentTimeMillis() - wnLast > 60000) wnSync(false);   // keep the home-screen position about a minute fresh
         handler.postDelayed(this, 500);
     } };
@@ -467,7 +467,7 @@ public class PlayerActivity extends Activity {
     }
     private void reload(long pos, String newUrl) {
         if (reported || player == null || mediaItem == null) return;
-        if (newUrl != null) { streamUrl = newUrl; mediaItem = mediaItem.buildUpon().setUri(Uri.parse(newUrl)).build(); thumbsBroken = newUrl.toLowerCase(Locale.ROOT).contains(".m3u8"); thumbCache.evictAll(); if (fx != null) { try { fx.setMediaItem(MediaItem.fromUri(newUrl), Collections.singletonList(androidx.media3.effect.Presentation.createForHeight(180))); } catch (Throwable e) { thumbsBroken = true; } } }
+        if (newUrl != null) { streamUrl = newUrl; mediaItem = mediaItem.buildUpon().setUri(Uri.parse(newUrl)).build(); thumbsBroken = newUrl.toLowerCase(Locale.ROOT).contains(".m3u8"); thumbCache.evictAll(); gridLevel = 0; gridNext = 0; gridDone = false; gridTried.clear(); if (fx != null) { try { fx.setMediaItem(MediaItem.fromUri(newUrl), Collections.singletonList(androidx.media3.effect.Presentation.createForHeight(180))); } catch (Throwable e) { thumbsBroken = true; } }  handler.removeCallbacks(gridRun); handler.postDelayed(gridRun, 1500); }
         player.setMediaItem(mediaItem, pos);
         player.prepare();
         player.play();
@@ -497,8 +497,10 @@ public class PlayerActivity extends Activity {
     private LinearLayout thumbStrip;
     private final ImageView[] seekThumbs = new ImageView[5];
     private final long[] thumbKeys = new long[5];
-    private final LruCache<Long, Bitmap> thumbCache = new LruCache<Long, Bitmap>(28 * 1024 * 1024) { @Override protected int sizeOf(Long k, Bitmap b) { return b.getByteCount(); } };   // ~28 MB of small frames
-    private static final long GRID = 60000;                                  // background frames: one a minute across the timeline
+    private final LruCache<Long, Bitmap> thumbCache = new LruCache<Long, Bitmap>(44 * 1024 * 1024) { @Override protected int sizeOf(Long k, Bitmap b) { return b.getByteCount(); } };   // ~44 MB of small 16-bit frames: a whole timeline
+    private static final long[] GRID_LEVELS = {60000, 30000, 15000, 10000};   // the timeline is filled in passes: one frame a minute everywhere, then every 30 s, 15 s, 10 s
+    private static final int GRID_MAX = 360;                                 // frames that fit in the cache: long movies stop at a coarser pass
+    private int gridLevel = 0; private long gridNext = 0; private boolean gridDone = false;
     private final Set<Long> thumbWant = Collections.synchronizedSet(new HashSet<>());
     private final Set<Long> thumbPending = Collections.synchronizedSet(new HashSet<>());
     private volatile boolean thumbsBroken = false;
@@ -572,19 +574,33 @@ public class PlayerActivity extends Activity {
             fx.setMediaItem(MediaItem.fromUri(streamUrl), Collections.singletonList(androidx.media3.effect.Presentation.createForHeight(180)));
             AppLog.add("thumbs", "frame reader started");
         } catch (Throwable e) { thumbsBroken = true; AppLog.add("thumbs", "seek preview unavailable: " + e); }
-        handler.removeCallbacks(gridRun); handler.postDelayed(gridRun, 1500);
+        gridLevel = 0; gridNext = 0; gridDone = false; gridTried.clear();
+        handler.removeCallbacks(gridRun); handler.postDelayed(gridRun, 400);
     }
-    /** while it plays with plenty buffered, fetch frames quietly: right around where you are first, then one a minute outward */
+    /** from the start, fill the whole timeline back to back: around where you are first, then the passes across the video.
+     *  It only steps aside for the frames you are scrubbing to, and while playback itself is short of buffer. */
     private final Runnable gridRun = new Runnable() { @Override public void run() {
-        if (thumbsBroken || player == null || isFinishing()) return;
-        handler.postDelayed(this, 1500);
-        if (fxBusy || scrubbing || !thumbWant.isEmpty() || !player.isPlaying() || player.getTotalBufferedDuration() < 15000) return;
-        long dur = player.getDuration(); if (dur == C.TIME_UNSET || dur <= 0) return;
-        long pos = player.getCurrentPosition(), here = (pos / 5000) * 5000;
-        for (long d : new long[]{10000, -10000, 20000, -20000}) { long k = here + d; if (k >= 0 && k <= dur && thumbCache.get(k) == null) { thumbFetch(k, false); return; } }
-        long g = (pos / GRID) * GRID;
-        for (long step = 0; step <= dur; step += GRID) for (long k : new long[]{g + step, g - step}) if (k >= 0 && k <= dur && thumbCache.get(k) == null) { thumbFetch(k, false); return; }
+        handler.removeCallbacks(this);
+        if (thumbsBroken || player == null || isFinishing() || gridDone) return;
+        if (fxBusy) return;                                                      // the frame being read calls back here when it is done
+        boolean waiting = false;                                                 // frames you are scrubbing to that are still missing come first
+        if (thumbStrip != null && thumbStrip.getVisibility() == View.VISIBLE) synchronized (thumbWant) { for (Long w : thumbWant) if (thumbCache.get(w) == null) { waiting = true; break; } }
+        if (waiting) { handler.postDelayed(this, 500); return; }
+        long dur = player.getDuration();
+        boolean ready = player.getPlaybackState() == Player.STATE_READY, roomy = !player.isPlaying() || player.getTotalBufferedDuration() >= 12000;
+        if (dur == C.TIME_UNSET || dur <= 0 || !ready || !roomy) { handler.postDelayed(this, 700); return; }
+        long pos = player.getCurrentPosition(), here = (pos / 10000) * 10000;
+        for (long d : new long[]{0, 10000, -10000, 20000, -20000}) { long k = here + d; if (k >= 0 && k <= dur && thumbCache.get(k) == null && !gridTried.contains(k)) { gridTried.add(k); thumbFetch(k, false); return; } }
+        while (gridLevel < GRID_LEVELS.length) {
+            long step = GRID_LEVELS[gridLevel];
+            if (gridLevel > 0 && dur / step > GRID_MAX) break;                   // finer than the cache can hold
+            while (gridNext <= dur) { long k = gridNext; gridNext += step; if (thumbCache.get(k) == null && !gridTried.contains(k)) { gridTried.add(k); thumbFetch(k, false); return; } }
+            gridLevel++; gridNext = 0;
+            AppLog.add("thumbs", "timeline pass done: every " + (step / 1000) + " s (" + thumbCache.size() + " frames)");
+        }
+        gridDone = true;
     } };
+    private final Set<Long> gridTried = new HashSet<>();
     private void refreshThumbs() {
         if (thumbStrip == null) return;
         if (thumbsBroken) { thumbStrip.setVisibility(View.GONE); return; }
@@ -611,12 +627,14 @@ public class PlayerActivity extends Activity {
             fxBusy = false;
             try {
                 Bitmap b = f.get().bitmap;
+                if (b != null && b.getConfig() != Bitmap.Config.RGB_565) { Bitmap s16 = b.copy(Bitmap.Config.RGB_565, false); if (s16 != null) { b.recycle(); b = s16; } }
                 if (b != null) { if (thumbCache.size() == 0) AppLog.add("thumbs", "first frame in " + (System.currentTimeMillis() - t0) + " ms (" + b.getWidth() + "x" + b.getHeight() + ")"); thumbCache.put(k, b); thumbFails = 0; }
                 if (wanted && System.currentTimeMillis() - t0 > 9000) { thumbsBroken = true; AppLog.add("thumbs", "seek preview off: frames from this stream are too slow"); }
             } catch (Throwable e) { if (++thumbFails >= 2) { thumbsBroken = true; AppLog.add("thumbs", "seek preview unavailable: " + e); } }
             if (thumbStrip != null && thumbStrip.getVisibility() == View.VISIBLE) { for (int i = 0; i < 5; i++) if (thumbKeys[i] >= 0 && thumbCache.get(thumbKeys[i]) == null) { Bitmap nb = thumbNear(thumbKeys[i]); if (nb != null) seekThumbs[i].setImageBitmap(nb); } }
             refreshThumbs();
             thumbPump();
+            if (!fxBusy) handler.post(gridRun);                                  // straight on to the next frame of the timeline
         }, handler::post);
     }
 
