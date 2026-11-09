@@ -55,77 +55,98 @@
   </section>
   <section id="settings" hidden>
     <div class="pagehead"><h1>Settings</h1></div>
+    <div class="setnav cchips" id="setNav" role="tablist"></div>
     <div class="pad">
-      <div class="addon profcard"><div id="profRow"></div></div>
-      <h2 class="sh">Account</h2>
-      <div class="addon" id="acctCard"></div>
-      <div class="addon tvonly"><div class="row2"><span class="rt">Addons<small>Install, remove and reorder the sources for your catalogs and streams</small></span><button id="setAddons" class="btn f" type="button">Manage</button></div></div>
-      <h2 class="sh">Language</h2>
-      <div class="addon">
-        <div class="row2"><span class="rt">Subtitles<small>Preferred subtitle language</small></span><select id="setSub" class="sel"></select></div>
-        <div class="row2"><span class="rt">Audio<small>Preferred audio language when a stream offers several tracks</small></span><select id="setAud" class="sel"></select></div>
-      </div>
-      <p class="gnote">Subtitles are provided by your installed subtitle addons, such as OpenSubtitles. Audio selection requires a stream with multiple tracks.</p>
-      <h2 class="sh">Playing</h2>
-      <div class="addon">
-        <label class="row2"><span class="rt">Automatic source selection<small>Chooses the best source using your audio language, preferred quality and past playback. You can still pick one manually from any title</small></span><input type="checkbox" id="setAuto"></label>
-        <label class="row2"><span class="rt">Show unreleased titles<small>Include upcoming and in-theater titles that cannot be played yet</small></span><input type="checkbox" id="setUpc"></label>
-        <div class="row2" id="rowMaxQ"><span class="rt">Maximum quality<small>Upper limit for automatic source selection</small></span><select id="setMaxQ" class="sel"><option value="best">Best available</option><option value="2160">4K</option><option value="1080">1080p</option><option value="720">720p</option></select></div>
-      </div>
-      <h2 class="sh">Search</h2>
-      <div class="addon">
-        <label class="row2"><span class="rt">Search all addons<small>Include every installed addon, not only those in the current space. Returns more results</small></span><input type="checkbox" id="setSrchAll"></label>
-      </div>
-      <h2 class="sh">Look &amp; sound <small>this device</small></h2>
-      <div class="addon">
-        <label class="row2"><span class="rt">Animated background<small>Slowly shifting background colors</small></span><input type="checkbox" id="setAnim"></label>
-        <label class="row2"><span class="rt">Glass blur<small>Frosted-glass effect. Disable to improve performance on slower devices</small></span><input type="checkbox" id="setGlass"></label>
-        <label class="row2"><span class="rt">Navigation sounds<small>Subtle sounds when navigating and selecting</small></span><input type="checkbox" id="setSnd"></label>
-        <label class="row2" id="rowSaver" hidden><span class="rt">Screensaver<small>Shows a moving Streamlet logo on a black screen after a period of inactivity</small></span><input type="checkbox" id="setSaver"></label>
-        <div class="row2" id="rowSaverMin" hidden><span class="rt">Screensaver delay<small>Inactivity time before the screensaver starts</small></span><select id="setSaverMin" class="sel"></select></div>
-      </div>
-      <div id="setPlay" hidden>
-        <h2 class="sh">Video <small>this device</small></h2>
-        <div class="addon">
-          <div class="row2"><span class="rt" id="skLbl">Skip interval<small id="skHint">Seconds to jump when double-tapping the left or right side of the video</small></span><select id="setSkip" class="sel"><option value="5">5 s</option><option value="10">10 s</option><option value="15">15 s</option><option value="30">30 s</option></select></div>
-          <label class="row2"><span class="rt">Autoplay next episode<small>Starts the next episode after a short countdown. When off, you choose</small></span><input type="checkbox" id="setAutoNext"></label>
-          <label class="row2"><span class="rt">Skip intros, recaps and credits<small>Skips them automatically when timing data is available. Scenes after the credits still play. Rewind to watch a skipped section</small></span><input type="checkbox" id="setAutoSkip"></label>
-          <label class="row2"><span class="rt">Hardware decoding<small>Improves performance and reduces heat. Disable only if the video appears distorted</small></span><input type="checkbox" id="setHw"></label>
-          <label class="row2"><span class="rt">Match frame rate<small>Syncs the display to the video frame rate to reduce judder, where supported</small></span><input type="checkbox" id="setFps"></label>
-          <label class="row2"><span class="rt">Tunneled playback<small>May improve 4K and HDR playback. Can affect seeking</small></span><input type="checkbox" id="setTun"></label>
-          <label class="row2"><span class="rt">Dolby passthrough<small>Sends Dolby and Atmos audio to your TV in the fallback player. Disable if there is no sound</small></span><input type="checkbox" id="setPass"></label>
-        </div>
-      </div>
-      <h2 class="sh">Release dates</h2>
-      <div class="addon">
-        <div class="row2 stack"><span class="rt">TMDB API key<small>Optional. Enables confirmed release dates for new seasons and episodes of shows you follow</small></span><span class="inrow"><input type="text" id="setTmdb" class="f" placeholder="API key (v3)" autocomplete="off" spellcheck="false"><button class="btn ghost sm" id="tmdbChk" type="button">Verify</button></span></div>
-      </div>
-      <h2 class="sh">Québec</h2>
-      <div class="addon">
-        <div class="row2 stack"><span class="rt">Québec shows<small>One show page link per line, from tvaplus.ca, ici.radio-canada.ca/tele or ici.tou.tv. Requires the Québec addon. Synced across your devices</small></span>
-          <textarea id="qcShows" rows="4" wrap="off" class="f" style="width:100%;font-family:ui-monospace,monospace;font-size:13px" spellcheck="false"></textarea><button class="btn ghost sm" id="qcSave" type="button" style="align-self:flex-start">Save</button></div>
-      </div>
-      <h2 class="sh">Netflix</h2>
-      <div class="addon">
-        <div class="row2 stack"><span class="rt">Import Netflix history<small id="nfState">On netflix.com, open Account, choose your profile, then Viewing activity and Download all. Select that file here, then assign the shows to your spaces</small></span><span class="inrow"><button class="btn ghost sm" id="nfPick" type="button">Choose file</button></span></div>
-        <input type="file" id="nfFile" accept=".csv,text/csv" hidden>
-      </div>
-      <h2 class="sh">Backup</h2>
-      <div class="addon">
-        <div class="row2 stack"><span class="rt">Watch history backup<small>Save this profile's watch history to a file, or restore it from one. Restoring merges with existing data</small></span><span class="inrow"><button class="btn ghost sm" id="bkOut" type="button">Save</button><button class="btn ghost sm" id="bkIn" type="button">Restore</button></span></div>
-        <input type="file" id="bkFile" accept="application/json,.json" hidden>
-      </div>
-      <h2 class="sh">About</h2>
-      <div class="addon">
-        <div class="row2"><span class="rt" id="verLine"></span></div>
-        <div id="apkRow" hidden class="aboutpad">
+<div class="setcat" data-cat="general" hidden>
+<div class="sgrp"><h3 class="sgh">Startup</h3><div class="addon"><div class="row2"><span class="rt">When the app opens<small>What to show after choosing a profile</small></span><select id="setStart" class="sel"><option value="last">Last space you used</option><option value="launcher">Spaces page</option><option value="space">A specific space</option></select></div>
+<div class="row2" id="rowStartSp"><span class="rt">Space to open<small>Opened at start when "A specific space" is chosen</small></span><select id="setStartSp" class="sel"></select></div>
+<label class="row2" id="rowAsk"><span class="rt">Ask who’s watching<small>Show the profile picker every time the app opens</small></span><input type="checkbox" id="setAsk"></label></div></div>
+<div class="sgrp"><h3 class="sgh">Appearance <small>this device</small></h3><div class="addon"><div class="row2"><span class="rt">Colors<small>Each space can bring its own colors, or keep one look everywhere</small></span><select id="setTheme" class="sel"></select></div>
+<label class="row2"><span class="rt">Animated background<small>Slowly shifting background colors</small></span><input type="checkbox" id="setAnim"></label>
+<label class="row2"><span class="rt">Glass blur<small>Frosted-glass effect. Disable to improve performance on slower devices</small></span><input type="checkbox" id="setGlass"></label>
+<label class="row2"><span class="rt">Navigation sounds<small>Subtle sounds when navigating and selecting</small></span><input type="checkbox" id="setSnd"></label>
+<label class="row2" id="rowSaver" hidden><span class="rt">Screensaver<small>Shows a moving Streamlet logo on a black screen after a period of inactivity</small></span><input type="checkbox" id="setSaver"></label>
+<div class="row2" id="rowSaverMin" hidden><span class="rt">Screensaver delay<small>Inactivity time before the screensaver starts</small></span><select id="setSaverMin" class="sel"></select></div></div></div>
+<div class="sgrp"><h3 class="sgh">Language</h3><div class="addon"><div class="row2"><span class="rt">Titles and descriptions<small>Language of TMDB titles, descriptions and artwork. Other addons use their own</small></span><select id="setMetaLang" class="sel"></select></div>
+<div class="row2"><span class="rt">Region<small>Release dates and streaming services for your country</small></span><select id="setRegion" class="sel"></select></div></div><p class="gnote">The app itself is in English.</p></div>
+<div class="sgrp"><h3 class="sgh">Search</h3><div class="addon"><label class="row2"><span class="rt">Search all addons<small>Include every installed addon, not only those in the current space. Returns more results</small></span><input type="checkbox" id="setSrchAll"></label></div></div>
+</div>
+<div class="setcat" data-cat="spaces" hidden>
+<div class="sgrp"><h3 class="sgh">Your spaces</h3><div class="addon"><div id="spList" class="splist"></div></div><p class="gnote">Order and visibility apply to the spaces page. Edit changes a space’s name, colors, addons, subtitles, tabs and history.</p></div>
+<div class="sgrp"><h3 class="sgh">Add</h3><div class="addon"><div class="row2"><span class="rt">New space<small>Group addons with their own colors and settings</small></span><button class="btn ghost sm" id="spNew" type="button">Create</button></div></div></div>
+</div>
+<div class="setcat" data-cat="playback" hidden>
+<div class="sgrp"><h3 class="sgh">Sources</h3><div class="addon"><label class="row2"><span class="rt">Automatic source selection<small>Chooses the best source using your audio language, preferred quality and past playback. You can still pick one manually from any title</small></span><input type="checkbox" id="setAuto"></label>
+<div class="row2" id="rowMaxQ"><span class="rt">Maximum quality<small>Upper limit for automatic source selection</small></span><select id="setMaxQ" class="sel"><option value="best">Best available</option><option value="2160">4K</option><option value="1080">1080p</option><option value="720">720p</option></select></div>
+<label class="row2"><span class="rt">Remember my source per show<small>Next episodes start from the same kind of source you picked: group, quality and addon</small></span><input type="checkbox" id="setRemSrc"></label>
+<label class="row2"><span class="rt">Resume where you left off<small>When off, titles always start from the beginning</small></span><input type="checkbox" id="setResume"></label></div></div>
+<div class="sgrp"><h3 class="sgh">Subtitles and audio</h3><div class="addon"><div class="row2"><span class="rt">Subtitles<small>Preferred subtitle language</small></span><select id="setSub" class="sel"></select></div>
+<div class="row2"><span class="rt">Audio<small>Preferred audio language when a stream offers several tracks</small></span><select id="setAud" class="sel"></select></div></div><p class="gnote">Subtitles come from your subtitle addons, such as OpenSubtitles. A space can use its own subtitle language (Spaces > Edit).</p></div>
+<div id="setPlay" hidden><div class="sgrp"><h3 class="sgh">Player <small>this device</small></h3><div class="addon"><div class="row2"><span class="rt" id="skLbl">Skip interval<small id="skHint">Seconds to jump when double-tapping the left or right side of the video</small></span><select id="setSkip" class="sel"><option value="5">5 s</option><option value="10">10 s</option><option value="15">15 s</option><option value="30">30 s</option></select></div>
+<label class="row2"><span class="rt">Autoplay next episode<small>Starts the next episode after a short countdown. When off, you choose</small></span><input type="checkbox" id="setAutoNext"></label>
+<label class="row2"><span class="rt">Skip intros, recaps and credits<small>Skips them automatically when timing data is available. Scenes after the credits still play. Rewind to watch a skipped section</small></span><input type="checkbox" id="setAutoSkip"></label>
+<label class="row2"><span class="rt">Hardware decoding<small>Improves performance and reduces heat. Disable only if the video appears distorted</small></span><input type="checkbox" id="setHw"></label>
+<label class="row2"><span class="rt">Match frame rate<small>Syncs the display to the video frame rate to reduce judder, where supported</small></span><input type="checkbox" id="setFps"></label>
+<label class="row2"><span class="rt">Tunneled playback<small>May improve 4K and HDR playback. Can affect seeking</small></span><input type="checkbox" id="setTun"></label>
+<label class="row2"><span class="rt">Dolby passthrough<small>Sends Dolby and Atmos audio to your TV in the fallback player. Disable if there is no sound</small></span><input type="checkbox" id="setPass"></label></div></div></div>
+</div>
+<div class="setcat" data-cat="personal" hidden>
+<div class="sgrp"><h3 class="sgh">Home rows</h3><div class="addon"><label class="row2"><span class="rt">Featured<small>The large banner at the top of Home</small></span><input type="checkbox" id="setRowHero"></label>
+<label class="row2"><span class="rt">Continue watching<small>Titles you started and the next episode of shows you follow</small></span><input type="checkbox" id="setRowCW"></label>
+<label class="row2"><span class="rt">Because you watched<small>Picks based on what you watched and liked</small></span><input type="checkbox" id="setRowBYW"></label>
+<label class="row2"><span class="rt">Your watchlist<small>Your saved titles as a row (TMDB rows)</small></span><input type="checkbox" id="setRowWL"></label>
+<label class="row2"><span class="rt">Recommended for you<small>Recommendations from your history (TMDB rows)</small></span><input type="checkbox" id="setRowRec"></label>
+<label class="row2"><span class="rt">Your genres<small>A row from your preferred genres (Content). Needs a TMDB key</small></span><input type="checkbox" id="setRowFav"></label></div><p class="gnote">These apply in every space. A space can draw on history from all spaces: Spaces > Edit.</p></div>
+</div>
+<div class="setcat" data-cat="content" hidden>
+<div class="sgrp"><h3 class="sgh">Filters</h3><div class="addon"><label class="row2"><span class="rt">Show unreleased titles<small>Include upcoming and in-theater titles that cannot be played yet</small></span><input type="checkbox" id="setUpc"></label>
+<div class="row2"><span class="rt">Minimum rating<small>Hide titles rated below this. Titles without a rating stay</small></span><select id="setMinRate" class="sel"><option value="0">Any rating</option><option value="5">5+</option><option value="6">6+</option><option value="6.5">6.5+</option><option value="7">7+</option><option value="7.5">7.5+</option><option value="8">8+</option></select></div>
+<div class="row2 stack"><span class="rt">Hide genres<small>Titles in these genres are left out of rows and search</small></span><div class="gchips" id="setHideG"></div></div>
+<div class="row2 stack"><span class="rt">Original language<small>Only titles first made in these languages. None selected: all</small></span><div class="gchips" id="setLangs"></div></div></div></div>
+<div class="sgrp"><h3 class="sgh">Preferred genres</h3><div class="addon"><div class="row2 stack"><span class="rt">Genres you like<small>Used for the Your genres row on Home</small></span><div class="gchips" id="setFavG"></div></div></div></div>
+</div>
+<div class="setcat" data-cat="notif" hidden>
+<div class="sgrp"><h3 class="sgh">Tell me about</h3><div class="addon"><label class="row2"><span class="rt">New episodes<small>A show you follow has a new episode</small></span><input type="checkbox" id="setNtEp"></label>
+<label class="row2"><span class="rt">Returning seasons<small>A show you follow has a confirmed date for its next season</small></span><input type="checkbox" id="setNtSeason"></label>
+<label class="row2"><span class="rt">Watchlist releases<small>A movie on your watchlist is now out</small></span><input type="checkbox" id="setNtWl"></label></div></div>
+<div class="sgrp"><h3 class="sgh">How</h3><div class="addon"><label class="row2" id="rowNtSys"><span class="rt">System notifications<small>Also show them outside the app, where your browser allows it</small></span><input type="checkbox" id="setNtSys"></label>
+<div class="row2"><span class="rt">Check now<small id="ntLast">Notices appear when you open a space</small></span><button class="btn ghost sm" id="ntNow" type="button">Check</button></div></div></div>
+</div>
+<div class="setcat" data-cat="tmdb" hidden>
+<div class="sgrp"><h3 class="sgh">TMDB</h3><div class="addon"><div class="row2 stack"><span class="rt">TMDB API key<small>Optional. Enables confirmed release dates for new seasons and episodes of shows you follow</small></span><span class="inrow"><input type="text" id="setTmdb" class="f" placeholder="API key (v3)" autocomplete="off" spellcheck="false"><button class="btn ghost sm" id="tmdbChk" type="button">Verify</button></span></div>
+<div class="row2"><span class="rt">Saved TMDB data<small>Titles matched to IMDb, curated lists and episode orders, kept to load faster</small></span><button class="btn ghost sm" id="stClrTm" type="button">Clear</button></div></div><p class="gnote">Your key also powers the TMDB addons, New &amp; Hot and confirmed release dates.</p></div>
+<div class="sgrp"><h3 class="sgh">Addons</h3><div class="addon"><div class="row2"><span class="rt">Addons<small id="adSum">Install, remove and reorder the sources for your catalogs and streams</small></span><button id="setAddons" class="btn f" type="button">Manage</button></div></div></div>
+<div class="sgrp"><h3 class="sgh">Québec</h3><div class="addon"><div class="row2 stack"><span class="rt">Québec shows<small>One show page link per line, from tvaplus.ca, ici.radio-canada.ca/tele or ici.tou.tv. Requires the Québec addon. Synced across your devices</small></span>
+          <textarea id="qcShows" rows="4" wrap="off" class="f" style="width:100%;font-family:ui-monospace,monospace;font-size:13px" spellcheck="false"></textarea><button class="btn ghost sm" id="qcSave" type="button" style="align-self:flex-start">Save</button></div></div></div>
+</div>
+<div class="setcat" data-cat="storage" hidden>
+<div class="sgrp"><h3 class="sgh">Storage</h3><div class="addon"><div class="row2"><span class="rt">Space used<small id="stUse">Calculating…</small></span></div>
+<div class="row2"><span class="rt">Rows and title pages<small>Kept so Home opens at once. Loaded again as needed</small></span><button class="btn ghost sm" id="stClrData" type="button">Clear</button></div>
+<div class="row2"><span class="rt">Temporary data<small>Failed sources, logs and recent lookups</small></span><button class="btn ghost sm" id="stClrTmp" type="button">Clear</button></div>
+<div class="row2"><span class="rt">Clear all caches<small>Removes everything cached, then restarts. Profiles, lists and settings stay</small></span><button class="btn ghost sm" id="updBtn" type="button">Clear cache &amp; restart</button></div></div></div>
+<div class="sgrp"><h3 class="sgh">Backup</h3><div class="addon"><div class="row2 stack"><span class="rt">Watch history backup<small>Save this profile's watch history to a file, or restore it from one. Restoring merges with existing data</small></span><span class="inrow"><button class="btn ghost sm" id="bkOut" type="button">Save</button><button class="btn ghost sm" id="bkIn" type="button">Restore</button></span></div>
+<div class="row2 stack"><span class="rt">Full backup<small>Settings, spaces, addons and every profile’s lists and history in one file. It contains your addon links and keys: keep it private</small></span><span class="inrow"><button class="btn ghost sm" id="fbOut" type="button">Save</button><button class="btn ghost sm" id="fbIn" type="button">Restore</button></span></div>
+<input type="file" id="bkFile" accept="application/json,.json" hidden>
+<input type="file" id="fbFile" accept="application/json,.json" hidden></div></div>
+<div class="sgrp"><h3 class="sgh">Import</h3><div class="addon"><div class="row2 stack"><span class="rt">Import Netflix history<small id="nfState">On netflix.com, open Account, choose your profile, then Viewing activity and Download all. Select that file here, then assign the shows to your spaces</small></span><span class="inrow"><button class="btn ghost sm" id="nfPick" type="button">Choose file</button></span></div>
+<input type="file" id="nfFile" accept=".csv,text/csv" hidden></div></div>
+</div>
+<div class="setcat" data-cat="account" hidden>
+<div class="sgrp"><h3 class="sgh">Profile</h3><div class="addon"><div class="profcard"><div id="profRow"></div></div></div></div>
+<div class="sgrp"><h3 class="sgh">Account</h3><div class="addon"><div id="acctCard"></div></div></div>
+</div>
+<div class="setcat" data-cat="about" hidden>
+<div class="sgrp"><h3 class="sgh">Streamlet</h3><div class="addon"><div class="row2"><span class="rt" id="verLine"></span></div>
+<div id="apkRow" hidden class="aboutpad">
           <div class="updbtns"><button class="btn ghost" id="apkBtn" type="button">Check for updates</button>
           <button class="btn" id="apkInstall" type="button" hidden>Install update</button></div>
           <p class="hint" id="apkMsg" style="margin-top:8px"></p>
         </div>
-        <details class="adbox" id="logBox" style="margin:10px 0"><summary>Diagnostics</summary><div id="logBody" style="margin-top:8px"></div></details>
-        <div class="aboutpad" style="display:flex;gap:10px;flex-wrap:wrap"><button class="btn ghost sm" id="updBtn" type="button">Clear cache &amp; restart</button><button class="btn ghost sm" id="closeBtn" type="button">Close app</button></div>
-      </div>
+<div id="abInfo" class="abinfo"></div></div></div>
+<div class="sgrp"><h3 class="sgh">Credits</h3><div class="addon"><div id="abCred" class="abinfo"></div></div></div>
+<div class="sgrp"><h3 class="sgh">Help</h3><div class="addon"><details class="adbox" id="logBox" style="margin:10px 0"><summary>Diagnostics</summary><div id="logBody" style="margin-top:8px"></div></details>
+<div class="aboutpad" style="display:flex;gap:10px;flex-wrap:wrap"><button class="btn ghost sm" id="closeBtn" type="button">Close app</button></div></div></div>
+</div>
     </div>
   </section>
   <section id="me" hidden></section>

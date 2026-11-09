@@ -51,7 +51,7 @@ const LAYER_CLOSERS = {
   panel:  () => { $('#ppanel').hidden = true; $('#pback').hidden = true; showBar(); },
   player: () => stopPlayer(),
   detail: () => { $('#detail').hidden = true; document.body.style.overflow = ''; if (!$('#home').hidden) renderCW(); },
-  editor: () => { $('#spaceEd').hidden = true; applyTheme(cur ? cur.theme : 'ember'); },
+  editor: () => { $('#spaceEd').hidden = true; applyTheme(spaceTheme(cur)); try { if (!$('#settings').hidden) spacesList(); } catch {} },
   pedit:  () => { $('#profEd').hidden = true; if (!$('#me').hidden) renderMe(); },
   menu:   () => { $('#menu').hidden = true; },
   upd:    () => { $('#updDlg').hidden = true; },
@@ -68,7 +68,7 @@ function applyPage(p){
   else if (p.k === 'space') {
     const sp = spaces.find(x => x.id === p.id);
     if (!sp) { showLauncher(); return; }
-    cur = sp; rememberSpace(sp.id); applyTheme(sp.theme); $('#q').value = ''; view = {tab:p.tab || 'home', genre:p.genre || ''}; showTab('home');
+    cur = sp; rememberSpace(sp.id); applyTheme(spaceTheme(sp)); $('#q').value = ''; view = {tab:p.tab || 'home', genre:p.genre || ''}; showTab('home');
   }
 }
 /* TV Back button: entry -> home -> side menu -> (home) -> close-app prompt */
@@ -76,7 +76,7 @@ function tvBackStep(){
   if (!document.body.classList.contains('tv') || document.body.classList.contains('launch') || !cur) return false;
   const inNav = document.activeElement && document.activeElement.closest && document.activeElement.closest('#nav');
   const repush = () => { if (history.state && history.state.guard) { pageKey = ''; pushPage(); } };
-  if (!$('#addons').hidden) { showTab('settings'); requestAnimationFrame(() => { const b = $('#setAddons'); if (b) b.focus({preventScroll:true}); }); repush(); return true; }   // Addons opens from Settings on TV: Back goes there
+  if (!$('#addons').hidden) { setCatNow = 'tmdb'; showTab('settings'); requestAnimationFrame(() => { const b = $('#setAddons'); if (b) b.focus({preventScroll:true}); }); repush(); return true; }   // Addons opens from Settings on TV: Back goes there
   if (!inNav) {
     if (!$('#home').hidden && view.genre) { view = {tab:view.tab, genre:''}; renderHome(); repush(); return true; }
     if (!$('#search').hidden && sQuery) { sQuery = ''; sPaint(); sRun(); repush(); return true; }

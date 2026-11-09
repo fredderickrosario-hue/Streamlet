@@ -1,7 +1,7 @@
 /* ---------- TMDB: built-in catalog addons (tmdb://all, tmdb://netflix, tmdb://disney, tmdb://kids), using the TMDB key from Settings.
    Titles carry their IMDb id (tt…) so every stream addon finds them; the details and episodes come from TMDB too. ---------- */
 const TM_IMG = 'https://image.tmdb.org/t/p/';
-const TM_REGION = 'CA';
+let TM_REGION = (() => { try { return (JSON.parse(localStorage.getItem('streamlet.ui') || '{}').region) || 'CA'; } catch { return 'CA'; } })();   // Settings > General > Region
 const TM_FLAVORS = {
   all:     {name:'TMDB',          desc:'Trending, popular and top rated movies and shows, with search.'},
   netflix: {name:'Netflix (TMDB)', desc:'What is on Netflix in Canada, and Netflix originals.'},
@@ -362,7 +362,8 @@ async function tmPreview(x, kind){
   const tt = await tmImdb(kind, x.id);
   return {id:tt || `tmdb:${kind}:${x.id}`, type:kind === 'tv' ? 'series' : 'movie', name:x.title || x.name || '',
     poster:x.poster_path ? TM_IMG + 'w342' + x.poster_path : '', background:x.backdrop_path ? TM_IMG + 'w1280' + x.backdrop_path : '',
-    description:x.overview || '', releaseInfo:tmYear(x), imdbRating:x.vote_average ? x.vote_average.toFixed(1) : undefined};
+    description:x.overview || '', releaseInfo:tmYear(x), imdbRating:x.vote_average ? x.vote_average.toFixed(1) : undefined,
+    genres:tmGenreNames(x.genre_ids, kind), lang:x.original_language || undefined};
 }
 /* kids search: only titles in kids genres, never adult ones */
 function tmKidOk(x, kind){

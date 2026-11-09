@@ -54,6 +54,7 @@ function heroTick(){
 }
 /* TMDB accepts the short v3 key (as a parameter) or the long v4 read token (as a bearer header) */
 async function tmdbGet(path, key){
+  const ml = metaLang(); if (ml && !/[?&]language=/.test(path)) path += (path.includes('?') ? '&' : '?') + 'language=' + ml;   // Settings > General > Language
   const long = key.length > 60, url = 'https://api.themoviedb.org/3' + path + (long ? '' : (path.includes('?') ? '&' : '?') + 'api_key=' + encodeURIComponent(key));
   const r = await fetch(url, long ? {headers:{Authorization:'Bearer ' + key}} : undefined);
   if (!r.ok) throw new Error(r.status === 401 ? 'invalid key' : 'HTTP ' + r.status);

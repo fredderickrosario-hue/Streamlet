@@ -130,7 +130,7 @@ async function playStream(s, title, ctx){
   pl = {id:pl.id + 1, ctx, subs:[], loading:false, nSrc:0, cur:null, offset:0, blob:null, stream:{url:s.url, name:s.name, title:s.title}};
   lastSave = 0;
   const saved = ctx && histGet().find(x => x.k === `${ctx.type}|${ctx.id}`);
-  if (saved && !saved.upnext && saved.pos > 20) v.addEventListener('loadedmetadata', () => { if (!v.duration || saved.pos < v.duration - 30) { v.currentTime = saved.pos; toast('Resumed at ' + fmtTime(saved.pos)); } }, {once:true});
+  if (saved && !saved.upnext && saved.pos > 20 && lsGet('streamlet.ui', {}).resume !== false) v.addEventListener('loadedmetadata', () => { if (!v.duration || saved.pos < v.duration - 30) { v.currentTime = saved.pos; toast('Resumed at ' + fmtTime(saved.pos)); } }, {once:true});
   v.querySelectorAll('track').forEach(t => t.remove());
   for (const sub of (s.subtitles || [])) pl.subs.push({id:'embedded', url:sub.url, lang:sub.lang || 'eng', addon:'Stream'});
   if (/\.m3u8(\?|$)/i.test(s.url) && !v.canPlayType('application/vnd.apple.mpegurl')) {
@@ -260,7 +260,7 @@ async function playNative(s, title, ctx){
     if (seen[n] < cap && picked.length < 24) { seen[n]++; picked.push({url:x.url, lang:code2(x.lang) || String(x.lang), label:n + (seen[n] > 1 ? ' ' + seen[n] : '')}); }
   }
   const saved = ctx && histGet().find(x => x.k === `${ctx.type}|${ctx.id}`);
-  const startMs = ctx && ctx.fresh ? 0 : saved && !saved.upnext && saved.pos > 20 ? Math.round(saved.pos * 1000) : 0;
+  const startMs = ctx && ctx.fresh || lsGet('streamlet.ui', {}).resume === false ? 0 : saved && !saved.upnext && saved.pos > 20 ? Math.round(saved.pos * 1000) : 0;   // Settings > Playback > Resume
   const stream = {url:s.url, name:s.name, title:s.title};
   const handle = await N.addListener('progress', e => recordProgress(ctx, stream, e.position / 1000, e.duration / 1000));
   try {

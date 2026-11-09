@@ -54,12 +54,13 @@ const streamPool = () => (cur && cur.streams && cur.streams.length) ? addons.fil
 function enterSpace(id){
   cur = spaces.find(s => s.id===id); if (!cur) return;
   spEdit = false;
-  rememberSpace(cur.id); applyTheme(cur.theme); $('#q').value = ''; view = {tab:'home', genre:''}; showTab('home');
+  rememberSpace(cur.id); applyTheme(spaceTheme(cur)); $('#q').value = ''; view = {tab:'home', genre:''}; showTab('home');
+  try { notifySoon(); } catch {}
 }
 let spEdit = false;
 const PENCIL_SVG = () => { const d = document.createElement('span'); d.innerHTML = '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20l1-4L16.5 4.5a2 2 0 0 1 3 0l0 0a2 2 0 0 1 0 3L8 19z"/><path d="M14 7l3 3"/></svg>'; return d.firstChild; };
 function showLauncher(){
-  cur = null; applyTheme('ember');
+  cur = null; applyTheme(spaceTheme(null));
   document.body.classList.add('launch'); document.body.style.overflow = '';
   $('#detail').hidden = true; $('#player').hidden = true; $('#spaceEd').hidden = true;
   $('#profiles').hidden = true; $('#login').hidden = true; const L = $('#launcher'); L.hidden = false;
@@ -80,7 +81,7 @@ function showLauncher(){
     h('div', {class:'lmid'},
       h('h2', {class:'ltitle' + (addons.length ? '' : ' noadd')}, addons.length ? 'What are we watching?' : 'Add an addon first'),
       addons.length ? null : h('p', {class:'lsub'}, 'Open Addons, install one, then pick a space.'),
-      h('div', {class:'sgrid'}, ...spacesFor().map(tile),
+      h('div', {class:'sgrid'}, ...spacesFor().filter(sp => !sp.hidden || spEdit).map(tile),
         h('div', {class:'swrap newwrap'}, h('button', {class:'stile new', type:'button', onclick:() => editSpace(null)}, h('span', {class:'sem'}, '＋'), h('span', {class:'stx'}, h('span', {class:'snm'}, 'New space')))))),
     h('div', {class:'lfoot'},
       h('button', {class:'chip', type:'button', onclick:() => { document.body.classList.remove('launch'); $('#launcher').hidden = true; $('#profiles').hidden = true; $('#login').hidden = true; showTab('addons'); }}, 'Addons'),

@@ -1520,6 +1520,84 @@ body.tv .spload .splbar{width:240px}
 @keyframes splpulse{50%{opacity:.45}}
 @keyframes splrun{0%{transform:translateX(-100%)}100%{transform:translateX(260%)}}
 @media (prefers-reduced-motion:reduce){.spload .splem,.spload .splglow{animation:none}}
+/* ---------- Settings v2: categories, compact rows ---------- */
+#settings [hidden]{display:none !important}
+#settings .pagehead{padding-bottom:4px}
+#setNav{display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;padding:6px 16px 10px;margin:0;flex-wrap:nowrap}
+#setNav::-webkit-scrollbar{display:none}
+#setNav .chip{flex:0 0 auto;white-space:nowrap}
+body:not(.tv) #setNav{position:sticky;top:0;z-index:5;background:linear-gradient(var(--bg) 70%,transparent);padding-top:8px}
+body.tv #setNav{padding:4px 6px 10px;margin:0 -6px}
+body.tv.pgfix:not(.launch) #setNav{flex:0 0 auto}
+
+/* groups: a small title over a card; two columns on wide screens */
+#settings .setcat{display:grid;grid-template-columns:minmax(0,1fr);gap:4px 22px;align-items:start}
+@media (min-width:1100px){ body:not(.tv) #settings .setcat{grid-template-columns:repeat(2,minmax(0,1fr))} }
+#settings .sgrp{min-width:0}
+#settings .sgh{margin:12px 4px 6px;font-size:12px;letter-spacing:.9px;text-transform:uppercase;color:var(--mut);font-weight:700}
+#settings .sgh small{font-weight:500;text-transform:none;letter-spacing:0;opacity:.75;margin-left:4px}
+#settings .sgrp .addon{margin:0;padding:2px 16px}
+#settings .row2{padding:10px 0;gap:12px}
+#settings .rt{font-size:15px;line-height:1.25}
+#settings .rt small{font-size:12px;line-height:1.35;margin-top:2px}
+#settings .gnote{margin:6px 6px 2px;font-size:12px;line-height:1.4}
+#settings .profcard{padding:12px 0}
+#settings #acctCard{padding:12px 0}
+#settings #acctCard p{font-size:14px}
+#settings input[type=checkbox]{width:44px;height:26px;border-radius:13px}
+#settings input[type=checkbox]::after{width:20px;height:20px}
+#settings input[type=checkbox]:checked::after{transform:translateX(18px)}
+body.tv #settings .rt{font-size:16px}
+body.tv #settings .rt small{font-size:13px}
+body.tv #settings .sgrp .addon{padding:2px 18px}
+body.tv #settings .sgh{font-size:13px;margin:12px 4px 6px}
+body:not(.tv) #settings .pad{padding-top:0}
+body:not(.tv) #settings .sgh{margin:14px 4px 6px}
+body:not(.tv) :is(#settings select.sel,#settings input[type=text]){min-height:40px}
+
+/* chip pickers (genres, languages) */
+#settings .gchips{display:flex;flex-wrap:wrap;gap:6px;padding:2px 2px 4px}
+#settings .gchips .chip{font-size:13px;padding:6px 12px;min-height:0}
+body.tv #settings .gchips .chip{font-size:14px;padding:7px 14px}
+
+/* spaces list */
+#settings .splist{display:flex;flex-direction:column}
+#settings .sprow{display:flex;align-items:center;gap:12px;padding:9px 0;border-bottom:1px solid rgba(255,255,255,.07)}
+#settings .sprow:last-child{border-bottom:0}
+#settings .sprow.off .rt{opacity:.55}
+#settings .spsw{flex:0 0 auto;width:10px;align-self:stretch;border-radius:5px}
+#settings .spbtns{display:flex;align-items:center;gap:6px;flex:0 0 auto}
+#settings .spbtns .ic{min-width:36px;padding:0 10px;font-size:16px}
+#settings .spbtns .ic[disabled]{opacity:.3}
+#settings .spshow{display:inline-flex;align-items:center;gap:6px;font-size:13px;color:var(--mut);margin:0 4px}
+body:not(.tv) #settings .sprow{gap:10px}
+body:not(.tv) #settings .spbtns{gap:4px}
+body:not(.tv) #settings .spshow span{display:none}
+body:not(.tv) #settings .spbtns .btn{min-height:36px;padding:0 10px}
+
+/* about */
+#settings .abinfo{padding:6px 0 10px}
+#settings .abrow{display:flex;justify-content:space-between;gap:12px;padding:5px 0;font-size:14px;color:var(--mut)}
+#settings .abrow b{color:var(--fg,#fff);font-weight:600}
+#settings #abCred p{margin:8px 0;font-size:13px;line-height:1.45;color:var(--mut)}
+#settings #abCred b{color:var(--fg,#fff)}
+#settings #abCred .muted{opacity:.75}
+#settings .btn.warn{background:#c2410c;color:#fff;border-color:transparent}
+
+/* notices ("New for you") */
+.ntcard{position:fixed;z-index:60;right:18px;bottom:18px;width:min(360px,calc(100vw - 36px));box-sizing:border-box;padding:12px 14px;border-radius:18px;
+  background:rgba(20,18,26,.96);box-shadow:0 18px 40px rgba(0,0,0,.5),inset 0 0 0 1px rgba(255,255,255,.08);animation:ntin .3s ease both}
+.ntcard.out{animation:ntout .35s ease both}
+.ntcard .nthd{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;font-size:13px;letter-spacing:.4px;color:var(--mut)}
+.ntcard .nthd .x{background:none;border:0;color:var(--mut);font-size:16px;padding:4px}
+.ntcard .ntit{display:flex;align-items:center;gap:10px;width:100%;padding:6px 4px;border:0;background:none;color:inherit;text-align:left;border-radius:10px}
+.ntcard .ntit img,.ntcard .ntimg{width:34px;height:50px;object-fit:cover;border-radius:6px;flex:0 0 auto;background:rgba(255,255,255,.08)}
+.ntcard .ntit b{display:block;font-size:14px}
+.ntcard .ntit small{display:block;font-size:12px;color:var(--acc2,var(--acc))}
+.ntcard .ntmore{margin:4px 4px 0;font-size:12px;color:var(--mut)}
+body:not(.tv) .ntcard{right:12px;left:12px;width:auto;bottom:calc(84px + env(safe-area-inset-bottom,0px))}
+@keyframes ntin{from{opacity:0;transform:translateY(12px)}}
+@keyframes ntout{to{opacity:0;transform:translateY(12px)}}
 </style>
 </head>
 <body>
@@ -1577,77 +1655,98 @@ body.tv .spload .splbar{width:240px}
   </section>
   <section id="settings" hidden>
     <div class="pagehead"><h1>Settings</h1></div>
+    <div class="setnav cchips" id="setNav" role="tablist"></div>
     <div class="pad">
-      <div class="addon profcard"><div id="profRow"></div></div>
-      <h2 class="sh">Account</h2>
-      <div class="addon" id="acctCard"></div>
-      <div class="addon tvonly"><div class="row2"><span class="rt">Addons<small>Install, remove and reorder the sources for your catalogs and streams</small></span><button id="setAddons" class="btn f" type="button">Manage</button></div></div>
-      <h2 class="sh">Language</h2>
-      <div class="addon">
-        <div class="row2"><span class="rt">Subtitles<small>Preferred subtitle language</small></span><select id="setSub" class="sel"></select></div>
-        <div class="row2"><span class="rt">Audio<small>Preferred audio language when a stream offers several tracks</small></span><select id="setAud" class="sel"></select></div>
-      </div>
-      <p class="gnote">Subtitles are provided by your installed subtitle addons, such as OpenSubtitles. Audio selection requires a stream with multiple tracks.</p>
-      <h2 class="sh">Playing</h2>
-      <div class="addon">
-        <label class="row2"><span class="rt">Automatic source selection<small>Chooses the best source using your audio language, preferred quality and past playback. You can still pick one manually from any title</small></span><input type="checkbox" id="setAuto"></label>
-        <label class="row2"><span class="rt">Show unreleased titles<small>Include upcoming and in-theater titles that cannot be played yet</small></span><input type="checkbox" id="setUpc"></label>
-        <div class="row2" id="rowMaxQ"><span class="rt">Maximum quality<small>Upper limit for automatic source selection</small></span><select id="setMaxQ" class="sel"><option value="best">Best available</option><option value="2160">4K</option><option value="1080">1080p</option><option value="720">720p</option></select></div>
-      </div>
-      <h2 class="sh">Search</h2>
-      <div class="addon">
-        <label class="row2"><span class="rt">Search all addons<small>Include every installed addon, not only those in the current space. Returns more results</small></span><input type="checkbox" id="setSrchAll"></label>
-      </div>
-      <h2 class="sh">Look &amp; sound <small>this device</small></h2>
-      <div class="addon">
-        <label class="row2"><span class="rt">Animated background<small>Slowly shifting background colors</small></span><input type="checkbox" id="setAnim"></label>
-        <label class="row2"><span class="rt">Glass blur<small>Frosted-glass effect. Disable to improve performance on slower devices</small></span><input type="checkbox" id="setGlass"></label>
-        <label class="row2"><span class="rt">Navigation sounds<small>Subtle sounds when navigating and selecting</small></span><input type="checkbox" id="setSnd"></label>
-        <label class="row2" id="rowSaver" hidden><span class="rt">Screensaver<small>Shows a moving Streamlet logo on a black screen after a period of inactivity</small></span><input type="checkbox" id="setSaver"></label>
-        <div class="row2" id="rowSaverMin" hidden><span class="rt">Screensaver delay<small>Inactivity time before the screensaver starts</small></span><select id="setSaverMin" class="sel"></select></div>
-      </div>
-      <div id="setPlay" hidden>
-        <h2 class="sh">Video <small>this device</small></h2>
-        <div class="addon">
-          <div class="row2"><span class="rt" id="skLbl">Skip interval<small id="skHint">Seconds to jump when double-tapping the left or right side of the video</small></span><select id="setSkip" class="sel"><option value="5">5 s</option><option value="10">10 s</option><option value="15">15 s</option><option value="30">30 s</option></select></div>
-          <label class="row2"><span class="rt">Autoplay next episode<small>Starts the next episode after a short countdown. When off, you choose</small></span><input type="checkbox" id="setAutoNext"></label>
-          <label class="row2"><span class="rt">Skip intros, recaps and credits<small>Skips them automatically when timing data is available. Scenes after the credits still play. Rewind to watch a skipped section</small></span><input type="checkbox" id="setAutoSkip"></label>
-          <label class="row2"><span class="rt">Hardware decoding<small>Improves performance and reduces heat. Disable only if the video appears distorted</small></span><input type="checkbox" id="setHw"></label>
-          <label class="row2"><span class="rt">Match frame rate<small>Syncs the display to the video frame rate to reduce judder, where supported</small></span><input type="checkbox" id="setFps"></label>
-          <label class="row2"><span class="rt">Tunneled playback<small>May improve 4K and HDR playback. Can affect seeking</small></span><input type="checkbox" id="setTun"></label>
-          <label class="row2"><span class="rt">Dolby passthrough<small>Sends Dolby and Atmos audio to your TV in the fallback player. Disable if there is no sound</small></span><input type="checkbox" id="setPass"></label>
-        </div>
-      </div>
-      <h2 class="sh">Release dates</h2>
-      <div class="addon">
-        <div class="row2 stack"><span class="rt">TMDB API key<small>Optional. Enables confirmed release dates for new seasons and episodes of shows you follow</small></span><span class="inrow"><input type="text" id="setTmdb" class="f" placeholder="API key (v3)" autocomplete="off" spellcheck="false"><button class="btn ghost sm" id="tmdbChk" type="button">Verify</button></span></div>
-      </div>
-      <h2 class="sh">Québec</h2>
-      <div class="addon">
-        <div class="row2 stack"><span class="rt">Québec shows<small>One show page link per line, from tvaplus.ca, ici.radio-canada.ca/tele or ici.tou.tv. Requires the Québec addon. Synced across your devices</small></span>
-          <textarea id="qcShows" rows="4" wrap="off" class="f" style="width:100%;font-family:ui-monospace,monospace;font-size:13px" spellcheck="false"></textarea><button class="btn ghost sm" id="qcSave" type="button" style="align-self:flex-start">Save</button></div>
-      </div>
-      <h2 class="sh">Netflix</h2>
-      <div class="addon">
-        <div class="row2 stack"><span class="rt">Import Netflix history<small id="nfState">On netflix.com, open Account, choose your profile, then Viewing activity and Download all. Select that file here, then assign the shows to your spaces</small></span><span class="inrow"><button class="btn ghost sm" id="nfPick" type="button">Choose file</button></span></div>
-        <input type="file" id="nfFile" accept=".csv,text/csv" hidden>
-      </div>
-      <h2 class="sh">Backup</h2>
-      <div class="addon">
-        <div class="row2 stack"><span class="rt">Watch history backup<small>Save this profile's watch history to a file, or restore it from one. Restoring merges with existing data</small></span><span class="inrow"><button class="btn ghost sm" id="bkOut" type="button">Save</button><button class="btn ghost sm" id="bkIn" type="button">Restore</button></span></div>
-        <input type="file" id="bkFile" accept="application/json,.json" hidden>
-      </div>
-      <h2 class="sh">About</h2>
-      <div class="addon">
-        <div class="row2"><span class="rt" id="verLine"></span></div>
-        <div id="apkRow" hidden class="aboutpad">
+<div class="setcat" data-cat="general" hidden>
+<div class="sgrp"><h3 class="sgh">Startup</h3><div class="addon"><div class="row2"><span class="rt">When the app opens<small>What to show after choosing a profile</small></span><select id="setStart" class="sel"><option value="last">Last space you used</option><option value="launcher">Spaces page</option><option value="space">A specific space</option></select></div>
+<div class="row2" id="rowStartSp"><span class="rt">Space to open<small>Opened at start when "A specific space" is chosen</small></span><select id="setStartSp" class="sel"></select></div>
+<label class="row2" id="rowAsk"><span class="rt">Ask who’s watching<small>Show the profile picker every time the app opens</small></span><input type="checkbox" id="setAsk"></label></div></div>
+<div class="sgrp"><h3 class="sgh">Appearance <small>this device</small></h3><div class="addon"><div class="row2"><span class="rt">Colors<small>Each space can bring its own colors, or keep one look everywhere</small></span><select id="setTheme" class="sel"></select></div>
+<label class="row2"><span class="rt">Animated background<small>Slowly shifting background colors</small></span><input type="checkbox" id="setAnim"></label>
+<label class="row2"><span class="rt">Glass blur<small>Frosted-glass effect. Disable to improve performance on slower devices</small></span><input type="checkbox" id="setGlass"></label>
+<label class="row2"><span class="rt">Navigation sounds<small>Subtle sounds when navigating and selecting</small></span><input type="checkbox" id="setSnd"></label>
+<label class="row2" id="rowSaver" hidden><span class="rt">Screensaver<small>Shows a moving Streamlet logo on a black screen after a period of inactivity</small></span><input type="checkbox" id="setSaver"></label>
+<div class="row2" id="rowSaverMin" hidden><span class="rt">Screensaver delay<small>Inactivity time before the screensaver starts</small></span><select id="setSaverMin" class="sel"></select></div></div></div>
+<div class="sgrp"><h3 class="sgh">Language</h3><div class="addon"><div class="row2"><span class="rt">Titles and descriptions<small>Language of TMDB titles, descriptions and artwork. Other addons use their own</small></span><select id="setMetaLang" class="sel"></select></div>
+<div class="row2"><span class="rt">Region<small>Release dates and streaming services for your country</small></span><select id="setRegion" class="sel"></select></div></div><p class="gnote">The app itself is in English.</p></div>
+<div class="sgrp"><h3 class="sgh">Search</h3><div class="addon"><label class="row2"><span class="rt">Search all addons<small>Include every installed addon, not only those in the current space. Returns more results</small></span><input type="checkbox" id="setSrchAll"></label></div></div>
+</div>
+<div class="setcat" data-cat="spaces" hidden>
+<div class="sgrp"><h3 class="sgh">Your spaces</h3><div class="addon"><div id="spList" class="splist"></div></div><p class="gnote">Order and visibility apply to the spaces page. Edit changes a space’s name, colors, addons, subtitles, tabs and history.</p></div>
+<div class="sgrp"><h3 class="sgh">Add</h3><div class="addon"><div class="row2"><span class="rt">New space<small>Group addons with their own colors and settings</small></span><button class="btn ghost sm" id="spNew" type="button">Create</button></div></div></div>
+</div>
+<div class="setcat" data-cat="playback" hidden>
+<div class="sgrp"><h3 class="sgh">Sources</h3><div class="addon"><label class="row2"><span class="rt">Automatic source selection<small>Chooses the best source using your audio language, preferred quality and past playback. You can still pick one manually from any title</small></span><input type="checkbox" id="setAuto"></label>
+<div class="row2" id="rowMaxQ"><span class="rt">Maximum quality<small>Upper limit for automatic source selection</small></span><select id="setMaxQ" class="sel"><option value="best">Best available</option><option value="2160">4K</option><option value="1080">1080p</option><option value="720">720p</option></select></div>
+<label class="row2"><span class="rt">Remember my source per show<small>Next episodes start from the same kind of source you picked: group, quality and addon</small></span><input type="checkbox" id="setRemSrc"></label>
+<label class="row2"><span class="rt">Resume where you left off<small>When off, titles always start from the beginning</small></span><input type="checkbox" id="setResume"></label></div></div>
+<div class="sgrp"><h3 class="sgh">Subtitles and audio</h3><div class="addon"><div class="row2"><span class="rt">Subtitles<small>Preferred subtitle language</small></span><select id="setSub" class="sel"></select></div>
+<div class="row2"><span class="rt">Audio<small>Preferred audio language when a stream offers several tracks</small></span><select id="setAud" class="sel"></select></div></div><p class="gnote">Subtitles come from your subtitle addons, such as OpenSubtitles. A space can use its own subtitle language (Spaces > Edit).</p></div>
+<div id="setPlay" hidden><div class="sgrp"><h3 class="sgh">Player <small>this device</small></h3><div class="addon"><div class="row2"><span class="rt" id="skLbl">Skip interval<small id="skHint">Seconds to jump when double-tapping the left or right side of the video</small></span><select id="setSkip" class="sel"><option value="5">5 s</option><option value="10">10 s</option><option value="15">15 s</option><option value="30">30 s</option></select></div>
+<label class="row2"><span class="rt">Autoplay next episode<small>Starts the next episode after a short countdown. When off, you choose</small></span><input type="checkbox" id="setAutoNext"></label>
+<label class="row2"><span class="rt">Skip intros, recaps and credits<small>Skips them automatically when timing data is available. Scenes after the credits still play. Rewind to watch a skipped section</small></span><input type="checkbox" id="setAutoSkip"></label>
+<label class="row2"><span class="rt">Hardware decoding<small>Improves performance and reduces heat. Disable only if the video appears distorted</small></span><input type="checkbox" id="setHw"></label>
+<label class="row2"><span class="rt">Match frame rate<small>Syncs the display to the video frame rate to reduce judder, where supported</small></span><input type="checkbox" id="setFps"></label>
+<label class="row2"><span class="rt">Tunneled playback<small>May improve 4K and HDR playback. Can affect seeking</small></span><input type="checkbox" id="setTun"></label>
+<label class="row2"><span class="rt">Dolby passthrough<small>Sends Dolby and Atmos audio to your TV in the fallback player. Disable if there is no sound</small></span><input type="checkbox" id="setPass"></label></div></div></div>
+</div>
+<div class="setcat" data-cat="personal" hidden>
+<div class="sgrp"><h3 class="sgh">Home rows</h3><div class="addon"><label class="row2"><span class="rt">Featured<small>The large banner at the top of Home</small></span><input type="checkbox" id="setRowHero"></label>
+<label class="row2"><span class="rt">Continue watching<small>Titles you started and the next episode of shows you follow</small></span><input type="checkbox" id="setRowCW"></label>
+<label class="row2"><span class="rt">Because you watched<small>Picks based on what you watched and liked</small></span><input type="checkbox" id="setRowBYW"></label>
+<label class="row2"><span class="rt">Your watchlist<small>Your saved titles as a row (TMDB rows)</small></span><input type="checkbox" id="setRowWL"></label>
+<label class="row2"><span class="rt">Recommended for you<small>Recommendations from your history (TMDB rows)</small></span><input type="checkbox" id="setRowRec"></label>
+<label class="row2"><span class="rt">Your genres<small>A row from your preferred genres (Content). Needs a TMDB key</small></span><input type="checkbox" id="setRowFav"></label></div><p class="gnote">These apply in every space. A space can draw on history from all spaces: Spaces > Edit.</p></div>
+</div>
+<div class="setcat" data-cat="content" hidden>
+<div class="sgrp"><h3 class="sgh">Filters</h3><div class="addon"><label class="row2"><span class="rt">Show unreleased titles<small>Include upcoming and in-theater titles that cannot be played yet</small></span><input type="checkbox" id="setUpc"></label>
+<div class="row2"><span class="rt">Minimum rating<small>Hide titles rated below this. Titles without a rating stay</small></span><select id="setMinRate" class="sel"><option value="0">Any rating</option><option value="5">5+</option><option value="6">6+</option><option value="6.5">6.5+</option><option value="7">7+</option><option value="7.5">7.5+</option><option value="8">8+</option></select></div>
+<div class="row2 stack"><span class="rt">Hide genres<small>Titles in these genres are left out of rows and search</small></span><div class="gchips" id="setHideG"></div></div>
+<div class="row2 stack"><span class="rt">Original language<small>Only titles first made in these languages. None selected: all</small></span><div class="gchips" id="setLangs"></div></div></div></div>
+<div class="sgrp"><h3 class="sgh">Preferred genres</h3><div class="addon"><div class="row2 stack"><span class="rt">Genres you like<small>Used for the Your genres row on Home</small></span><div class="gchips" id="setFavG"></div></div></div></div>
+</div>
+<div class="setcat" data-cat="notif" hidden>
+<div class="sgrp"><h3 class="sgh">Tell me about</h3><div class="addon"><label class="row2"><span class="rt">New episodes<small>A show you follow has a new episode</small></span><input type="checkbox" id="setNtEp"></label>
+<label class="row2"><span class="rt">Returning seasons<small>A show you follow has a confirmed date for its next season</small></span><input type="checkbox" id="setNtSeason"></label>
+<label class="row2"><span class="rt">Watchlist releases<small>A movie on your watchlist is now out</small></span><input type="checkbox" id="setNtWl"></label></div></div>
+<div class="sgrp"><h3 class="sgh">How</h3><div class="addon"><label class="row2" id="rowNtSys"><span class="rt">System notifications<small>Also show them outside the app, where your browser allows it</small></span><input type="checkbox" id="setNtSys"></label>
+<div class="row2"><span class="rt">Check now<small id="ntLast">Notices appear when you open a space</small></span><button class="btn ghost sm" id="ntNow" type="button">Check</button></div></div></div>
+</div>
+<div class="setcat" data-cat="tmdb" hidden>
+<div class="sgrp"><h3 class="sgh">TMDB</h3><div class="addon"><div class="row2 stack"><span class="rt">TMDB API key<small>Optional. Enables confirmed release dates for new seasons and episodes of shows you follow</small></span><span class="inrow"><input type="text" id="setTmdb" class="f" placeholder="API key (v3)" autocomplete="off" spellcheck="false"><button class="btn ghost sm" id="tmdbChk" type="button">Verify</button></span></div>
+<div class="row2"><span class="rt">Saved TMDB data<small>Titles matched to IMDb, curated lists and episode orders, kept to load faster</small></span><button class="btn ghost sm" id="stClrTm" type="button">Clear</button></div></div><p class="gnote">Your key also powers the TMDB addons, New &amp; Hot and confirmed release dates.</p></div>
+<div class="sgrp"><h3 class="sgh">Addons</h3><div class="addon"><div class="row2"><span class="rt">Addons<small id="adSum">Install, remove and reorder the sources for your catalogs and streams</small></span><button id="setAddons" class="btn f" type="button">Manage</button></div></div></div>
+<div class="sgrp"><h3 class="sgh">Québec</h3><div class="addon"><div class="row2 stack"><span class="rt">Québec shows<small>One show page link per line, from tvaplus.ca, ici.radio-canada.ca/tele or ici.tou.tv. Requires the Québec addon. Synced across your devices</small></span>
+          <textarea id="qcShows" rows="4" wrap="off" class="f" style="width:100%;font-family:ui-monospace,monospace;font-size:13px" spellcheck="false"></textarea><button class="btn ghost sm" id="qcSave" type="button" style="align-self:flex-start">Save</button></div></div></div>
+</div>
+<div class="setcat" data-cat="storage" hidden>
+<div class="sgrp"><h3 class="sgh">Storage</h3><div class="addon"><div class="row2"><span class="rt">Space used<small id="stUse">Calculating…</small></span></div>
+<div class="row2"><span class="rt">Rows and title pages<small>Kept so Home opens at once. Loaded again as needed</small></span><button class="btn ghost sm" id="stClrData" type="button">Clear</button></div>
+<div class="row2"><span class="rt">Temporary data<small>Failed sources, logs and recent lookups</small></span><button class="btn ghost sm" id="stClrTmp" type="button">Clear</button></div>
+<div class="row2"><span class="rt">Clear all caches<small>Removes everything cached, then restarts. Profiles, lists and settings stay</small></span><button class="btn ghost sm" id="updBtn" type="button">Clear cache &amp; restart</button></div></div></div>
+<div class="sgrp"><h3 class="sgh">Backup</h3><div class="addon"><div class="row2 stack"><span class="rt">Watch history backup<small>Save this profile's watch history to a file, or restore it from one. Restoring merges with existing data</small></span><span class="inrow"><button class="btn ghost sm" id="bkOut" type="button">Save</button><button class="btn ghost sm" id="bkIn" type="button">Restore</button></span></div>
+<div class="row2 stack"><span class="rt">Full backup<small>Settings, spaces, addons and every profile’s lists and history in one file. It contains your addon links and keys: keep it private</small></span><span class="inrow"><button class="btn ghost sm" id="fbOut" type="button">Save</button><button class="btn ghost sm" id="fbIn" type="button">Restore</button></span></div>
+<input type="file" id="bkFile" accept="application/json,.json" hidden>
+<input type="file" id="fbFile" accept="application/json,.json" hidden></div></div>
+<div class="sgrp"><h3 class="sgh">Import</h3><div class="addon"><div class="row2 stack"><span class="rt">Import Netflix history<small id="nfState">On netflix.com, open Account, choose your profile, then Viewing activity and Download all. Select that file here, then assign the shows to your spaces</small></span><span class="inrow"><button class="btn ghost sm" id="nfPick" type="button">Choose file</button></span></div>
+<input type="file" id="nfFile" accept=".csv,text/csv" hidden></div></div>
+</div>
+<div class="setcat" data-cat="account" hidden>
+<div class="sgrp"><h3 class="sgh">Profile</h3><div class="addon"><div class="profcard"><div id="profRow"></div></div></div></div>
+<div class="sgrp"><h3 class="sgh">Account</h3><div class="addon"><div id="acctCard"></div></div></div>
+</div>
+<div class="setcat" data-cat="about" hidden>
+<div class="sgrp"><h3 class="sgh">Streamlet</h3><div class="addon"><div class="row2"><span class="rt" id="verLine"></span></div>
+<div id="apkRow" hidden class="aboutpad">
           <div class="updbtns"><button class="btn ghost" id="apkBtn" type="button">Check for updates</button>
           <button class="btn" id="apkInstall" type="button" hidden>Install update</button></div>
           <p class="hint" id="apkMsg" style="margin-top:8px"></p>
         </div>
-        <details class="adbox" id="logBox" style="margin:10px 0"><summary>Diagnostics</summary><div id="logBody" style="margin-top:8px"></div></details>
-        <div class="aboutpad" style="display:flex;gap:10px;flex-wrap:wrap"><button class="btn ghost sm" id="updBtn" type="button">Clear cache &amp; restart</button><button class="btn ghost sm" id="closeBtn" type="button">Close app</button></div>
-      </div>
+<div id="abInfo" class="abinfo"></div></div></div>
+<div class="sgrp"><h3 class="sgh">Credits</h3><div class="addon"><div id="abCred" class="abinfo"></div></div></div>
+<div class="sgrp"><h3 class="sgh">Help</h3><div class="addon"><details class="adbox" id="logBox" style="margin:10px 0"><summary>Diagnostics</summary><div id="logBody" style="margin-top:8px"></div></details>
+<div class="aboutpad" style="display:flex;gap:10px;flex-wrap:wrap"><button class="btn ghost sm" id="closeBtn" type="button">Close app</button></div></div></div>
+</div>
     </div>
   </section>
   <section id="me" hidden></section>
@@ -1930,7 +2029,7 @@ function relState(m, type){                                              // 'upc
   return null;
 }
 const hideUnreleased = () => lsGet('streamlet.ui', {}).showUpcoming === false;
-const visibleMeta = (m, type) => !(hideUnreleased() && relState(m, type));
+const visibleMeta = (m, type) => !(hideUnreleased() && relState(m, type)) && contentOK(m);   // + your content filters (Settings > Content, 27-settings-plus.js)
 const recentRelease = m => { const r = m && m.released ? new Date(m.released) : null; return r && !isNaN(r) ? (Date.now() - r.getTime()) < 200 * 864e5 : yearOf(m) === new Date().getFullYear(); };
 /* a movie that came out recently and has no real (non-cinema) source yet is "in theaters" */
 function noteTheaters(item, streams){
@@ -1999,7 +2098,7 @@ const LAYER_CLOSERS = {
   panel:  () => { $('#ppanel').hidden = true; $('#pback').hidden = true; showBar(); },
   player: () => stopPlayer(),
   detail: () => { $('#detail').hidden = true; document.body.style.overflow = ''; if (!$('#home').hidden) renderCW(); },
-  editor: () => { $('#spaceEd').hidden = true; applyTheme(cur ? cur.theme : 'ember'); },
+  editor: () => { $('#spaceEd').hidden = true; applyTheme(spaceTheme(cur)); try { if (!$('#settings').hidden) spacesList(); } catch {} },
   pedit:  () => { $('#profEd').hidden = true; if (!$('#me').hidden) renderMe(); },
   menu:   () => { $('#menu').hidden = true; },
   upd:    () => { $('#updDlg').hidden = true; },
@@ -2016,7 +2115,7 @@ function applyPage(p){
   else if (p.k === 'space') {
     const sp = spaces.find(x => x.id === p.id);
     if (!sp) { showLauncher(); return; }
-    cur = sp; rememberSpace(sp.id); applyTheme(sp.theme); $('#q').value = ''; view = {tab:p.tab || 'home', genre:p.genre || ''}; showTab('home');
+    cur = sp; rememberSpace(sp.id); applyTheme(spaceTheme(sp)); $('#q').value = ''; view = {tab:p.tab || 'home', genre:p.genre || ''}; showTab('home');
   }
 }
 /* TV Back button: entry -> home -> side menu -> (home) -> close-app prompt */
@@ -2024,7 +2123,7 @@ function tvBackStep(){
   if (!document.body.classList.contains('tv') || document.body.classList.contains('launch') || !cur) return false;
   const inNav = document.activeElement && document.activeElement.closest && document.activeElement.closest('#nav');
   const repush = () => { if (history.state && history.state.guard) { pageKey = ''; pushPage(); } };
-  if (!$('#addons').hidden) { showTab('settings'); requestAnimationFrame(() => { const b = $('#setAddons'); if (b) b.focus({preventScroll:true}); }); repush(); return true; }   // Addons opens from Settings on TV: Back goes there
+  if (!$('#addons').hidden) { setCatNow = 'tmdb'; showTab('settings'); requestAnimationFrame(() => { const b = $('#setAddons'); if (b) b.focus({preventScroll:true}); }); repush(); return true; }   // Addons opens from Settings on TV: Back goes there
   if (!inNav) {
     if (!$('#home').hidden && view.genre) { view = {tab:view.tab, genre:''}; renderHome(); repush(); return true; }
     if (!$('#search').hidden && sQuery) { sQuery = ''; sPaint(); sRun(); repush(); return true; }
@@ -2177,12 +2276,13 @@ const streamPool = () => (cur && cur.streams && cur.streams.length) ? addons.fil
 function enterSpace(id){
   cur = spaces.find(s => s.id===id); if (!cur) return;
   spEdit = false;
-  rememberSpace(cur.id); applyTheme(cur.theme); $('#q').value = ''; view = {tab:'home', genre:''}; showTab('home');
+  rememberSpace(cur.id); applyTheme(spaceTheme(cur)); $('#q').value = ''; view = {tab:'home', genre:''}; showTab('home');
+  try { notifySoon(); } catch {}
 }
 let spEdit = false;
 const PENCIL_SVG = () => { const d = document.createElement('span'); d.innerHTML = '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20l1-4L16.5 4.5a2 2 0 0 1 3 0l0 0a2 2 0 0 1 0 3L8 19z"/><path d="M14 7l3 3"/></svg>'; return d.firstChild; };
 function showLauncher(){
-  cur = null; applyTheme('ember');
+  cur = null; applyTheme(spaceTheme(null));
   document.body.classList.add('launch'); document.body.style.overflow = '';
   $('#detail').hidden = true; $('#player').hidden = true; $('#spaceEd').hidden = true;
   $('#profiles').hidden = true; $('#login').hidden = true; const L = $('#launcher'); L.hidden = false;
@@ -2203,7 +2303,7 @@ function showLauncher(){
     h('div', {class:'lmid'},
       h('h2', {class:'ltitle' + (addons.length ? '' : ' noadd')}, addons.length ? 'What are we watching?' : 'Add an addon first'),
       addons.length ? null : h('p', {class:'lsub'}, 'Open Addons, install one, then pick a space.'),
-      h('div', {class:'sgrid'}, ...spacesFor().map(tile),
+      h('div', {class:'sgrid'}, ...spacesFor().filter(sp => !sp.hidden || spEdit).map(tile),
         h('div', {class:'swrap newwrap'}, h('button', {class:'stile new', type:'button', onclick:() => editSpace(null)}, h('span', {class:'sem'}, '＋'), h('span', {class:'stx'}, h('span', {class:'snm'}, 'New space')))))),
     h('div', {class:'lfoot'},
       h('button', {class:'chip', type:'button', onclick:() => { document.body.classList.remove('launch'); $('#launcher').hidden = true; $('#profiles').hidden = true; $('#login').hidden = true; showTab('addons'); }}, 'Addons'),
@@ -2616,6 +2716,7 @@ function renderSettings(){
   }
   $('#verLine').textContent = 'Streamlet · web version';
   { const N = nativePlayer(); if (N && N.appVersion) N.appVersion().then(r => { $('#verLine').textContent = `Streamlet · ${vName(r.code)} · Android app`; }).catch(() => {}); }
+  settingsPlus();                                                         // categories and the newer settings (27-settings-plus.js)
 }
 function applyUI(){
   const u = lsGet('streamlet.ui', {}), tv = document.body.classList.contains('tv');
@@ -2994,6 +3095,7 @@ function heroTick(){
 }
 /* TMDB accepts the short v3 key (as a parameter) or the long v4 read token (as a bearer header) */
 async function tmdbGet(path, key){
+  const ml = metaLang(); if (ml && !/[?&]language=/.test(path)) path += (path.includes('?') ? '&' : '?') + 'language=' + ml;   // Settings > General > Language
   const long = key.length > 60, url = 'https://api.themoviedb.org/3' + path + (long ? '' : (path.includes('?') ? '&' : '?') + 'api_key=' + encodeURIComponent(key));
   const r = await fetch(url, long ? {headers:{Authorization:'Bearer ' + key}} : undefined);
   if (!r.ok) throw new Error(r.status === 401 ? 'invalid key' : 'HTTP ' + r.status);
@@ -3288,20 +3390,22 @@ async function renderHome(query = $('#q').value.trim(), target){
   const tabs = spaceTabs() && !query;
   const skipP = personalSkip; personalSkip = false;
   const tmMade = spaceAddons().some(a => a.url === 'tmdb://all/manifest.json');   // the TMDB rows already make these, per profile
-  const personal = !skipP && !tmMade && !query && !target && !(tabs && view.genre) && (!tabs || view.tab === 'home') && personalSeeds().any;
+  const personal = rowOn('byw') && !skipP && !tmMade && !query && !target && !(tabs && view.genre) && (!tabs || view.tab === 'home') && personalSeeds().any;
   const hideCats = personal && tabs;                                            // with tabs, the catalogs live in Movies / Shows as discoveries
   const nhKey = tabs && !target && !isKid() && view.tab === 'new' && !view.genre ? lsGet('streamlet.tmdb', '') : '';
   if (nhKey) { box.append(h('div', {class:'tspace'})); renderNewHot(box, tok, nhKey).catch(() => {}); return; }
-  const heroBox = h('div'); if (!query && !(tabs && view.genre)) box.append(heroBox); else if (!target) box.append(h('div', {class:'tspace'}));
+  const heroBox = h('div'); if (!query && !(tabs && view.genre) && rowOn('hero')) box.append(heroBox); else if (!target) box.append(h('div', {class:'tspace'}));
   if (tabs && !target) box.append(genreStrip());
   if (tabs && !target && view.tab === 'new') box.append(h('div', {class:'empty', style:'padding:6px 16px 0'}, h('p', null, 'Add your TMDB key in Settings to turn this tab into New & Hot: coming soon, trending and top 10.')));
-  if (!target) { box.append(h('div', {id:'cwBox'})); renderCW(); }
+  if (!target && rowOn('cw')) { box.append(h('div', {id:'cwBox'})); renderCW(); }
+  if (!target && !tabs || !target && tabs && !view.genre && view.tab !== 'new') favRow(box, tok, tabs ? view.tab : 'home');   // Your genres (Settings > Personalization)
   if (personal) { const pbox = h('div', {id:'pBox'}); box.append(pbox); renderPersonal(pbox, tok).then(ok => { if (!ok && hideCats && tok === homeTok) { personalSkip = true; renderHome(query, target); } }).catch(() => { if (hideCats && tok === homeTok) { personalSkip = true; renderHome(query, target); } }); }
   let heroDone = false, shown = 0; heroPool = [];
   const jobs = [];
   for (const a of spaceAddons()) for (const cat of (a.manifest.catalogs||[])) {
     if (hideCats && jobs.length >= 2) break;                                    // only needed for the hero picture
     if (!query && !tabFit(cat, tabs, view.tab)) continue;
+    if (!query && !rowCatOK(cat)) continue;                                       // Settings > Personalization: TMDB personal rows
     const info = catInfo(cat), ge = genreExtra(cat);
     let path, title = cat.name || cat.id;
     if (query) {
@@ -3656,7 +3760,7 @@ async function selectProfile(p){
   loadProfileData(); epReset(); try { fillTmdb(); qcFillShows(); } catch {} try { epMigrate(); } catch {} try { for (const q of profiles) showsBackfill(q.id); epReset(); } catch {}
   document.body.classList.toggle('kids', !!p.kids);
   if (p.kids) await kidsReady();
-  const last = pget('last', null);
+  const st = lsGet('streamlet.ui', {}), last = st.startup === 'launcher' ? null : st.startup === 'space' ? st.startSpace : pget('last', null);   // Settings > General > Startup
   const sp = last && spacesFor().find(x => x.id === last) || (p.kids ? spacesFor()[0] : null);
   if (!sp) { showLauncher(); return; }
   const done = (!pfx && !document.getElementById('intro') && !$('#profiles').hidden) ? warmCover(profile.name) : null;   // the boot logo / the profile animation already cover the wait
@@ -4187,7 +4291,7 @@ function prefSet(id, st, manual){                                       // you p
   m[id] = {sig:sigOf(st), like, manual:!!(manual || (old && old.manual && old.like && likeScore(old.like, st) >= LIKE_MIN))};
   const ks = Object.keys(m); if (ks.length > 150) delete m[ks[0]]; lsSet('streamlet.srcpref', m);
 }
-const prefTier = (id, st) => { const p = prefRaw(id); if (!p) return 2; if (p.sig && sigOf(st) === p.sig) return 0; if (!p.like || likeScore(p.like, st) < LIKE_MIN) return 2; return p.like.rd && !srcLike(st).rd ? 2 : 1; };   // your kind of source, but never one that isn't ready on the debrid service when yours was
+const prefTier = (id, st) => { const p = lsGet('streamlet.ui', {}).remSrc === false ? null : prefRaw(id); if (!p) return 2; if (p.sig && sigOf(st) === p.sig) return 0; if (!p.like || likeScore(p.like, st) < LIKE_MIN) return 2; return p.like.rd && !srcLike(st).rd ? 2 : 1; };   // your kind of source, but never one that isn't ready on the debrid service when yours was
 const badSet = st => { const m = mapGet('streamlet.badsrc'), now = Date.now(); for (const k of Object.keys(m)) if (now - m[k] > 7 * 864e5) delete m[k]; m[urlKey(st.url)] = now; const ks = Object.keys(m); if (ks.length > 200) delete m[ks[0]]; lsSet('streamlet.badsrc', m); };
 const isBadStream = st => badStreams.has(st) || (st.url && Date.now() - (mapGet('streamlet.badsrc')[urlKey(st.url)] || 0) < 7 * 864e5);
 const logErr = (title, st, code) => { const a = lsGet('streamlet.errlog', []); a.unshift({t:Date.now(), title:title || '', src:String((st && st.name) || '').replace(/\n+/g, ' '), code:code || ''}); lsSet('streamlet.errlog', a.slice(0, 30)); try { sendLogSoon(); } catch {} };
@@ -4442,7 +4546,7 @@ async function playStream(s, title, ctx){
   pl = {id:pl.id + 1, ctx, subs:[], loading:false, nSrc:0, cur:null, offset:0, blob:null, stream:{url:s.url, name:s.name, title:s.title}};
   lastSave = 0;
   const saved = ctx && histGet().find(x => x.k === `${ctx.type}|${ctx.id}`);
-  if (saved && !saved.upnext && saved.pos > 20) v.addEventListener('loadedmetadata', () => { if (!v.duration || saved.pos < v.duration - 30) { v.currentTime = saved.pos; toast('Resumed at ' + fmtTime(saved.pos)); } }, {once:true});
+  if (saved && !saved.upnext && saved.pos > 20 && lsGet('streamlet.ui', {}).resume !== false) v.addEventListener('loadedmetadata', () => { if (!v.duration || saved.pos < v.duration - 30) { v.currentTime = saved.pos; toast('Resumed at ' + fmtTime(saved.pos)); } }, {once:true});
   v.querySelectorAll('track').forEach(t => t.remove());
   for (const sub of (s.subtitles || [])) pl.subs.push({id:'embedded', url:sub.url, lang:sub.lang || 'eng', addon:'Stream'});
   if (/\.m3u8(\?|$)/i.test(s.url) && !v.canPlayType('application/vnd.apple.mpegurl')) {
@@ -4572,7 +4676,7 @@ async function playNative(s, title, ctx){
     if (seen[n] < cap && picked.length < 24) { seen[n]++; picked.push({url:x.url, lang:code2(x.lang) || String(x.lang), label:n + (seen[n] > 1 ? ' ' + seen[n] : '')}); }
   }
   const saved = ctx && histGet().find(x => x.k === `${ctx.type}|${ctx.id}`);
-  const startMs = ctx && ctx.fresh ? 0 : saved && !saved.upnext && saved.pos > 20 ? Math.round(saved.pos * 1000) : 0;
+  const startMs = ctx && ctx.fresh || lsGet('streamlet.ui', {}).resume === false ? 0 : saved && !saved.upnext && saved.pos > 20 ? Math.round(saved.pos * 1000) : 0;   // Settings > Playback > Resume
   const stream = {url:s.url, name:s.name, title:s.title};
   const handle = await N.addListener('progress', e => recordProgress(ctx, stream, e.position / 1000, e.duration / 1000));
   try {
@@ -6456,7 +6560,7 @@ async function packExport(){
 /* ---------- TMDB: built-in catalog addons (tmdb://all, tmdb://netflix, tmdb://disney, tmdb://kids), using the TMDB key from Settings.
    Titles carry their IMDb id (tt…) so every stream addon finds them; the details and episodes come from TMDB too. ---------- */
 const TM_IMG = 'https://image.tmdb.org/t/p/';
-const TM_REGION = 'CA';
+let TM_REGION = (() => { try { return (JSON.parse(localStorage.getItem('streamlet.ui') || '{}').region) || 'CA'; } catch { return 'CA'; } })();   // Settings > General > Region
 const TM_FLAVORS = {
   all:     {name:'TMDB',          desc:'Trending, popular and top rated movies and shows, with search.'},
   netflix: {name:'Netflix (TMDB)', desc:'What is on Netflix in Canada, and Netflix originals.'},
@@ -6817,7 +6921,8 @@ async function tmPreview(x, kind){
   const tt = await tmImdb(kind, x.id);
   return {id:tt || `tmdb:${kind}:${x.id}`, type:kind === 'tv' ? 'series' : 'movie', name:x.title || x.name || '',
     poster:x.poster_path ? TM_IMG + 'w342' + x.poster_path : '', background:x.backdrop_path ? TM_IMG + 'w1280' + x.backdrop_path : '',
-    description:x.overview || '', releaseInfo:tmYear(x), imdbRating:x.vote_average ? x.vote_average.toFixed(1) : undefined};
+    description:x.overview || '', releaseInfo:tmYear(x), imdbRating:x.vote_average ? x.vote_average.toFixed(1) : undefined,
+    genres:tmGenreNames(x.genre_ids, kind), lang:x.original_language || undefined};
 }
 /* kids search: only titles in kids genres, never adult ones */
 function tmKidOk(x, kind){
@@ -7025,6 +7130,295 @@ function eoSection(meta, reload){
     box.hidden = false;
   }).catch(() => {});
   return box;
+}
+/* ---------- Settings: categories, and the settings added on top of the original page ----------
+   The original controls keep their ids and handlers (renderSettings); this file arranges them into categories
+   and wires the newer ones. Global settings live in streamlet.ui (this device) or the profile; space settings
+   live on the space itself (Spaces category, or the space editor). */
+const SET_CATS = [['general', 'General'], ['spaces', 'Spaces'], ['playback', 'Playback'], ['personal', 'Personalization'], ['content', 'Content'],
+  ['notif', 'Notifications'], ['tmdb', 'TMDB & addons'], ['storage', 'Storage & backup'], ['account', 'Account'], ['about', 'About']];
+let setCatNow = 'general';
+const uiGet = () => lsGet('streamlet.ui', {});
+const uiSet = patch => lsSet('streamlet.ui', {...lsGet('streamlet.ui', {}), ...patch});
+
+/* ---- small helpers used elsewhere ---- */
+const metaLang = () => uiGet().metaLang || '';
+const spaceTheme = sp => { const t = uiGet().theme; return t && t !== 'space' && THEMES[t] ? t : sp ? sp.theme : 'ember'; };
+const rowOn = k => ((uiGet().rows || {})[k]) !== false;
+const rowCatOK = cat => { const id = String(cat.id || '').replace(/\.(m|s)$/, ''); return /^tm\.byw\d/.test(id) ? rowOn('byw') : id === 'tm.wl' ? rowOn('wl') : id === 'tm.rec' ? rowOn('rec') : true; };
+
+/* genres: one list for every addon (Cinemeta names, TMDB movie and TV ids) */
+const SG = [
+  {n:'Action', names:['Action'], mv:[28], tv:[10759]}, {n:'Adventure', names:['Adventure'], mv:[12], tv:[10759]}, {n:'Animation', names:['Animation'], mv:[16], tv:[16]},
+  {n:'Comedy', names:['Comedy'], mv:[35], tv:[35]}, {n:'Crime', names:['Crime'], mv:[80], tv:[80]}, {n:'Documentary', names:['Documentary'], mv:[99], tv:[99]},
+  {n:'Drama', names:['Drama'], mv:[18], tv:[18]}, {n:'Family', names:['Family'], mv:[10751], tv:[10751]}, {n:'Fantasy', names:['Fantasy'], mv:[14], tv:[10765]},
+  {n:'History', names:['History'], mv:[36], tv:[]}, {n:'Horror', names:['Horror'], mv:[27], tv:[]}, {n:'Kids', names:['Kids'], mv:[], tv:[10762]},
+  {n:'Music', names:['Music'], mv:[10402], tv:[]}, {n:'Mystery', names:['Mystery'], mv:[9648], tv:[9648]}, {n:'Reality', names:['Reality', 'Reality-TV'], mv:[], tv:[10764]},
+  {n:'Romance', names:['Romance'], mv:[10749], tv:[]}, {n:'Sci-Fi', names:['Science Fiction', 'Sci-Fi'], mv:[878], tv:[10765]}, {n:'Thriller', names:['Thriller'], mv:[53], tv:[]},
+  {n:'War', names:['War', 'War & Politics'], mv:[10752], tv:[10768]}, {n:'Western', names:['Western'], mv:[37], tv:[37]}];
+const SLANGS = [['en', 'English'], ['fr', 'French'], ['es', 'Spanish'], ['ja', 'Japanese'], ['ko', 'Korean'], ['zh', 'Chinese'], ['hi', 'Hindi'], ['it', 'Italian'], ['de', 'German'], ['pt', 'Portuguese']];
+function tmGenreNames(ids, kind){
+  const map = kind === 'tv' ? TM_TG : TM_MG, out = [];
+  for (const id of ids || []) for (const [k, v] of Object.entries(map)) if (v === id) out.push(k);
+  return out.length ? out : undefined;
+}
+/* Settings > Content: what may show in rows and search */
+function contentOK(m){
+  if (!m) return true;
+  const u = uiGet();
+  const min = +u.minRate || 0, r = parseFloat(m.imdbRating);
+  if (min && r > 0 && r < min) return false;
+  if ((u.hideG || []).length && Array.isArray(m.genres)) {
+    const bad = new Set(SG.filter(g => u.hideG.includes(g.n)).flatMap(g => g.names));
+    if (m.genres.some(g => bad.has(typeof g === 'string' ? g : g && g.name))) return false;
+  }
+  if ((u.langs || []).length && m.lang && !u.langs.includes(m.lang)) return false;
+  return true;
+}
+
+/* ---- the page ---- */
+function setCat(c){
+  if (!SET_CATS.some(x => x[0] === c)) c = 'general';
+  setCatNow = c;
+  for (const el of document.querySelectorAll('#settings .setcat')) el.hidden = el.dataset.cat !== c;
+  for (const b of document.querySelectorAll('#setNav .chip')) { const on = b.dataset.cat === c; b.classList.toggle('on', on); b.setAttribute('aria-selected', on ? 'true' : 'false'); }
+  const pad = $('#settings>.pad'); if (pad) pad.scrollTop = 0;
+  if (!document.body.classList.contains('tv')) { const nav = $('#setNav'); if (nav && nav.getBoundingClientRect().top < 0) nav.scrollIntoView({block:'start'}); }
+  if (c === 'spaces') spacesList();
+  if (c === 'storage') storageInfo();
+  if (c === 'about') aboutInfo();
+  if (c === 'tmdb') { const n = addons.length; $('#adSum').textContent = `${n} installed · install, remove and reorder the sources for your catalogs and streams`; }
+}
+function settingsPlus(){
+  const tv = document.body.classList.contains('tv'), u = uiGet();
+  const nav = $('#setNav');
+  if (!nav.childElementCount) nav.replaceChildren(...SET_CATS.map(([k, n]) => {
+    const b = h('button', {class:'chip', type:'button', role:'tab', 'data-cat':k, onclick:() => setCat(k)}, n);
+    if (tv) b.addEventListener('focus', () => { if (setCatNow !== k) setCat(k); });   // on TV the category follows the focus
+    return b;
+  }));
+  setCat(setCatNow);
+
+  /* General */
+  const stS = $('#setStart'), stSp = $('#setStartSp');
+  stS.value = u.startup || 'last';
+  stSp.replaceChildren(...spaces.map(s => h('option', {value:s.id}, `${s.emoji} ${s.name}`))); stSp.value = u.startSpace && spaces.some(s => s.id === u.startSpace) ? u.startSpace : (spaces[0] || {}).id || '';
+  $('#rowStartSp').hidden = stS.value !== 'space';
+  stS.onchange = () => { uiSet({startup:stS.value, startSpace:stSp.value}); $('#rowStartSp').hidden = stS.value !== 'space'; };
+  stSp.onchange = () => uiSet({startSpace:stSp.value});
+  const ask = $('#setAsk'); $('#rowAsk').hidden = profiles.length < 2;
+  ask.checked = localStorage.getItem('streamlet.profile.ask') !== '0';
+  ask.onchange = () => { try { localStorage.setItem('streamlet.profile.ask', ask.checked ? '1' : '0'); } catch {} };
+  const th = $('#setTheme');
+  th.replaceChildren(h('option', {value:'space'}, 'Follow each space'), ...Object.entries(THEMES).map(([k, t]) => h('option', {value:k}, t.n || k)));
+  th.value = u.theme && THEMES[u.theme] ? u.theme : 'space';
+  th.onchange = () => { uiSet({theme:th.value}); applyTheme(spaceTheme(cur)); };
+  const ml = $('#setMetaLang');
+  ml.replaceChildren(...[['', 'English (default)'], ['fr-CA', 'Français (Canada)'], ['fr-FR', 'Français (France)'], ['es-ES', 'Español'], ['es-MX', 'Español (México)'], ['pt-BR', 'Português (Brasil)'],
+    ['de-DE', 'Deutsch'], ['it-IT', 'Italiano'], ['ja-JP', '日本語'], ['ko-KR', '한국어']].map(([v, n]) => h('option', {value:v}, n)));
+  ml.value = u.metaLang || '';
+  ml.onchange = () => { uiSet({metaLang:ml.value}); try { tmMineMem.clear(); } catch {} toast('Rows and title pages use it as they load'); };
+  const rg = $('#setRegion');
+  rg.replaceChildren(...[['CA', 'Canada'], ['US', 'United States'], ['GB', 'United Kingdom'], ['FR', 'France'], ['BE', 'Belgium'], ['CH', 'Switzerland'], ['AU', 'Australia'], ['IE', 'Ireland'],
+    ['NZ', 'New Zealand'], ['MX', 'Mexico'], ['ES', 'Spain'], ['DE', 'Germany'], ['IT', 'Italy'], ['BR', 'Brazil'], ['JP', 'Japan']].map(([v, n]) => h('option', {value:v}, n)));
+  rg.value = u.region || 'CA';
+  rg.onchange = () => { uiSet({region:rg.value}); TM_REGION = rg.value; toast('Fully applies the next time the app starts'); };
+
+  /* Playback */
+  const rs = $('#setRemSrc'); rs.checked = u.remSrc !== false; rs.onchange = () => uiSet({remSrc:rs.checked});
+  const re = $('#setResume'); re.checked = u.resume !== false; re.onchange = () => uiSet({resume:re.checked});
+
+  /* Personalization */
+  for (const [id, k] of [['#setRowHero', 'hero'], ['#setRowCW', 'cw'], ['#setRowBYW', 'byw'], ['#setRowWL', 'wl'], ['#setRowRec', 'rec'], ['#setRowFav', 'fav']]) {
+    const el = $(id); el.checked = rowOn(k);
+    el.onchange = () => { uiSet({rows:{...(uiGet().rows || {}), [k]:el.checked}}); homeDirty(); };
+  }
+
+  /* Content */
+  const mr = $('#setMinRate'); mr.value = String(u.minRate || 0); if (!mr.value) mr.value = '0';
+  mr.onchange = () => { uiSet({minRate:+mr.value}); homeDirty(); };
+  chipSet('#setHideG', SG.map(g => [g.n, g.n]), 'hideG');
+  chipSet('#setLangs', SLANGS, 'langs');
+  chipSet('#setFavG', SG.map(g => [g.n, g.n]), 'favG');
+
+  /* Notifications */
+  const nt = {ep:true, season:true, wl:true, sys:false, ...(u.nt || {})};
+  for (const [id, k] of [['#setNtEp', 'ep'], ['#setNtSeason', 'season'], ['#setNtWl', 'wl']]) { const el = $(id); el.checked = nt[k]; el.onchange = () => uiSet({nt:{...(uiGet().nt || {}), [k]:el.checked}}); }
+  const sys = $('#setNtSys'), canSys = 'Notification' in window && !nativePlayer();
+  $('#rowNtSys').hidden = !canSys;
+  sys.checked = canSys && nt.sys && Notification.permission === 'granted';
+  sys.onchange = async () => {
+    if (sys.checked) { let p = Notification.permission; if (p === 'default') p = await Notification.requestPermission(); if (p !== 'granted') { sys.checked = false; toast('Notifications are blocked for this site in your browser'); } }
+    uiSet({nt:{...(uiGet().nt || {}), sys:sys.checked}});
+  };
+  const last = pget('notifiedAt', 0); $('#ntLast').textContent = last ? 'Last checked ' + new Date(last).toLocaleString([], {month:'short', day:'numeric', hour:'2-digit', minute:'2-digit'}) : 'Notices appear when you open a space';
+  $('#ntNow').onclick = async () => { if (!cur) { toast('Open a space first'); return; } const n = await notifyCheck(true); toast(n ? `${n} new notice${n > 1 ? 's' : ''}` : 'Nothing new right now'); };
+
+  /* TMDB, storage, backup */
+  $('#stClrTm').onclick = () => { let n = 0; for (const k of Object.keys(localStorage)) if (/^streamlet\.(tmcur|tmfind|tmids|tmimdb|tmlists|eotm\.|eochk|wlrel)/.test(k)) { localStorage.removeItem(k); n++; } try { tmMineMem.clear(); } catch {} toast(n ? 'TMDB data cleared' : 'Nothing saved yet'); };
+  $('#stClrData').onclick = async () => { try { await caches.delete(DCACHE); } catch {} try { warmC.clear(); } catch {} storageInfo(); toast('Cleared'); homeDirty(); };
+  $('#stClrTmp').onclick = () => { for (const k of ['streamlet.badsrc', 'streamlet.errlog', 'streamlet.syslog']) localStorage.removeItem(k); try { badStreams.clear(); } catch {} storageInfo(); toast('Cleared'); };
+  $('#fbOut').onclick = fullBackupOut;
+  $('#fbIn').onclick = () => $('#fbFile').click();
+  $('#fbFile').onchange = e => { fullBackupIn(e.target.files[0]); e.target.value = ''; };
+  $('#spNew').onclick = () => editSpace(null);
+}
+let homeDirtyT = 0;
+function homeDirty(){ clearTimeout(homeDirtyT); homeDirtyT = setTimeout(() => { try { if (cur && !$('#home').hidden) renderHome(); } catch {} }, 300); }   // Home redraws with the new settings when you go back to it
+/* a row of toggle chips stored as a list in streamlet.ui */
+function chipSet(sel, items, key){
+  const box = $(sel), have = new Set(uiGet()[key] || []);
+  box.replaceChildren(...items.map(([v, n]) => {
+    const b = h('button', {class:'chip' + (have.has(v) ? ' on' : ''), type:'button', 'aria-pressed':have.has(v) ? 'true' : 'false'}, n);
+    b.onclick = () => {
+      const s = new Set(uiGet()[key] || []); if (s.has(v)) s.delete(v); else s.add(v);
+      uiSet({[key]:[...s]}); b.classList.toggle('on', s.has(v)); b.setAttribute('aria-pressed', s.has(v) ? 'true' : 'false'); homeDirty();
+    };
+    return b;
+  }));
+}
+
+/* ---- Spaces: order, visibility, edit ---- */
+function spacesList(){
+  const box = $('#spList'); if (!box) return;
+  const mine = spacesFor();
+  const move = (id, d) => { const i = spaces.findIndex(s => s.id === id), j = i + d; if (i < 0 || j < 0 || j >= spaces.length) return; [spaces[i], spaces[j]] = [spaces[j], spaces[i]]; saveSpaces(); launcherDirty = true; spacesList(); requestAnimationFrame(() => { const b = box.querySelector(`[data-sp="${id}"] .${d < 0 ? 'up' : 'dn'}`); if (b && !b.disabled) b.focus(); else { const r = box.querySelector(`[data-sp="${id}"] button:not([disabled])`); if (r) r.focus(); } }); };
+  box.replaceChildren(...mine.map((s, i) => {
+    const t = THEMES[s.theme] || THEMES.ember, n = s.catalogs.filter(id => addons.find(x => x.uid === id)).length;
+    const show = h('input', {type:'checkbox'}); show.checked = !s.hidden;
+    show.onchange = () => { const sp = spaces.find(x => x.id === s.id); if (!sp) return; if (!show.checked && spaces.filter(x => !x.hidden).length <= 1) { show.checked = true; toast('Keep at least one space visible'); return; } sp.hidden = !show.checked; saveSpaces(); launcherDirty = true; spacesList(); };
+    return h('div', {class:'sprow' + (s.hidden ? ' off' : ''), 'data-sp':s.id},
+      h('span', {class:'spsw', style:`background:linear-gradient(135deg,${t.acc},${t.acc2 || t.acc})`}),
+      h('span', {class:'rt'}, `${s.emoji} ${s.name}`, h('small', null, [s.catalogs.length ? `${n} addon${n === 1 ? '' : 's'}` : 'All addons', s.kids ? 'For kids' : '', s.subs && s.subs !== 'off' ? 'Own subtitles' : '', s.hidden ? 'Hidden' : ''].filter(Boolean).join(' · '))),
+      h('span', {class:'spbtns'},
+        h('button', {class:'btn ghost sm ic up', type:'button', 'aria-label':'Move up', disabled:i === 0 ? '' : null, onclick:() => move(s.id, -1)}, '↑'),
+        h('button', {class:'btn ghost sm ic dn', type:'button', 'aria-label':'Move down', disabled:i === mine.length - 1 ? '' : null, onclick:() => move(s.id, 1)}, '↓'),
+        h('label', {class:'spshow'}, show, h('span', null, 'Show')),
+        h('button', {class:'btn ghost sm', type:'button', onclick:() => editSpace(s.id)}, 'Edit')));
+  }));
+}
+
+/* ---- Storage ---- */
+async function storageInfo(){
+  const el = $('#stUse'); if (!el) return;
+  const mb = b => b > 1048576 ? (b / 1048576).toFixed(1) + ' MB' : Math.max(1, Math.round(b / 1024)) + ' KB';
+  let ls = 0; for (const k of Object.keys(localStorage)) if (k.startsWith('streamlet')) ls += (k.length + (localStorage.getItem(k) || '').length) * 2;
+  let rows = 0; try { rows = (await (await caches.open(DCACHE)).keys()).length; } catch {}
+  let total = ''; try { const e = await navigator.storage.estimate(); if (e && e.usage) total = ' · ' + mb(e.usage) + ' in all'; } catch {}
+  el.textContent = `Settings, lists and history ${mb(ls)} · ${rows} saved rows and pages${total}`;
+}
+function fullBackupOut(){
+  const data = {};
+  for (const k of Object.keys(localStorage)) if (k.startsWith('streamlet.') && !/^streamlet\.(errlog|syslog|badsrc)$/.test(k)) data[k] = localStorage.getItem(k);
+  const a = h('a', {href:URL.createObjectURL(new Blob([JSON.stringify({app:'streamlet', kind:'full', v:1, at:Date.now(), data})], {type:'application/json'})), download:`streamlet-full-backup-${new Date().toISOString().slice(0, 10)}.json`});
+  document.body.append(a); a.click(); a.remove(); toast('Full backup saved');
+}
+let fbArmed = null;
+function fullBackupIn(file){
+  if (!file) return;
+  file.text().then(txt => {
+    const d = JSON.parse(txt); if (!d || d.app !== 'streamlet' || d.kind !== 'full' || !d.data) throw 0;
+    const n = Object.keys(d.data).length, b = $('#fbIn');
+    fbArmed = d; b.textContent = `Replace everything (${n} items)?`; b.classList.add('warn');
+    setTimeout(() => { if (fbArmed === d) { fbArmed = null; b.textContent = 'Restore'; b.classList.remove('warn'); } }, 10000);
+    b.onclick = () => {
+      if (fbArmed !== d) { $('#fbFile').click(); return; }
+      for (const k of Object.keys(localStorage)) if (k.startsWith('streamlet.')) localStorage.removeItem(k);
+      for (const [k, v] of Object.entries(d.data)) if (k.startsWith('streamlet.')) try { localStorage.setItem(k, v); } catch {}
+      toast('Restored. Restarting…'); setTimeout(() => location.reload(), 900);
+    };
+  }).catch(() => toast('That is not a Streamlet full backup (for watch history files, use Watch history backup)'));
+}
+
+/* ---- About ---- */
+function aboutInfo(){
+  const tv = document.body.classList.contains('tv'), N = nativePlayer();
+  const kind = N ? (tv ? 'Android TV app' : 'Android app') : (matchMedia('(display-mode: standalone)').matches ? 'Installed web app' : 'Web');
+  const info = [['Device', kind], ['Screen', `${innerWidth} × ${innerHeight}`], ['Profiles', String(profiles.length)], ['Spaces', String(spaces.length)], ['Addons', String(addons.length)],
+    ['Account', user ? 'Signed in, synced' : 'This device only']];
+  $('#abInfo').replaceChildren(...info.map(([k, v]) => h('div', {class:'abrow'}, h('span', null, k), h('b', null, v))));
+  $('#abCred').replaceChildren(
+    h('p', null, h('b', null, 'TMDB. '), 'Titles, artwork, lists and release dates come from The Movie Database. This product uses the TMDB API but is not endorsed or certified by TMDB.'),
+    h('p', null, h('b', null, 'Your addons. '), 'Catalogs, streams and subtitles come from the addons you installed: ', addons.map(a => `${an(a)}${a.manifest && a.manifest.version ? ' ' + a.manifest.version : ''}`).join(', ') || 'none yet', '.'),
+    h('p', null, h('b', null, 'Built with '), 'Media3 ExoPlayer and VLC (Android player), Capacitor, Firebase (sync). Skip times from IntroDB and AniSkip when available.'),
+    h('p', {class:'muted'}, 'Streamlet does not host or provide any content.'));
+}
+
+/* ---- Notifications: new episodes, returning seasons, watchlist releases ---- */
+let ntT = 0;
+function notifySoon(){ clearTimeout(ntT); ntT = setTimeout(() => notifyCheck(false).catch(() => {}), 4000); }
+async function notifyCheck(force){
+  if (!profile || !cur) return 0;
+  const u = uiGet(), nt = {ep:true, season:true, wl:true, sys:false, ...(u.nt || {})};
+  if (!nt.ep && !nt.season && !nt.wl) return 0;
+  if (!force && Date.now() - pget('notifiedAt', 0) < 20 * 60e3) return 0;      // at most every 20 minutes
+  const seen = pget('notified', {}), out = [];
+  if (nt.ep || nt.season) for (const x of await heroFind(cur)) {
+    if ((x.rank === 0 && !nt.ep) || (x.rank === 1 && !nt.season)) continue;
+    const key = x.m.id + '|' + x.tag; if (seen[key]) continue;
+    out.push({key, name:x.m.name, tag:x.tag, img:x.m.poster, open:() => openDetail(x.a, 'series', x.m)});
+  }
+  const tk = lsGet('streamlet.tmdb', '');
+  if (nt.wl && tk) {
+    const rel = lsGet('streamlet.wlrel', {}), now = Date.now();
+    for (const e of wlHere().filter(x => x.type === 'movie' && /^tt\d+$/.test(x.itemId)).slice(0, 15)) {
+      let r = rel[e.itemId];
+      if (!r || now - r.t > 864e5) {
+        try {
+          const f = await tmdbGet(`/find/${e.itemId}?external_source=imdb_id`, tk), mv = (f.movie_results || [])[0];
+          let d = mv && mv.release_date || '';
+          if (mv) { try { const rd = await tmdbGet(`/movie/${mv.id}/release_dates`, tk); const pick = reg => ((rd.results || []).find(x => x.iso_3166_1 === reg) || {}).release_dates || []; const dig = [...pick(TM_REGION), ...pick('US')].filter(x => x.type === 4 || x.type === 5).map(x => x.release_date).sort()[0]; if (dig) d = dig; } catch {} }
+          r = rel[e.itemId] = {t:now, d};
+        } catch { continue; }
+      }
+      const day = r.d ? Date.parse(r.d) : 0;
+      if (!day || day > now || now - day > 45 * 864e5) continue;
+      const key = e.itemId + '|out'; if (seen[key]) continue;
+      out.push({key, name:e.name, tag:'Now available', img:e.poster, open:() => openWL(e)});
+    }
+    lsSet('streamlet.wlrel', rel);
+  }
+  pset('notifiedAt', Date.now());
+  if (!out.length) return 0;
+  for (const x of out) seen[x.key] = Date.now();
+  pset('notified', Object.fromEntries(Object.entries(seen).sort((a, b) => b[1] - a[1]).slice(0, 300)));
+  ntShow(out);
+  if (nt.sys && 'Notification' in window && Notification.permission === 'granted' && document.hidden !== false) for (const x of out.slice(0, 3)) try { new Notification(x.name, {body:x.tag, icon:x.img || 'logo.svg'}); } catch {}
+  return out.length;
+}
+function ntShow(list){
+  const old = $('#ntCard'); if (old) old.remove();
+  const tv = document.body.classList.contains('tv');
+  const card = h('div', {id:'ntCard', class:'ntcard', role:'status'},
+    h('div', {class:'nthd'}, h('b', null, 'New for you'), tv ? null : h('button', {class:'x', type:'button', 'aria-label':'Close', onclick:() => card.remove()}, '✕')),
+    ...list.slice(0, 3).map(x => h(tv ? 'div' : 'button', {class:'ntit', type:tv ? null : 'button', onclick:tv ? null : () => { card.remove(); x.open(); }},
+      x.img ? h('img', {src:x.img, alt:''}) : h('span', {class:'ntimg'}), h('span', null, h('b', null, x.name), h('small', null, x.tag)))),
+    list.length > 3 ? h('p', {class:'ntmore'}, `and ${list.length - 3} more`) : null);
+  document.body.append(card);
+  setTimeout(() => { card.classList.add('out'); setTimeout(() => card.remove(), 400); }, tv ? 9000 : 12000);
+}
+
+/* ---- Personalization: a row from your preferred genres ---- */
+async function favRow(box, tok, tab){
+  const u = uiGet(), fav = (u.favG || []).map(n => SG.find(g => g.n === n)).filter(Boolean), tk = lsGet('streamlet.tmdb', '');
+  if (!rowOn('fav') || !fav.length || !tk || isKid()) return;
+  const strip = h('div', {class:'strip'}), sec = h('div', {class:'row'}, h('h2', null, 'Your genres ', h('small', null, '· ' + fav.map(g => g.n).join(', '))), strip);
+  box.append(sec);
+  const mv = [...new Set(fav.flatMap(g => g.mv))], tv = [...new Set(fav.flatMap(g => g.tv))];
+  const q = (kind, ids) => ids.length ? tmdbGet(`/discover/${kind}?with_genres=${ids.join('|')}&sort_by=popularity.desc&vote_count.gte=150&include_adult=false`, tk).then(r => (r.results || []).filter(x => x.poster_path).slice(0, 14)) : Promise.resolve([]);
+  try {
+    const [m, t] = await Promise.all([tab === 'series' ? [] : q('movie', mv), tab === 'movie' ? [] : q('tv', tv)]);
+    const mix = []; for (let i = 0; i < Math.max(m.length, t.length); i++) { if (m[i]) mix.push([m[i], 'movie']); if (t[i]) mix.push([t[i], 'tv']); }
+    const metas = (await Promise.all(mix.slice(0, 20).map(([x, k]) => tmPreview(x, k).catch(() => null)))).filter(x => x && visibleMeta(x, x.type));
+    if (tok !== homeTok) return;
+    if (!metas.length) { sec.remove(); return; }
+    for (const m2 of metas) {
+      const a = addons.find(x => supports(x, 'meta', m2.type, m2.id)) || spaceAddons()[0]; if (!a) continue;
+      const btn = h('button', {class:'card', onclick:() => openDetail(a, m2.type, m2)}, posterEl(m2), h('div', {class:'t'}, m2.name), h('div', {class:'s'}, m2.releaseInfo || ''));
+      attachHold(btn, {itemId:m2.id, type:m2.type, name:m2.name, poster:m2.poster, background:m2.background, addonId:a.uid, _item:m2});
+      strip.append(btn);
+    }
+  } catch { sec.remove(); }
 }
 </script>
 </body>

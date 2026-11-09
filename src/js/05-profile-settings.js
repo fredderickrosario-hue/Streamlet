@@ -47,6 +47,7 @@ function renderSettings(){
   }
   $('#verLine').textContent = 'Streamlet · web version';
   { const N = nativePlayer(); if (N && N.appVersion) N.appVersion().then(r => { $('#verLine').textContent = `Streamlet · ${vName(r.code)} · Android app`; }).catch(() => {}); }
+  settingsPlus();                                                         // categories and the newer settings (27-settings-plus.js)
 }
 function applyUI(){
   const u = lsGet('streamlet.ui', {}), tv = document.body.classList.contains('tv');

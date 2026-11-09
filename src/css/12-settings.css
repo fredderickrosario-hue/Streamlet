@@ -1,0 +1,78 @@
+/* ---------- Settings v2: categories, compact rows ---------- */
+#settings [hidden]{display:none !important}
+#settings .pagehead{padding-bottom:4px}
+#setNav{display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;padding:6px 16px 10px;margin:0;flex-wrap:nowrap}
+#setNav::-webkit-scrollbar{display:none}
+#setNav .chip{flex:0 0 auto;white-space:nowrap}
+body:not(.tv) #setNav{position:sticky;top:0;z-index:5;background:linear-gradient(var(--bg) 70%,transparent);padding-top:8px}
+body.tv #setNav{padding:4px 6px 10px;margin:0 -6px}
+body.tv.pgfix:not(.launch) #setNav{flex:0 0 auto}
+
+/* groups: a small title over a card; two columns on wide screens */
+#settings .setcat{display:grid;grid-template-columns:minmax(0,1fr);gap:4px 22px;align-items:start}
+@media (min-width:1100px){ body:not(.tv) #settings .setcat{grid-template-columns:repeat(2,minmax(0,1fr))} }
+#settings .sgrp{min-width:0}
+#settings .sgh{margin:12px 4px 6px;font-size:12px;letter-spacing:.9px;text-transform:uppercase;color:var(--mut);font-weight:700}
+#settings .sgh small{font-weight:500;text-transform:none;letter-spacing:0;opacity:.75;margin-left:4px}
+#settings .sgrp .addon{margin:0;padding:2px 16px}
+#settings .row2{padding:10px 0;gap:12px}
+#settings .rt{font-size:15px;line-height:1.25}
+#settings .rt small{font-size:12px;line-height:1.35;margin-top:2px}
+#settings .gnote{margin:6px 6px 2px;font-size:12px;line-height:1.4}
+#settings .profcard{padding:12px 0}
+#settings #acctCard{padding:12px 0}
+#settings #acctCard p{font-size:14px}
+#settings input[type=checkbox]{width:44px;height:26px;border-radius:13px}
+#settings input[type=checkbox]::after{width:20px;height:20px}
+#settings input[type=checkbox]:checked::after{transform:translateX(18px)}
+body.tv #settings .rt{font-size:16px}
+body.tv #settings .rt small{font-size:13px}
+body.tv #settings .sgrp .addon{padding:2px 18px}
+body.tv #settings .sgh{font-size:13px;margin:12px 4px 6px}
+body:not(.tv) #settings .pad{padding-top:0}
+body:not(.tv) #settings .sgh{margin:14px 4px 6px}
+body:not(.tv) :is(#settings select.sel,#settings input[type=text]){min-height:40px}
+
+/* chip pickers (genres, languages) */
+#settings .gchips{display:flex;flex-wrap:wrap;gap:6px;padding:2px 2px 4px}
+#settings .gchips .chip{font-size:13px;padding:6px 12px;min-height:0}
+body.tv #settings .gchips .chip{font-size:14px;padding:7px 14px}
+
+/* spaces list */
+#settings .splist{display:flex;flex-direction:column}
+#settings .sprow{display:flex;align-items:center;gap:12px;padding:9px 0;border-bottom:1px solid rgba(255,255,255,.07)}
+#settings .sprow:last-child{border-bottom:0}
+#settings .sprow.off .rt{opacity:.55}
+#settings .spsw{flex:0 0 auto;width:10px;align-self:stretch;border-radius:5px}
+#settings .spbtns{display:flex;align-items:center;gap:6px;flex:0 0 auto}
+#settings .spbtns .ic{min-width:36px;padding:0 10px;font-size:16px}
+#settings .spbtns .ic[disabled]{opacity:.3}
+#settings .spshow{display:inline-flex;align-items:center;gap:6px;font-size:13px;color:var(--mut);margin:0 4px}
+body:not(.tv) #settings .sprow{gap:10px}
+body:not(.tv) #settings .spbtns{gap:4px}
+body:not(.tv) #settings .spshow span{display:none}
+body:not(.tv) #settings .spbtns .btn{min-height:36px;padding:0 10px}
+
+/* about */
+#settings .abinfo{padding:6px 0 10px}
+#settings .abrow{display:flex;justify-content:space-between;gap:12px;padding:5px 0;font-size:14px;color:var(--mut)}
+#settings .abrow b{color:var(--fg,#fff);font-weight:600}
+#settings #abCred p{margin:8px 0;font-size:13px;line-height:1.45;color:var(--mut)}
+#settings #abCred b{color:var(--fg,#fff)}
+#settings #abCred .muted{opacity:.75}
+#settings .btn.warn{background:#c2410c;color:#fff;border-color:transparent}
+
+/* notices ("New for you") */
+.ntcard{position:fixed;z-index:60;right:18px;bottom:18px;width:min(360px,calc(100vw - 36px));box-sizing:border-box;padding:12px 14px;border-radius:18px;
+  background:rgba(20,18,26,.96);box-shadow:0 18px 40px rgba(0,0,0,.5),inset 0 0 0 1px rgba(255,255,255,.08);animation:ntin .3s ease both}
+.ntcard.out{animation:ntout .35s ease both}
+.ntcard .nthd{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;font-size:13px;letter-spacing:.4px;color:var(--mut)}
+.ntcard .nthd .x{background:none;border:0;color:var(--mut);font-size:16px;padding:4px}
+.ntcard .ntit{display:flex;align-items:center;gap:10px;width:100%;padding:6px 4px;border:0;background:none;color:inherit;text-align:left;border-radius:10px}
+.ntcard .ntit img,.ntcard .ntimg{width:34px;height:50px;object-fit:cover;border-radius:6px;flex:0 0 auto;background:rgba(255,255,255,.08)}
+.ntcard .ntit b{display:block;font-size:14px}
+.ntcard .ntit small{display:block;font-size:12px;color:var(--acc2,var(--acc))}
+.ntcard .ntmore{margin:4px 4px 0;font-size:12px;color:var(--mut)}
+body:not(.tv) .ntcard{right:12px;left:12px;width:auto;bottom:calc(84px + env(safe-area-inset-bottom,0px))}
+@keyframes ntin{from{opacity:0;transform:translateY(12px)}}
+@keyframes ntout{to{opacity:0;transform:translateY(12px)}}
