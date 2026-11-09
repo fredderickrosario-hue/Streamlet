@@ -223,7 +223,7 @@ public class PlayerActivity extends Activity {
         if (player != null) { seekTo = seek.getProgress(); seekAt = System.currentTimeMillis(); player.seekTo(seekTo); } seekPending = false; } };
     private final Runnable uiTick = new Runnable() { @Override public void run() {
         refreshProgress();
-        if (player != null && player.isPlaying()) { goodPos = Math.max(0L, player.getCurrentPosition()); if (fx == null && !thumbsBroken && startPos >= 0 && player.getCurrentPosition() - startPos > 20000 && player.getTotalBufferedDuration() > 25000) thumbWarm(); }
+        if (player != null && player.isPlaying()) { goodPos = Math.max(0L, player.getCurrentPosition()); if (fx == null && !thumbsBroken && startPos >= 0 && player.getCurrentPosition() - startPos > (ownLink() ? 3000 : 20000) && player.getTotalBufferedDuration() > (ownLink() ? 8000 : 25000)) thumbWarm(); }
         if (player != null && player.isPlaying() && System.currentTimeMillis() - wnLast > 60000) wnSync(false);   // keep the home-screen position about a minute fresh
         handler.postDelayed(this, 500);
     } };
@@ -522,6 +522,8 @@ public class PlayerActivity extends Activity {
         }
         return null;
     }
+    /** the video plays from its real file link (Real-Debrid or direct): preview frames cost the addon nothing, so they can start early */
+    private boolean ownLink() { return finalOf(streamUrl) != null; }
     static String hostOf(String u) { try { return new URL(u).getHost(); } catch (Exception e) { return "?"; } }
     static int httpCode(Throwable e) {                                       // the HTTP status behind a player error, or -1
         for (Throwable t = e; t != null; t = t.getCause()) if (t instanceof androidx.media3.datasource.HttpDataSource.InvalidResponseCodeException) return ((androidx.media3.datasource.HttpDataSource.InvalidResponseCodeException) t).responseCode;
@@ -720,7 +722,7 @@ public class PlayerActivity extends Activity {
         if (thumbStrip != null && thumbStrip.getVisibility() == View.VISIBLE) synchronized (thumbWant) { for (Long w : thumbWant) if (thumbCache.get(w) == null) { waiting = true; break; } }
         if (waiting) { handler.postDelayed(this, 500); return; }
         long dur = player.getDuration();
-        boolean ready = player.getPlaybackState() == Player.STATE_READY, roomy = player.getTotalBufferedDuration() >= 30000;   // only with a good cushion of video loaded, so the preview never slows playback
+        boolean ready = player.getPlaybackState() == Player.STATE_READY, roomy = !player.isPlaying() || player.getTotalBufferedDuration() >= (ownLink() ? 12000 : 30000);   // a cushion of video loaded first, so the preview never slows playback
         if (dur == C.TIME_UNSET || dur <= 0 || !ready || !roomy) { handler.postDelayed(this, 700); return; }
         long pos = player.getCurrentPosition(), here = (pos / 10000) * 10000;
         for (long d : new long[]{0, 10000, -10000, 20000, -20000}) { long k = here + d; if (k >= 0 && k <= dur && thumbCache.get(k) == null && !gridTried.contains(k)) { gridTried.add(k); thumbFetch(k, false); return; } }
@@ -1480,7 +1482,7 @@ public class PlayerActivity extends Activity {
 
     private void showControls(View focus) {
         if (menuOn) return;
-        if (seek != null && player != null && player.isPlaying() && startPos >= 0 && player.getCurrentPosition() - startPos > 20000) thumbWarm();   // never while the video is starting: the player gets the connection to itself
+        if (seek != null && player != null && player.isPlaying() && startPos >= 0 && player.getCurrentPosition() - startPos > (ownLink() ? 3000 : 20000)) thumbWarm();   // never while the video is starting: the player gets the connection to itself
         controlsOn = true;
         controls.setVisibility(View.VISIBLE);
         controls.animate().alpha(1f).setDuration(180).start();
