@@ -4,7 +4,6 @@
    live on the space itself (Spaces category, or the space editor). */
 const SET_CATS = [['general', 'General'], ['spaces', 'Spaces'], ['playback', 'Playback'], ['personal', 'Personalization'], ['content', 'Content'],
   ['notif', 'Notifications'], ['tmdb', 'TMDB & addons'], ['storage', 'Storage & backup'], ['account', 'Account'], ['about', 'About']];
-let setCatNow = 'general';
 const uiGet = () => lsGet('streamlet.ui', {});
 const uiSet = patch => lsSet('streamlet.ui', {...lsGet('streamlet.ui', {}), ...patch});
 
@@ -43,28 +42,92 @@ function contentOK(m){
   return true;
 }
 
-/* ---- the page ---- */
-function setCat(c){
-  if (!SET_CATS.some(x => x[0] === c)) c = 'general';
+/* ---- the page: a home list of sections, each opening its own page; search across every setting ---- */
+const SET_ICONS = {
+  account:'<circle cx="12" cy="8.5" r="3.6"/><path d="M4.8 20c.9-3.8 3.8-5.6 7.2-5.6s6.3 1.8 7.2 5.6"/>',
+  general:'<path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2.2"/><circle cx="10" cy="17" r="2.2"/>',
+  spaces:'<rect x="4" y="4" width="6.5" height="6.5" rx="1.6"/><rect x="13.5" y="4" width="6.5" height="6.5" rx="1.6"/><rect x="4" y="13.5" width="6.5" height="6.5" rx="1.6"/><rect x="13.5" y="13.5" width="6.5" height="6.5" rx="1.6"/>',
+  playback:'<rect x="3" y="5" width="18" height="14" rx="2.6"/><path d="M10 9.2v5.6l4.6-2.8z"/>',
+  personal:'<path d="M12 3.5l2.4 5 5.4.6-4 3.7 1.1 5.4L12 15.5l-4.9 2.7 1.1-5.4-4-3.7 5.4-.6z"/>',
+  content:'<path d="M4 5h16l-6 7.5V19l-4 1.5v-8z"/>',
+  notif:'<path d="M6 16V11a6 6 0 0 1 12 0v5l1.5 2h-15z"/><path d="M10 20.5a2 2 0 0 0 4 0"/>',
+  tmdb:'<path d="M20.5 11H19V7a2 2 0 0 0-2-2h-4V3.5a2.5 2.5 0 0 0-5 0V5H4a2 2 0 0 0-2 2v3.8h1.5a2.7 2.7 0 0 1 0 5.4H2V20a2 2 0 0 0 2 2h3.8v-1.5a2.7 2.7 0 0 1 5.4 0V22H17a2 2 0 0 0 2-2v-4h1.5a2.5 2.5 0 0 0 0-5z" transform="translate(.6 .6) scale(.9)"/>',
+  storage:'<ellipse cx="12" cy="6" rx="7.5" ry="2.8"/><path d="M4.5 6v6c0 1.5 3.4 2.8 7.5 2.8s7.5-1.3 7.5-2.8V6M4.5 12v6c0 1.5 3.4 2.8 7.5 2.8s7.5-1.3 7.5-2.8v-6"/>',
+  about:'<circle cx="12" cy="12" r="8.5"/><path d="M12 11v5.5M12 7.6v.1"/>'};
+const SET_GROUPS = [['You', ['account']], ['App', ['general', 'spaces', 'playback', 'personal', 'content', 'notif']], ['Sources', ['tmdb']], ['Data', ['storage']], ['Help', ['about']]];
+let setCatNow = null, setCatWant = null;
+const setName = c => (SET_CATS.find(x => x[0] === c) || [c, c])[1];
+function setSummary(c){                                                   // what each section is set to right now
+  const u = uiGet(), on = (k, d) => u[k] === undefined ? d : u[k] !== false;
+  const st = {last:'Opens your last space', launcher:'Opens the spaces page', space:'Opens ' + ((spaces.find(s => s.id === u.startSpace) || {}).name || 'a space')}[u.startup || 'last'];
+  const q = {best:'best quality', 2160:'up to 4K', 1080:'up to 1080p', 720:'up to 720p'}[u.maxQ || 'best'] || 'best quality';
+  const rows = ['hero', 'cw', 'byw', 'wl', 'rec', 'fav'].filter(rowOn).length, nt = {ep:true, season:true, wl:true, ...(u.nt || {})};
+  const ntOn = [nt.ep && 'new episodes', nt.season && 'returning seasons', nt.wl && 'watchlist releases'].filter(Boolean);
+  const hid = spaces.filter(s => s.hidden).length, lang = (settings && settings.subLang) || 'off';
+  return {
+    account:`${profile ? profile.name : 'Profile'} · ${user ? (user.email || 'Signed in') : 'Not signed in'}`,
+    general:`${st} · ${u.theme && u.theme !== 'space' && THEMES[u.theme] ? THEMES[u.theme].n + ' colors' : 'colors follow each space'}`,
+    spaces:`${spaces.length} space${spaces.length === 1 ? '' : 's'}${hid ? ` · ${hid} hidden` : ''} · order, visibility and settings`,
+    playback:`${on('autoPick', true) ? 'Automatic source, ' + q : 'You pick the source'} · subtitles ${lang === 'off' ? 'off' : lang}`,
+    personal:`${rows} of 6 home rows on`,
+    content:[u.minRate ? u.minRate + '+ rating' : 'Any rating', (u.hideG || []).length ? `${u.hideG.length} genre${u.hideG.length > 1 ? 's' : ''} hidden` : '', (u.langs || []).length ? `${u.langs.length} language${u.langs.length > 1 ? 's' : ''}` : 'all languages', u.showUpcoming === false ? 'unreleased hidden' : ''].filter(Boolean).join(' · '),
+    notif:ntOn.length ? ntOn.join(', ').replace(/^./, x => x.toUpperCase()) : 'Off',
+    tmdb:`${lsGet('streamlet.tmdb', '') ? 'TMDB key set' : 'No TMDB key'} · ${addons.length} addon${addons.length === 1 ? '' : 's'}`,
+    storage:'Space used, caches, backup and import',
+    about:($('#verLine') && $('#verLine').textContent) || 'Version, credits and diagnostics'}[c] || '';
+}
+const setIcon = c => { const s = document.createElementNS('http://www.w3.org/2000/svg', 'svg'); s.setAttribute('viewBox', '0 0 24 24'); s.setAttribute('class', 'seticon'); s.setAttribute('aria-hidden', 'true'); s.innerHTML = SET_ICONS[c] || ''; return s; };
+const setItem = (c, title, sub, onclick) => h('button', {class:'setitem', type:'button', 'data-cat':c, onclick}, setIcon(c), h('span', {class:'setx'}, h('b', null, title), h('small', null, sub)), h('i', {class:'setchev', 'aria-hidden':'true'}, '›'));
+function showSetHome(){
+  const from = setCatNow; setCatNow = null;
+  for (const el of document.querySelectorAll('#settings .setcat')) el.hidden = true;
+  $('#setBack').hidden = true; $('#setTitle').textContent = 'Settings'; $('#settings').classList.remove('insub');
+  const home = $('#setHome'); home.hidden = false;
+  const q = h('input', {type:'search', class:'f setq', id:'setQ', placeholder:'Search settings', autocomplete:'off', spellcheck:'false', 'aria-label':'Search settings'});
+  const list = h('div', {class:'setlist'});
+  const paint = () => {
+    const t = q.value.trim().toLowerCase();
+    if (!t) { list.replaceChildren(...SET_GROUPS.map(([g, cats]) => h('div', {class:'setgrp'}, h('h3', {class:'sgh'}, g),
+      h('div', {class:'setcard'}, ...cats.map(c => setItem(c, setName(c), setSummary(c), () => openSetCat(c))))))); return; }
+    const hits = [];
+    for (const cat of document.querySelectorAll('#settings .setcat')) for (const r of cat.querySelectorAll('.row2, .sprow')) {
+      const off = r.closest('[hidden]'); if (off && off !== cat) continue;                     // rows that don't apply here (e.g. player settings on the web)
+      const rt = r.querySelector('.rt'); if (!rt) continue;
+      const title = (rt.firstChild && rt.firstChild.textContent || '').trim(), hint = ((rt.querySelector('small') || {}).textContent || '').trim();
+      const gh = r.closest('.sgrp') && r.closest('.sgrp').querySelector('.sgh'), grp = gh ? gh.textContent.trim() : '';
+      if ((title + ' ' + hint + ' ' + grp + ' ' + setName(cat.dataset.cat)).toLowerCase().includes(t)) hits.push({cat:cat.dataset.cat, r, title, hint});
+    }
+    list.replaceChildren(hits.length ? h('div', {class:'setcard'}, ...hits.slice(0, 30).map(x => setItem(x.cat, x.title || setName(x.cat), setName(x.cat) + (x.hint ? ' · ' + x.hint : ''), () => openSetCat(x.cat, x.r))))
+      : h('p', {class:'gnote', style:'padding:10px 4px'}, `Nothing matches "${q.value.trim()}".`));
+  };
+  q.oninput = paint; paint();
+  home.replaceChildren(q, list);
+  if (from && document.body.classList.contains('tv') && !$('#settings').hidden) requestAnimationFrame(() => { const b = list.querySelector(`.setitem[data-cat="${from}"]`); if (b) b.focus(); });   // back on the section you came from
+}
+function openSetCat(c, row){
+  if (!SET_CATS.some(x => x[0] === c)) return;
+  if (!layersOpen.includes('setsub')) pushLayer('setsub');
   setCatNow = c;
+  $('#setHome').hidden = true; $('#settings').classList.add('insub');
   for (const el of document.querySelectorAll('#settings .setcat')) el.hidden = el.dataset.cat !== c;
-  for (const b of document.querySelectorAll('#setNav .chip')) { const on = b.dataset.cat === c; b.classList.toggle('on', on); b.setAttribute('aria-selected', on ? 'true' : 'false'); }
-  const pad = $('#settings>.pad'); if (pad) pad.scrollTop = 0;
-  if (!document.body.classList.contains('tv')) { const nav = $('#setNav'); if (nav && nav.getBoundingClientRect().top < 0) nav.scrollIntoView({block:'start'}); }
+  $('#setBack').hidden = false; $('#setTitle').textContent = setName(c);
+  const pad = $('#settings>.pad'); if (pad) pad.scrollTop = 0; window.scrollTo(0, 0);
   if (c === 'spaces') spacesList();
   if (c === 'storage') storageInfo();
   if (c === 'about') aboutInfo();
-  if (c === 'tmdb') { const n = addons.length; $('#adSum').textContent = `${n} installed · install, remove and reorder the sources for your catalogs and streams`; }
+  if (c === 'tmdb') $('#adSum').textContent = `${addons.length} installed · install, remove and reorder the sources for your catalogs and streams`;
+  requestAnimationFrame(() => {
+    if (row) { row.scrollIntoView({block:'center'}); row.classList.add('flash'); setTimeout(() => row.classList.remove('flash'), 1600); }
+    if (document.body.classList.contains('tv')) { const f = (row || document.querySelector(`#settings .setcat[data-cat="${c}"]`)).querySelector('button:not([disabled]),input,select,textarea,summary'); if (f) f.focus({preventScroll:!!row}); }
+  });
 }
+const setCat = c => openSetCat(c);
 function settingsPlus(){
   const tv = document.body.classList.contains('tv'), u = uiGet();
-  const nav = $('#setNav');
-  if (!nav.childElementCount) nav.replaceChildren(...SET_CATS.map(([k, n]) => {
-    const b = h('button', {class:'chip', type:'button', role:'tab', 'data-cat':k, onclick:() => setCat(k)}, n);
-    if (tv) b.addEventListener('focus', () => { if (setCatNow !== k) setCat(k); });   // on TV the category follows the focus
-    return b;
-  }));
-  setCat(setCatNow);
+  $('#setBack').onclick = () => popLayer('setsub');
+  if (setCatWant) { const c = setCatWant; setCatWant = null; openSetCat(c); }
+  else if (setCatNow && layersOpen.includes('setsub')) openSetCat(setCatNow);
+  else showSetHome();
 
   /* General */
   const stS = $('#setStart'), stSp = $('#setStartSp');

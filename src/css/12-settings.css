@@ -1,12 +1,30 @@
 /* ---------- Settings v2: categories, compact rows ---------- */
 #settings [hidden]{display:none !important}
 #settings .pagehead{padding-bottom:4px}
-#setNav{display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;padding:6px 16px 10px;margin:0;flex-wrap:nowrap}
-#setNav::-webkit-scrollbar{display:none}
-#setNav .chip{flex:0 0 auto;white-space:nowrap}
-body:not(.tv) #setNav{position:sticky;top:0;z-index:5;background:linear-gradient(var(--bg) 70%,transparent);padding-top:8px}
-body.tv #setNav{padding:4px 6px 10px;margin:0 -6px}
-body.tv.pgfix:not(.launch) #setNav{flex:0 0 auto}
+/* header: back arrow + section name on a section page */
+#settings .sethd{display:flex;align-items:center;gap:10px}
+#settings .setback{display:inline-flex;align-items:center;justify-content:center;width:40px;height:40px;margin-left:-8px;border:0;border-radius:12px;background:none;color:inherit;cursor:pointer}
+#settings .setback:is(:hover,:focus-visible){outline:2px solid rgba(255,255,255,.9);outline-offset:1px}
+/* home: search, then sections in cards with a line icon in the accent color (no badge behind it) */
+#settings .sethome{max-width:860px}
+#settings .setq{width:100%;box-sizing:border-box;margin:2px 0 4px;padding:0 16px;min-height:46px;border-radius:14px}
+#settings .setgrp .sgh{margin:16px 4px 6px}
+#settings .setcard{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);border-radius:18px;padding:4px;display:flex;flex-direction:column;gap:2px}
+#settings .setitem{display:flex;align-items:center;gap:14px;width:100%;padding:11px 12px;border:0;border-radius:14px;background:none;color:inherit;text-align:left;cursor:pointer;position:relative}
+#settings .setitem+.setitem::before{content:'';position:absolute;top:-1px;left:50px;right:12px;height:1px;background:rgba(255,255,255,.07)}
+#settings .setitem:is(:hover,:focus-visible){background:rgba(255,255,255,.07);outline:2px solid rgba(255,255,255,.9);outline-offset:-2px}
+#settings .setitem:is(:hover,:focus-visible)::before,#settings .setitem:is(:hover,:focus-visible)+.setitem::before{opacity:0}
+#settings .seticon{flex:0 0 auto;width:24px;height:24px;fill:none;stroke:var(--acc2,var(--acc));stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+#settings .setx{flex:1;min-width:0}
+#settings .setx b{display:block;font-size:16px;font-weight:650}
+#settings .setx small{display:block;margin-top:2px;font-size:12.5px;color:var(--mut);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#settings .setchev{font-style:normal;font-size:22px;line-height:1;color:var(--mut);opacity:.7}
+body.tv #settings .setx b{font-size:17px}
+body.tv #settings .setx small{font-size:13.5px}
+#settings .flash{animation:setflash 1.6s ease}
+@keyframes setflash{0%,40%{background:color-mix(in srgb,var(--acc) 22%,transparent)}100%{background:transparent}}
+#settings .flash.row2,#settings .flash.sprow{border-radius:10px}
+@media (min-width:1100px){ body:not(.tv) #settings .sethome{max-width:760px} }
 
 /* groups: a small title over a card; two columns on wide screens */
 #settings .setcat{display:grid;grid-template-columns:minmax(0,1fr);gap:4px 22px;align-items:start}

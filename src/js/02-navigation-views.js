@@ -57,6 +57,7 @@ const LAYER_CLOSERS = {
   upd:    () => { $('#updDlg').hidden = true; },
   nfimp:  () => { $('#nfImp').hidden = true; },
   episode: () => { $('#episode').hidden = true; },
+  setsub: () => { try { showSetHome(); } catch {} },
   aedit:  () => { $('#addonEd').hidden = true; if (!$('#addons').hidden) renderAddons(); }
 };
 function rememberSpace(id){ pset('last', id); }
@@ -76,7 +77,7 @@ function tvBackStep(){
   if (!document.body.classList.contains('tv') || document.body.classList.contains('launch') || !cur) return false;
   const inNav = document.activeElement && document.activeElement.closest && document.activeElement.closest('#nav');
   const repush = () => { if (history.state && history.state.guard) { pageKey = ''; pushPage(); } };
-  if (!$('#addons').hidden) { setCatNow = 'tmdb'; showTab('settings'); requestAnimationFrame(() => { const b = $('#setAddons'); if (b) b.focus({preventScroll:true}); }); repush(); return true; }   // Addons opens from Settings on TV: Back goes there
+  if (!$('#addons').hidden) { setCatWant = 'tmdb'; showTab('settings'); requestAnimationFrame(() => { const b = $('#setAddons'); if (b) b.focus({preventScroll:true}); }); repush(); return true; }   // Addons opens from Settings on TV: Back goes there
   if (!inNav) {
     if (!$('#home').hidden && view.genre) { view = {tab:view.tab, genre:''}; renderHome(); repush(); return true; }
     if (!$('#search').hidden && sQuery) { sQuery = ''; sPaint(); sRun(); repush(); return true; }
