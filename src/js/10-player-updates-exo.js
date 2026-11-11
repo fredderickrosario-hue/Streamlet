@@ -248,8 +248,8 @@ async function fetchSegments(ctx){
 async function playNative(s, title, ctx){
   const N = nativePlayer();
   let subs = [];
-  const segP = withTimeout(fetchSegments(ctx), 2500).catch(() => null);
-  if (ctx) { try { subs = await withTimeout(collectSubs(ctx), 5000); } catch {} }
+  const segP = ctx && ctx.offline ? Promise.resolve(null) : withTimeout(fetchSegments(ctx), 2500).catch(() => null);
+  if (ctx && !ctx.offline) { try { subs = await withTimeout(collectSubs(ctx), 5000); } catch {} }   // a downloaded file brings its own subtitles
   const segs = await segP;
   for (const sub of (s.subtitles || [])) subs.push({url:sub.url, lang:sub.lang || 'eng'});
   const pref = effSub() !== 'off' ? effSub() : null;

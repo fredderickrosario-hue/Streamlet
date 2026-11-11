@@ -192,6 +192,14 @@ function settingsPlus(){
   $('#fbIn').onclick = () => $('#fbFile').click();
   $('#fbFile').onchange = e => { fullBackupIn(e.target.files[0]); e.target.value = ''; };
   $('#spNew').onclick = () => editSpace(null);
+  /* Downloads (phone app) */
+  $('#rowDl').hidden = $('#rowDlWifi').hidden = !dlOn();
+  if (dlOn()) {
+    const d = dlAll(), done = d.filter(x => x.status === 'done'), bytes = done.reduce((n, x) => n + (x.total || 0), 0);
+    $('#dlUse').textContent = d.length ? `${done.length} ready${d.length > done.length ? ` · ${d.length - done.length} in progress` : ''}${bytes ? ' · ' + dlFmt(bytes) : ''}` : 'Movies and episodes saved on this phone';
+    $('#dlOpen').onclick = openDownloads;
+    const w = $('#setDlWifi'); w.checked = dlWifi(); w.onchange = () => uiSet({dlWifi:w.checked});
+  }
 }
 let homeDirtyT = 0;
 function homeDirty(){ clearTimeout(homeDirtyT); homeDirtyT = setTimeout(() => { try { if (cur && !$('#home').hidden) renderHome(); } catch {} }, 300); }   // Home redraws with the new settings when you go back to it

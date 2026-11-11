@@ -238,7 +238,7 @@ function openEpisode(addon, type, meta, v, sorted, again){
           h('div', {class:'dbt'}, h('h1', {class:'dbt-title'}, title)),
           metaRow([v.runtime || meta.runtime, when || meta.year || meta.releaseInfo], meta.imdbRating),
           (v.overview || v.description) ? h('p', {class:'ddesc'}, v.overview || v.description) : null,
-          h('div', {class:'dacts2'}, play, (() => { const b = h('button', {class:'pib', type:'button', 'aria-label':'Watched'}); b.innerHTML = `<svg viewBox="0 0 24 24">${IC.seen}</svg>`; const paint = () => { const on = epDone(meta.id, sn, v.episode); b.classList.toggle('on', on); b.title = on ? 'Mark episode as unwatched' : 'Mark episode as watched'; }; b.onclick = () => { epMark(meta.id, [v], !epDone(meta.id, sn, v.episode)); paint(); toast(epDone(meta.id, sn, v.episode) ? 'Marked as watched' : 'Marked as unwatched'); }; paint(); return b; })()),
+          h('div', {class:'dacts2'}, play, dlEpBtn(addon, type, meta, v, sorted), (() => { const b = h('button', {class:'pib', type:'button', 'aria-label':'Watched'}); b.innerHTML = `<svg viewBox="0 0 24 24">${IC.seen}</svg>`; const paint = () => { const on = epDone(meta.id, sn, v.episode); b.classList.toggle('on', on); b.title = on ? 'Mark episode as unwatched' : 'Mark episode as watched'; }; b.onclick = () => { epMark(meta.id, [v], !epDone(meta.id, sn, v.episode)); paint(); toast(epDone(meta.id, sn, v.episode) ? 'Marked as watched' : 'Marked as unwatched'); }; paint(); return b; })()),
           hintEl()),
         tvRowsFor(addon, type, meta, 'Sources', [streamsBox], {sim:false, rows:[h('section', {class:'drow'}, h('h3', {class:'drt'}, 'Season ' + sn), others)]}))));
     epPref(others, meta.id, v.episode ?? 0);
@@ -285,7 +285,8 @@ async function openDetail(addon, type, item, opts = {}){
       const draw = () => {
         const inSeason = sorted.filter(v => (v.season ?? 1) === curSeason), allSeen = inSeason.length && inSeason.every(v => epDone(meta.id, v.season ?? 1, v.episode));
         srow.replaceChildren(...seasons.map(sn => h('button', {class:'chip' + (sn === curSeason ? ' on' : ''), type:'button', onclick:() => { curSeason = sn; draw(); }}, sn === 0 ? 'Specials' : 'Season ' + sn)),
-          profile ? h('button', {class:'chip mark', type:'button', onclick:() => { epMark(meta.id, inSeason, !allSeen); toast(allSeen ? 'Season marked as unwatched' : 'Season marked as watched'); draw(); }}, allSeen ? 'Unmark season' : 'Mark season watched') : null);
+          profile ? h('button', {class:'chip mark', type:'button', onclick:() => { epMark(meta.id, inSeason, !allSeen); toast(allSeen ? 'Season marked as unwatched' : 'Season marked as watched'); draw(); }}, allSeen ? 'Unmark season' : 'Mark season watched') : null,
+          dlOn() ? h('button', {class:'chip mark', type:'button', onclick:() => dlSeason(addon, type, meta, inSeason, sorted)}, '⤓ Download season') : null);
         list.replaceChildren(...sorted.filter(v => (v.season ?? 1) === curSeason).map(v => {
           const hist = null, soon = v.released && new Date(v.released) > new Date();
           const th = v.thumbnail || meta.background;
@@ -315,7 +316,8 @@ async function openDetail(addon, type, item, opts = {}){
     }}, playLabel());
     playSync = () => { playEl.textContent = playLabel(); };
     const restart = type === 'movie' ? (() => { const b = h('button', {class:'pib', type:'button', 'aria-label':'Start from the beginning', title:'Start from the beginning'}); b.innerHTML = `<svg viewBox="0 0 24 24">${IC.restart}</svg>`; b.onclick = () => { if (soon()) { toast('Not out yet.'); return; } autoPlay(type, meta.id, meta.name, {...base, fresh:true}); }; return b; })() : null;
-    acts.append(playEl, ...[plainIconBtn(ico.wl, IC.mark, 'Watchlist'), plainIconBtn(ico.like, IC.heart, 'Like'), plainIconBtn(ico.seen, IC.seen, 'Watched'), restart].filter(Boolean));
+    const dlBtn = type === 'movie' && withStreams && dlOn() ? (() => { const b = h('button', {class:'pib', type:'button', 'aria-label':'Download', title:'Download'}); b.innerHTML = `<svg viewBox="0 0 24 24">${DL_SVG}</svg>`; const x = dlGet('movie', meta.id); if (x && x.status !== 'failed') b.classList.add('on'); b.onclick = () => dlTitle(addon, meta, base); return b; })() : null;
+    acts.append(playEl, ...[plainIconBtn(ico.wl, IC.mark, 'Watchlist'), plainIconBtn(ico.like, IC.heart, 'Like'), plainIconBtn(ico.seen, IC.seen, 'Watched'), restart, dlBtn].filter(Boolean));
     d.replaceChildren(top, h('div', {class:'dwrap'}, heroBlock(meta), body));
     d.scrollTop = keep; bindScroll(d, top);
     return {sorted};

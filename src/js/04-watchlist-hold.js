@@ -215,10 +215,13 @@ function mlShows(){                                                          // 
 function renderWatch(noRefresh){
   if (!profile) return;
   const tok = ++mlTok, grid = $('#wlGrid'), wl = wlHere();
-  $('#mlTabs').replaceChildren(...ML_TABS.map(([id, label]) => h('button', {class:'chip' + (mlTab === id ? ' on' : ''), type:'button', onclick:() => { mlTab = id; renderWatch(); }}, label)));
+  $('#mlTabs').replaceChildren(...[...ML_TABS, ...(dlOn() ? [['dl', 'Downloads']] : [])].map(([id, label]) => h('button', {class:'chip' + (mlTab === id ? ' on' : ''), type:'button', onclick:() => { mlTab = id; renderWatch(); }}, label)));
+  { const on = $('#mlTabs .chip.on'); if (on) on.scrollIntoView({block:'nearest', inline:'nearest'}); }
   $('#wlTabs').hidden = mlTab !== 'list' || !wl.length;
   $('#wlCount').textContent = mlTab === 'list' && wl.length ? `${wl.length} saved` : '';
   if (mlTab !== 'foryou') mlPrefetch();
+  if (mlTab === 'dl' && !dlOn()) mlTab = 'list';
+  if (mlTab === 'dl') { renderDownloads(grid); return; }                    // phone app: downloads (28-downloads.js)
   if (mlTab === 'list') {
     const list = wl.filter(e => wlFilter === 'all' || (wlFilter === 'movie' ? e.type === 'movie' : e.type !== 'movie'));
     const chip = (id, label) => h('button', {class:'chip' + (wlFilter === id ? ' on' : ''), type:'button', onclick:() => { wlFilter = id; renderWatch(); }}, label);

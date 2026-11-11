@@ -220,6 +220,81 @@ public class ExoPlayerPlugin extends Plugin {
     @PluginMethod
     public void clearLog(PluginCall call) { AppLog.clear(); call.resolve(); }
 
+    /* ---- downloads (phone app): Android's download manager keeps going in the background, with its own notification ----
+       Files go to the app's own folder (Android/data/app.streamlet.tv/files/Streamlet): no storage permission, removed with the app. */
+    private File dlDir() { File d = new File(getContext().getExternalFilesDir(null), "Streamlet"); if (!d.exists()) d.mkdirs(); return d; }
+    private static String safeName(String n) { String s = n == null ? "video" : n.replaceAll("[^A-Za-z0-9._ -]", "_").trim(); return s.isEmpty() ? "video" : s.length() > 120 ? s.substring(0, 120) : s; }
+    /** the playable file link for an addon link (Torrentio Real-Debrid links go straight to Real-Debrid), on a worker thread */
+    @PluginMethod
+    public void resolveLink(final PluginCall call) {
+        final String u = call.getString("url");
+        new Thread(() -> { try { JSObject r = new JSObject(); r.put("url", PlayerActivity.resolveFinal(u)); call.resolve(r); } catch (Exception e) { call.reject(String.valueOf(e.getMessage())); } }).start();
+    }
+    @PluginMethod
+    public void dlStart(PluginCall call) {
+        try {
+            String url = call.getString("url"), name = safeName(call.getString("file"));
+            if (url == null || !url.startsWith("http")) { call.reject("no link"); return; }
+            File f = new File(dlDir(), name); if (f.exists()) f.delete();
+            android.app.DownloadManager dm = (android.app.DownloadManager) getContext().getSystemService(Context.DOWNLOAD_SERVICE);
+            android.app.DownloadManager.Request rq = new android.app.DownloadManager.Request(Uri.parse(url));
+            rq.setTitle(call.getString("title", "Streamlet download")); rq.setDescription("Streamlet");
+            rq.setDestinationUri(Uri.fromFile(f));
+            rq.addRequestHeader("User-Agent", PlayerActivity.UA);
+            rq.setNotificationVisibility(android.app.DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED);
+            boolean wifi = Boolean.TRUE.equals(call.getBoolean("wifiOnly", true));
+            if (wifi) { rq.setAllowedNetworkTypes(android.app.DownloadManager.Request.NETWORK_WIFI); rq.setAllowedOverMetered(false); }
+            rq.setAllowedOverRoaming(false);
+            long id = dm.enqueue(rq);
+            AppLog.add("DL", "started " + name + (wifi ? " (Wi-Fi only)" : ""));
+            JSObject r = new JSObject(); r.put("id", id); r.put("file", Uri.fromFile(f).toString()); call.resolve(r);
+        } catch (Exception e) { call.reject(String.valueOf(e.getMessage())); }
+    }
+    /** small files (subtitles, poster) saved straight away */
+    @PluginMethod
+    public void dlSmall(final PluginCall call) {
+        final String url = call.getString("url"), name = safeName(call.getString("file"));
+        new Thread(() -> {
+            try {
+                HttpURLConnection c = (HttpURLConnection) new URL(url).openConnection();
+                c.setRequestProperty("User-Agent", PlayerActivity.UA); c.setInstanceFollowRedirects(true); c.setConnectTimeout(12000); c.setReadTimeout(20000);
+                File f = new File(dlDir(), name);
+                try (InputStream in = c.getInputStream(); FileOutputStream fo = new FileOutputStream(f)) { byte[] buf = new byte[8192]; int n; long tot = 0; while ((n = in.read(buf)) > 0 && tot < 8_000_000) { fo.write(buf, 0, n); tot += n; } }
+                JSObject r = new JSObject(); r.put("file", Uri.fromFile(f).toString()); r.put("bytes", f.length()); call.resolve(r);
+            } catch (Exception e) { call.reject(String.valueOf(e.getMessage())); }
+        }).start();
+    }
+    @PluginMethod
+    public void dlStatus(PluginCall call) {
+        try {
+            JSArray ids = call.getArray("ids"); JSObject out = new JSObject();
+            android.app.DownloadManager dm = (android.app.DownloadManager) getContext().getSystemService(Context.DOWNLOAD_SERVICE);
+            long[] arr = new long[ids.length()]; for (int i = 0; i < ids.length(); i++) arr[i] = ids.getLong(i);
+            if (arr.length > 0) try (android.database.Cursor c = dm.query(new android.app.DownloadManager.Query().setFilterById(arr))) {
+                while (c.moveToNext()) {
+                    JSObject o = new JSObject();
+                    int st = c.getInt(c.getColumnIndexOrThrow(android.app.DownloadManager.COLUMN_STATUS));
+                    o.put("status", st == android.app.DownloadManager.STATUS_SUCCESSFUL ? "done" : st == android.app.DownloadManager.STATUS_FAILED ? "failed" : st == android.app.DownloadManager.STATUS_PAUSED ? "paused" : st == android.app.DownloadManager.STATUS_PENDING ? "waiting" : "running");
+                    o.put("done", c.getLong(c.getColumnIndexOrThrow(android.app.DownloadManager.COLUMN_BYTES_DOWNLOADED_SO_FAR)));
+                    o.put("total", c.getLong(c.getColumnIndexOrThrow(android.app.DownloadManager.COLUMN_TOTAL_SIZE_BYTES)));
+                    o.put("reason", c.getInt(c.getColumnIndexOrThrow(android.app.DownloadManager.COLUMN_REASON)));
+                    out.put(String.valueOf(c.getLong(c.getColumnIndexOrThrow(android.app.DownloadManager._ID))), o);
+                }
+            }
+            File d = dlDir(); JSObject r = new JSObject(); r.put("items", out); r.put("free", d.getUsableSpace()); call.resolve(r);
+        } catch (Exception e) { call.reject(String.valueOf(e.getMessage())); }
+    }
+    @PluginMethod
+    public void dlRemove(PluginCall call) {
+        try {
+            android.app.DownloadManager dm = (android.app.DownloadManager) getContext().getSystemService(Context.DOWNLOAD_SERVICE);
+            JSArray ids = call.getArray("ids", new JSArray()); for (int i = 0; i < ids.length(); i++) try { dm.remove(ids.getLong(i)); } catch (Exception ignored) { }
+            JSArray files = call.getArray("files", new JSArray());
+            for (int i = 0; i < files.length(); i++) try { String fu = files.getString(i); if (fu != null && fu.startsWith("file:")) { File f = new File(Uri.parse(fu).getPath()); if (f.getCanonicalPath().startsWith(dlDir().getCanonicalPath())) f.delete(); } } catch (Exception ignored) { }
+            call.resolve();
+        } catch (Exception e) { call.reject(String.valueOf(e.getMessage())); }
+    }
+
     @PluginMethod
     public void device(PluginCall call) {
         UiModeManager um = (UiModeManager) getContext().getSystemService(Context.UI_MODE_SERVICE);

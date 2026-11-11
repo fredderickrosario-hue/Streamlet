@@ -127,7 +127,7 @@ public class PlayerActivity extends Activity {
     private String streamSubtitle = "";
     private TextView subTx;
     private String streamUrl = "", streamTitle = "";
-    private static final String UA = "Mozilla/5.0 (Linux; Android 12; TV) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Safari/537.36";
+    static final String UA = "Mozilla/5.0 (Linux; Android 12; TV) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Safari/537.36";
     private int countdown = 0;
     private final Runnable tick = new Runnable() { @Override public void run() {
         if (!errOn) return;
@@ -1858,6 +1858,9 @@ public class PlayerActivity extends Activity {
     }
 
     private String download(String u) throws Exception {
+        if (u.startsWith("file:")) {                                         // a downloaded subtitle (offline)
+            try (InputStream in = new java.io.FileInputStream(new File(Uri.parse(u).getPath()))) { ByteArrayOutputStream bo = new ByteArrayOutputStream(); byte[] buf = new byte[8192]; int n; while ((n = in.read(buf)) > 0) bo.write(buf, 0, n); return bo.toString("UTF-8"); }
+        }
         HttpURLConnection c = (HttpURLConnection) new URL(u).openConnection();
         c.setRequestProperty("User-Agent", UA);
         c.setInstanceFollowRedirects(true);

@@ -138,6 +138,7 @@ async function renderHome(query = $('#q').value.trim(), target){
   const heroBox = h('div'); if (!query && !(tabs && view.genre) && rowOn('hero')) box.append(heroBox); else if (!target) box.append(h('div', {class:'tspace'}));
   if (tabs && !target) box.append(genreStrip());
   if (tabs && !target && view.tab === 'new') box.append(h('div', {class:'empty', style:'padding:6px 16px 0'}, h('p', null, 'Add your TMDB key in Settings to turn this tab into New & Hot: coming soon, trending and top 10.')));
+  if (!target && !query) dlOfflineRow(box);                                   // no connection: your downloads first (28-downloads.js)
   if (!target && rowOn('cw')) { box.append(h('div', {id:'cwBox'})); renderCW(); }
   if (!target && !tabs || !target && tabs && !view.genre && view.tab !== 'new') favRow(box, tok, tabs ? view.tab : 'home');   // Your genres (Settings > Personalization)
   if (personal) { const pbox = h('div', {id:'pBox'}); box.append(pbox); renderPersonal(pbox, tok).then(ok => { if (!ok && hideCats && tok === homeTok) { personalSkip = true; renderHome(query, target); } }).catch(() => { if (hideCats && tok === homeTok) { personalSkip = true; renderHome(query, target); } }); }
