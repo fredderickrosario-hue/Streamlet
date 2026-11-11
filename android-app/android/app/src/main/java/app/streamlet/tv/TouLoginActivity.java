@@ -26,6 +26,29 @@ import java.util.Map;
  * and keeps the session token it uses, privately on the device, so Streamlet can ask for the same video links the site does.
  */
 public class TouLoginActivity extends Activity {
+    private WebView web; private boolean player = false; private View fullView = null; private android.webkit.WebChromeClient.CustomViewCallback fullCb = null; private LinearLayout rootView;
+    /** player mode: TOU.TV's own web player, filling the screen, driven by the remote */
+    static final String PLAYER_JS = "(function(){try{"
+        + "if(!document.getElementById('__slst')){var st=document.createElement('style');st.id='__slst';st.textContent='video{position:fixed!important;left:0!important;top:0!important;width:100vw!important;height:100vh!important;z-index:2147483646!important;background:#000!important;object-fit:contain!important}html,body{background:#000!important;overflow:hidden!important}';(document.head||document.documentElement).appendChild(st);}"
+        + "var v=document.querySelector('video');"
+        + "if(!v){var b=document.querySelector('[data-testid*=play i],button[aria-label*=Regarder i],button[aria-label*=Lecture i],button[aria-label*=Play i],a[href*=\"/lecteur\"],.play-button');if(b&&!window.__slclk){window.__slclk=1;b.click();}}"
+        + "else if(v.paused&&!window.__slstarted){window.__slstarted=1;v.play().catch(function(){});}"
+        + "}catch(e){}})();";
+    private void js(String code) { if (web != null) web.evaluateJavascript("(function(){try{var v=document.querySelector('video');if(!v)return;" + code + "}catch(e){}})();", null); }
+    @Override
+    public boolean dispatchKeyEvent(android.view.KeyEvent e) {
+        if (!player || e.getAction() != android.view.KeyEvent.ACTION_DOWN) return super.dispatchKeyEvent(e);
+        switch (e.getKeyCode()) {
+            case android.view.KeyEvent.KEYCODE_DPAD_CENTER: case android.view.KeyEvent.KEYCODE_ENTER: case android.view.KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE: case android.view.KeyEvent.KEYCODE_SPACE:
+                js("if(v.paused)v.play();else v.pause();"); return true;
+            case android.view.KeyEvent.KEYCODE_DPAD_LEFT: case android.view.KeyEvent.KEYCODE_MEDIA_REWIND: js("v.currentTime=Math.max(0,v.currentTime-10);"); return true;
+            case android.view.KeyEvent.KEYCODE_DPAD_RIGHT: case android.view.KeyEvent.KEYCODE_MEDIA_FAST_FORWARD: js("v.currentTime=v.currentTime+10;"); return true;
+            case android.view.KeyEvent.KEYCODE_DPAD_UP: js("v.currentTime=v.currentTime+60;"); return true;
+            case android.view.KeyEvent.KEYCODE_DPAD_DOWN: js("v.currentTime=Math.max(0,v.currentTime-60);"); return true;
+            case android.view.KeyEvent.KEYCODE_BACK: finish(); return true;
+        }
+        return super.dispatchKeyEvent(e);
+    }
     static final String PREFS = "streamlet_tou";
     static final String UA = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36";
 
@@ -62,8 +85,20 @@ public class TouLoginActivity extends Activity {
         bar.addView(t, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
         Button done = new Button(this); done.setText("Done"); done.setOnClickListener(v -> finish());
         bar.addView(done);
-        root.addView(bar, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
-        WebView wv = new WebView(this);
+        String startUrl = getIntent().getStringExtra("url"); player = getIntent().getBooleanExtra("player", false);
+        if (!player) root.addView(bar, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+        else { getWindow().addFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON | android.view.WindowManager.LayoutParams.FLAG_FULLSCREEN); root.setFitsSystemWindows(false); AppLog.add("tou", "web player: " + redactUrl(startUrl)); }
+        rootView = root;
+        WebView wv = new WebView(this); web = wv;
+        wv.setWebChromeClient(new android.webkit.WebChromeClient() {
+            @Override public void onPermissionRequest(android.webkit.PermissionRequest r) {   // TOU.TV's player may use the device's protected playback (the same as a browser)
+                java.util.List<String> ok = new java.util.ArrayList<>();
+                for (String x : r.getResources()) if (android.webkit.PermissionRequest.RESOURCE_PROTECTED_MEDIA_ID.equals(x)) ok.add(x);
+                if (!ok.isEmpty() && r.getOrigin() != null && String.valueOf(r.getOrigin().getHost()).endsWith("tou.tv")) r.grant(ok.toArray(new String[0])); else r.deny();
+            }
+            @Override public void onShowCustomView(View v, CustomViewCallback cb) { fullView = v; fullCb = cb; rootView.addView(v, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT)); web.setVisibility(View.GONE); }
+            @Override public void onHideCustomView() { if (fullView != null) { rootView.removeView(fullView); fullView = null; } web.setVisibility(View.VISIBLE); if (fullCb != null) { fullCb.onCustomViewHidden(); fullCb = null; } }
+        });
         WebSettings ws = wv.getSettings();
         ws.setJavaScriptEnabled(true); ws.setDomStorageEnabled(true); ws.setUserAgentString(UA);
         ws.setMediaPlaybackRequiresUserGesture(false); ws.setLoadWithOverviewMode(true); ws.setUseWideViewPort(true);
@@ -74,7 +109,10 @@ public class TouLoginActivity extends Activity {
             @Override
             public void onPageStarted(WebView view, String url, android.graphics.Bitmap icon) { super.onPageStarted(view, url, icon); view.evaluateJavascript(DESKTOP_JS, null); }
             @Override
-            public void onPageFinished(WebView view, String url) { super.onPageFinished(view, url); view.evaluateJavascript(DESKTOP_JS, null); }
+            public void onPageFinished(WebView view, String url) {
+                super.onPageFinished(view, url); view.evaluateJavascript(DESKTOP_JS, null);
+                if (player) for (int i = 1; i <= 12; i++) view.postDelayed(() -> { if (web != null) web.evaluateJavascript(PLAYER_JS, null); }, i * 1500L);   // the player loads late: keep nudging it to start and fill the screen
+            }
             @Override
             public WebResourceResponse shouldInterceptRequest(WebView view, WebResourceRequest r) {
                 try {
@@ -101,9 +139,11 @@ public class TouLoginActivity extends Activity {
         });
         root.addView(wv, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f));
         setContentView(root);
-        wv.loadUrl("https://ici.tou.tv/stat");   // straight to Stat: sign in there, then start an episode for a second so the session is seen
+        wv.loadUrl(startUrl != null ? startUrl : "https://ici.tou.tv/stat");   // straight to Stat: sign in there, then start an episode for a second so the session is seen
     }
 
     @Override
-    protected void onPause() { super.onPause(); try { CookieManager.getInstance().flush(); } catch (Exception ignored) { } }
+    protected void onPause() { super.onPause(); try { CookieManager.getInstance().flush(); } catch (Exception ignored) { } if (player && web != null) web.evaluateJavascript("try{document.querySelector('video').pause()}catch(e){}", null); }
+    @Override
+    protected void onDestroy() { if (web != null) { web.loadUrl("about:blank"); web.destroy(); web = null; } super.onDestroy(); }
 }

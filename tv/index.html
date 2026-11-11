@@ -4322,7 +4322,7 @@ function sortByLang(ss){
   return ss.map((x, i) => [x, i]).sort((a, b) => score(a[0]) - score(b[0]) || a[1] - b[1]).map(x => x[0]);
 }
 function streamCard(st, title, ctx){
-  const playable = !!(st.url || st.externalUrl || st.ytId), langs = streamLangs(st);
+  const playable = !!(st.url || st.externalUrl || st.ytId || st.touWeb), langs = streamLangs(st);
   const card = h('button', {class:'scard' + (playable ? '' : ' dis') + (isBadStream(st) ? ' bad' : ''), type:'button', onclick:() => { if (ctx && ctx.info && st.url) prefSet(ctx.info.item.id, st, true); playStream(st, title, ctx); }},
     h('span', {class:'splay'}, playable ? '▶' : '✕'),
     h('div', {class:'sbody'}, h('b', {class:'sname'}, String(st.name || 'Stream').replace(/\n+/g, ' · '), ctx && ctx.info && prefTier(ctx.info.item.id, st) < 2 ? h('span', {class:'lastu'}, (prefRaw(ctx.info.item.id) || {}).manual ? 'Your pick' : 'Last used') : null), h('div', {class:'sinfo'}, streamSummary(st)), h('div', {class:'stxt'}, st.title || st.description || ''),
@@ -4494,6 +4494,7 @@ $('#fsBtn').onclick = async () => {
 };
 
 async function playStream(s, title, ctx){
+  if (s.touWeb) { const N = nativePlayer(); if (N && N.openTouLogin) { try { await N.openTouLogin({url:s.touWeb, player:true}); } catch { toast("Couldn't open TOU.TV's player"); } } else toast('Needs the Android app'); return; }
   if (s.externalUrl) { if (/^https?:/i.test(s.externalUrl)) window.open(s.externalUrl,'_blank','noopener'); else { try { location.href = s.externalUrl; } catch { toast('Could not open the app.'); } } return; }
   if (s.ytId) { window.open('https://www.youtube.com/watch?v='+enc(s.ytId),'_blank','noopener'); return; }
   if (!s.url) { toast(s.infoHash ? "This is a torrent stream. Its addon needs a debrid service to provide direct links." : 'This stream type is not supported.'); return; }
@@ -6049,13 +6050,14 @@ async function qcRoute(url){
     const tm = id.match(/^(tt\d+):(\d+):(\d+)$/);
     if (tm) {                                                              // signed in to TOU.TV: try it first, then Radio-Canada's site, then the TOU.TV link
       const ent = QC_IMDB[tm[1]];
-      if (ent && await touOn()) { const r = await touStreams(ent.path, +tm[2], +tm[3]); if (r.ok) return {streams:r.streams}; }
-      return {streams:await qcMappedStreams(tm[1], +tm[2], +tm[3])};
+      if (ent && await touOn()) { const r = await touStreams(ent.path, +tm[2], +tm[3]); if (r.ok) return {streams:[...r.streams, ...touWeb(ent.path, +tm[2], +tm[3])]}; }
+      const rest = await qcMappedStreams(tm[1], +tm[2], +tm[3]);
+      return {streams:ent ? [...rest.filter(x => x.url), ...touWeb(ent.path, +tm[2], +tm[3]), ...rest.filter(x => !x.url)] : rest};
     }
     if (/^qc:rc:/.test(id)) return {streams:await qcRcStreams(id)};
     if (/^qc:tou:/.test(id)) {
       const [slug, ep] = id.replace(/^qc:tou:/, '').split('/'), m = String(ep || '').match(/s(\d+)e(\d+)/i), app = {name:'ICI TOU.TV', title:'Open in the ICI TOU.TV app', externalUrl:'toutv://' + id.replace(/^qc:tou:/, '')};
-      if (m) { const r = await touStreams(slug, +m[1], +m[2]); if (r.ok) return {streams:[...r.streams, app]}; }
+      if (m) { const r = await touStreams(slug, +m[1], +m[2]); return {streams:[...(r.ok ? r.streams : []), ...touWeb(slug, +m[1], +m[2]), app]}; }
       return {streams:[app]};
     }
     return {streams:await qcStreams(id)};
@@ -6078,6 +6080,8 @@ $('#touIn').onclick = async () => { const N = nativePlayer(); if (!N || !N.openT
 $('#touOut').onclick = async () => { const N = nativePlayer(); try { if (N && N.touForget) await N.touForget(); toast('Signed out of ICI TOU.TV'); } catch {} touRefresh(); };
 /* ---- playing ICI TOU.TV with the saved sign-in: find the episode's media number, ask for a link like the site does.
    Only plain or AES-128 HLS can play here; copy-protected (DRM) videos are left to the official app. ---- */
+/* TOU.TV's own web player in a full-screen window (Android app): plays whatever their site plays, with your sign-in */
+const touWeb = (slug, s, e) => nativePlayer() && nativePlayer().openTouLogin ? [{name:'ICI TOU.TV', title:'Play in TOU.TV’s player (signed in)\nThe remote: OK pause · ◀ ▶ 10 s · ▲ ▼ 1 min · Back closes', touWeb:`https://ici.tou.tv/${slug}/${touEp(s, e).toUpperCase()}`}] : [];
 const touOn = async () => { const N = nativePlayer(); if (!N || !N.touStatus) return false; try { return !!(await N.touStatus()).signedIn; } catch { return false; } };
 const touEp = (s, e) => `s${String(s).padStart(2, '0')}e${String(e).padStart(2, '0')}`;
 async function touMediaId(slug, s, e){

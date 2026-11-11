@@ -170,7 +170,12 @@ public class ExoPlayerPlugin extends Plugin {
 
     /** ICI TOU.TV sign-in window (see TouLoginActivity) and what it has noted so far, without exposing the secrets */
     @PluginMethod
-    public void openTouLogin(PluginCall call) { getActivity().startActivity(new Intent(getActivity(), TouLoginActivity.class)); call.resolve(); }
+    public void openTouLogin(PluginCall call) {
+        Intent i = new Intent(getActivity(), TouLoginActivity.class);
+        String u = call.getString("url");
+        if (u != null && u.startsWith("https://ici.tou.tv/")) { i.putExtra("url", u); i.putExtra("player", Boolean.TRUE.equals(call.getBoolean("player", false))); }
+        getActivity().startActivity(i); call.resolve();
+    }
     @PluginMethod
     public void touStatus(PluginCall call) {
         SharedPreferences sp = getContext().getSharedPreferences(TouLoginActivity.PREFS, Context.MODE_PRIVATE);

@@ -466,7 +466,7 @@ function sortByLang(ss){
   return ss.map((x, i) => [x, i]).sort((a, b) => score(a[0]) - score(b[0]) || a[1] - b[1]).map(x => x[0]);
 }
 function streamCard(st, title, ctx){
-  const playable = !!(st.url || st.externalUrl || st.ytId), langs = streamLangs(st);
+  const playable = !!(st.url || st.externalUrl || st.ytId || st.touWeb), langs = streamLangs(st);
   const card = h('button', {class:'scard' + (playable ? '' : ' dis') + (isBadStream(st) ? ' bad' : ''), type:'button', onclick:() => { if (ctx && ctx.info && st.url) prefSet(ctx.info.item.id, st, true); playStream(st, title, ctx); }},
     h('span', {class:'splay'}, playable ? '▶' : '✕'),
     h('div', {class:'sbody'}, h('b', {class:'sname'}, String(st.name || 'Stream').replace(/\n+/g, ' · '), ctx && ctx.info && prefTier(ctx.info.item.id, st) < 2 ? h('span', {class:'lastu'}, (prefRaw(ctx.info.item.id) || {}).manual ? 'Your pick' : 'Last used') : null), h('div', {class:'sinfo'}, streamSummary(st)), h('div', {class:'stxt'}, st.title || st.description || ''),
