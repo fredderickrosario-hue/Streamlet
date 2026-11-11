@@ -278,7 +278,7 @@ public class ExoPlayerPlugin extends Plugin {
                     o.put("done", c.getLong(c.getColumnIndexOrThrow(android.app.DownloadManager.COLUMN_BYTES_DOWNLOADED_SO_FAR)));
                     o.put("total", c.getLong(c.getColumnIndexOrThrow(android.app.DownloadManager.COLUMN_TOTAL_SIZE_BYTES)));
                     o.put("reason", c.getInt(c.getColumnIndexOrThrow(android.app.DownloadManager.COLUMN_REASON)));
-                    out.put(String.valueOf(c.getLong(c.getColumnIndexOrThrow(android.app.DownloadManager._ID))), o);
+                    out.put(String.valueOf(c.getLong(c.getColumnIndexOrThrow(android.app.DownloadManager.COLUMN_ID))), o);
                 }
             }
             File d = dlDir(); JSObject r = new JSObject(); r.put("items", out); r.put("free", d.getUsableSpace()); call.resolve(r);
