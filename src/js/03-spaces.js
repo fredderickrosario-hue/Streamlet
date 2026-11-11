@@ -101,6 +101,7 @@ function editSpace(id){
   const tabsCb = h('input', {type:'checkbox'}); tabsCb.checked = !!(s.tabs ?? (THEMES[s.theme] || {}).tabs);
   tabsCb.onchange = () => { s.tabs = tabsCb.checked; };
   const kidsCb = h('input', {type:'checkbox'}); kidsCb.checked = !!s.kids; kidsCb.onchange = () => { s.kids = kidsCb.checked; };
+  const histCb = h('input', {type:'checkbox'}); histCb.checked = !!s.allHistory; histCb.onchange = () => { s.allHistory = histCb.checked; };
   const paintSw = () => { sw.replaceChildren(...Object.entries(THEMES).map(([k,t]) =>
     h('button', {type:'button', class:'sw'+(s.theme===k?' on':''), title:t.n, style:`background:${t.acc}`, onclick:()=>{ s.theme=k; applyTheme(k); if (s.tabs === undefined) tabsCb.checked = !!THEMES[k].tabs; paintSw(); }}))); };
   paintSw();
@@ -141,7 +142,7 @@ function editSpace(id){
         h('div', {class:'sedcol'}, prev, h('div', {class:'lbl'}, 'Name'), name, quick, h('div', {class:'lbl'}, 'Icon'), eg),
         h('div', {class:'sedcol'},
           h('div', {class:'lbl'}, 'Theme'), sw,
-          h('div', {class:'lbl'}, 'Options'), tgl(tabsCb, 'Browse tabs', 'Home, Movies, Shows and genre tiles'), tgl(kidsCb, 'For kids', 'Kids profiles can open this space'),
+          h('div', {class:'lbl'}, 'Options'), tgl(tabsCb, 'Browse tabs', 'Home, Movies, Shows and genre tiles'), tgl(kidsCb, 'For kids', 'Kids profiles can open this space'), tgl(histCb, 'History from all spaces', 'Continue watching and picks use what you watched in every space'),
           h('div', {class:'lbl'}, 'Language in this space'), langRow('Audio', 'audio', ['any', 'Any']), langRow('Subtitles', 'subs', ['off', 'Off']), h('p', {class:'spin hint2'}, 'For example anime: Japanese audio with English subtitles.'),
           h('div', {class:'lbl'}, 'Catalog addons'),
           withCats.length ? h('div', null, boxes.map(({a, cb}) => tgl(cb, an(a)))) : h('p', {class:'spin', style:'padding:0'}, 'No catalog addons installed yet.'),

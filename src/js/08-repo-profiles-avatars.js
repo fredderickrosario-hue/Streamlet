@@ -255,7 +255,7 @@ function histRemove(k){
   if (gone) { const r = pget('removed', {}); r[gone.itemId] = Date.now(); pset('removed', Object.fromEntries(Object.entries(r).sort((a,b) => b[1] - a[1]).slice(0, 100))); }
   scheduleSync();
 }
-const allHist = () => !!(cur && (cur.allHistory ?? (THEMES[cur.theme] || {}).allhist));
+const allHist = () => !!(cur && cur.allHistory);                          // only when the space says so (space editor: History from all spaces)
 const histForSpace = () => histGet().filter(e => allHist() || e.space === (cur && cur.id));
 const fmtTime = t => { t = Math.max(0, Math.round(t)); const h_ = Math.floor(t/3600), m = Math.floor(t/60)%60, sec = t%60; return (h_ ? h_+':'+String(m).padStart(2,'0') : m) + ':' + String(sec).padStart(2,'0'); };
 

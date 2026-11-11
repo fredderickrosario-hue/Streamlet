@@ -182,21 +182,34 @@ async function qcRcSubs(mid, app){
     return found.slice(0, 4);
   } catch { return []; }
 }
+/* why a Québec source came up empty, for Settings > About > Diagnostics */
+const qcLog = msg => { try { const a = JSON.parse(localStorage.getItem('streamlet.syslog') || '[]'); a.unshift({t:Date.now(), k:'QC', m:String(msg).slice(0, 300)}); localStorage.setItem('streamlet.syslog', JSON.stringify(a.slice(0, 60))); } catch {} };
+/* when Radio-Canada's site can't play an episode, the show is still on ICI TOU.TV (login there) */
+const qcTouLink = (slug, why) => ({name:'ICI TOU.TV', title:why + '\nOpen it on ICI TOU.TV', externalUrl:'https://ici.tou.tv/' + slug});
 async function qcRcStreams(id){
   const [slug, epId, es] = id.replace(/^qc:rc:/, '').split('/');
-  const html = await qcRcPage(`https://ici.radio-canada.ca/tele/${slug}/site/episodes/${epId}/${es}`), cand = new Set();
+  if (!nativePlayer() || !nativePlayer().httpGet) { qcLog(`Radio-Canada ${slug}: the website version can't read Radio-Canada's pages (the browser blocks it). Use the Android app`); return [qcTouLink(slug, 'Radio-Canada episodes play in the Android app')]; }
+  let html;
+  try { html = await qcRcPage(`https://ici.radio-canada.ca/tele/${slug}/site/episodes/${epId}/${es}`); }
+  catch (e) { qcLog(`Radio-Canada ${slug} ${es}: episode page didn't load (${e.message})`); return [qcTouLink(slug, "This episode isn't on Radio-Canada's site anymore")]; }
+  const cand = new Set();
   for (const re of [/"idMedia"\s*:\s*"?(\d{5,})/g, /idMedia=(\d{5,})/g, /"mediaId"\s*:\s*"?(\d{5,})/gi, /data-media-?id="(\d{5,})"/gi, /media-(\d{5,})/g]) for (const m of html.matchAll(re)) cand.add(m[1]);
+  if (!cand.size) { qcLog(`Radio-Canada ${slug} ${es}: no video on the episode page (the page may have changed)`); return [qcTouLink(slug, 'No video on Radio-Canada’s page for this episode')]; }
+  const why = [];
   for (const mid of [...cand].slice(0, 5)) for (const app of ['medianet', 'toutv']) {
     try {
       const r = await qcGet(`https://services.radio-canada.ca/media/validation/v2/?appCode=${app}&deviceType=ipad&connectionType=wifi&idMedia=${mid}&output=json`), j = JSON.parse(r.body);
+      if (j && j.errorCode !== 0) why.push(`${mid}/${app}: ${j.errorCode} ${String(j.message || '').slice(0, 60)}`);
+      else if (j && (j.params || []).some(p => /license|drm/i.test(p.name))) why.push(`${mid}/${app}: protected (DRM)`);
       if (j && j.errorCode === 0 && j.url && !(j.params || []).some(p => /license|drm/i.test(p.name))) {
         const st = {name:'Radio-Canada', title:'HLS · adaptive', url:String(j.url).replace(/^http:/, 'https:')}, subs = await qcRcSubs(mid, app);
         if (subs.length) st.subtitles = subs;
         return [st];
       }
-    } catch {}
+    } catch (e) { why.push(`${mid}/${app}: ${e.message || e}`); }
   }
-  return [];
+  qcLog(`Radio-Canada ${slug} ${es}: no playable video (${why.slice(0, 3).join(' · ')})`);
+  return [qcTouLink(slug, "Radio-Canada's site won't play this episode here")];
 }
 /* Shows people find through Cinemeta (IMDb ids) that have no stream source: the Québec addon matches the episode by air date to what Radio-Canada has online */
 const QC_IMDB = {tt22037002:{src:'rc', path:'stat'}};
@@ -205,11 +218,17 @@ async function qcMappedStreams(tt, season, episode){
   const cm = await qcCached('cinemeta' + tt, 6 * 3600e3, async () => JSON.parse((await qcGet(`https://v3-cinemeta.strem.io/meta/series/${tt}.json`, {Accept:'application/json'})).body));
   const v = ((cm.meta || {}).videos || []).find(x => +x.season === season && +x.episode === episode);
   const when = v && (v.released || v.firstAired) ? new Date(v.released || v.firstAired).getTime() : 0;
-  if (!when) return [];
-  const info = await qcRcShow(ent.path);
+  if (!when) { qcLog(`${ent.path} S${season}E${episode}: no air date in the catalog to match with Radio-Canada`); return [qcTouLink(ent.path, 'No air date to find this episode on Radio-Canada')]; }
+  if (!nativePlayer() || !nativePlayer().httpGet) return [qcTouLink(ent.path, 'Radio-Canada episodes play in the Android app')];
+  let info; try { info = await qcRcShow(ent.path); } catch (e) { qcLog(`${ent.path}: Radio-Canada's episode list didn't load (${e.message})`); return [qcTouLink(ent.path, "Radio-Canada's site didn't answer")]; }
   let best = null, bd = 1.6 * 864e5;
   for (const e of info.eps) { const t = e.released ? new Date(e.released).getTime() : 0; if (t && Math.abs(t - when) < bd) { bd = Math.abs(t - when); best = e; } }
-  return best ? qcRcStreams(`qc:rc:${ent.path}/${best.epId}/${best.slug}`) : [];
+  if (!best) {
+    const day = new Date(when).toISOString().slice(0, 10), have = info.eps.slice(-4).map(e => (e.released || '').slice(0, 10)).filter(Boolean).join(', ');
+    qcLog(`${ent.path} S${season}E${episode} (aired ${day}) isn't on Radio-Canada's site. It has: ${have || 'nothing'}`);
+    return [qcTouLink(ent.path, `Aired ${day}: Radio-Canada's site only keeps the latest episodes`)];
+  }
+  return qcRcStreams(`qc:rc:${ent.path}/${best.epId}/${best.slug}`);
 }
 const QC_MANIFEST = {id:'app.streamlet.quebec', version:'1.0.0', name:'Québec', description:'TVA+ and ICI TOU.TV series, read straight from the sites on this device',
   resources:['catalog', {name:'meta', types:['series'], idPrefixes:['qc:']}, {name:'stream', types:['series'], idPrefixes:['qc:', ...Object.keys(QC_IMDB).map(k => k + ':')]}], types:['series'], idPrefixes:['qc:'], catalogs:[{type:'series', id:'qc-shows', name:'Séries québécoises'}]};

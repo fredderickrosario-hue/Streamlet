@@ -191,7 +191,7 @@ const ok = (name, cond, extra) => { cond ? pass++ : fail++; console.log((cond ? 
         qcMem.clear(); localStorage.removeItem('streamlet.qcseen.stat');
         const m = await qcRoute('qc://tva/manifest.json');
         const ok7 = (await qcRoute('qc://tva/stream/series/' + encodeURIComponent('tt22037002:5:7') + '.json')).streams, ok6 = (await qcRoute('qc://tva/stream/series/' + encodeURIComponent('tt22037002:5:6') + '.json')).streams;
-        return supports({manifest:m}, 'stream', 'series', 'tt22037002:5:7') && !supports({manifest:m}, 'stream', 'series', 'tt999:1:1') && ok7.length === 1 && ok6.length === 0;
+        return supports({manifest:m}, 'stream', 'series', 'tt22037002:5:7') && !supports({manifest:m}, 'stream', 'series', 'tt999:1:1') && ok7.length === 1 && !!ok7[0].url && ok6.length === 1 && !ok6[0].url && /tou\.tv\/stat/.test(ok6[0].externalUrl);   // not on the site: offered on ICI TOU.TV instead
       }).catch(e => String(e));
       ok('Québec addon: a Cinemeta episode of Stat gets the matching Radio-Canada stream', r === true, r);
       await p.evaluate(() => { delete window.Capacitor; });

@@ -2342,6 +2342,7 @@ function editSpace(id){
   const tabsCb = h('input', {type:'checkbox'}); tabsCb.checked = !!(s.tabs ?? (THEMES[s.theme] || {}).tabs);
   tabsCb.onchange = () => { s.tabs = tabsCb.checked; };
   const kidsCb = h('input', {type:'checkbox'}); kidsCb.checked = !!s.kids; kidsCb.onchange = () => { s.kids = kidsCb.checked; };
+  const histCb = h('input', {type:'checkbox'}); histCb.checked = !!s.allHistory; histCb.onchange = () => { s.allHistory = histCb.checked; };
   const paintSw = () => { sw.replaceChildren(...Object.entries(THEMES).map(([k,t]) =>
     h('button', {type:'button', class:'sw'+(s.theme===k?' on':''), title:t.n, style:`background:${t.acc}`, onclick:()=>{ s.theme=k; applyTheme(k); if (s.tabs === undefined) tabsCb.checked = !!THEMES[k].tabs; paintSw(); }}))); };
   paintSw();
@@ -2382,7 +2383,7 @@ function editSpace(id){
         h('div', {class:'sedcol'}, prev, h('div', {class:'lbl'}, 'Name'), name, quick, h('div', {class:'lbl'}, 'Icon'), eg),
         h('div', {class:'sedcol'},
           h('div', {class:'lbl'}, 'Theme'), sw,
-          h('div', {class:'lbl'}, 'Options'), tgl(tabsCb, 'Browse tabs', 'Home, Movies, Shows and genre tiles'), tgl(kidsCb, 'For kids', 'Kids profiles can open this space'),
+          h('div', {class:'lbl'}, 'Options'), tgl(tabsCb, 'Browse tabs', 'Home, Movies, Shows and genre tiles'), tgl(kidsCb, 'For kids', 'Kids profiles can open this space'), tgl(histCb, 'History from all spaces', 'Continue watching and picks use what you watched in every space'),
           h('div', {class:'lbl'}, 'Language in this space'), langRow('Audio', 'audio', ['any', 'Any']), langRow('Subtitles', 'subs', ['off', 'Off']), h('p', {class:'spin hint2'}, 'For example anime: Japanese audio with English subtitles.'),
           h('div', {class:'lbl'}, 'Catalog addons'),
           withCats.length ? h('div', null, boxes.map(({a, cb}) => tgl(cb, an(a)))) : h('p', {class:'spin', style:'padding:0'}, 'No catalog addons installed yet.'),
@@ -3801,7 +3802,7 @@ function histRemove(k){
   if (gone) { const r = pget('removed', {}); r[gone.itemId] = Date.now(); pset('removed', Object.fromEntries(Object.entries(r).sort((a,b) => b[1] - a[1]).slice(0, 100))); }
   scheduleSync();
 }
-const allHist = () => !!(cur && (cur.allHistory ?? (THEMES[cur.theme] || {}).allhist));
+const allHist = () => !!(cur && cur.allHistory);                          // only when the space says so (space editor: History from all spaces)
 const histForSpace = () => histGet().filter(e => allHist() || e.space === (cur && cur.id));
 const fmtTime = t => { t = Math.max(0, Math.round(t)); const h_ = Math.floor(t/3600), m = Math.floor(t/60)%60, sec = t%60; return (h_ ? h_+':'+String(m).padStart(2,'0') : m) + ':' + String(sec).padStart(2,'0'); };
 
@@ -6037,21 +6038,34 @@ async function qcRcSubs(mid, app){
     return found.slice(0, 4);
   } catch { return []; }
 }
+/* why a Québec source came up empty, for Settings > About > Diagnostics */
+const qcLog = msg => { try { const a = JSON.parse(localStorage.getItem('streamlet.syslog') || '[]'); a.unshift({t:Date.now(), k:'QC', m:String(msg).slice(0, 300)}); localStorage.setItem('streamlet.syslog', JSON.stringify(a.slice(0, 60))); } catch {} };
+/* when Radio-Canada's site can't play an episode, the show is still on ICI TOU.TV (login there) */
+const qcTouLink = (slug, why) => ({name:'ICI TOU.TV', title:why + '\nOpen it on ICI TOU.TV', externalUrl:'https://ici.tou.tv/' + slug});
 async function qcRcStreams(id){
   const [slug, epId, es] = id.replace(/^qc:rc:/, '').split('/');
-  const html = await qcRcPage(`https://ici.radio-canada.ca/tele/${slug}/site/episodes/${epId}/${es}`), cand = new Set();
+  if (!nativePlayer() || !nativePlayer().httpGet) { qcLog(`Radio-Canada ${slug}: the website version can't read Radio-Canada's pages (the browser blocks it). Use the Android app`); return [qcTouLink(slug, 'Radio-Canada episodes play in the Android app')]; }
+  let html;
+  try { html = await qcRcPage(`https://ici.radio-canada.ca/tele/${slug}/site/episodes/${epId}/${es}`); }
+  catch (e) { qcLog(`Radio-Canada ${slug} ${es}: episode page didn't load (${e.message})`); return [qcTouLink(slug, "This episode isn't on Radio-Canada's site anymore")]; }
+  const cand = new Set();
   for (const re of [/"idMedia"\s*:\s*"?(\d{5,})/g, /idMedia=(\d{5,})/g, /"mediaId"\s*:\s*"?(\d{5,})/gi, /data-media-?id="(\d{5,})"/gi, /media-(\d{5,})/g]) for (const m of html.matchAll(re)) cand.add(m[1]);
+  if (!cand.size) { qcLog(`Radio-Canada ${slug} ${es}: no video on the episode page (the page may have changed)`); return [qcTouLink(slug, 'No video on Radio-Canada’s page for this episode')]; }
+  const why = [];
   for (const mid of [...cand].slice(0, 5)) for (const app of ['medianet', 'toutv']) {
     try {
       const r = await qcGet(`https://services.radio-canada.ca/media/validation/v2/?appCode=${app}&deviceType=ipad&connectionType=wifi&idMedia=${mid}&output=json`), j = JSON.parse(r.body);
+      if (j && j.errorCode !== 0) why.push(`${mid}/${app}: ${j.errorCode} ${String(j.message || '').slice(0, 60)}`);
+      else if (j && (j.params || []).some(p => /license|drm/i.test(p.name))) why.push(`${mid}/${app}: protected (DRM)`);
       if (j && j.errorCode === 0 && j.url && !(j.params || []).some(p => /license|drm/i.test(p.name))) {
         const st = {name:'Radio-Canada', title:'HLS · adaptive', url:String(j.url).replace(/^http:/, 'https:')}, subs = await qcRcSubs(mid, app);
         if (subs.length) st.subtitles = subs;
         return [st];
       }
-    } catch {}
+    } catch (e) { why.push(`${mid}/${app}: ${e.message || e}`); }
   }
-  return [];
+  qcLog(`Radio-Canada ${slug} ${es}: no playable video (${why.slice(0, 3).join(' · ')})`);
+  return [qcTouLink(slug, "Radio-Canada's site won't play this episode here")];
 }
 /* Shows people find through Cinemeta (IMDb ids) that have no stream source: the Québec addon matches the episode by air date to what Radio-Canada has online */
 const QC_IMDB = {tt22037002:{src:'rc', path:'stat'}};
@@ -6060,11 +6074,17 @@ async function qcMappedStreams(tt, season, episode){
   const cm = await qcCached('cinemeta' + tt, 6 * 3600e3, async () => JSON.parse((await qcGet(`https://v3-cinemeta.strem.io/meta/series/${tt}.json`, {Accept:'application/json'})).body));
   const v = ((cm.meta || {}).videos || []).find(x => +x.season === season && +x.episode === episode);
   const when = v && (v.released || v.firstAired) ? new Date(v.released || v.firstAired).getTime() : 0;
-  if (!when) return [];
-  const info = await qcRcShow(ent.path);
+  if (!when) { qcLog(`${ent.path} S${season}E${episode}: no air date in the catalog to match with Radio-Canada`); return [qcTouLink(ent.path, 'No air date to find this episode on Radio-Canada')]; }
+  if (!nativePlayer() || !nativePlayer().httpGet) return [qcTouLink(ent.path, 'Radio-Canada episodes play in the Android app')];
+  let info; try { info = await qcRcShow(ent.path); } catch (e) { qcLog(`${ent.path}: Radio-Canada's episode list didn't load (${e.message})`); return [qcTouLink(ent.path, "Radio-Canada's site didn't answer")]; }
   let best = null, bd = 1.6 * 864e5;
   for (const e of info.eps) { const t = e.released ? new Date(e.released).getTime() : 0; if (t && Math.abs(t - when) < bd) { bd = Math.abs(t - when); best = e; } }
-  return best ? qcRcStreams(`qc:rc:${ent.path}/${best.epId}/${best.slug}`) : [];
+  if (!best) {
+    const day = new Date(when).toISOString().slice(0, 10), have = info.eps.slice(-4).map(e => (e.released || '').slice(0, 10)).filter(Boolean).join(', ');
+    qcLog(`${ent.path} S${season}E${episode} (aired ${day}) isn't on Radio-Canada's site. It has: ${have || 'nothing'}`);
+    return [qcTouLink(ent.path, `Aired ${day}: Radio-Canada's site only keeps the latest episodes`)];
+  }
+  return qcRcStreams(`qc:rc:${ent.path}/${best.epId}/${best.slug}`);
 }
 const QC_MANIFEST = {id:'app.streamlet.quebec', version:'1.0.0', name:'Québec', description:'TVA+ and ICI TOU.TV series, read straight from the sites on this device',
   resources:['catalog', {name:'meta', types:['series'], idPrefixes:['qc:']}, {name:'stream', types:['series'], idPrefixes:['qc:', ...Object.keys(QC_IMDB).map(k => k + ':')]}], types:['series'], idPrefixes:['qc:'], catalogs:[{type:'series', id:'qc-shows', name:'Séries québécoises'}]};
