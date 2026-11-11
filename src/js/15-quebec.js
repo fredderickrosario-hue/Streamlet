@@ -253,12 +253,94 @@ async function qcRoute(url){
   if (path.startsWith('meta/')) { const id = path.split('/').slice(2).join('/'); return {meta:/^qc:rc:/.test(id) ? await qcRcMeta(id.replace(/^qc:rc:/, '')) : /^qc:tou:/.test(id) ? await qcTouMeta(id.replace(/^qc:tou:/, '')) : await qcMeta(id.replace(/^qc:tva:/, ''))}; }
   if (path.startsWith('stream/')) {
     const id = path.split('/').slice(2).join('/');
-    const tm = id.match(/^(tt\d+):(\d+):(\d+)$/); if (tm) return {streams:await qcMappedStreams(tm[1], +tm[2], +tm[3])};
+    const tm = id.match(/^(tt\d+):(\d+):(\d+)$/);
+    if (tm) {                                                              // signed in to TOU.TV: try it first, then Radio-Canada's site, then the TOU.TV link
+      const ent = QC_IMDB[tm[1]];
+      if (ent && await touOn()) { const r = await touStreams(ent.path, +tm[2], +tm[3]); if (r.ok) return {streams:r.streams}; }
+      return {streams:await qcMappedStreams(tm[1], +tm[2], +tm[3])};
+    }
     if (/^qc:rc:/.test(id)) return {streams:await qcRcStreams(id)};
-    if (/^qc:tou:/.test(id)) return {streams:[{name:'ICI TOU.TV', title:'Open in the ICI TOU.TV app', externalUrl:'toutv://' + id.replace(/^qc:tou:/, '')}]};
+    if (/^qc:tou:/.test(id)) {
+      const [slug, ep] = id.replace(/^qc:tou:/, '').split('/'), m = String(ep || '').match(/s(\d+)e(\d+)/i), app = {name:'ICI TOU.TV', title:'Open in the ICI TOU.TV app', externalUrl:'toutv://' + id.replace(/^qc:tou:/, '')};
+      if (m) { const r = await touStreams(slug, +m[1], +m[2]); if (r.ok) return {streams:[...r.streams, app]}; }
+      return {streams:[app]};
+    }
     return {streams:await qcStreams(id)};
   }
   throw new Error('HTTP 404');
 }
 const qcFillShows = () => { const v = lsGet('streamlet.qcshows', null); $('#qcShows').value = (Array.isArray(v) && v.length ? v : QC_DEFAULT_SHOWS).join('\n'); };   // an empty saved list shows (and uses) the defaults
 $('#qcSave').onclick = () => { const urls = $('#qcShows').value.split(/\s+/).filter(Boolean); lsSet('streamlet.qcshows', urls.length ? urls : null); stamp('qcT'); qcMem.clear(); qcFillShows(); toast(urls.length ? 'Saved. Reopen the Québec space to refresh' : 'Back to the default shows'); };
+
+/* ICI TOU.TV sign-in (Android apps): opens the real site in a window, keeps the session on this device */
+async function touRefresh(){
+  const N = nativePlayer(), el = $('#touState'); if (!el) return;
+  if (!N || !N.touStatus) { el.textContent = 'Needs the Android app'; return; }
+  try {
+    const r = await N.touStatus();
+    el.textContent = r.signedIn ? `Signed in${r.ageMin >= 0 ? ' · session seen ' + (r.ageMin < 90 ? r.ageMin + ' min' : Math.round(r.ageMin / 60) + ' h') + ' ago' : ''}${r.sawValidation ? ' · video request seen' : ''}${r.claims ? ' · access token saved' : ''}` : 'Not signed in. Tap Sign in, log in, open an episode and press play, then press Done';
+  } catch { el.textContent = 'Could not read the sign-in state'; }
+}
+$('#touIn').onclick = async () => { const N = nativePlayer(); if (!N || !N.openTouLogin) { toast('Needs the Android app (update it first)'); return; } try { await N.openTouLogin(); } catch { toast('Could not open the sign-in window'); } };
+$('#touOut').onclick = async () => { const N = nativePlayer(); try { if (N && N.touForget) await N.touForget(); toast('Signed out of ICI TOU.TV'); } catch {} touRefresh(); };
+/* ---- playing ICI TOU.TV with the saved sign-in: find the episode's media number, ask for a link like the site does.
+   Only plain or AES-128 HLS can play here; copy-protected (DRM) videos are left to the official app. ---- */
+const touOn = async () => { const N = nativePlayer(); if (!N || !N.touStatus) return false; try { return !!(await N.touStatus()).signedIn; } catch { return false; } };
+const touEp = (s, e) => `s${String(s).padStart(2, '0')}e${String(e).padStart(2, '0')}`;
+async function touMediaId(slug, s, e){
+  const N = nativePlayer(), ep = touEp(s, e), ids = [];
+  const grab = body => { for (const m of String(body || '').matchAll(/\\?"(?:idMedia|mediaId|formattedIdMedia|playbackId)\\?"\s*:\s*\\?"?(\d{5,})/g)) if (!ids.includes(m[1])) ids.push(m[1]); };
+  for (const u of [`show/${slug}/${ep}`, `show/${slug}/${ep.toUpperCase()}`]) {
+    try { const r = await N.touGet({url:`https://services.radio-canada.ca/ott/catalog/v2/toutv/${u}?device=web&tier=Member`}); if (r.status === 200) grab(r.body); } catch {}
+    if (ids.length) return {id:ids[0], how:'catalog'};
+  }
+  for (const u of [`https://ici.tou.tv/${slug}/${ep.toUpperCase()}`, `https://ici.tou.tv/${slug}/${ep}`]) {
+    try { const r = await qcGet(u, {Accept:'text/html'}); if (r.status === 200) grab(r.body); } catch {}
+    if (ids.length) return {id:ids[0], how:'page'};
+  }
+  return null;
+}
+async function touHlsClear(url){                                           // false when the playlist is copy-protected (SAMPLE-AES / Widevine / FairPlay)
+  try {
+    let r = await qcGet(url, {}); let body = String(r.body || '');
+    const v = body.split('\n').find(l => l && !l.startsWith('#')); if (v && !/#EXT-X-KEY/.test(body)) { const u2 = new URL(v.trim(), r.url || url).toString(); r = await qcGet(u2, {}); body = String(r.body || ''); }
+    return !/#EXT-X-(SESSION-)?KEY:METHOD=SAMPLE-AES|KEYFORMAT="(com\.widevine|com\.apple\.streamingkeydelivery|urn:uuid)/i.test(body);
+  } catch { return true; }
+}
+async function touStreams(slug, s, e){
+  const N = nativePlayer(), tag = `TOU.TV ${slug} ${touEp(s, e)}`;
+  if (!N || !N.touGet) return {ok:false, why:'needs the Android app'};
+  if (!await touOn()) return {ok:false, why:'not signed in (Settings > TMDB & addons > ICI TOU.TV)'};
+  const mid = await touMediaId(slug, s, e);
+  if (!mid) { qcLog(`${tag}: couldn't find the episode's media number`); return {ok:false, why:"couldn't find this episode on TOU.TV"}; }
+  const why = [];
+  for (const [dt, tech] of [['androidtv', 'hls'], ['ipad', 'hls'], ['desktop', 'hls'], ['android', 'hls']]) {
+    try {
+      const r = await N.touGet({url:`https://services.radio-canada.ca/media/validation/v2/?appCode=toutv&connectionType=hd&deviceType=${dt}&idMedia=${mid.id}&multibitrate=true&output=json&tech=${tech}&manifestVersion=2`});
+      let j = null; try { j = JSON.parse(r.body); } catch {}
+      if (!j) { why.push(`${dt}: HTTP ${r.status}`); continue; }
+      if (j.errorCode && j.errorCode !== 0) { why.push(`${dt}: ${j.errorCode} ${String(j.message || '').slice(0, 50)}`); continue; }
+      const drm = (j.params || []).some(p => /widevine|playready|fairplay|license|drm|protection/i.test(p.name)) || /widevine|playready|fairplay/i.test(j.protectionType || '');
+      if (!j.url) { why.push(`${dt}: no link`); continue; }
+      if (drm) { why.push(`${dt}: copy-protected (DRM)`); continue; }
+      if (!await touHlsClear(j.url)) { why.push(`${dt}: copy-protected playlist`); continue; }
+      qcLog(`${tag}: playable (${dt}, media ${mid.id} via ${mid.how})`);
+      return {ok:true, streams:[{name:'ICI TOU.TV', title:'Signed in · HLS', url:String(j.url).replace(/^http:/, 'https:')}]};
+    } catch (err) { why.push(`${dt}: ${err.message || err}`); }
+  }
+  qcLog(`${tag}: media ${mid.id} not playable here (${why.slice(0, 4).join(' · ')})`);
+  return {ok:false, why:why.some(w => /DRM|protected/.test(w)) ? 'TOU.TV copy-protects this video' : 'TOU.TV refused: ' + (why[0] || '?')};
+}
+$('#touChk').onclick = async () => {
+  const out = $('#touRes'); out.hidden = false; out.textContent = 'Checking the latest Stat episode…';
+  try {
+    const info = await qcTouShow('stat'), season = info.seasons.length ? Math.max(...info.seasons) : 1, eps = await qcTouEpisodes('stat', season);
+    const now = Date.now(), last = eps.filter(v => !v.released || new Date(v.released).getTime() <= now).pop();
+    if (!last) { out.textContent = "Couldn't read Stat's episode list on TOU.TV."; return; }
+    const r = await touStreams('stat', last.season, last.episode);
+    out.textContent = r.ok ? `Stat S${last.season}E${last.episode}: plays in Streamlet. Episodes will use your TOU.TV sign-in.` : `Stat S${last.season}E${last.episode}: can't play here: ${r.why}. Details in Diagnostics (QC lines).`;
+  } catch (e) { out.textContent = 'Check failed: ' + (e.message || e); }
+};
+document.addEventListener('visibilitychange', () => { if (!document.hidden) touRefresh(); });
+setTimeout(touRefresh, 1200);
+for (const a of addons) if (a.url && a.url.startsWith('qc://')) a.manifest = QC_MANIFEST;          // built-in: always use the current manifest, no reinstall needed

@@ -45,6 +45,12 @@
             android:theme="@android:style/Theme.NoTitleBar.Fullscreen" />
 
         <activity
+            android:name=".TouLoginActivity"
+            android:configChanges="orientation|keyboardHidden|keyboard|screenSize|smallestScreenSize|screenLayout|uiMode|navigation|density"
+            android:exported="false"
+            android:theme="@android:style/Theme.NoTitleBar" />
+
+        <activity
             android:name=".VlcActivity"
             android:configChanges="orientation|keyboardHidden|keyboard|screenSize|smallestScreenSize|screenLayout|uiMode|navigation|density"
             android:enableOnBackInvokedCallback="false"
