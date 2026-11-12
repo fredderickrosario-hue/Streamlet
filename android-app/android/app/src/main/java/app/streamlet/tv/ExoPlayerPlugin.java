@@ -225,6 +225,27 @@ public class ExoPlayerPlugin extends Plugin {
     private File dlDir() { File d = new File(getContext().getExternalFilesDir(null), "Streamlet"); if (!d.exists()) d.mkdirs(); return d; }
     private static String safeName(String n) { String s = n == null ? "video" : n.replaceAll("[^A-Za-z0-9._ -]", "_").trim(); return s.isEmpty() ? "video" : s.length() > 120 ? s.substring(0, 120) : s; }
     /** the playable file link for an addon link (Torrentio Real-Debrid links go straight to Real-Debrid), on a worker thread */
+    /** open an episode in the ICI TOU.TV app (Android TV: tv.toutv.androidtv, phone: tv.tou.android): the app's own link first, then the app's home */
+    @PluginMethod
+    public void openTou(PluginCall call) {
+        String path = call.getString("path", "");
+        android.content.pm.PackageManager pm = getContext().getPackageManager();
+        String pkg = null;
+        for (String p : new String[]{"tv.toutv.androidtv", "tv.tou.android"}) { try { pm.getPackageInfo(p, 0); pkg = p; break; } catch (Exception ignored) { } }
+        JSObject r = new JSObject();
+        if (pkg == null) { r.put("ok", false); r.put("why", "ICI TOU.TV isn't installed"); call.resolve(r); return; }
+        String[] links = {"https://ici.tou.tv/" + path, "toutv://" + path, "toutv://ici.tou.tv/" + path};
+        for (String l : links) {
+            try {
+                Intent i = new Intent(Intent.ACTION_VIEW, Uri.parse(l)).setPackage(pkg).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                if (i.resolveActivity(pm) != null) { getActivity().startActivity(i); AppLog.add("tou", "opened " + pkg + " with " + l); r.put("ok", true); r.put("how", "episode"); call.resolve(r); return; }
+            } catch (Exception e) { AppLog.add("tou", "link refused: " + l + " (" + e.getClass().getSimpleName() + ")"); }
+        }
+        Intent home = pm.getLeanbackLaunchIntentForPackage(pkg); if (home == null) home = pm.getLaunchIntentForPackage(pkg);
+        if (home != null) { getActivity().startActivity(home.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)); AppLog.add("tou", "the app has no episode link: opened its home"); r.put("ok", true); r.put("how", "home"); call.resolve(r); return; }
+        r.put("ok", false); r.put("why", "Couldn't open ICI TOU.TV"); call.resolve(r);
+    }
+
     @PluginMethod
     public void resolveLink(final PluginCall call) {
         final String u = call.getString("url");

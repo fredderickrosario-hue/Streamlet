@@ -256,14 +256,15 @@ async function qcRoute(url){
     const tm = id.match(/^(tt\d+):(\d+):(\d+)$/);
     if (tm) {                                                              // signed in to TOU.TV: try it first, then Radio-Canada's site, then the TOU.TV link
       const ent = QC_IMDB[tm[1]];
-      if (ent && await touOn()) { const r = await touStreams(ent.path, +tm[2], +tm[3]); if (r.ok) return {streams:[...r.streams, ...touWeb(ent.path, +tm[2], +tm[3])]}; }
+      const first = ent ? touApp(ent.path, +tm[2], +tm[3]) : [];        // Stat: the ICI TOU.TV app at that episode comes first
+      if (ent && await touOn()) { const r = await touStreams(ent.path, +tm[2], +tm[3]); if (r.ok) return {streams:[...first, ...r.streams, ...touWeb(ent.path, +tm[2], +tm[3])]}; }
       const rest = await qcMappedStreams(tm[1], +tm[2], +tm[3]);
-      return {streams:ent ? [...rest.filter(x => x.url), ...touWeb(ent.path, +tm[2], +tm[3]), ...rest.filter(x => !x.url)] : rest};
+      return {streams:ent ? [...first, ...rest.filter(x => x.url), ...touWeb(ent.path, +tm[2], +tm[3]), ...rest.filter(x => !x.url && !x.touApp)] : rest};
     }
     if (/^qc:rc:/.test(id)) return {streams:await qcRcStreams(id)};
     if (/^qc:tou:/.test(id)) {
       const [slug, ep] = id.replace(/^qc:tou:/, '').split('/'), m = String(ep || '').match(/s(\d+)e(\d+)/i), app = {name:'ICI TOU.TV', title:'Open in the ICI TOU.TV app', externalUrl:'toutv://' + id.replace(/^qc:tou:/, '')};
-      if (m) { const r = await touStreams(slug, +m[1], +m[2]); return {streams:[...(r.ok ? r.streams : []), ...touWeb(slug, +m[1], +m[2]), app]}; }
+      if (m) { const r = await touStreams(slug, +m[1], +m[2]); return {streams:[...touApp(slug, +m[1], +m[2]), ...(r.ok ? r.streams : []), ...touWeb(slug, +m[1], +m[2]), app]}; }
       return {streams:[app]};
     }
     return {streams:await qcStreams(id)};
@@ -288,6 +289,8 @@ $('#touOut').onclick = async () => { const N = nativePlayer(); try { if (N && N.
    Only plain or AES-128 HLS can play here; copy-protected (DRM) videos are left to the official app. ---- */
 /* TOU.TV's own web player in a full-screen window (Android app): plays whatever their site plays, with your sign-in */
 const touWeb = (slug, s, e) => nativePlayer() && nativePlayer().openTouLogin ? [{name:'ICI TOU.TV', title:'Play in TOU.TV’s player (signed in)\nThe remote: OK pause · ◀ ▶ 10 s · ▲ ▼ 1 min · Back closes', touWeb:`https://ici.tou.tv/${slug}/${touEp(s, e).toUpperCase()}`}] : [];
+/* the official ICI TOU.TV app at the exact episode (Android app) */
+const touApp = (slug, s, e) => nativePlayer() && nativePlayer().openTou ? [{name:'ICI TOU.TV app', title:`Opens S${s}:E${e} in the ICI TOU.TV app`, touApp:`${slug}/${touEp(s, e).toUpperCase()}`}] : [];
 const touOn = async () => { const N = nativePlayer(); if (!N || !N.touStatus) return false; try { return !!(await N.touStatus()).signedIn; } catch { return false; } };
 const touEp = (s, e) => `s${String(s).padStart(2, '0')}e${String(e).padStart(2, '0')}`;
 async function touMediaId(slug, s, e){

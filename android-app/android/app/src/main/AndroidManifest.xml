@@ -1,6 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
+    <queries>
+        <package android:name="tv.toutv.androidtv" />
+        <package android:name="tv.tou.android" />
+        <intent><action android:name="android.intent.action.VIEW" /><data android:scheme="https" android:host="ici.tou.tv" /></intent>
+    </queries>
+
     <application
         android:largeHeap="true"
         android:allowBackup="true"

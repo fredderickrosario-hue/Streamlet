@@ -120,6 +120,7 @@ $('#fsBtn').onclick = async () => {
 };
 
 async function playStream(s, title, ctx){
+  if (s.touApp) { const N = nativePlayer(); try { const r = await N.openTou({path:s.touApp}); if (!r.ok) toast(r.why || "Couldn't open ICI TOU.TV"); else if (r.how === 'home') toast('ICI TOU.TV opened on its home: its app has no link to episodes'); } catch { toast("Couldn't open ICI TOU.TV"); } return; }
   if (s.touWeb) { const N = nativePlayer(); if (N && N.openTouLogin) { try { await N.openTouLogin({url:s.touWeb, player:true}); } catch { toast("Couldn't open TOU.TV's player"); } } else toast('Needs the Android app'); return; }
   if (s.externalUrl) { if (/^https?:/i.test(s.externalUrl)) window.open(s.externalUrl,'_blank','noopener'); else { try { location.href = s.externalUrl; } catch { toast('Could not open the app.'); } } return; }
   if (s.ytId) { window.open('https://www.youtube.com/watch?v='+enc(s.ytId),'_blank','noopener'); return; }
