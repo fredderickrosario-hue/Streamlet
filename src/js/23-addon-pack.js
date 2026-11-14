@@ -13,7 +13,7 @@ async function packOffer(u){
   const pack = await packLoad();
   const missing = pack.filter(x => !addons.some(a => a.url === x.url || a.url === x.url.replace(/\/manifest\.json$/, '') + '/manifest.json'));
   if (!missing.length) { lsSet(key, 1); return; }
-  const m = $('#menu'); if (!m.hidden) { setTimeout(() => packOffer(u), 3000); return; }
+  const m = $('#menu'); if (!m.hidden || $('#welcome')) { setTimeout(() => packOffer(u), 3000); return; }
   lsSet(key, 1);
   const go = async () => {
     popLayer('menu'); toast(`Installing ${missing.length} addon${missing.length === 1 ? '' : 's'}…`);

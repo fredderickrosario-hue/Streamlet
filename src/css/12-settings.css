@@ -128,3 +128,37 @@ body:not(.tv) .ntcard{right:12px;left:12px;width:auto;bottom:calc(84px + env(saf
 .ioshelp p{margin:0 0 12px;font-size:14px;line-height:1.45;color:var(--mut)}
 .ioshelp .iosbtns{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 .ioshelp .iosnote{margin:12px 0 0;font-size:12px}
+/* first launch setup (30-welcome.js) */
+.welcome{position:fixed;inset:0;z-index:9000;overflow:auto;background:radial-gradient(120% 90% at 50% 0%,color-mix(in srgb,var(--acc) 16%,var(--bg)),var(--bg) 70%);display:flex;justify-content:center;align-items:flex-start;padding:max(28px,env(safe-area-inset-top)) 18px 40px}
+.wzcard{width:100%;max-width:780px;margin:auto 0}
+.wzcard h1{font-size:clamp(26px,4vw,38px);margin:10px 0 8px}
+.wzcard .sub{color:var(--mut);line-height:1.5;margin:0 0 16px}
+.wzdots{display:flex;gap:8px;margin:0 0 6px}
+.wzdots i{width:28px;height:5px;border-radius:3px;background:rgba(255,255,255,.16)}
+.wzdots i.on{background:var(--acc)} .wzdots i.done{background:color-mix(in srgb,var(--acc) 50%,transparent)}
+.wzgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:14px;padding:6px;margin:0 -6px}
+.wztile{position:relative;cursor:pointer;font:inherit}
+.wztile:not(.on){opacity:.5;filter:saturate(.3)}
+.wztile .wzck{margin-left:auto;font-size:22px;font-weight:800;color:#fff;min-width:22px;text-align:center}
+.wztile:focus-visible,.wztile:hover{transform:scale(1.03);outline:3px solid #fff;outline-offset:3px}
+body.tv .wztile:focus{transform:scale(1.03);outline:3px solid #fff;outline-offset:3px}
+.wzhow{margin:0 0 16px;padding-left:22px;line-height:1.6}
+.wzhow li{margin:4px 0}
+.wzlink{color:var(--acc);font-weight:600}
+.welcome .inrow{display:flex;gap:10px} .welcome .inrow .f{flex:1;min-width:0}
+.wzmsg{min-height:22px;margin:8px 2px 0;color:var(--acc);font-size:14px}
+.wzbtns{display:flex;flex-wrap:wrap;gap:10px;justify-content:flex-end;margin:16px 0 0;padding:4px}
+.wzfine{font-size:13px;margin-top:16px !important}
+.wzqrrow{display:flex;gap:16px;align-items:center;margin:0 0 16px}
+.wzqrrow .wzqr{width:120px;flex:0 0 120px;background:#fff;padding:8px;border-radius:10px}
+.wzqrrow .sub{margin:0;font-size:13px}
+.wzlog p{margin:6px 0;font-size:15px}
+.wzgrid .wztile{flex-direction:row !important;align-items:center !important;padding:14px 16px !important;min-height:0 !important;height:auto !important;aspect-ratio:auto !important;gap:14px !important}
+.wzgrid .wztile .sem{font-size:30px !important;background:none !important;width:auto !important;height:auto !important;box-shadow:none !important;padding:0 !important}
+.wzgrid .wztile .snm{font-size:18px} .wzgrid .wztile .sds{font-size:13px;opacity:.85}
+.wzgrid .wztile .wzck{position:static !important}
+.wzlink{word-break:normal;overflow-wrap:anywhere}
+.wzgrid .wztile .stx{flex:1;min-width:0;text-align:left}
+.wzgrid .wztile :is(.snm,.sds){white-space:normal !important;overflow:visible !important;text-overflow:clip !important;display:block}
+body.tv .wzgrid{grid-template-columns:repeat(2,1fr)}
+.wzqrrow .wzqr{height:120px;box-sizing:content-box;align-self:center} .wzqrrow .wzqr svg{width:100%;height:100%;display:block}

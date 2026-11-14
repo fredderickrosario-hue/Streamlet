@@ -81,7 +81,7 @@ async function mergeFamily(R){
   } else if (addons.length && !m.addonsT) m.addonsT = Date.now();
   if (R.repos && (R.reposT || 0) > (m.reposT || 0)) { lsSet('streamlet.repos', R.repos); m.reposT = R.reposT; }
   if (!m.tmdbT && lsGet('streamlet.tmdb', '')) m.tmdbT = 1;                      // a key entered before this synced: push it unless the account already has a newer one
-  if (typeof R.tmdb === 'string' && (R.tmdbT || 0) > (m.tmdbT || 0)) { lsSet('streamlet.tmdb', R.tmdb); m.tmdbT = R.tmdbT; try { fillTmdb(); } catch {} }
+  if (typeof R.tmdb === 'string' && (R.tmdbT || 0) > (m.tmdbT || 0)) { lsSet('streamlet.tmdb', R.tmdb); m.tmdbT = R.tmdbT; try { fillTmdb(); } catch {} setTimeout(() => { try { wzUpgrade(); } catch {} }, 1500); }
   if (!m.rdT && lsGet('streamlet.rd', '')) m.rdT = 1;
   if (typeof R.rd === 'string' && (R.rdT || 0) > (m.rdT || 0)) { lsSet('streamlet.rd', R.rd); m.rdT = R.rdT; try { tioFill(); } catch {} }
   if (!m.qcT && Array.isArray(lsGet('streamlet.qcshows', null))) m.qcT = 1;
@@ -375,6 +375,7 @@ function bootApp(){
   const upd = Date.now() - (lsGet('streamlet.upd', 0) || 0) < 20 * 60 * 1000;     // restarted while installing an update: skip the profile picker, land on Settings
   if (upd) { lsSet('streamlet.upd', 0); selectProfile(lastP).then(() => { try { showTab('settings'); } catch {} }); return; }
   if (profiles.length > 1 && localStorage.getItem('streamlet.profile.ask') !== '0') showProfiles(); else selectProfile(lastP);
+  setTimeout(() => { try { welcomeMaybe(); } catch (e) { console.warn(e); } }, 800);   // first launch: spaces, TMDB key, Real-Debrid (30-welcome.js)
 }
 let earlyBoot = false;
 async function onUser(u){
