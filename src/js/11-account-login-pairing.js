@@ -70,7 +70,8 @@ async function mergeFamily(R){
     const rT = R.addonsT || 0, lT = m.addonsT || 0;
     if (rT > lT || lT === 0) {
       const rUrls = R.addons.map(x => typeof x === 'string' ? x : x.url);
-      const localOnly = lT === 0 ? addons.filter(a => !rUrls.includes(a.url)).map(a => ({url:a.url, uid:a.uid, label:a.label})) : [];
+      const localOnly = lT === 0 ? addons.filter(a => !rUrls.includes(a.url) && !(isTio(a.url) && rUrls.some(isTio)))   // the account's own Torrentio wins over the built-in one
+        .map(a => ({url:a.url, uid:a.uid, label:a.label})) : [];
       const sig = () => JSON.stringify(addons.map(a => [a.url, a.uid, a.label || '']));
       const before = sig();
       await applyRemoteAddons([...R.addons, ...localOnly]);
@@ -81,6 +82,8 @@ async function mergeFamily(R){
   if (R.repos && (R.reposT || 0) > (m.reposT || 0)) { lsSet('streamlet.repos', R.repos); m.reposT = R.reposT; }
   if (!m.tmdbT && lsGet('streamlet.tmdb', '')) m.tmdbT = 1;                      // a key entered before this synced: push it unless the account already has a newer one
   if (typeof R.tmdb === 'string' && (R.tmdbT || 0) > (m.tmdbT || 0)) { lsSet('streamlet.tmdb', R.tmdb); m.tmdbT = R.tmdbT; try { fillTmdb(); } catch {} }
+  if (!m.rdT && lsGet('streamlet.rd', '')) m.rdT = 1;
+  if (typeof R.rd === 'string' && (R.rdT || 0) > (m.rdT || 0)) { lsSet('streamlet.rd', R.rd); m.rdT = R.rdT; try { tioFill(); } catch {} }
   if (!m.qcT && Array.isArray(lsGet('streamlet.qcshows', null))) m.qcT = 1;
   if (Array.isArray(R.qcshows) && (R.qcT || 0) > (m.qcT || 0)) { lsSet('streamlet.qcshows', R.qcshows.length ? R.qcshows : null); m.qcT = R.qcT; try { qcMem.clear(); qcFillShows(); } catch {} }
   lsSet('streamlet.meta', m);
@@ -175,6 +178,7 @@ async function pushAll(){
   if (m.addonsT) { fam.addons = addons.map(a => ({url:a.url, uid:a.uid, label:a.label || null})); fam.addonsT = m.addonsT; }
   if (m.reposT) { fam.repos = reposGet(); fam.reposT = m.reposT; }
   if (m.qcT) { const q = lsGet('streamlet.qcshows', null); fam.qcshows = Array.isArray(q) ? q : []; fam.qcT = m.qcT; }
+  if (m.rdT) { fam.rd = lsGet('streamlet.rd', '') || ''; fam.rdT = m.rdT; }
   if (m.tmdbT) { fam.tmdb = lsGet('streamlet.tmdb', '') || ''; fam.tmdbT = m.tmdbT; }
   if (Object.keys(fam).length) { const sig = JSON.stringify(fam); if (sig !== pushSig.fam) { await setDoc(doc(db, ...base, 'sync', 'family'), clean(fam), {merge:true}); pushSig.fam = sig; } }
   for (const p of profiles) {

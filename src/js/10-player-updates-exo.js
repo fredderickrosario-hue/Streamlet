@@ -144,7 +144,7 @@ async function playStream(s, title, ctx){
   if (s.touWeb) { const N = nativePlayer(); if (N && N.openTouLogin) { try { await N.openTouLogin({url:s.touWeb, player:true}); } catch { toast("Couldn't open TOU.TV's player"); } } else toast('Needs the Android app'); return; }
   if (s.externalUrl) { if (/^https?:/i.test(s.externalUrl)) window.open(s.externalUrl,'_blank','noopener'); else { try { location.href = s.externalUrl; } catch { toast('Could not open the app.'); } } return; }
   if (s.ytId) { window.open('https://www.youtube.com/watch?v='+enc(s.ytId),'_blank','noopener'); return; }
-  if (!s.url) { toast(s.infoHash ? "This is a torrent stream. Its addon needs a debrid service to provide direct links." : 'This stream type is not supported.'); return; }
+  if (!s.url) { toast(s.infoHash ? "This is a torrent. Turn on Real-Debrid in Settings > TMDB & addons > Torrentio to play it." : 'This stream type is not supported.'); return; }
   if (nativePlayer()) { return playNative(s, title, ctx); }
   const v = $('#vid'); $('#player').hidden = false; $('#ptitle').textContent = title || ''; pushLayer('player');
   { const o = $('#iosHelp'); if (o) o.remove(); }

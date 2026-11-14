@@ -1767,6 +1767,19 @@ body:not(.tv) .ntcard{right:12px;left:12px;width:auto;bottom:calc(84px + env(saf
 <div class="setcat" data-cat="tmdb" hidden>
 <div class="sgrp"><h3 class="sgh">TMDB</h3><div class="addon"><div class="row2 stack"><span class="rt">TMDB API key<small>Optional. Enables confirmed release dates for new seasons and episodes of shows you follow</small></span><span class="inrow"><input type="text" id="setTmdb" class="f" placeholder="API key (v3)" autocomplete="off" spellcheck="false"><button class="btn ghost sm" id="tmdbChk" type="button">Verify</button></span></div>
 <div class="row2"><span class="rt">Saved TMDB data<small>Titles matched to IMDb, curated lists and episode orders, kept to load faster</small></span><button class="btn ghost sm" id="stClrTm" type="button">Clear</button></div></div><p class="gnote">Your key also powers the TMDB addons, New &amp; Hot and confirmed release dates.</p></div>
+<div class="sgrp" id="tioGrp"><h3 class="sgh">Torrentio <small>built in</small></h3><div class="addon">
+<label class="row2"><span class="rt">Use Real-Debrid<small id="tioRdNote">Real-Debrid turns Torrentio's torrents into videos Streamlet can play</small></span><input type="checkbox" id="tioRd"></label>
+<div class="row2 stack" id="rowTioKey"><span class="rt">Real-Debrid token<small id="tioKeyNote">From real-debrid.com/apitoken. Shared by every profile, synced to your account</small></span><span class="inrow"><input type="password" id="tioKey" class="f" placeholder="API token" autocomplete="off" spellcheck="false"><button class="btn ghost sm" id="tioChk" type="button">Verify</button></span></div>
+<label class="row2" id="rowTioDl"><span class="rt">Hide "download to Real-Debrid" links<small>Show only files already ready on Real-Debrid</small></span><input type="checkbox" id="tioNoDl"></label>
+<label class="row2" id="rowTioCat"><span class="rt">My Real-Debrid downloads row<small>Your Real-Debrid files as a row on Home</small></span><input type="checkbox" id="tioCat"></label>
+<div class="row2 stack"><span class="rt">Sources<small id="tioProvSum">The sites Torrentio searches</small></span><div class="gchips" id="tioProv"></div><span class="inrow"><button class="btn ghost sm" id="tioAll" type="button">All</button><button class="btn ghost sm" id="tioNoForeign" type="button">No foreign sites</button></span></div>
+<div class="row2"><span class="rt">Sort sources<small>The order Torrentio lists them in</small></span><select id="tioSort" class="sel"><option value="quality">Quality, then seeders</option><option value="qualitysize">Quality, then size</option><option value="seeders">Seeders</option><option value="size">Size</option></select></div>
+<div class="row2 stack"><span class="rt">Hide qualities<small>Sources in these qualities are left out</small></span><div class="gchips" id="tioQf"></div></div>
+<div class="row2"><span class="rt">Results per quality<small>Fewer means a shorter list</small></span><select id="tioLimit" class="sel"><option value="">All</option><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="5">5</option><option value="10">10</option></select></div>
+<div class="row2"><span class="rt">Largest file<small>Skip files bigger than this, handy on slow Wi-Fi</small></span><select id="tioSize" class="sel"><option value="">No limit</option><option value="2GB">2 GB</option><option value="5GB">5 GB</option><option value="10GB">10 GB</option><option value="20GB">20 GB</option><option value="40GB">40 GB</option></select></div>
+<div class="row2"><span class="rt">Language first<small>Sources in this language go to the top</small></span><select id="tioLang" class="sel"></select></div>
+<div class="row2" id="rowTioIns" hidden><span class="rt">Torrentio is removed<small>Put it back with these settings</small></span><button class="btn ghost sm" id="tioIns" type="button">Install</button></div>
+<div class="row2"><span class="rt">Reset Torrentio<small>Back to Torrentio's defaults. Your token stays</small></span><button class="btn ghost sm" id="tioReset" type="button">Reset</button></div></div><p class="gnote" id="tioState"></p></div>
 <div class="sgrp"><h3 class="sgh">Addons</h3><div class="addon"><div class="row2"><span class="rt">Addons<small id="adSum">Install, remove and reorder the sources for your catalogs and streams</small></span><button id="setAddons" class="btn f" type="button">Manage</button></div></div></div>
 <div class="sgrp"><h3 class="sgh">Québec</h3><div class="addon"><div class="row2 stack"><span class="rt">Québec shows<small>One show page link per line, from tvaplus.ca, ici.radio-canada.ca/tele or ici.tou.tv. Requires the Québec addon. Synced across your devices</small></span>
           <textarea id="qcShows" rows="4" wrap="off" class="f" style="width:100%;font-family:ui-monospace,monospace;font-size:13px" spellcheck="false"></textarea><button class="btn ghost sm" id="qcSave" type="button" style="align-self:flex-start">Save</button></div></div></div>
@@ -2358,8 +2371,8 @@ function showLauncher(){
     h('div', {class:'lhead'}, h('h1', null, 'Stream', h('span', {style:'color:var(--acc)'}, 'let')),
       h('button', {class:'spaceBtn', type:'button', onclick:() => showProfiles()}, profile ? [avatarEl(profile, 22), ' ' + profile.name] : 'Profile', h('i', null, '⇄'))),
     h('div', {class:'lmid'},
-      h('h2', {class:'ltitle' + (addons.length ? '' : ' noadd')}, addons.length ? 'What are we watching?' : 'Add an addon first'),
-      addons.length ? null : h('p', {class:'lsub'}, 'Open Addons, install one, then pick a space.'),
+      h('h2', {class:'ltitle' + (addons.some(a => !isTio(a.url)) ? '' : ' noadd')}, addons.some(a => !isTio(a.url)) ? 'What are we watching?' : 'Add an addon first'),
+      addons.some(a => !isTio(a.url)) ? null : h('p', {class:'lsub'}, 'Open Addons, install one, then pick a space.'),
       h('div', {class:'sgrid'}, ...spacesFor().filter(sp => !spHidden(sp) || spEdit).map(tile),
         h('div', {class:'swrap newwrap'}, h('button', {class:'stile new', type:'button', onclick:() => editSpace(null)}, h('span', {class:'sem'}, '＋'), h('span', {class:'stx'}, h('span', {class:'snm'}, 'New space')))))),
     h('div', {class:'lfoot'},
@@ -3440,10 +3453,10 @@ async function renderResults(query, box, tok){
 async function renderHome(query = $('#q').value.trim(), target){
   const tok = ++homeTok, box = target || $('#rows');
   box.replaceChildren(); if (!target) renderTabs();
-  if (!addons.length) {
+  if (!addons.some(a => !isTio(a.url))) {                                   // Torrentio alone (built in) only finds streams: catalogs come from another addon
     box.append(h('div', {class:'empty'},
-      h('h2', null, 'No addons installed'),
-      h('p', null, 'Streamlet is an empty shell. Install at least one addon to get catalogs and streams.'),
+      h('h2', null, addons.length ? 'Add a catalog addon' : 'No addons installed'),
+      h('p', null, addons.length ? 'Torrentio is built in and finds the streams. Add a catalog addon, like TMDB or Cinemeta, to fill your rows.' : 'Streamlet is an empty shell. Install at least one addon to get catalogs and streams.'),
       h('button', {class:'btn', onclick:()=>showTab('addons')}, 'Install an addon')));
     return;
   }
@@ -4627,7 +4640,7 @@ async function playStream(s, title, ctx){
   if (s.touWeb) { const N = nativePlayer(); if (N && N.openTouLogin) { try { await N.openTouLogin({url:s.touWeb, player:true}); } catch { toast("Couldn't open TOU.TV's player"); } } else toast('Needs the Android app'); return; }
   if (s.externalUrl) { if (/^https?:/i.test(s.externalUrl)) window.open(s.externalUrl,'_blank','noopener'); else { try { location.href = s.externalUrl; } catch { toast('Could not open the app.'); } } return; }
   if (s.ytId) { window.open('https://www.youtube.com/watch?v='+enc(s.ytId),'_blank','noopener'); return; }
-  if (!s.url) { toast(s.infoHash ? "This is a torrent stream. Its addon needs a debrid service to provide direct links." : 'This stream type is not supported.'); return; }
+  if (!s.url) { toast(s.infoHash ? "This is a torrent. Turn on Real-Debrid in Settings > TMDB & addons > Torrentio to play it." : 'This stream type is not supported.'); return; }
   if (nativePlayer()) { return playNative(s, title, ctx); }
   const v = $('#vid'); $('#player').hidden = false; $('#ptitle').textContent = title || ''; pushLayer('player');
   { const o = $('#iosHelp'); if (o) o.remove(); }
@@ -4938,7 +4951,8 @@ async function mergeFamily(R){
     const rT = R.addonsT || 0, lT = m.addonsT || 0;
     if (rT > lT || lT === 0) {
       const rUrls = R.addons.map(x => typeof x === 'string' ? x : x.url);
-      const localOnly = lT === 0 ? addons.filter(a => !rUrls.includes(a.url)).map(a => ({url:a.url, uid:a.uid, label:a.label})) : [];
+      const localOnly = lT === 0 ? addons.filter(a => !rUrls.includes(a.url) && !(isTio(a.url) && rUrls.some(isTio)))   // the account's own Torrentio wins over the built-in one
+        .map(a => ({url:a.url, uid:a.uid, label:a.label})) : [];
       const sig = () => JSON.stringify(addons.map(a => [a.url, a.uid, a.label || '']));
       const before = sig();
       await applyRemoteAddons([...R.addons, ...localOnly]);
@@ -4949,6 +4963,8 @@ async function mergeFamily(R){
   if (R.repos && (R.reposT || 0) > (m.reposT || 0)) { lsSet('streamlet.repos', R.repos); m.reposT = R.reposT; }
   if (!m.tmdbT && lsGet('streamlet.tmdb', '')) m.tmdbT = 1;                      // a key entered before this synced: push it unless the account already has a newer one
   if (typeof R.tmdb === 'string' && (R.tmdbT || 0) > (m.tmdbT || 0)) { lsSet('streamlet.tmdb', R.tmdb); m.tmdbT = R.tmdbT; try { fillTmdb(); } catch {} }
+  if (!m.rdT && lsGet('streamlet.rd', '')) m.rdT = 1;
+  if (typeof R.rd === 'string' && (R.rdT || 0) > (m.rdT || 0)) { lsSet('streamlet.rd', R.rd); m.rdT = R.rdT; try { tioFill(); } catch {} }
   if (!m.qcT && Array.isArray(lsGet('streamlet.qcshows', null))) m.qcT = 1;
   if (Array.isArray(R.qcshows) && (R.qcT || 0) > (m.qcT || 0)) { lsSet('streamlet.qcshows', R.qcshows.length ? R.qcshows : null); m.qcT = R.qcT; try { qcMem.clear(); qcFillShows(); } catch {} }
   lsSet('streamlet.meta', m);
@@ -5043,6 +5059,7 @@ async function pushAll(){
   if (m.addonsT) { fam.addons = addons.map(a => ({url:a.url, uid:a.uid, label:a.label || null})); fam.addonsT = m.addonsT; }
   if (m.reposT) { fam.repos = reposGet(); fam.reposT = m.reposT; }
   if (m.qcT) { const q = lsGet('streamlet.qcshows', null); fam.qcshows = Array.isArray(q) ? q : []; fam.qcT = m.qcT; }
+  if (m.rdT) { fam.rd = lsGet('streamlet.rd', '') || ''; fam.rdT = m.rdT; }
   if (m.tmdbT) { fam.tmdb = lsGet('streamlet.tmdb', '') || ''; fam.tmdbT = m.tmdbT; }
   if (Object.keys(fam).length) { const sig = JSON.stringify(fam); if (sig !== pushSig.fam) { await setDoc(doc(db, ...base, 'sync', 'family'), clean(fam), {merge:true}); pushSig.fam = sig; } }
   for (const p of profiles) {
@@ -7419,7 +7436,7 @@ function setSummary(c){                                                   // wha
     personal:`${rows} of 6 home rows on`,
     content:[u.minRate ? u.minRate + '+ rating' : 'Any rating', (u.hideG || []).length ? `${u.hideG.length} genre${u.hideG.length > 1 ? 's' : ''} hidden` : '', (u.langs || []).length ? `${u.langs.length} language${u.langs.length > 1 ? 's' : ''}` : 'all languages', u.showUpcoming === false ? 'unreleased hidden' : ''].filter(Boolean).join(' · '),
     notif:ntOn.length ? ntOn.join(', ').replace(/^./, x => x.toUpperCase()) : 'Off',
-    tmdb:`${lsGet('streamlet.tmdb', '') ? 'TMDB key set' : 'No TMDB key'} · ${addons.length} addon${addons.length === 1 ? '' : 's'}`,
+    tmdb:`${lsGet('streamlet.tmdb', '') ? 'TMDB key set' : 'No TMDB key'} · ${(() => { try { const c = tioCfg(); return tioAddon() ? (c.realdebrid ? 'Torrentio with Real-Debrid' : 'Torrentio without Real-Debrid') : 'No Torrentio'; } catch { return ''; } })()} · ${addons.length} addon${addons.length === 1 ? '' : 's'}`,
     storage:'Space used, caches, backup and import',
     about:($('#verLine') && $('#verLine').textContent) || 'Version, credits and diagnostics'}[c] || '';
 }
@@ -7489,6 +7506,7 @@ function settingsPlus(){
   else { dropSetSub(); showSetHome(); }                                  // the gear always lands on the main Settings list
 
   scopeTags();
+  try { tioWire(); tioFill(); } catch (e) { console.warn(e); }               // Torrentio (29-torrentio.js)
   /* General */
   const stS = $('#setStart'), stSp = $('#setStartSp');
   stS.value = u.startup || 'last';
@@ -7564,7 +7582,7 @@ function settingsPlus(){
 /* who a setting is for: this profile, this device, or everyone on the account */
 const SCOPE = {
   profile:['setStart', 'setStartSp', 'setRemSrc', 'setResume', 'setRowHero', 'setRowCW', 'setRowBYW', 'setRowWL', 'setRowRec', 'setRowFav', 'setMinRate', 'setHideG', 'setLangs', 'setFavG', 'setNtEp', 'setNtSeason', 'setNtWl', 'setUpc', 'setSub', 'setAud'],
-  everyone:['setTmdb', 'setAddons', 'qcShows', 'spNew']};
+  everyone:['setTmdb', 'setAddons', 'qcShows', 'spNew', 'tioRd', 'tioKey', 'tioProv', 'tioSort', 'tioQf', 'tioLimit', 'tioSize', 'tioLang']};
 function scopeTags(){
   const tag = (row, kind) => { const rt = row && row.querySelector('.rt'); if (!rt || rt.querySelector('.scope')) return; const t = h('i', {class:'scope ' + kind, title:kind === 'p' ? 'Only for this profile' : 'For every profile on this account'}, kind === 'p' ? 'Profile' : 'Everyone'); const sm = rt.querySelector('small'); rt.insertBefore(t, sm); };
   for (const id of SCOPE.profile) { const el = document.getElementById(id); if (el) tag(el.closest('.row2'), 'p'); }
@@ -7918,6 +7936,164 @@ function dlOfflineRow(box){
 }
 addEventListener('online', () => { try { if (cur && !$('#home').hidden) renderHome(); } catch {} });
 addEventListener('offline', () => { try { if (cur && !$('#home').hidden) renderHome(); } catch {} });
+/* ---------- Torrentio, built in: installed for everyone, set up from Settings > TMDB & addons (no more pasting its long link).
+   The installed Torrentio link is the record of its settings (it syncs with the addons); the Real-Debrid token is also kept on its own
+   (streamlet.rd, synced like the TMDB key) so "Use Real-Debrid" can be turned off and back on without pasting it again.
+   Option keys are Torrentio's own (torrentio-scraper: lib/filter.js, lib/sort.js, lib/languages.js, moch/options.js). ---------- */
+const TIO = 'https://torrentio.strem.fun';
+const isTio = u => /^https?:\/\/torrentio\.strem\.fun\//i.test(String(u || ''));
+const TIO_PROV = [
+  ['yts', 'YTS'], ['eztv', 'EZTV'], ['rarbg', 'RARBG'], ['1337x', '1337x'], ['ext', 'EXT'], ['thepiratebay', 'The Pirate Bay'], ['kickasstorrents', 'KickassTorrents'],
+  ['torrentgalaxy', 'TorrentGalaxy'], ['magnetdl', 'MagnetDL'],
+  ['horriblesubs', 'HorribleSubs', 'anime'], ['nyaasi', 'Nyaa', 'anime'], ['tokyotosho', 'TokyoTosho', 'anime'], ['anidex', 'AniDex', 'anime'], ['nekobt', 'nekoBT', 'anime'],
+  ['rutor', '🇷🇺 Rutor', 'f'], ['rutracker', '🇷🇺 Rutracker', 'f'], ['comando', '🇵🇹 Comando', 'f'], ['bludv', '🇵🇹 BluDV', 'f'], ['micoleaodublado', '🇵🇹 MicoLeaoDublado', 'f'],
+  ['torrent9', '🇫🇷 Torrent9', 'f'], ['ilcorsaronero', '🇮🇹 ilCorSaRoNeRo', 'f'], ['mejortorrent', '🇪🇸 MejorTorrent', 'f'], ['wolfmax4k', '🇪🇸 Wolfmax4k', 'f'],
+  ['cinecalidad', '🇲🇽 Cinecalidad', 'f'], ['besttorrents', '🇵🇱 BestTorrents', 'f']];
+const TIO_QF = [['4k', '4K'], ['1080p', '1080p'], ['720p', '720p'], ['480p', '480p'], ['brremux', 'BluRay REMUX'], ['hdrall', 'HDR / Dolby Vision'], ['dolbyvision', 'Dolby Vision'],
+  ['threed', '3D'], ['other', 'Other rips'], ['scr', 'Screener'], ['cam', 'Cam'], ['unknown', 'Unknown']];
+const TIO_LANGS = ['english', 'french', 'spanish', 'latino', 'portuguese', 'italian', 'german', 'dutch', 'russian', 'japanese', 'korean', 'chinese', 'taiwanese', 'hindi', 'telugu', 'tamil',
+  'polish', 'czech', 'hungarian', 'romanian', 'greek', 'turkish', 'arabic', 'hebrew', 'ukrainian', 'swedish', 'danish', 'norwegian', 'finnish', 'vietnamese', 'thai', 'indonesian'];
+const TIO_MANIFEST = {id:'com.stremio.torrentio.addon', name:'Torrentio', version:'0.0.0', description:'Built in. Streams from torrent sites, played through Real-Debrid. Set it up in Settings > TMDB & addons.',
+  resources:[{name:'stream', types:['movie', 'series', 'anime'], idPrefixes:['tt', 'kitsu']}], types:['movie', 'series', 'anime', 'other'], catalogs:[], behaviorHints:{configurable:true}};
+
+const rdKey = () => String(lsGet('streamlet.rd', '') || '');
+const rdKeySet = k => { lsSet('streamlet.rd', k); stamp('rdT'); };
+const tioAddon = () => addons.find(a => isTio(a.url));
+function tioParse(url){                                                   // 'https://torrentio.strem.fun/a=b|c=d,e/manifest.json' → {a:'b', c:['d','e']}
+  const seg = String(url || '').replace(/^https?:\/\/[^/]+\/?/, '').replace(/\/?manifest\.json.*$/, '');
+  const o = {}; let s = seg; try { s = decodeURIComponent(seg); } catch {}
+  for (const part of s.split('|')) { const i = part.indexOf('='); if (i > 0) o[part.slice(0, i).toLowerCase()] = part.slice(i + 1); }
+  for (const k of ['providers', 'qualityfilter', 'language', 'debridoptions']) o[k] = o[k] ? o[k].split(',').filter(Boolean) : [];
+  return o;
+}
+function tioUrl(c){                                                       // the reverse, in Torrentio's own order; Torrentio's defaults are left out
+  const parts = [], all = TIO_PROV.map(p => p[0]);
+  const prov = (c.providers || []).filter(p => all.includes(p));
+  if (prov.length && prov.length < all.length) parts.push('providers=' + all.filter(p => prov.includes(p)).join(','));
+  if (c.sort && c.sort !== 'quality') parts.push('sort=' + c.sort);
+  if ((c.language || []).length) parts.push('language=' + c.language.join(','));
+  if ((c.qualityfilter || []).length) parts.push('qualityfilter=' + c.qualityfilter.join(','));
+  if (c.limit) parts.push('limit=' + c.limit);
+  if (c.sizefilter) parts.push('sizefilter=' + c.sizefilter);
+  const rd = c.realdebrid;
+  if (rd) { if ((c.debridoptions || []).length) parts.push('debridoptions=' + c.debridoptions.join(',')); parts.push('realdebrid=' + rd); }
+  return TIO + '/' + (parts.length ? parts.join('|') + '/' : '') + 'manifest.json';
+}
+const TIO_DEF = () => ({providers:[], qualityfilter:[], language:[], debridoptions:['nodownloadlinks', 'nocatalog']});
+let tioPend = null;                                                        // a change waiting to be applied: the next change builds on it
+function tioCfg(){
+  if (tioPend) return {...tioPend};
+  const a = tioAddon(), saved = lsGet('streamlet.tioCfg', null) || TIO_DEF();
+  if (!a) return {...TIO_DEF(), ...saved, realdebrid:undefined};
+  const c = tioParse(a.url);
+  if (!c.realdebrid) c.debridoptions = saved.debridoptions || TIO_DEF().debridoptions;   // Real-Debrid off: its options are kept for when it's back on
+  return c;
+}
+
+/* put the new link in place of the old one (same spot, same uid); the manifest is fetched again in the background */
+let tioT = 0;
+function tioApply(c, now){
+  clearTimeout(tioT); tioPend = c;
+  const run = async () => {
+    tioPend = null;
+    const url = tioUrl(c), a = tioAddon(); lsSet('streamlet.tioCfg', {...c, realdebrid:undefined});
+    if (!a || a.url === url) { tioFill(); return; }
+    a.url = url; a.base = baseOf(url); save(); tioFill(); try { homeDirty(); } catch {}
+    try { const {manifest} = await fetchManifest(url); const b = tioAddon(); if (b && b.url === url) { b.manifest = manifest; save(); } } catch {}
+  };
+  if (now) run(); else tioT = setTimeout(run, 500);
+}
+const tioPatch = patch => { tioApply({...tioCfg(), ...patch}); try { tioFill(); } catch {} };
+
+/* installed once for everyone. On a new device it waits for the account's addons: Torrentio is only added locally (no sync stamp),
+   so the account's own list still wins the first sync and keeps its Torrentio and its settings */
+function tioBoot(){
+  const a = tioAddon(); if (a && !rdKey()) { const k = tioParse(a.url).realdebrid; if (k) lsSet('streamlet.rd', k); }   // the token already in your Torrentio link
+  if (lsGet('streamlet.tioInit', 0)) return;
+  lsSet('streamlet.tioInit', 1);
+  if (a) return;
+  const c = tioCfg(); if (rdKey()) c.realdebrid = rdKey();
+  const url = tioUrl(c);
+  addons.push({url, base:baseOf(url), manifest:{...TIO_MANIFEST}, uid:nextUid(TIO_MANIFEST.id)});
+  if (metaGet().addonsT) save(); else { try { localStorage.setItem('streamlet.addons', JSON.stringify(addons)); } catch {} }
+  fetchManifest(url).then(({manifest}) => { const b = tioAddon(); if (b && b.url === url) { b.manifest = manifest; try { localStorage.setItem('streamlet.addons', JSON.stringify(addons)); } catch {} } }).catch(() => {});
+}
+try { tioBoot(); } catch {}
+
+function tioChips(sel, items, have, onTap){
+  const box = $(sel), fi = [...box.children].indexOf(document.activeElement);    // keep the remote's focus on the same chip
+  box.replaceChildren(...items.map(([v, n]) => {
+    const on = have.has(v), b = h('button', {class:'chip' + (on ? ' on' : ''), type:'button', 'aria-pressed':on ? 'true' : 'false'}, n);
+    b.onclick = () => onTap(v);
+    return b;
+  }));
+  if (fi >= 0 && box.children[fi]) box.children[fi].focus({preventScroll:true});
+}
+function tioFill(){
+  if (!$('#tioGrp')) return;
+  const a = tioAddon(), c = tioCfg(), key = rdKey(), rdOn = !!c.realdebrid, all = TIO_PROV.map(p => p[0]);
+  const prov = new Set(c.providers.length ? c.providers : all);
+  $('#rowTioIns').hidden = !!a;
+  $('#tioRd').checked = rdOn; $('#tioKey').value = key;
+  $('#rowTioDl').hidden = $('#rowTioCat').hidden = !rdOn;
+  $('#tioNoDl').checked = c.debridoptions.includes('nodownloadlinks');
+  $('#tioCat').checked = !c.debridoptions.includes('nocatalog');
+  tioChips('#tioProv', TIO_PROV, prov, v => {
+    const s = new Set(prov); if (s.has(v)) { if (s.size === 1) { toast('Keep at least one source'); return; } s.delete(v); } else s.add(v);
+    tioPatch({providers:all.filter(p => s.has(p))});
+  });
+  $('#tioProvSum').textContent = prov.size === all.length ? 'All ' + all.length + ' sites Torrentio searches' : `${prov.size} of ${all.length} sites`;
+  tioChips('#tioQf', TIO_QF, new Set(c.qualityfilter), v => { const s = new Set(c.qualityfilter); s.has(v) ? s.delete(v) : s.add(v); tioPatch({qualityfilter:TIO_QF.map(q => q[0]).filter(q => s.has(q))}); });
+  $('#tioSort').value = c.sort || 'quality'; $('#tioLimit').value = c.limit || ''; $('#tioSize').value = c.sizefilter || '';
+  if (c.sizefilter && $('#tioSize').value !== c.sizefilter) $('#tioSize').append(h('option', {value:c.sizefilter, selected:true}, c.sizefilter));   // a custom size from an older link
+  const lg = $('#tioLang');
+  if (lg.options.length < 2) lg.replaceChildren(h('option', {value:''}, 'No preference'), ...TIO_LANGS.map(l => h('option', {value:l}, l[0].toUpperCase() + l.slice(1))));
+  lg.value = c.language[0] || '';
+  $('#tioState').textContent = !a ? 'Torrentio is not installed.' : rdOn ? 'Torrentio plays through Real-Debrid.'
+    : 'Without Real-Debrid, Torrentio lists torrents that Streamlet can\'t play. Turn on Real-Debrid to play them.';
+}
+function tioWire(){
+  if (!$('#tioGrp') || $('#tioGrp')._w) return; $('#tioGrp')._w = 1;
+  $('#tioRd').onchange = e => {
+    const k = $('#tioKey').value.trim() || rdKey();
+    if (e.target.checked && !k) { e.target.checked = false; toast('Paste your Real-Debrid token first'); $('#tioKey').focus(); return; }
+    tioApply({...tioCfg(), realdebrid:e.target.checked ? k : undefined}, true);
+  };
+  $('#tioKey').onchange = e => {
+    const k = e.target.value.trim(); rdKeySet(k);
+    const c = tioCfg();
+    if (k && (c.realdebrid || !rdKeyWas)) tioApply({...c, realdebrid:k}, true);          // a new token goes straight into Torrentio
+    else if (!k) tioApply({...c, realdebrid:undefined}, true);
+    rdKeyWas = k; toast(k ? 'Real-Debrid token saved' : 'Real-Debrid token removed');
+  };
+  $('#tioChk').onclick = async () => {
+    const k = $('#tioKey').value.trim(); if (!k) { toast('Paste your Real-Debrid token first'); return; }
+    const b = $('#tioChk'); b.disabled = true;
+    try {
+      const r = await fetch('https://api.real-debrid.com/rest/1.0/user', {headers:{Authorization:'Bearer ' + k}});
+      if (r.status === 401 || r.status === 403) toast('Real-Debrid rejected that token');
+      else if (!r.ok) toast('Real-Debrid answered ' + r.status);
+      else { const u = await r.json(); const days = u.expiration ? Math.ceil((new Date(u.expiration) - Date.now()) / 864e5) : 0;
+        toast(u.type === 'premium' ? `Works: ${u.username}, premium for ${days} more day${days === 1 ? '' : 's'}` : `Works: ${u.username}, but the account isn't premium`); }
+    } catch { toast("Couldn't reach Real-Debrid"); }
+    b.disabled = false;
+  };
+  const dopt = () => [!$('#tioNoDl').checked ? '' : 'nodownloadlinks', $('#tioCat').checked ? '' : 'nocatalog'].filter(Boolean);
+  $('#tioNoDl').onchange = $('#tioCat').onchange = () => tioPatch({debridoptions:dopt()});
+  $('#tioAll').onclick = () => tioPatch({providers:[]});
+  $('#tioNoForeign').onclick = () => tioPatch({providers:TIO_PROV.filter(p => p[2] !== 'f').map(p => p[0])});
+  $('#tioSort').onchange = e => tioPatch({sort:e.target.value});
+  $('#tioLimit').onchange = e => tioPatch({limit:e.target.value});
+  $('#tioSize').onchange = e => tioPatch({sizefilter:e.target.value});
+  $('#tioLang').onchange = e => tioPatch({language:e.target.value ? [e.target.value] : []});
+  $('#tioReset').onclick = () => { const c = tioCfg(); tioApply({providers:[], qualityfilter:[], language:[], debridoptions:['nodownloadlinks', 'nocatalog'], realdebrid:c.realdebrid}, true); toast('Torrentio is back to its defaults'); };
+  $('#tioIns').onclick = () => {
+    const c = {...tioCfg()}; if (rdKey()) c.realdebrid = rdKey();
+    const url = tioUrl(c); addons.push({url, base:baseOf(url), manifest:{...TIO_MANIFEST}, uid:nextUid(TIO_MANIFEST.id)}); save(); tioFill(); toast('Torrentio installed');
+    fetchManifest(url).then(({manifest}) => { const b = tioAddon(); if (b && b.url === url) { b.manifest = manifest; save(); } }).catch(() => {});
+  };
+}
+let rdKeyWas = rdKey();
 </script>
 </body>
 </html>

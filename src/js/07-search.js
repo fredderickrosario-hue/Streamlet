@@ -120,10 +120,10 @@ async function renderResults(query, box, tok){
 async function renderHome(query = $('#q').value.trim(), target){
   const tok = ++homeTok, box = target || $('#rows');
   box.replaceChildren(); if (!target) renderTabs();
-  if (!addons.length) {
+  if (!addons.some(a => !isTio(a.url))) {                                   // Torrentio alone (built in) only finds streams: catalogs come from another addon
     box.append(h('div', {class:'empty'},
-      h('h2', null, 'No addons installed'),
-      h('p', null, 'Streamlet is an empty shell. Install at least one addon to get catalogs and streams.'),
+      h('h2', null, addons.length ? 'Add a catalog addon' : 'No addons installed'),
+      h('p', null, addons.length ? 'Torrentio is built in and finds the streams. Add a catalog addon, like TMDB or Cinemeta, to fill your rows.' : 'Streamlet is an empty shell. Install at least one addon to get catalogs and streams.'),
       h('button', {class:'btn', onclick:()=>showTab('addons')}, 'Install an addon')));
     return;
   }

@@ -80,7 +80,7 @@ function setSummary(c){                                                   // wha
     personal:`${rows} of 6 home rows on`,
     content:[u.minRate ? u.minRate + '+ rating' : 'Any rating', (u.hideG || []).length ? `${u.hideG.length} genre${u.hideG.length > 1 ? 's' : ''} hidden` : '', (u.langs || []).length ? `${u.langs.length} language${u.langs.length > 1 ? 's' : ''}` : 'all languages', u.showUpcoming === false ? 'unreleased hidden' : ''].filter(Boolean).join(' · '),
     notif:ntOn.length ? ntOn.join(', ').replace(/^./, x => x.toUpperCase()) : 'Off',
-    tmdb:`${lsGet('streamlet.tmdb', '') ? 'TMDB key set' : 'No TMDB key'} · ${addons.length} addon${addons.length === 1 ? '' : 's'}`,
+    tmdb:`${lsGet('streamlet.tmdb', '') ? 'TMDB key set' : 'No TMDB key'} · ${(() => { try { const c = tioCfg(); return tioAddon() ? (c.realdebrid ? 'Torrentio with Real-Debrid' : 'Torrentio without Real-Debrid') : 'No Torrentio'; } catch { return ''; } })()} · ${addons.length} addon${addons.length === 1 ? '' : 's'}`,
     storage:'Space used, caches, backup and import',
     about:($('#verLine') && $('#verLine').textContent) || 'Version, credits and diagnostics'}[c] || '';
 }
@@ -150,6 +150,7 @@ function settingsPlus(){
   else { dropSetSub(); showSetHome(); }                                  // the gear always lands on the main Settings list
 
   scopeTags();
+  try { tioWire(); tioFill(); } catch (e) { console.warn(e); }               // Torrentio (29-torrentio.js)
   /* General */
   const stS = $('#setStart'), stSp = $('#setStartSp');
   stS.value = u.startup || 'last';
@@ -225,7 +226,7 @@ function settingsPlus(){
 /* who a setting is for: this profile, this device, or everyone on the account */
 const SCOPE = {
   profile:['setStart', 'setStartSp', 'setRemSrc', 'setResume', 'setRowHero', 'setRowCW', 'setRowBYW', 'setRowWL', 'setRowRec', 'setRowFav', 'setMinRate', 'setHideG', 'setLangs', 'setFavG', 'setNtEp', 'setNtSeason', 'setNtWl', 'setUpc', 'setSub', 'setAud'],
-  everyone:['setTmdb', 'setAddons', 'qcShows', 'spNew']};
+  everyone:['setTmdb', 'setAddons', 'qcShows', 'spNew', 'tioRd', 'tioKey', 'tioProv', 'tioSort', 'tioQf', 'tioLimit', 'tioSize', 'tioLang']};
 function scopeTags(){
   const tag = (row, kind) => { const rt = row && row.querySelector('.rt'); if (!rt || rt.querySelector('.scope')) return; const t = h('i', {class:'scope ' + kind, title:kind === 'p' ? 'Only for this profile' : 'For every profile on this account'}, kind === 'p' ? 'Profile' : 'Everyone'); const sm = rt.querySelector('small'); rt.insertBefore(t, sm); };
   for (const id of SCOPE.profile) { const el = document.getElementById(id); if (el) tag(el.closest('.row2'), 'p'); }
