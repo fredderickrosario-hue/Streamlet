@@ -3389,7 +3389,8 @@ async function renderHome(query = $('#q').value.trim(), target){
   const skipP = personalSkip; personalSkip = false;
   const tmMade = spaceAddons().some(a => a.url === 'tmdb://all/manifest.json');   // the TMDB rows already make these, per profile
   const personal = rowOn('byw') && !skipP && !tmMade && !query && !target && !(tabs && view.genre) && (!tabs || view.tab === 'home') && personalSeeds().any;
-  const hideCats = personal && tabs;                                            // with tabs, the catalogs live in Movies / Shows as discoveries
+  const curated = spaceAddons().some(a => /^tmdb:\/\/(?!all\/)/.test(a.url || ''));   // Marvel, Disney, Netflix, Kids, TMDB lists: the rows are the point, always shown
+  const hideCats = personal && tabs && !curated;                                // with tabs, the catalogs live in Movies / Shows as discoveries
   const nhKey = tabs && !target && !isKid() && view.tab === 'new' && !view.genre ? lsGet('streamlet.tmdb', '') : '';
   if (nhKey) { box.append(h('div', {class:'tspace'})); renderNewHot(box, tok, nhKey).catch(() => {}); return; }
   const heroBox = h('div'); if (!query && !(tabs && view.genre) && rowOn('hero')) box.append(heroBox); else if (!target) box.append(h('div', {class:'tspace'}));
