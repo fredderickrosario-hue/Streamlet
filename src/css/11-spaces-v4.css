@@ -62,3 +62,5 @@ body.tv .spload .splbar{width:240px}
 .spico svg{width:100%;height:100%;display:block}
 .eb.ebi .spico{width:1.3em;height:1.3em}
 #spaceBtn .spico{width:1.25em;height:1.25em;vertical-align:-.28em}
+.spico.pic img{width:100%;height:100%;object-fit:contain;display:block}
+.spico.avengers img{filter:invert(1) brightness(.92)}   /* the dark grey A turned light, so it shows on the dark tiles */

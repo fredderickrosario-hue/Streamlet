@@ -2,9 +2,9 @@
    addons are only the built-in Torrentio (a signed-in account that already has addons never sees it). ---------- */
 const WZ_SPACES = [
   {id:'aio',     name:'Cinema',  emoji:'🍿', icon:'cinema', theme:'googletv', desc:'Everything: movies and shows', tmdb:'tmdb://all'},
-  {id:'netflix', name:'Netflix', emoji:'📺', icon:'tv', theme:'netflix',  desc:"What's on Netflix in Canada", tmdb:'tmdb://netflix'},
+  {id:'netflix', name:'Netflix', emoji:'📺', icon:'netflix', theme:'netflix',  desc:"What's on Netflix in Canada", tmdb:'tmdb://netflix'},
   {id:'disney',  name:'Disney',  emoji:'🏰', icon:'castle', theme:'disney',   desc:'Disney, Pixar and Disney Channel', tmdb:'tmdb://disney'},
-  {id:'marvel',  name:'Marvel',  emoji:'🦸', icon:'hero', theme:'marvel',   desc:'The MCU in story order, then the rest', tmdb:'tmdb://marvel'},
+  {id:'marvel',  name:'Marvel',  emoji:'🦸', icon:'avengers', theme:'marvel',   desc:'The MCU in story order, then the rest', tmdb:'tmdb://marvel'},
   {id:'anime',   name:'Anime',   emoji:'🍥', icon:'naruto', theme:'anime',    desc:'Anime, from Kitsu', kitsu:true},
   {id:'kids',    name:'Kids',    emoji:'🧸', icon:'bear', theme:'sky',      desc:'Family movies and cartoons', tmdb:'tmdb://kids', kids:true}];
 const CINEMETA = 'https://v3-cinemeta.strem.io/manifest.json', KITSU = 'https://anime-kitsu.strem.fun/manifest.json';

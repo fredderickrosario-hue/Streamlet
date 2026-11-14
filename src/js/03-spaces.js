@@ -36,10 +36,10 @@ function applyTheme(key){
 }
 const DEFAULT_SPACES = [
   {id:'aio',     name:'Cinema',  emoji:'🍿', icon:'cinema', theme:'googletv', catalogs:[]},
-  {id:'netflix', name:'Netflix', emoji:'📺', icon:'tv',     theme:'netflix',  catalogs:[]},
+  {id:'netflix', name:'Netflix', emoji:'📺', icon:'netflix', theme:'netflix',  catalogs:[]},
   {id:'disney',  name:'Disney',  emoji:'🏰', icon:'castle', theme:'disney',   catalogs:[]},
   {id:'anime',   name:'Anime',   emoji:'🍥', icon:'naruto', theme:'anime',    catalogs:[]},
-  {id:'marvel',  name:'Marvel',  emoji:'🦸', icon:'hero',   theme:'marvel',   catalogs:[]}
+  {id:'marvel',  name:'Marvel',  emoji:'🦸', icon:'avengers', theme:'marvel',   catalogs:[]}
 ];
 let spaces = null;
 try { spaces = JSON.parse(localStorage.getItem('streamlet.spaces2') || 'null'); } catch {}
@@ -128,7 +128,7 @@ function editSpace(id){
   let icon = s.icon || '';                                                  // a built-in drawn icon (03b-space-icons.js); picking an emoji replaces it
   emoji.addEventListener('input', () => { icon = ''; paintEg(); paintPrev(); });
   const paintEg = () => eg.replaceChildren(
-    ...Object.keys(SPACE_ICONS).map(k => h('button', {type:'button', class:'eb ebi' + (icon === k ? ' on' : ''), 'aria-label':k, onclick:() => { icon = k; const d = Object.values(SP_ICON_DEF).find(x => x[0] === k); if (d) emoji.value = d[2]; paintEg(); paintPrev(); }}, spIcon({icon:k}))),
+    ...[...Object.keys(SPACE_PICS), ...Object.keys(SPACE_ICONS)].map(k => h('button', {type:'button', class:'eb ebi' + (icon === k ? ' on' : ''), 'aria-label':k, onclick:() => { icon = k; const d = Object.values(SP_ICON_DEF).find(x => x[0] === k); if (d) emoji.value = d[2]; paintEg(); paintPrev(); }}, spIcon({icon:k}))),
     ...SP_EMOJI.map(e => h('button', {type:'button', class:'eb' + (!icon && emoji.value === e ? ' on' : ''), onclick:() => { icon = ''; emoji.value = e; paintEg(); paintPrev(); }}, e)));
   const NAMES = ['Cinema', 'Movies', 'Shows', 'Anime', 'Kids', 'Netflix', 'Disney', 'Marvel'];
   const quick = h('div', {class:'srow nm-row'}, NAMES.map(n => h('button', {type:'button', class:'chip', onclick:() => { name.value = n; paintPrev(); }}, n)));
