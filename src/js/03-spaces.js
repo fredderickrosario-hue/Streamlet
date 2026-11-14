@@ -35,11 +35,11 @@ function applyTheme(key){
   const m = document.querySelector('meta[name=theme-color]'); if (m) m.content = t.bg;
 }
 const DEFAULT_SPACES = [
-  {id:'aio',     name:'AIO',     emoji:'🌐', theme:'googletv', catalogs:[]},
-  {id:'netflix', name:'Netflix', emoji:'🍿', theme:'netflix',  catalogs:[]},
-  {id:'disney',  name:'Disney',  emoji:'🏰', theme:'disney',   catalogs:[]},
-  {id:'anime',   name:'Anime',   emoji:'🍥', theme:'anime',    catalogs:[]},
-  {id:'marvel',  name:'Marvel',  emoji:'🦸', theme:'marvel',   catalogs:[]}
+  {id:'aio',     name:'Cinema',  emoji:'🍿', icon:'cinema', theme:'googletv', catalogs:[]},
+  {id:'netflix', name:'Netflix', emoji:'📺', icon:'tv',     theme:'netflix',  catalogs:[]},
+  {id:'disney',  name:'Disney',  emoji:'🏰', icon:'castle', theme:'disney',   catalogs:[]},
+  {id:'anime',   name:'Anime',   emoji:'🍥', icon:'naruto', theme:'anime',    catalogs:[]},
+  {id:'marvel',  name:'Marvel',  emoji:'🦸', icon:'hero',   theme:'marvel',   catalogs:[]}
 ];
 let spaces = null;
 try { spaces = JSON.parse(localStorage.getItem('streamlet.spaces2') || 'null'); } catch {}
@@ -71,7 +71,7 @@ function showLauncher(){
     const nInst = sp.catalogs.filter(id => addons.find(x => x.uid === id)).length;
     const names = sp.catalogs.length ? (nInst ? nInst + (nInst === 1 ? ' addon' : ' addons') : '') : 'All addons';
     const btn = h('button', {class:'stile', type:'button', style:`--c1:${t.acc};--c2:${t.acc2 || t.acc}`, onclick:() => { if (spEdit) editSpace(sp.id); else openSpace(sp.id); }},
-      h('span', {class:'sem'}, sp.emoji), h('span', {class:'stx'}, h('span', {class:'snm'}, sp.name), h('span', {class:'sds'}, names || 'Selected addon not installed')));
+      h('span', {class:'sem'}, spIcon(sp)), h('span', {class:'stx'}, h('span', {class:'snm'}, sp.name), h('span', {class:'sds'}, names || 'Selected addon not installed')));
     attachLong(btn, () => { if (!isKid()) editSpace(sp.id); });
     return h('div', {class:'swrap'}, btn, h('span', {class:'sedit', 'aria-hidden':'true'}, PENCIL_SVG()));
   };
@@ -120,13 +120,17 @@ function editSpace(id){
   const paintPrev = () => {
     const t = THEMES[s.theme] || THEMES.ember;
     prev.replaceChildren(h('div', {class:'stile', style:`--c1:${t.acc};--c2:${t.acc2 || t.acc}`},
-      h('span', {class:'sem'}, emoji.value.trim() || '📺'), h('span', {class:'stx'}, h('span', {class:'snm'}, name.value.trim() || 'New space'), h('span', {class:'sds'}, 'Preview'))));
+      h('span', {class:'sem'}, spIcon({icon, emoji:emoji.value.trim() || '📺'})), h('span', {class:'stx'}, h('span', {class:'snm'}, name.value.trim() || 'New space'), h('span', {class:'sds'}, 'Preview'))));
   };
   const SP_EMOJI = ['🌐','🍿','🏰','🍥','🦸','🎬','📺','🎮','⚽','👶','🎵','🔥','🌙','⭐','🚀','🐉','🎭','🧠','🍜','🌍'];
   if (emoji.value && !SP_EMOJI.includes(emoji.value)) SP_EMOJI.unshift(emoji.value);
   const eg = h('div', {class:'egrid'});
-  const paintEg = () => eg.replaceChildren(...SP_EMOJI.map(e => h('button', {type:'button', class:'eb' + (emoji.value === e ? ' on' : ''), onclick:() => { emoji.value = e; paintEg(); paintPrev(); }}, e)));
-  const NAMES = ['AIO', 'Movies', 'Shows', 'Anime', 'Kids', 'Netflix', 'Disney', 'Marvel'];
+  let icon = s.icon || '';                                                  // a built-in drawn icon (03b-space-icons.js); picking an emoji replaces it
+  emoji.addEventListener('input', () => { icon = ''; paintEg(); paintPrev(); });
+  const paintEg = () => eg.replaceChildren(
+    ...Object.keys(SPACE_ICONS).map(k => h('button', {type:'button', class:'eb ebi' + (icon === k ? ' on' : ''), 'aria-label':k, onclick:() => { icon = k; const d = Object.values(SP_ICON_DEF).find(x => x[0] === k); if (d) emoji.value = d[2]; paintEg(); paintPrev(); }}, spIcon({icon:k}))),
+    ...SP_EMOJI.map(e => h('button', {type:'button', class:'eb' + (!icon && emoji.value === e ? ' on' : ''), onclick:() => { icon = ''; emoji.value = e; paintEg(); paintPrev(); }}, e)));
+  const NAMES = ['Cinema', 'Movies', 'Shows', 'Anime', 'Kids', 'Netflix', 'Disney', 'Marvel'];
   const quick = h('div', {class:'srow nm-row'}, NAMES.map(n => h('button', {type:'button', class:'chip', onclick:() => { name.value = n; paintPrev(); }}, n)));
   name.addEventListener('input', paintPrev); name.style.width = '100%';
   const swDraw = () => sw.replaceChildren(...Object.entries(THEMES).map(([k, t]) =>
@@ -153,7 +157,7 @@ function editSpace(id){
       h('div', {class:'sedact'},
         h('button', {class:'btn', type:'button', onclick:() => {
           if (!name.value.trim()) { toast('Give it a name.'); return; }
-          s.name = name.value.trim(); s.emoji = emoji.value.trim() || '📺';
+          s.name = name.value.trim(); s.emoji = emoji.value.trim() || '📺'; if (icon) s.icon = icon; else delete s.icon;
           s.catalogs = boxes.filter(x => x.cb.checked).map(x => x.a.uid);
           s.streams = sboxes.filter(x => x.cb.checked).map(x => x.a.uid);
           const i = spaces.findIndex(x => x.id === s.id); if (i >= 0) spaces[i] = s; else spaces.push(s);

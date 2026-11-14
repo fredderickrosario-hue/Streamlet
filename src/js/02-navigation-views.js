@@ -130,7 +130,7 @@ function showTab(name){
   navAvatar();
   for (const [k, sel] of Object.entries(TAB_SECTIONS)) { $(sel).hidden = k !== name; $(TAB_BUTTONS[k]).classList.toggle('on', k === name); }
   if (isTVui()) $('#tabSettings').classList.toggle('on', name === 'settings' || name === 'addons');   // on TV the addons live inside Settings
-  $('#spaceBtn').replaceChildren(cur ? cur.emoji+' '+cur.name : 'Spaces', h('i',null,'⇄'));
+  $('#spaceBtn').replaceChildren(...(cur ? [spIcon(cur), ' ' + cur.name] : ['Spaces']), h('i',null,'⇄'));
   $('#q').hidden = name !== 'home'; $('#pageTitle').hidden = true; document.body.classList.toggle('onhome', name === 'home'); document.body.classList.toggle('pgfix', ['watch', 'addons', 'settings', 'me'].includes(name)); document.body.classList.toggle('srchpg', name === 'search');
   $('#q').placeholder = cur ? 'Search '+cur.name+'…' : 'Search…';
   if (name === 'home') renderHome($('#q').value.trim());

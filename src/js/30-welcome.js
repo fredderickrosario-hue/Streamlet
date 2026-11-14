@@ -1,12 +1,12 @@
 /* ---------- first launch: pick your spaces, then a TMDB key (or Cinemeta without one), then Real-Debrid. Shown once, on a device whose
    addons are only the built-in Torrentio (a signed-in account that already has addons never sees it). ---------- */
 const WZ_SPACES = [
-  {id:'aio',     name:'AIO',     emoji:'🌐', theme:'googletv', desc:'Everything: movies and shows', tmdb:'tmdb://all'},
-  {id:'netflix', name:'Netflix', emoji:'🍿', theme:'netflix',  desc:"What's on Netflix in Canada", tmdb:'tmdb://netflix'},
-  {id:'disney',  name:'Disney',  emoji:'🏰', theme:'disney',   desc:'Disney, Pixar and Disney Channel', tmdb:'tmdb://disney'},
-  {id:'marvel',  name:'Marvel',  emoji:'🦸', theme:'marvel',   desc:'The MCU in story order, then the rest', tmdb:'tmdb://marvel'},
-  {id:'anime',   name:'Anime',   emoji:'🍥', theme:'anime',    desc:'Anime, from Kitsu', kitsu:true},
-  {id:'kids',    name:'Kids',    emoji:'🧸', theme:'sky',      desc:'Family movies and cartoons', tmdb:'tmdb://kids', kids:true}];
+  {id:'aio',     name:'Cinema',  emoji:'🍿', icon:'cinema', theme:'googletv', desc:'Everything: movies and shows', tmdb:'tmdb://all'},
+  {id:'netflix', name:'Netflix', emoji:'📺', icon:'tv', theme:'netflix',  desc:"What's on Netflix in Canada", tmdb:'tmdb://netflix'},
+  {id:'disney',  name:'Disney',  emoji:'🏰', icon:'castle', theme:'disney',   desc:'Disney, Pixar and Disney Channel', tmdb:'tmdb://disney'},
+  {id:'marvel',  name:'Marvel',  emoji:'🦸', icon:'hero', theme:'marvel',   desc:'The MCU in story order, then the rest', tmdb:'tmdb://marvel'},
+  {id:'anime',   name:'Anime',   emoji:'🍥', icon:'naruto', theme:'anime',    desc:'Anime, from Kitsu', kitsu:true},
+  {id:'kids',    name:'Kids',    emoji:'🧸', icon:'bear', theme:'sky',      desc:'Family movies and cartoons', tmdb:'tmdb://kids', kids:true}];
 const CINEMETA = 'https://v3-cinemeta.strem.io/manifest.json', KITSU = 'https://anime-kitsu.strem.fun/manifest.json';
 let wz = null;
 
@@ -41,7 +41,7 @@ function wzDraw(){
     const grid = h('div', {class:'wzgrid'}, WZ_SPACES.map(s => {
       const t = THEMES[s.theme] || THEMES.ember, on = wz.pick.has(s.id);
       const b = h('button', {type:'button', class:'stile wztile' + (on ? ' on' : ''), 'aria-pressed':on ? 'true' : 'false', style:`--c1:${t.acc};--c2:${t.acc2 || t.acc}`},
-        h('span', {class:'sem'}, s.emoji), h('span', {class:'stx'}, h('span', {class:'snm'}, s.name), h('span', {class:'sds'}, s.desc)), h('span', {class:'wzck'}, on ? '✓' : ''));
+        h('span', {class:'sem'}, spIcon(s)), h('span', {class:'stx'}, h('span', {class:'snm'}, s.name), h('span', {class:'sds'}, s.desc)), h('span', {class:'wzck'}, on ? '✓' : ''));
       b.onclick = () => { if (wz.pick.has(s.id)) { if (wz.pick.size === 1) { msg.textContent = 'Keep at least one space'; return; } wz.pick.delete(s.id); } else wz.pick.add(s.id); wzDraw(); W.querySelectorAll('.wztile')[WZ_SPACES.indexOf(s)]?.focus({preventScroll:true}); };
       return b;
     }));
@@ -124,10 +124,10 @@ async function wzFinish(){
   for (const s of picked) {
     let uid = null;
     if (s.kitsu) uid = await need(KITSU, 'Kitsu Anime');
-    else if (wz.key) uid = await need(s.tmdb, s.name === 'AIO' ? 'TMDB' : s.name + ' (TMDB)');
+    else if (wz.key) uid = await need(s.tmdb, s.id === 'aio' ? 'TMDB' : s.name + ' (TMDB)');
     else { uid = await need(CINEMETA, 'Cinemeta'); cine.push(s.id); }
     const old = spaces.find(x => x.id === s.id);
-    out.push({...(old || {id:s.id, name:s.name, emoji:s.emoji, theme:s.theme}), ...(s.kids ? {kids:true} : {}), catalogs:uid ? [uid] : []});
+    out.push({...(old || {id:s.id, name:s.name, emoji:s.emoji, icon:s.icon, theme:s.theme}), ...(s.kids ? {kids:true} : {}), catalogs:uid ? [uid] : []});
   }
   spaces = out; saveSpaces();
   lsSet('streamlet.wzCine', cine);                                          // these switch to TMDB once a key is added

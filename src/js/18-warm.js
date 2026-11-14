@@ -23,7 +23,7 @@ function warmCover(label, emoji, theme){
   const el = h('div', {class:'spload', style:`--c1:${t.acc};--c2:${t.acc2 || t.acc}`},
     h('div', {class:'splglow'}),
     h('div', {class:'splbox'},
-      emoji ? h('div', {class:'splem'}, emoji) : null,
+      emoji ? h('div', {class:'splem'}, typeof emoji === 'string' ? emoji : spIcon(emoji)) : null,
       h('div', {class:'splnm'}, label || ''),
       h('div', {class:'splsub'}, 'Getting your rows ready'),
       h('div', {class:'splbar'}, h('i'))));
@@ -33,7 +33,7 @@ function warmCover(label, emoji, theme){
 let opening = false;
 async function openSpace(id){
   const sp = spaces.find(s => s.id === id); if (!sp || opening) return;
-  opening = true; const done = warmCover(sp.name, sp.emoji, sp.theme);
+  opening = true; const done = warmCover(sp.name, sp.icon ? sp : sp.emoji, sp.theme);
   try { await warmSpace(sp, 6000); } catch {}
   enterSpace(id); done(); opening = false;
 }

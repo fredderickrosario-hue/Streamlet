@@ -57,3 +57,8 @@ body.tv .spload .splbar{width:240px}
 @keyframes splpulse{50%{opacity:.45}}
 @keyframes splrun{0%{transform:translateX(-100%)}100%{transform:translateX(260%)}}
 @media (prefers-reduced-motion:reduce){.spload .splem,.spload .splglow{animation:none}}
+/* drawn space icons (03b-space-icons.js): sized by the emoji's font-size so every place that shows an emoji fits them too */
+.spico{display:inline-block;width:1.15em;height:1.15em;vertical-align:-.2em;line-height:0}
+.spico svg{width:100%;height:100%;display:block}
+.eb.ebi .spico{width:1.3em;height:1.3em}
+#spaceBtn .spico{width:1.25em;height:1.25em;vertical-align:-.28em}
