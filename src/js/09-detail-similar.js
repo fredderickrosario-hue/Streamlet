@@ -395,11 +395,12 @@ function prefSet(id, st, manual){                                       // you p
   m[id] = {sig:sigOf(st), like, manual:!!(manual || (old && old.manual && old.like && likeScore(old.like, st) >= LIKE_MIN))};
   const ks = Object.keys(m); if (ks.length > 150) delete m[ks[0]]; lsSet('streamlet.srcpref', m);
 }
-const prefTier = (id, st) => { const p = lsGet('streamlet.ui', {}).remSrc === false ? null : prefRaw(id); if (!p) return 2; if (p.sig && sigOf(st) === p.sig) return 0; if (!p.like || likeScore(p.like, st) < LIKE_MIN) return 2; return p.like.rd && !srcLike(st).rd ? 2 : 1; };   // your kind of source, but never one that isn't ready on the debrid service when yours was
+const prefTier = (id, st) => { const p = uiGet().remSrc === false ? null : prefRaw(id); if (!p) return 2; if (p.sig && sigOf(st) === p.sig) return 0; if (!p.like || likeScore(p.like, st) < LIKE_MIN) return 2; return p.like.rd && !srcLike(st).rd ? 2 : 1; };   // your kind of source, but never one that isn't ready on the debrid service when yours was
 const badSet = st => { const m = mapGet('streamlet.badsrc'), now = Date.now(); for (const k of Object.keys(m)) if (now - m[k] > 7 * 864e5) delete m[k]; m[urlKey(st.url)] = now; const ks = Object.keys(m); if (ks.length > 200) delete m[ks[0]]; lsSet('streamlet.badsrc', m); };
 const isBadStream = st => badStreams.has(st) || (st.url && Date.now() - (mapGet('streamlet.badsrc')[urlKey(st.url)] || 0) < 7 * 864e5);
 const logErr = (title, st, code) => { const a = lsGet('streamlet.errlog', []); a.unshift({t:Date.now(), title:title || '', src:String((st && st.name) || '').replace(/\n+/g, ' '), code:code || ''}); lsSet('streamlet.errlog', a.slice(0, 30)); try { sendLogSoon(); } catch {} };
 function orderStreams(ss, itemId){                                    // the source that worked last time first, ones that failed recently last
+  if (isIOS() && !nativePlayer()) { const k = x => { const t = iosKind(x); return t === 'mp4' || t === 'hls' ? 0 : t === '?' ? 1 : 2; }; ss = ss.map((x, i) => [x, i]).sort((a, b) => k(a[0]) - k(b[0]) || a[1] - b[1]).map(x => x[0]); }   // iPhone: MP4 / HLS sources first
   const p = prefRaw(itemId), rank = x => isBadStream(x) ? 9 : prefTier(itemId, x), near = x => p && p.like ? -likeScore(p.like, x) : 0;
   return ss.map((x, i) => [x, i]).sort((a, b) => rank(a[0]) - rank(b[0]) || (rank(a[0]) === 1 ? near(a[0]) - near(b[0]) : 0) || a[1] - b[1]).map(x => x[0]);
 }
@@ -414,7 +415,8 @@ function rankStreams(all, itemId){                                    // best fi
   const key = x => {
     const r = resOf(x), t = String(x.name || '') + ' ' + String(x.title || ''), seeds = Number((/\u{1F464}\s*(\d+)/u.exec(t) || [])[1]) || 0;
     const tier = prefTier(itemId, x);
-    return [tier, tier === 1 ? -likeScore(pp.like, x) : 0, lang(x), extra(x), r > cap ? 1 : 0, r === 0 ? 1 : 0, -Math.min(r, cap), /\[[A-Z]{2}\+\]|cached|\u26A1/i.test(t) ? 0 : 1, -seeds];
+    const ios = isIOS() && !nativePlayer() ? (k => k === 'mp4' || k === 'hls' ? 0 : k === '?' ? 1 : 2)(iosKind(x)) : 0;   // iPhone web: files Safari can play first
+    return [ios, tier, tier === 1 ? -likeScore(pp.like, x) : 0, lang(x), extra(x), r > cap ? 1 : 0, r === 0 ? 1 : 0, -Math.min(r, cap), /\[[A-Z]{2}\+\]|cached|\u26A1/i.test(t) ? 0 : 1, -seeds];
   };
   const ok = all.filter(x => x && x.url), good = ok.filter(x => !isBadStream(x));          // a source flagged bad earlier is only skipped when something else is available
   return (good.length ? good : ok).map((x, i) => [x, key(x), i]).sort((a, b) => { for (let k = 0; k < a[1].length; k++) if (a[1][k] !== b[1][k]) return a[1][k] - b[1][k]; return a[2] - b[2]; }).map(x => x[0]);

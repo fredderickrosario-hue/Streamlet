@@ -4,8 +4,16 @@
    live on the space itself (Spaces category, or the space editor). */
 const SET_CATS = [['general', 'General'], ['spaces', 'Spaces'], ['playback', 'Playback'], ['personal', 'Personalization'], ['content', 'Content'],
   ['notif', 'Notifications'], ['tmdb', 'TMDB & addons'], ['storage', 'Storage & backup'], ['account', 'Account'], ['about', 'About']];
-const uiGet = () => lsGet('streamlet.ui', {});
-const uiSet = patch => lsSet('streamlet.ui', {...lsGet('streamlet.ui', {}), ...patch});
+/* where a setting lives: this profile (kept with the profile and synced with your account), or this device */
+const PROFILE_UI = new Set(['rows', 'minRate', 'hideG', 'langs', 'favG', 'nt', 'startup', 'startSpace', 'remSrc', 'resume', 'showUpcoming', 'hiddenSp']);
+const spHidden = sp => { const l = uiGet().hiddenSp; return Array.isArray(l) ? l.includes(sp.id) : !!sp.hidden; };   // which spaces this profile sees on the spaces page
+const uiGet = () => { let p = {}; try { p = (settings && settings.ui) || {}; } catch {} return {...lsGet('streamlet.ui', {}), ...p}; };
+const uiSet = patch => {
+  const dev = {}, pro = {}; let hasP = false, hasD = false;
+  for (const [k, v] of Object.entries(patch)) { if (PROFILE_UI.has(k) && typeof profile !== 'undefined' && profile) { pro[k] = v; hasP = true; } else { dev[k] = v; hasD = true; } }
+  if (hasD) lsSet('streamlet.ui', {...lsGet('streamlet.ui', {}), ...dev});
+  if (hasP) { settings = {...settings, ui:{...(settings.ui || {}), ...pro}}; saveSettings(); }
+};
 
 /* ---- small helpers used elsewhere ---- */
 const metaLang = () => uiGet().metaLang || '';
@@ -63,7 +71,7 @@ function setSummary(c){                                                   // wha
   const q = {best:'best quality', 2160:'up to 4K', 1080:'up to 1080p', 720:'up to 720p'}[u.maxQ || 'best'] || 'best quality';
   const rows = ['hero', 'cw', 'byw', 'wl', 'rec', 'fav'].filter(rowOn).length, nt = {ep:true, season:true, wl:true, ...(u.nt || {})};
   const ntOn = [nt.ep && 'new episodes', nt.season && 'returning seasons', nt.wl && 'watchlist releases'].filter(Boolean);
-  const hid = spaces.filter(s => s.hidden).length, lang = (settings && settings.subLang) || 'off';
+  const hid = spaces.filter(spHidden).length, lang = (settings && settings.subLang) || 'off';
   return {
     account:`${profile ? profile.name : 'Profile'} · ${user ? (user.email || 'Signed in') : 'Not signed in'}`,
     general:`${st} · ${u.theme && u.theme !== 'space' && THEMES[u.theme] ? THEMES[u.theme].n + ' colors' : 'colors follow each space'}`,
@@ -101,12 +109,13 @@ function showSetHome(){
       : h('p', {class:'gnote', style:'padding:10px 4px'}, `Nothing matches "${q.value.trim()}".`));
   };
   q.oninput = paint; paint();
-  home.replaceChildren(q, list);
+  const who = profile ? profile.name : 'this profile';
+  home.replaceChildren(q, h('p', {class:'scopekey'}, h('i', {class:'scope p'}, 'Profile'), ` only for ${who} · `, h('i', {class:'scope e'}, 'Everyone'), ' every profile · the rest: this device'), list);
   if (from && document.body.classList.contains('tv') && !$('#settings').hidden) requestAnimationFrame(() => { const b = list.querySelector(`.setitem[data-cat="${from}"]`); if (b) b.focus(); });   // back on the section you came from
 }
 function openSetCat(c, row){
   if (!SET_CATS.some(x => x[0] === c)) return;
-  if (!layersOpen.includes('setsub')) pushLayer('setsub');
+  if (!isTVui() && !layersOpen.includes('setsub')) pushLayer('setsub');   // phone: the back gesture returns to the list. TV: Back is handled as 'go up' (tvBackStep)
   setCatNow = c;
   $('#setHome').hidden = true; $('#settings').classList.add('insub');
   for (const el of document.querySelectorAll('#settings .setcat')) el.hidden = el.dataset.cat !== c;
@@ -122,13 +131,25 @@ function openSetCat(c, row){
   });
 }
 const setCat = c => openSetCat(c);
+/* leave a section page for the Settings list: the arrow, and Back on TV */
+function closeSetSub(){
+  if (layersOpen[layersOpen.length - 1] === 'setsub') { popLayer('setsub'); return; }
+  dropSetSub(); showSetHome();
+}
+/* forget the section page without going back in history (switching tabs, opening Settings from the gear) */
+function dropSetSub(){
+  const i = layersOpen.indexOf('setsub'); if (i < 0) return;
+  layersOpen.splice(i, 1); focusStack.splice(Math.min(i, focusStack.length - 1), 1);
+  document.body.classList.toggle('inlayer', layersOpen.length > 0);
+  try { history.replaceState({...(history.state || {}), layers:[...layersOpen]}, ''); } catch {}
+}
 function settingsPlus(){
   const tv = document.body.classList.contains('tv'), u = uiGet();
-  $('#setBack').onclick = () => popLayer('setsub');
+  $('#setBack').onclick = closeSetSub;
   if (setCatWant) { const c = setCatWant; setCatWant = null; openSetCat(c); }
-  else if (setCatNow && layersOpen.includes('setsub')) openSetCat(setCatNow);
-  else showSetHome();
+  else { dropSetSub(); showSetHome(); }                                  // the gear always lands on the main Settings list
 
+  scopeTags();
   /* General */
   const stS = $('#setStart'), stSp = $('#setStartSp');
   stS.value = u.startup || 'last';
@@ -201,6 +222,15 @@ function settingsPlus(){
     const w = $('#setDlWifi'); w.checked = dlWifi(); w.onchange = () => uiSet({dlWifi:w.checked});
   }
 }
+/* who a setting is for: this profile, this device, or everyone on the account */
+const SCOPE = {
+  profile:['setStart', 'setStartSp', 'setRemSrc', 'setResume', 'setRowHero', 'setRowCW', 'setRowBYW', 'setRowWL', 'setRowRec', 'setRowFav', 'setMinRate', 'setHideG', 'setLangs', 'setFavG', 'setNtEp', 'setNtSeason', 'setNtWl', 'setUpc', 'setSub', 'setAud'],
+  everyone:['setTmdb', 'setAddons', 'qcShows', 'spNew']};
+function scopeTags(){
+  const tag = (row, kind) => { const rt = row && row.querySelector('.rt'); if (!rt || rt.querySelector('.scope')) return; const t = h('i', {class:'scope ' + kind, title:kind === 'p' ? 'Only for this profile' : 'For every profile on this account'}, kind === 'p' ? 'Profile' : 'Everyone'); const sm = rt.querySelector('small'); rt.insertBefore(t, sm); };
+  for (const id of SCOPE.profile) { const el = document.getElementById(id); if (el) tag(el.closest('.row2'), 'p'); }
+  for (const id of SCOPE.everyone) { const el = document.getElementById(id); if (el) tag(el.closest('.row2'), 'e'); }
+}
 let homeDirtyT = 0;
 function homeDirty(){ clearTimeout(homeDirtyT); homeDirtyT = setTimeout(() => { try { if (cur && !$('#home').hidden) renderHome(); } catch {} }, 300); }   // Home redraws with the new settings when you go back to it
 /* a row of toggle chips stored as a list in streamlet.ui */
@@ -223,11 +253,15 @@ function spacesList(){
   const move = (id, d) => { const i = spaces.findIndex(s => s.id === id), j = i + d; if (i < 0 || j < 0 || j >= spaces.length) return; [spaces[i], spaces[j]] = [spaces[j], spaces[i]]; saveSpaces(); launcherDirty = true; spacesList(); requestAnimationFrame(() => { const b = box.querySelector(`[data-sp="${id}"] .${d < 0 ? 'up' : 'dn'}`); if (b && !b.disabled) b.focus(); else { const r = box.querySelector(`[data-sp="${id}"] button:not([disabled])`); if (r) r.focus(); } }); };
   box.replaceChildren(...mine.map((s, i) => {
     const t = THEMES[s.theme] || THEMES.ember, n = s.catalogs.filter(id => addons.find(x => x.uid === id)).length;
-    const show = h('input', {type:'checkbox'}); show.checked = !s.hidden;
-    show.onchange = () => { const sp = spaces.find(x => x.id === s.id); if (!sp) return; if (!show.checked && spaces.filter(x => !x.hidden).length <= 1) { show.checked = true; toast('Keep at least one space visible'); return; } sp.hidden = !show.checked; saveSpaces(); launcherDirty = true; spacesList(); };
-    return h('div', {class:'sprow' + (s.hidden ? ' off' : ''), 'data-sp':s.id},
+    const show = h('input', {type:'checkbox'}); show.checked = !spHidden(s);
+    show.onchange = () => {
+      const now = new Set(mine.filter(spHidden).map(x => x.id));
+      if (show.checked) now.delete(s.id); else { if (mine.length - now.size <= 1) { show.checked = true; toast('Keep at least one space visible'); return; } now.add(s.id); }
+      uiSet({hiddenSp:[...now]}); launcherDirty = true; spacesList();
+    };
+    return h('div', {class:'sprow' + (spHidden(s) ? ' off' : ''), 'data-sp':s.id},
       h('span', {class:'spsw', style:`background:linear-gradient(135deg,${t.acc},${t.acc2 || t.acc})`}),
-      h('span', {class:'rt'}, `${s.emoji} ${s.name}`, h('small', null, [s.catalogs.length ? `${n} addon${n === 1 ? '' : 's'}` : 'All addons', s.kids ? 'For kids' : '', s.subs && s.subs !== 'off' ? 'Own subtitles' : '', s.hidden ? 'Hidden' : ''].filter(Boolean).join(' · '))),
+      h('span', {class:'rt'}, `${s.emoji} ${s.name}`, h('small', null, [s.catalogs.length ? `${n} addon${n === 1 ? '' : 's'}` : 'All addons', s.kids ? 'For kids' : '', s.subs && s.subs !== 'off' ? 'Own subtitles' : '', spHidden(s) ? 'Hidden for ' + (profile ? profile.name : 'this profile') : ''].filter(Boolean).join(' · '))),
       h('span', {class:'spbtns'},
         h('button', {class:'btn ghost sm ic up', type:'button', 'aria-label':'Move up', disabled:i === 0 ? '' : null, onclick:() => move(s.id, -1)}, '↑'),
         h('button', {class:'btn ghost sm ic dn', type:'button', 'aria-label':'Move down', disabled:i === mine.length - 1 ? '' : null, onclick:() => move(s.id, 1)}, '↓'),

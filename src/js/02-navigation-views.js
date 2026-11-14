@@ -72,11 +72,12 @@ function applyPage(p){
     cur = sp; rememberSpace(sp.id); applyTheme(spaceTheme(sp)); $('#q').value = ''; view = {tab:p.tab || 'home', genre:p.genre || ''}; showTab('home');
   }
 }
-/* TV Back button: entry -> home -> side menu -> (home) -> close-app prompt */
+/* TV Back button goes up, never 'back to where you were': Settings section -> Settings -> side menu -> close-app prompt */
 function tvBackStep(){
   if (!document.body.classList.contains('tv') || document.body.classList.contains('launch') || !cur) return false;
   const inNav = document.activeElement && document.activeElement.closest && document.activeElement.closest('#nav');
   const repush = () => { if (history.state && history.state.guard) { pageKey = ''; pushPage(); } };
+  if (!$('#settings').hidden && setCatNow && !inNav) { const from = setCatNow; showSetHome(); requestAnimationFrame(() => { const b = document.querySelector(`#setHome .setitem[data-cat="${from}"]`); if (b) b.focus({preventScroll:true}); }); repush(); return true; }   // a Settings section -> the Settings list
   if (!$('#addons').hidden) { setCatWant = 'tmdb'; showTab('settings'); requestAnimationFrame(() => { const b = $('#setAddons'); if (b) b.focus({preventScroll:true}); }); repush(); return true; }   // Addons opens from Settings on TV: Back goes there
   if (!inNav) {
     if (!$('#home').hidden && view.genre) { view = {tab:view.tab, genre:''}; renderHome(); repush(); return true; }
@@ -84,8 +85,7 @@ function tvBackStep(){
     if (focusNav()) { repush(); return true; }
     return false;
   }
-  if ($('#home').hidden || view.tab !== 'home') { tvTab('home'); repush(); focusNav(); return true; }
-  return false;
+  return false;                                                             // side menu -> close-app prompt
 }
 window.addEventListener('popstate', e => {
   if (exiting) return;
@@ -124,6 +124,7 @@ function movePill(){
 }
 addEventListener('resize', () => setTimeout(movePill, 50));
 function showTab(name){
+  if (name !== 'settings') { try { if (layersOpen.includes('setsub')) dropSetSub(); setCatNow = null; } catch {} }   // a Settings section never comes back after you leave Settings
   if (!cur && name === 'home') return showLauncher();
   document.body.classList.remove('launch'); $('#launcher').hidden = true; $('#profiles').hidden = true; $('#login').hidden = true;
   navAvatar();

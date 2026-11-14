@@ -119,6 +119,26 @@ $('#fsBtn').onclick = async () => {
   } catch { toast('Fullscreen not available here.'); }
 };
 
+/* iPhone / iPad (Safari and the installed web app): Safari can't play MKV files, which most torrent sources are.
+   Prefer MP4 sources there, and when a file can't play, say so and offer VLC or Infuse instead of loading forever. */
+const isIOS = () => /iP(hone|ad|od)/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+const iosKind = s => { const t = `${s.title || ''} ${s.description || ''} ${s.name || ''} ${s.url || ''}`; return /\.mp4\b|\bmp4\b/i.test(t) ? 'mp4' : /\.m3u8|\bhls\b/i.test(t) ? 'hls' : /\.mkv\b|\bmkv\b/i.test(t) ? 'mkv' : /\.avi\b/i.test(t) ? 'avi' : '?'; };
+function iosHelp(s, why){
+  const v = $('#vid'); try { v.pause(); } catch {}
+  const old = $('#iosHelp'); if (old) old.remove();
+  const url = s.url, e = encodeURIComponent(url);
+  const go = href => { location.href = href; };
+  const box = h('div', {id:'iosHelp', class:'ioshelp'},
+    h('h3', null, "This file can't play on iPhone"),
+    h('p', null, why || 'Safari only plays MP4 and HLS videos; most torrent sources are MKV files. Open it in a video app instead, or pick an MP4 source.'),
+    h('div', {class:'iosbtns'},
+      h('button', {class:'btn', type:'button', onclick:() => go('vlc-x-callback://x-callback-url/stream?url=' + e)}, 'Open in VLC'),
+      h('button', {class:'btn ghost', type:'button', onclick:() => go('infuse://x-callback-url/play?url=' + e)}, 'Open in Infuse'),
+      h('button', {class:'btn ghost', type:'button', onclick:async () => { try { await navigator.clipboard.writeText(url); toast('Link copied'); } catch { toast(url); } }}, 'Copy link'),
+      h('button', {class:'btn ghost', type:'button', onclick:() => popLayer('player')}, 'Choose another source')),
+    h('p', {class:'iosnote'}, 'VLC and Infuse are free on the App Store. Progress in those apps isn’t saved in Streamlet.'));
+  $('#player').append(box);
+}
 async function playStream(s, title, ctx){
   if (s.touApp) { const N = nativePlayer(); try { const r = await N.openTou({path:s.touApp}); if (!r.ok) toast(r.why || "Couldn't open ICI TOU.TV"); else if (r.how === 'home') toast('ICI TOU.TV opened on its home: its app has no link to episodes'); } catch { toast("Couldn't open ICI TOU.TV"); } return; }
   if (s.touWeb) { const N = nativePlayer(); if (N && N.openTouLogin) { try { await N.openTouLogin({url:s.touWeb, player:true}); } catch { toast("Couldn't open TOU.TV's player"); } } else toast('Needs the Android app'); return; }
@@ -127,12 +147,13 @@ async function playStream(s, title, ctx){
   if (!s.url) { toast(s.infoHash ? "This is a torrent stream. Its addon needs a debrid service to provide direct links." : 'This stream type is not supported.'); return; }
   if (nativePlayer()) { return playNative(s, title, ctx); }
   const v = $('#vid'); $('#player').hidden = false; $('#ptitle').textContent = title || ''; pushLayer('player');
+  { const o = $('#iosHelp'); if (o) o.remove(); }
   const tvp = document.body.classList.contains('tv'); v.controls = !tvp; $('#pctl').hidden = !tvp; showBar();
   setPanel(false);
   pl = {id:pl.id + 1, ctx, subs:[], loading:false, nSrc:0, cur:null, offset:0, blob:null, stream:{url:s.url, name:s.name, title:s.title}};
   lastSave = 0;
   const saved = ctx && histGet().find(x => x.k === `${ctx.type}|${ctx.id}`);
-  if (saved && !saved.upnext && saved.pos > 20 && lsGet('streamlet.ui', {}).resume !== false) v.addEventListener('loadedmetadata', () => { if (!v.duration || saved.pos < v.duration - 30) { v.currentTime = saved.pos; toast('Resumed at ' + fmtTime(saved.pos)); } }, {once:true});
+  if (saved && !saved.upnext && saved.pos > 20 && uiGet().resume !== false) v.addEventListener('loadedmetadata', () => { if (!v.duration || saved.pos < v.duration - 30) { v.currentTime = saved.pos; toast('Resumed at ' + fmtTime(saved.pos)); } }, {once:true});
   v.querySelectorAll('track').forEach(t => t.remove());
   for (const sub of (s.subtitles || [])) pl.subs.push({id:'embedded', url:sub.url, lang:sub.lang || 'eng', addon:'Stream'});
   if (/\.m3u8(\?|$)/i.test(s.url) && !v.canPlayType('application/vnd.apple.mpegurl')) {
@@ -145,8 +166,15 @@ async function playStream(s, title, ctx){
   } else { v.src = s.url; v.addEventListener('loadedmetadata', autoAudio, {once:true}); }
   v.play().catch(() => {});
   if (ctx) loadSubs(); else renderPanel();
+  if (isIOS()) {
+    const id = pl.id, k = iosKind(s);
+    if (k === 'mkv' || k === 'avi') { iosHelp(s, `This source is a${k === 'avi' ? 'n AVI' : 'n MKV'} file: Safari can't play it. Open it in a video app, or go back and pick a source marked MP4.`); return; }
+    const ok = () => { clearTimeout(t); const o = $('#iosHelp'); if (o) o.remove(); };
+    const t = setTimeout(() => { if (pl.id === id && !$('#player').hidden && v.readyState < 2) iosHelp(s); }, 15000);   // nothing after 15 s: say why instead of spinning
+    v.addEventListener('playing', ok, {once:true}); v.addEventListener('loadeddata', ok, {once:true});
+  }
 }
-$('#vid').addEventListener('error', () => toast("Couldn't play that stream."));
+$('#vid').addEventListener('error', () => { if (isIOS() && pl.stream && pl.stream.url) iosHelp(pl.stream); else toast("Couldn't play that stream."); });
 let lastSave = 0;
 
 const vName = n => 'v1.0.' + n;                                           // build number shown as a version
@@ -250,19 +278,20 @@ async function playNative(s, title, ctx){
   const N = nativePlayer();
   let subs = [];
   const segP = ctx && ctx.offline ? Promise.resolve(null) : withTimeout(fetchSegments(ctx), 2500).catch(() => null);
-  if (ctx && !ctx.offline) { try { subs = await withTimeout(collectSubs(ctx), 5000); } catch {} }   // a downloaded file brings its own subtitles
+  const qc = /^(TVA\+|Radio-Canada|ICI TOU\.TV|Noovo|Télé-Québec)/.test(String(s.name || '')) || /^qc:/.test(String(ctx && ctx.id || ''));   // Québec sources: only their own FR-CA captions
+  if (ctx && !ctx.offline && !qc) { try { subs = await withTimeout(collectSubs(ctx), 5000); } catch {} }   // a downloaded file brings its own subtitles
   const segs = await segP;
   for (const sub of (s.subtitles || [])) subs.push({url:sub.url, lang:sub.lang || 'eng'});
-  const pref = effSub() !== 'off' ? effSub() : null;
+  const pref = qc ? 'fr' : effSub() !== 'off' ? effSub() : null;          // Québec: FR-CA on by default
   subs.sort((a, b) => (pref && sameLang(b.lang, pref) ? 1 : 0) - (pref && sameLang(a.lang, pref) ? 1 : 0));
   const seen = {}, picked = [];
   for (const x of subs) {                      // preferred language: up to 6 options, others: up to 2 each
     const n = langName(x.lang), cap = pref && sameLang(x.lang, pref) ? 6 : 2;
     seen[n] = seen[n] || 0;
-    if (seen[n] < cap && picked.length < 24) { seen[n]++; picked.push({url:x.url, lang:code2(x.lang) || String(x.lang), label:n + (seen[n] > 1 ? ' ' + seen[n] : '')}); }
+    if (seen[n] < cap && picked.length < 24) { seen[n]++; picked.push({url:x.url, lang:code2(x.lang) || String(x.lang), label:qc ? 'FR-CA' + (seen[n] > 1 ? ' ' + seen[n] : '') : n + (seen[n] > 1 ? ' ' + seen[n] : '')}); }
   }
   const saved = ctx && histGet().find(x => x.k === `${ctx.type}|${ctx.id}`);
-  const startMs = ctx && ctx.fresh || lsGet('streamlet.ui', {}).resume === false ? 0 : saved && !saved.upnext && saved.pos > 20 ? Math.round(saved.pos * 1000) : 0;   // Settings > Playback > Resume
+  const startMs = ctx && ctx.fresh || uiGet().resume === false ? 0 : saved && !saved.upnext && saved.pos > 20 ? Math.round(saved.pos * 1000) : 0;   // Settings > Playback > Resume
   const stream = {url:s.url, name:s.name, title:s.title};
   const handle = await N.addListener('progress', e => recordProgress(ctx, stream, e.position / 1000, e.duration / 1000));
   try {
@@ -348,6 +377,7 @@ async function stopPlayer(){
   const v = $('#vid'); v.pause(); if (hls) { hls.destroy(); hls = null; }
   v.querySelectorAll('track').forEach(t => t.remove()); if (pl.blob) URL.revokeObjectURL(pl.blob);
   pl = {id:pl.id + 1, ctx:null, subs:[], loading:false, nSrc:0, cur:null, offset:0, blob:null};
+  { const o = $('#iosHelp'); if (o) o.remove(); }
   v.removeAttribute('src'); v.load(); $('#player').hidden = true; $('#ppanel').hidden = true; $('#pback').hidden = true;
   if (document.fullscreenElement) { try { await document.exitFullscreen(); } catch {} }
 }

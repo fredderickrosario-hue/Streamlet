@@ -197,7 +197,7 @@ function relState(m, type){                                              // 'upc
   if ((m.type || type) === 'movie' && theatersMap()[m.id || m.itemId]) return 'theaters';
   return null;
 }
-const hideUnreleased = () => lsGet('streamlet.ui', {}).showUpcoming === false;
+const hideUnreleased = () => uiGet().showUpcoming === false;
 const visibleMeta = (m, type) => !(hideUnreleased() && relState(m, type)) && contentOK(m);   // + your content filters (Settings > Content, 27-settings-plus.js)
 const recentRelease = m => { const r = m && m.released ? new Date(m.released) : null; return r && !isNaN(r) ? (Date.now() - r.getTime()) < 200 * 864e5 : yearOf(m) === new Date().getFullYear(); };
 /* a movie that came out recently and has no real (non-cinema) source yet is "in theaters" */

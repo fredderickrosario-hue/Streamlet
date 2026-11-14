@@ -81,7 +81,7 @@ function showLauncher(){
     h('div', {class:'lmid'},
       h('h2', {class:'ltitle' + (addons.length ? '' : ' noadd')}, addons.length ? 'What are we watching?' : 'Add an addon first'),
       addons.length ? null : h('p', {class:'lsub'}, 'Open Addons, install one, then pick a space.'),
-      h('div', {class:'sgrid'}, ...spacesFor().filter(sp => !sp.hidden || spEdit).map(tile),
+      h('div', {class:'sgrid'}, ...spacesFor().filter(sp => !spHidden(sp) || spEdit).map(tile),
         h('div', {class:'swrap newwrap'}, h('button', {class:'stile new', type:'button', onclick:() => editSpace(null)}, h('span', {class:'sem'}, '＋'), h('span', {class:'stx'}, h('span', {class:'snm'}, 'New space')))))),
     h('div', {class:'lfoot'},
       h('button', {class:'chip', type:'button', onclick:() => { document.body.classList.remove('launch'); $('#launcher').hidden = true; $('#profiles').hidden = true; $('#login').hidden = true; showTab('addons'); }}, 'Addons'),

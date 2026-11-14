@@ -20,7 +20,7 @@ const APP_BUILD = '2.0';
 function renderSettings(){
   fillAccountUI(); fillSettingsUI();
   const u = lsGet('streamlet.ui', {}), tv = document.body.classList.contains('tv');
-  const up = $('#setUpc'); up.checked = u.showUpcoming !== false; up.onchange = () => lsSet('streamlet.ui', {...lsGet('streamlet.ui', {}), showUpcoming:up.checked});
+  const up = $('#setUpc'); up.checked = uiGet().showUpcoming !== false; up.onchange = () => uiSet({showUpcoming:up.checked});
   const au = $('#setAuto'), mq = $('#setMaxQ'), sk = $('#setSkip');
   au.checked = u.autoPick !== false; au.onchange = () => lsSet('streamlet.ui', {...lsGet('streamlet.ui', {}), autoPick:au.checked});
   $('#rowMaxQ').hidden = !au.checked; au.addEventListener('change', () => { $('#rowMaxQ').hidden = !au.checked; });

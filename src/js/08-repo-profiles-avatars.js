@@ -233,7 +233,7 @@ async function selectProfile(p){
   loadProfileData(); epReset(); try { fillTmdb(); qcFillShows(); } catch {} try { epMigrate(); } catch {} try { for (const q of profiles) showsBackfill(q.id); epReset(); } catch {}
   document.body.classList.toggle('kids', !!p.kids);
   if (p.kids) await kidsReady();
-  const st = lsGet('streamlet.ui', {}), last = st.startup === 'launcher' ? null : st.startup === 'space' ? st.startSpace : pget('last', null);   // Settings > General > Startup
+  const st = uiGet(), last = st.startup === 'launcher' ? null : st.startup === 'space' ? st.startSpace : pget('last', null);   // Settings > General > Startup
   const sp = last && spacesFor().find(x => x.id === last) || (p.kids ? spacesFor()[0] : null);
   if (!sp) { showLauncher(); return; }
   const done = (!pfx && !document.getElementById('intro') && !$('#profiles').hidden) ? warmCover(profile.name) : null;   // the boot logo / the profile animation already cover the wait

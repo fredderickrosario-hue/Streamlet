@@ -1593,6 +1593,18 @@ body:not(.tv) .ntcard{right:12px;left:12px;width:auto;bottom:calc(84px + env(saf
 .dlrow .btn{flex:0 0 auto}
 .pib.on svg{color:var(--acc2,var(--acc))}
 .offrow h2 small{font-weight:500;color:var(--mut)}
+/* who a setting is for */
+#settings .scope{display:inline-block;margin-left:8px;padding:1px 7px;border-radius:6px;font-style:normal;font-size:10.5px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;vertical-align:2px}
+#settings .scope.p{color:var(--acc2,var(--acc));box-shadow:inset 0 0 0 1px currentColor}
+#settings .scope.e{color:var(--mut);box-shadow:inset 0 0 0 1px rgba(255,255,255,.25)}
+#settings .scopekey{margin:8px 4px 0;font-size:12px;color:var(--mut)}
+#settings .scopekey .scope{margin:0 2px 0 0}
+/* iPhone: a file Safari can't play */
+.ioshelp{position:absolute;inset:auto 16px calc(24px + env(safe-area-inset-bottom,0px));z-index:30;padding:18px;border-radius:18px;background:rgba(18,16,22,.97);box-shadow:0 18px 40px rgba(0,0,0,.6),inset 0 0 0 1px rgba(255,255,255,.1)}
+.ioshelp h3{margin:0 0 6px;font-size:18px}
+.ioshelp p{margin:0 0 12px;font-size:14px;line-height:1.45;color:var(--mut)}
+.ioshelp .iosbtns{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.ioshelp .iosnote{margin:12px 0 0;font-size:12px}
 </style>
 </head>
 <body>
@@ -1663,7 +1675,7 @@ body:not(.tv) .ntcard{right:12px;left:12px;width:auto;bottom:calc(84px + env(saf
 <div class="sgrp"><h3 class="sgh">Search</h3><div class="addon"><label class="row2"><span class="rt">Search all addons<small>Include every installed addon, not only those in the current space. Returns more results</small></span><input type="checkbox" id="setSrchAll"></label></div></div>
 </div>
 <div class="setcat" data-cat="spaces" hidden>
-<div class="sgrp"><h3 class="sgh">Your spaces</h3><div class="addon"><div id="spList" class="splist"></div></div><p class="gnote">Order and visibility apply to the spaces page. Edit changes a space’s name, colors, addons, subtitles, tabs and history.</p></div>
+<div class="sgrp"><h3 class="sgh">Your spaces</h3><div class="addon"><div id="spList" class="splist"></div></div><p class="gnote">Spaces, their order and their settings are shared by every profile. Show and hide is per profile, so each person keeps their own spaces page.</p></div>
 <div class="sgrp"><h3 class="sgh">Add</h3><div class="addon"><div class="row2"><span class="rt">New space<small>Group addons with their own colors and settings</small></span><button class="btn ghost sm" id="spNew" type="button">Create</button></div></div></div>
 </div>
 <div class="setcat" data-cat="playback" hidden>
@@ -2022,7 +2034,7 @@ function relState(m, type){                                              // 'upc
   if ((m.type || type) === 'movie' && theatersMap()[m.id || m.itemId]) return 'theaters';
   return null;
 }
-const hideUnreleased = () => lsGet('streamlet.ui', {}).showUpcoming === false;
+const hideUnreleased = () => uiGet().showUpcoming === false;
 const visibleMeta = (m, type) => !(hideUnreleased() && relState(m, type)) && contentOK(m);   // + your content filters (Settings > Content, 27-settings-plus.js)
 const recentRelease = m => { const r = m && m.released ? new Date(m.released) : null; return r && !isNaN(r) ? (Date.now() - r.getTime()) < 200 * 864e5 : yearOf(m) === new Date().getFullYear(); };
 /* a movie that came out recently and has no real (non-cinema) source yet is "in theaters" */
@@ -2113,11 +2125,12 @@ function applyPage(p){
     cur = sp; rememberSpace(sp.id); applyTheme(spaceTheme(sp)); $('#q').value = ''; view = {tab:p.tab || 'home', genre:p.genre || ''}; showTab('home');
   }
 }
-/* TV Back button: entry -> home -> side menu -> (home) -> close-app prompt */
+/* TV Back button goes up, never 'back to where you were': Settings section -> Settings -> side menu -> close-app prompt */
 function tvBackStep(){
   if (!document.body.classList.contains('tv') || document.body.classList.contains('launch') || !cur) return false;
   const inNav = document.activeElement && document.activeElement.closest && document.activeElement.closest('#nav');
   const repush = () => { if (history.state && history.state.guard) { pageKey = ''; pushPage(); } };
+  if (!$('#settings').hidden && setCatNow && !inNav) { const from = setCatNow; showSetHome(); requestAnimationFrame(() => { const b = document.querySelector(`#setHome .setitem[data-cat="${from}"]`); if (b) b.focus({preventScroll:true}); }); repush(); return true; }   // a Settings section -> the Settings list
   if (!$('#addons').hidden) { setCatWant = 'tmdb'; showTab('settings'); requestAnimationFrame(() => { const b = $('#setAddons'); if (b) b.focus({preventScroll:true}); }); repush(); return true; }   // Addons opens from Settings on TV: Back goes there
   if (!inNav) {
     if (!$('#home').hidden && view.genre) { view = {tab:view.tab, genre:''}; renderHome(); repush(); return true; }
@@ -2125,8 +2138,7 @@ function tvBackStep(){
     if (focusNav()) { repush(); return true; }
     return false;
   }
-  if ($('#home').hidden || view.tab !== 'home') { tvTab('home'); repush(); focusNav(); return true; }
-  return false;
+  return false;                                                             // side menu -> close-app prompt
 }
 window.addEventListener('popstate', e => {
   if (exiting) return;
@@ -2165,6 +2177,7 @@ function movePill(){
 }
 addEventListener('resize', () => setTimeout(movePill, 50));
 function showTab(name){
+  if (name !== 'settings') { try { if (layersOpen.includes('setsub')) dropSetSub(); setCatNow = null; } catch {} }   // a Settings section never comes back after you leave Settings
   if (!cur && name === 'home') return showLauncher();
   document.body.classList.remove('launch'); $('#launcher').hidden = true; $('#profiles').hidden = true; $('#login').hidden = true;
   navAvatar();
@@ -2298,7 +2311,7 @@ function showLauncher(){
     h('div', {class:'lmid'},
       h('h2', {class:'ltitle' + (addons.length ? '' : ' noadd')}, addons.length ? 'What are we watching?' : 'Add an addon first'),
       addons.length ? null : h('p', {class:'lsub'}, 'Open Addons, install one, then pick a space.'),
-      h('div', {class:'sgrid'}, ...spacesFor().filter(sp => !sp.hidden || spEdit).map(tile),
+      h('div', {class:'sgrid'}, ...spacesFor().filter(sp => !spHidden(sp) || spEdit).map(tile),
         h('div', {class:'swrap newwrap'}, h('button', {class:'stile new', type:'button', onclick:() => editSpace(null)}, h('span', {class:'sem'}, '＋'), h('span', {class:'stx'}, h('span', {class:'snm'}, 'New space')))))),
     h('div', {class:'lfoot'},
       h('button', {class:'chip', type:'button', onclick:() => { document.body.classList.remove('launch'); $('#launcher').hidden = true; $('#profiles').hidden = true; $('#login').hidden = true; showTab('addons'); }}, 'Addons'),
@@ -2688,7 +2701,7 @@ const APP_BUILD = '2.0';
 function renderSettings(){
   fillAccountUI(); fillSettingsUI();
   const u = lsGet('streamlet.ui', {}), tv = document.body.classList.contains('tv');
-  const up = $('#setUpc'); up.checked = u.showUpcoming !== false; up.onchange = () => lsSet('streamlet.ui', {...lsGet('streamlet.ui', {}), showUpcoming:up.checked});
+  const up = $('#setUpc'); up.checked = uiGet().showUpcoming !== false; up.onchange = () => uiSet({showUpcoming:up.checked});
   const au = $('#setAuto'), mq = $('#setMaxQ'), sk = $('#setSkip');
   au.checked = u.autoPick !== false; au.onchange = () => lsSet('streamlet.ui', {...lsGet('streamlet.ui', {}), autoPick:au.checked});
   $('#rowMaxQ').hidden = !au.checked; au.addEventListener('change', () => { $('#rowMaxQ').hidden = !au.checked; });
@@ -3746,7 +3759,7 @@ async function selectProfile(p){
   loadProfileData(); epReset(); try { fillTmdb(); qcFillShows(); } catch {} try { epMigrate(); } catch {} try { for (const q of profiles) showsBackfill(q.id); epReset(); } catch {}
   document.body.classList.toggle('kids', !!p.kids);
   if (p.kids) await kidsReady();
-  const st = lsGet('streamlet.ui', {}), last = st.startup === 'launcher' ? null : st.startup === 'space' ? st.startSpace : pget('last', null);   // Settings > General > Startup
+  const st = uiGet(), last = st.startup === 'launcher' ? null : st.startup === 'space' ? st.startSpace : pget('last', null);   // Settings > General > Startup
   const sp = last && spacesFor().find(x => x.id === last) || (p.kids ? spacesFor()[0] : null);
   if (!sp) { showLauncher(); return; }
   const done = (!pfx && !document.getElementById('intro') && !$('#profiles').hidden) ? warmCover(profile.name) : null;   // the boot logo / the profile animation already cover the wait
@@ -4279,11 +4292,12 @@ function prefSet(id, st, manual){                                       // you p
   m[id] = {sig:sigOf(st), like, manual:!!(manual || (old && old.manual && old.like && likeScore(old.like, st) >= LIKE_MIN))};
   const ks = Object.keys(m); if (ks.length > 150) delete m[ks[0]]; lsSet('streamlet.srcpref', m);
 }
-const prefTier = (id, st) => { const p = lsGet('streamlet.ui', {}).remSrc === false ? null : prefRaw(id); if (!p) return 2; if (p.sig && sigOf(st) === p.sig) return 0; if (!p.like || likeScore(p.like, st) < LIKE_MIN) return 2; return p.like.rd && !srcLike(st).rd ? 2 : 1; };   // your kind of source, but never one that isn't ready on the debrid service when yours was
+const prefTier = (id, st) => { const p = uiGet().remSrc === false ? null : prefRaw(id); if (!p) return 2; if (p.sig && sigOf(st) === p.sig) return 0; if (!p.like || likeScore(p.like, st) < LIKE_MIN) return 2; return p.like.rd && !srcLike(st).rd ? 2 : 1; };   // your kind of source, but never one that isn't ready on the debrid service when yours was
 const badSet = st => { const m = mapGet('streamlet.badsrc'), now = Date.now(); for (const k of Object.keys(m)) if (now - m[k] > 7 * 864e5) delete m[k]; m[urlKey(st.url)] = now; const ks = Object.keys(m); if (ks.length > 200) delete m[ks[0]]; lsSet('streamlet.badsrc', m); };
 const isBadStream = st => badStreams.has(st) || (st.url && Date.now() - (mapGet('streamlet.badsrc')[urlKey(st.url)] || 0) < 7 * 864e5);
 const logErr = (title, st, code) => { const a = lsGet('streamlet.errlog', []); a.unshift({t:Date.now(), title:title || '', src:String((st && st.name) || '').replace(/\n+/g, ' '), code:code || ''}); lsSet('streamlet.errlog', a.slice(0, 30)); try { sendLogSoon(); } catch {} };
 function orderStreams(ss, itemId){                                    // the source that worked last time first, ones that failed recently last
+  if (isIOS() && !nativePlayer()) { const k = x => { const t = iosKind(x); return t === 'mp4' || t === 'hls' ? 0 : t === '?' ? 1 : 2; }; ss = ss.map((x, i) => [x, i]).sort((a, b) => k(a[0]) - k(b[0]) || a[1] - b[1]).map(x => x[0]); }   // iPhone: MP4 / HLS sources first
   const p = prefRaw(itemId), rank = x => isBadStream(x) ? 9 : prefTier(itemId, x), near = x => p && p.like ? -likeScore(p.like, x) : 0;
   return ss.map((x, i) => [x, i]).sort((a, b) => rank(a[0]) - rank(b[0]) || (rank(a[0]) === 1 ? near(a[0]) - near(b[0]) : 0) || a[1] - b[1]).map(x => x[0]);
 }
@@ -4298,7 +4312,8 @@ function rankStreams(all, itemId){                                    // best fi
   const key = x => {
     const r = resOf(x), t = String(x.name || '') + ' ' + String(x.title || ''), seeds = Number((/\u{1F464}\s*(\d+)/u.exec(t) || [])[1]) || 0;
     const tier = prefTier(itemId, x);
-    return [tier, tier === 1 ? -likeScore(pp.like, x) : 0, lang(x), extra(x), r > cap ? 1 : 0, r === 0 ? 1 : 0, -Math.min(r, cap), /\[[A-Z]{2}\+\]|cached|\u26A1/i.test(t) ? 0 : 1, -seeds];
+    const ios = isIOS() && !nativePlayer() ? (k => k === 'mp4' || k === 'hls' ? 0 : k === '?' ? 1 : 2)(iosKind(x)) : 0;   // iPhone web: files Safari can play first
+    return [ios, tier, tier === 1 ? -likeScore(pp.like, x) : 0, lang(x), extra(x), r > cap ? 1 : 0, r === 0 ? 1 : 0, -Math.min(r, cap), /\[[A-Z]{2}\+\]|cached|\u26A1/i.test(t) ? 0 : 1, -seeds];
   };
   const ok = all.filter(x => x && x.url), good = ok.filter(x => !isBadStream(x));          // a source flagged bad earlier is only skipped when something else is available
   return (good.length ? good : ok).map((x, i) => [x, key(x), i]).sort((a, b) => { for (let k = 0; k < a[1].length; k++) if (a[1][k] !== b[1][k]) return a[1][k] - b[1][k]; return a[2] - b[2]; }).map(x => x[0]);
@@ -4523,6 +4538,26 @@ $('#fsBtn').onclick = async () => {
   } catch { toast('Fullscreen not available here.'); }
 };
 
+/* iPhone / iPad (Safari and the installed web app): Safari can't play MKV files, which most torrent sources are.
+   Prefer MP4 sources there, and when a file can't play, say so and offer VLC or Infuse instead of loading forever. */
+const isIOS = () => /iP(hone|ad|od)/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+const iosKind = s => { const t = `${s.title || ''} ${s.description || ''} ${s.name || ''} ${s.url || ''}`; return /\.mp4\b|\bmp4\b/i.test(t) ? 'mp4' : /\.m3u8|\bhls\b/i.test(t) ? 'hls' : /\.mkv\b|\bmkv\b/i.test(t) ? 'mkv' : /\.avi\b/i.test(t) ? 'avi' : '?'; };
+function iosHelp(s, why){
+  const v = $('#vid'); try { v.pause(); } catch {}
+  const old = $('#iosHelp'); if (old) old.remove();
+  const url = s.url, e = encodeURIComponent(url);
+  const go = href => { location.href = href; };
+  const box = h('div', {id:'iosHelp', class:'ioshelp'},
+    h('h3', null, "This file can't play on iPhone"),
+    h('p', null, why || 'Safari only plays MP4 and HLS videos; most torrent sources are MKV files. Open it in a video app instead, or pick an MP4 source.'),
+    h('div', {class:'iosbtns'},
+      h('button', {class:'btn', type:'button', onclick:() => go('vlc-x-callback://x-callback-url/stream?url=' + e)}, 'Open in VLC'),
+      h('button', {class:'btn ghost', type:'button', onclick:() => go('infuse://x-callback-url/play?url=' + e)}, 'Open in Infuse'),
+      h('button', {class:'btn ghost', type:'button', onclick:async () => { try { await navigator.clipboard.writeText(url); toast('Link copied'); } catch { toast(url); } }}, 'Copy link'),
+      h('button', {class:'btn ghost', type:'button', onclick:() => popLayer('player')}, 'Choose another source')),
+    h('p', {class:'iosnote'}, 'VLC and Infuse are free on the App Store. Progress in those apps isn’t saved in Streamlet.'));
+  $('#player').append(box);
+}
 async function playStream(s, title, ctx){
   if (s.touApp) { const N = nativePlayer(); try { const r = await N.openTou({path:s.touApp}); if (!r.ok) toast(r.why || "Couldn't open ICI TOU.TV"); else if (r.how === 'home') toast('ICI TOU.TV opened on its home: its app has no link to episodes'); } catch { toast("Couldn't open ICI TOU.TV"); } return; }
   if (s.touWeb) { const N = nativePlayer(); if (N && N.openTouLogin) { try { await N.openTouLogin({url:s.touWeb, player:true}); } catch { toast("Couldn't open TOU.TV's player"); } } else toast('Needs the Android app'); return; }
@@ -4531,12 +4566,13 @@ async function playStream(s, title, ctx){
   if (!s.url) { toast(s.infoHash ? "This is a torrent stream. Its addon needs a debrid service to provide direct links." : 'This stream type is not supported.'); return; }
   if (nativePlayer()) { return playNative(s, title, ctx); }
   const v = $('#vid'); $('#player').hidden = false; $('#ptitle').textContent = title || ''; pushLayer('player');
+  { const o = $('#iosHelp'); if (o) o.remove(); }
   const tvp = document.body.classList.contains('tv'); v.controls = !tvp; $('#pctl').hidden = !tvp; showBar();
   setPanel(false);
   pl = {id:pl.id + 1, ctx, subs:[], loading:false, nSrc:0, cur:null, offset:0, blob:null, stream:{url:s.url, name:s.name, title:s.title}};
   lastSave = 0;
   const saved = ctx && histGet().find(x => x.k === `${ctx.type}|${ctx.id}`);
-  if (saved && !saved.upnext && saved.pos > 20 && lsGet('streamlet.ui', {}).resume !== false) v.addEventListener('loadedmetadata', () => { if (!v.duration || saved.pos < v.duration - 30) { v.currentTime = saved.pos; toast('Resumed at ' + fmtTime(saved.pos)); } }, {once:true});
+  if (saved && !saved.upnext && saved.pos > 20 && uiGet().resume !== false) v.addEventListener('loadedmetadata', () => { if (!v.duration || saved.pos < v.duration - 30) { v.currentTime = saved.pos; toast('Resumed at ' + fmtTime(saved.pos)); } }, {once:true});
   v.querySelectorAll('track').forEach(t => t.remove());
   for (const sub of (s.subtitles || [])) pl.subs.push({id:'embedded', url:sub.url, lang:sub.lang || 'eng', addon:'Stream'});
   if (/\.m3u8(\?|$)/i.test(s.url) && !v.canPlayType('application/vnd.apple.mpegurl')) {
@@ -4549,8 +4585,15 @@ async function playStream(s, title, ctx){
   } else { v.src = s.url; v.addEventListener('loadedmetadata', autoAudio, {once:true}); }
   v.play().catch(() => {});
   if (ctx) loadSubs(); else renderPanel();
+  if (isIOS()) {
+    const id = pl.id, k = iosKind(s);
+    if (k === 'mkv' || k === 'avi') { iosHelp(s, `This source is a${k === 'avi' ? 'n AVI' : 'n MKV'} file: Safari can't play it. Open it in a video app, or go back and pick a source marked MP4.`); return; }
+    const ok = () => { clearTimeout(t); const o = $('#iosHelp'); if (o) o.remove(); };
+    const t = setTimeout(() => { if (pl.id === id && !$('#player').hidden && v.readyState < 2) iosHelp(s); }, 15000);   // nothing after 15 s: say why instead of spinning
+    v.addEventListener('playing', ok, {once:true}); v.addEventListener('loadeddata', ok, {once:true});
+  }
 }
-$('#vid').addEventListener('error', () => toast("Couldn't play that stream."));
+$('#vid').addEventListener('error', () => { if (isIOS() && pl.stream && pl.stream.url) iosHelp(pl.stream); else toast("Couldn't play that stream."); });
 let lastSave = 0;
 
 const vName = n => 'v1.0.' + n;                                           // build number shown as a version
@@ -4654,19 +4697,20 @@ async function playNative(s, title, ctx){
   const N = nativePlayer();
   let subs = [];
   const segP = ctx && ctx.offline ? Promise.resolve(null) : withTimeout(fetchSegments(ctx), 2500).catch(() => null);
-  if (ctx && !ctx.offline) { try { subs = await withTimeout(collectSubs(ctx), 5000); } catch {} }   // a downloaded file brings its own subtitles
+  const qc = /^(TVA\+|Radio-Canada|ICI TOU\.TV|Noovo|Télé-Québec)/.test(String(s.name || '')) || /^qc:/.test(String(ctx && ctx.id || ''));   // Québec sources: only their own FR-CA captions
+  if (ctx && !ctx.offline && !qc) { try { subs = await withTimeout(collectSubs(ctx), 5000); } catch {} }   // a downloaded file brings its own subtitles
   const segs = await segP;
   for (const sub of (s.subtitles || [])) subs.push({url:sub.url, lang:sub.lang || 'eng'});
-  const pref = effSub() !== 'off' ? effSub() : null;
+  const pref = qc ? 'fr' : effSub() !== 'off' ? effSub() : null;          // Québec: FR-CA on by default
   subs.sort((a, b) => (pref && sameLang(b.lang, pref) ? 1 : 0) - (pref && sameLang(a.lang, pref) ? 1 : 0));
   const seen = {}, picked = [];
   for (const x of subs) {                      // preferred language: up to 6 options, others: up to 2 each
     const n = langName(x.lang), cap = pref && sameLang(x.lang, pref) ? 6 : 2;
     seen[n] = seen[n] || 0;
-    if (seen[n] < cap && picked.length < 24) { seen[n]++; picked.push({url:x.url, lang:code2(x.lang) || String(x.lang), label:n + (seen[n] > 1 ? ' ' + seen[n] : '')}); }
+    if (seen[n] < cap && picked.length < 24) { seen[n]++; picked.push({url:x.url, lang:code2(x.lang) || String(x.lang), label:qc ? 'FR-CA' + (seen[n] > 1 ? ' ' + seen[n] : '') : n + (seen[n] > 1 ? ' ' + seen[n] : '')}); }
   }
   const saved = ctx && histGet().find(x => x.k === `${ctx.type}|${ctx.id}`);
-  const startMs = ctx && ctx.fresh || lsGet('streamlet.ui', {}).resume === false ? 0 : saved && !saved.upnext && saved.pos > 20 ? Math.round(saved.pos * 1000) : 0;   // Settings > Playback > Resume
+  const startMs = ctx && ctx.fresh || uiGet().resume === false ? 0 : saved && !saved.upnext && saved.pos > 20 ? Math.round(saved.pos * 1000) : 0;   // Settings > Playback > Resume
   const stream = {url:s.url, name:s.name, title:s.title};
   const handle = await N.addListener('progress', e => recordProgress(ctx, stream, e.position / 1000, e.duration / 1000));
   try {
@@ -4752,6 +4796,7 @@ async function stopPlayer(){
   const v = $('#vid'); v.pause(); if (hls) { hls.destroy(); hls = null; }
   v.querySelectorAll('track').forEach(t => t.remove()); if (pl.blob) URL.revokeObjectURL(pl.blob);
   pl = {id:pl.id + 1, ctx:null, subs:[], loading:false, nSrc:0, cur:null, offset:0, blob:null};
+  { const o = $('#iosHelp'); if (o) o.remove(); }
   v.removeAttribute('src'); v.load(); $('#player').hidden = true; $('#ppanel').hidden = true; $('#pback').hidden = true;
   if (document.fullscreenElement) { try { await document.exitFullscreen(); } catch {} }
 }
@@ -7233,8 +7278,16 @@ function eoSection(meta, reload){
    live on the space itself (Spaces category, or the space editor). */
 const SET_CATS = [['general', 'General'], ['spaces', 'Spaces'], ['playback', 'Playback'], ['personal', 'Personalization'], ['content', 'Content'],
   ['notif', 'Notifications'], ['tmdb', 'TMDB & addons'], ['storage', 'Storage & backup'], ['account', 'Account'], ['about', 'About']];
-const uiGet = () => lsGet('streamlet.ui', {});
-const uiSet = patch => lsSet('streamlet.ui', {...lsGet('streamlet.ui', {}), ...patch});
+/* where a setting lives: this profile (kept with the profile and synced with your account), or this device */
+const PROFILE_UI = new Set(['rows', 'minRate', 'hideG', 'langs', 'favG', 'nt', 'startup', 'startSpace', 'remSrc', 'resume', 'showUpcoming', 'hiddenSp']);
+const spHidden = sp => { const l = uiGet().hiddenSp; return Array.isArray(l) ? l.includes(sp.id) : !!sp.hidden; };   // which spaces this profile sees on the spaces page
+const uiGet = () => { let p = {}; try { p = (settings && settings.ui) || {}; } catch {} return {...lsGet('streamlet.ui', {}), ...p}; };
+const uiSet = patch => {
+  const dev = {}, pro = {}; let hasP = false, hasD = false;
+  for (const [k, v] of Object.entries(patch)) { if (PROFILE_UI.has(k) && typeof profile !== 'undefined' && profile) { pro[k] = v; hasP = true; } else { dev[k] = v; hasD = true; } }
+  if (hasD) lsSet('streamlet.ui', {...lsGet('streamlet.ui', {}), ...dev});
+  if (hasP) { settings = {...settings, ui:{...(settings.ui || {}), ...pro}}; saveSettings(); }
+};
 
 /* ---- small helpers used elsewhere ---- */
 const metaLang = () => uiGet().metaLang || '';
@@ -7292,7 +7345,7 @@ function setSummary(c){                                                   // wha
   const q = {best:'best quality', 2160:'up to 4K', 1080:'up to 1080p', 720:'up to 720p'}[u.maxQ || 'best'] || 'best quality';
   const rows = ['hero', 'cw', 'byw', 'wl', 'rec', 'fav'].filter(rowOn).length, nt = {ep:true, season:true, wl:true, ...(u.nt || {})};
   const ntOn = [nt.ep && 'new episodes', nt.season && 'returning seasons', nt.wl && 'watchlist releases'].filter(Boolean);
-  const hid = spaces.filter(s => s.hidden).length, lang = (settings && settings.subLang) || 'off';
+  const hid = spaces.filter(spHidden).length, lang = (settings && settings.subLang) || 'off';
   return {
     account:`${profile ? profile.name : 'Profile'} · ${user ? (user.email || 'Signed in') : 'Not signed in'}`,
     general:`${st} · ${u.theme && u.theme !== 'space' && THEMES[u.theme] ? THEMES[u.theme].n + ' colors' : 'colors follow each space'}`,
@@ -7330,12 +7383,13 @@ function showSetHome(){
       : h('p', {class:'gnote', style:'padding:10px 4px'}, `Nothing matches "${q.value.trim()}".`));
   };
   q.oninput = paint; paint();
-  home.replaceChildren(q, list);
+  const who = profile ? profile.name : 'this profile';
+  home.replaceChildren(q, h('p', {class:'scopekey'}, h('i', {class:'scope p'}, 'Profile'), ` only for ${who} · `, h('i', {class:'scope e'}, 'Everyone'), ' every profile · the rest: this device'), list);
   if (from && document.body.classList.contains('tv') && !$('#settings').hidden) requestAnimationFrame(() => { const b = list.querySelector(`.setitem[data-cat="${from}"]`); if (b) b.focus(); });   // back on the section you came from
 }
 function openSetCat(c, row){
   if (!SET_CATS.some(x => x[0] === c)) return;
-  if (!layersOpen.includes('setsub')) pushLayer('setsub');
+  if (!isTVui() && !layersOpen.includes('setsub')) pushLayer('setsub');   // phone: the back gesture returns to the list. TV: Back is handled as 'go up' (tvBackStep)
   setCatNow = c;
   $('#setHome').hidden = true; $('#settings').classList.add('insub');
   for (const el of document.querySelectorAll('#settings .setcat')) el.hidden = el.dataset.cat !== c;
@@ -7351,13 +7405,25 @@ function openSetCat(c, row){
   });
 }
 const setCat = c => openSetCat(c);
+/* leave a section page for the Settings list: the arrow, and Back on TV */
+function closeSetSub(){
+  if (layersOpen[layersOpen.length - 1] === 'setsub') { popLayer('setsub'); return; }
+  dropSetSub(); showSetHome();
+}
+/* forget the section page without going back in history (switching tabs, opening Settings from the gear) */
+function dropSetSub(){
+  const i = layersOpen.indexOf('setsub'); if (i < 0) return;
+  layersOpen.splice(i, 1); focusStack.splice(Math.min(i, focusStack.length - 1), 1);
+  document.body.classList.toggle('inlayer', layersOpen.length > 0);
+  try { history.replaceState({...(history.state || {}), layers:[...layersOpen]}, ''); } catch {}
+}
 function settingsPlus(){
   const tv = document.body.classList.contains('tv'), u = uiGet();
-  $('#setBack').onclick = () => popLayer('setsub');
+  $('#setBack').onclick = closeSetSub;
   if (setCatWant) { const c = setCatWant; setCatWant = null; openSetCat(c); }
-  else if (setCatNow && layersOpen.includes('setsub')) openSetCat(setCatNow);
-  else showSetHome();
+  else { dropSetSub(); showSetHome(); }                                  // the gear always lands on the main Settings list
 
+  scopeTags();
   /* General */
   const stS = $('#setStart'), stSp = $('#setStartSp');
   stS.value = u.startup || 'last';
@@ -7430,6 +7496,15 @@ function settingsPlus(){
     const w = $('#setDlWifi'); w.checked = dlWifi(); w.onchange = () => uiSet({dlWifi:w.checked});
   }
 }
+/* who a setting is for: this profile, this device, or everyone on the account */
+const SCOPE = {
+  profile:['setStart', 'setStartSp', 'setRemSrc', 'setResume', 'setRowHero', 'setRowCW', 'setRowBYW', 'setRowWL', 'setRowRec', 'setRowFav', 'setMinRate', 'setHideG', 'setLangs', 'setFavG', 'setNtEp', 'setNtSeason', 'setNtWl', 'setUpc', 'setSub', 'setAud'],
+  everyone:['setTmdb', 'setAddons', 'qcShows', 'spNew']};
+function scopeTags(){
+  const tag = (row, kind) => { const rt = row && row.querySelector('.rt'); if (!rt || rt.querySelector('.scope')) return; const t = h('i', {class:'scope ' + kind, title:kind === 'p' ? 'Only for this profile' : 'For every profile on this account'}, kind === 'p' ? 'Profile' : 'Everyone'); const sm = rt.querySelector('small'); rt.insertBefore(t, sm); };
+  for (const id of SCOPE.profile) { const el = document.getElementById(id); if (el) tag(el.closest('.row2'), 'p'); }
+  for (const id of SCOPE.everyone) { const el = document.getElementById(id); if (el) tag(el.closest('.row2'), 'e'); }
+}
 let homeDirtyT = 0;
 function homeDirty(){ clearTimeout(homeDirtyT); homeDirtyT = setTimeout(() => { try { if (cur && !$('#home').hidden) renderHome(); } catch {} }, 300); }   // Home redraws with the new settings when you go back to it
 /* a row of toggle chips stored as a list in streamlet.ui */
@@ -7452,11 +7527,15 @@ function spacesList(){
   const move = (id, d) => { const i = spaces.findIndex(s => s.id === id), j = i + d; if (i < 0 || j < 0 || j >= spaces.length) return; [spaces[i], spaces[j]] = [spaces[j], spaces[i]]; saveSpaces(); launcherDirty = true; spacesList(); requestAnimationFrame(() => { const b = box.querySelector(`[data-sp="${id}"] .${d < 0 ? 'up' : 'dn'}`); if (b && !b.disabled) b.focus(); else { const r = box.querySelector(`[data-sp="${id}"] button:not([disabled])`); if (r) r.focus(); } }); };
   box.replaceChildren(...mine.map((s, i) => {
     const t = THEMES[s.theme] || THEMES.ember, n = s.catalogs.filter(id => addons.find(x => x.uid === id)).length;
-    const show = h('input', {type:'checkbox'}); show.checked = !s.hidden;
-    show.onchange = () => { const sp = spaces.find(x => x.id === s.id); if (!sp) return; if (!show.checked && spaces.filter(x => !x.hidden).length <= 1) { show.checked = true; toast('Keep at least one space visible'); return; } sp.hidden = !show.checked; saveSpaces(); launcherDirty = true; spacesList(); };
-    return h('div', {class:'sprow' + (s.hidden ? ' off' : ''), 'data-sp':s.id},
+    const show = h('input', {type:'checkbox'}); show.checked = !spHidden(s);
+    show.onchange = () => {
+      const now = new Set(mine.filter(spHidden).map(x => x.id));
+      if (show.checked) now.delete(s.id); else { if (mine.length - now.size <= 1) { show.checked = true; toast('Keep at least one space visible'); return; } now.add(s.id); }
+      uiSet({hiddenSp:[...now]}); launcherDirty = true; spacesList();
+    };
+    return h('div', {class:'sprow' + (spHidden(s) ? ' off' : ''), 'data-sp':s.id},
       h('span', {class:'spsw', style:`background:linear-gradient(135deg,${t.acc},${t.acc2 || t.acc})`}),
-      h('span', {class:'rt'}, `${s.emoji} ${s.name}`, h('small', null, [s.catalogs.length ? `${n} addon${n === 1 ? '' : 's'}` : 'All addons', s.kids ? 'For kids' : '', s.subs && s.subs !== 'off' ? 'Own subtitles' : '', s.hidden ? 'Hidden' : ''].filter(Boolean).join(' · '))),
+      h('span', {class:'rt'}, `${s.emoji} ${s.name}`, h('small', null, [s.catalogs.length ? `${n} addon${n === 1 ? '' : 's'}` : 'All addons', s.kids ? 'For kids' : '', s.subs && s.subs !== 'off' ? 'Own subtitles' : '', spHidden(s) ? 'Hidden for ' + (profile ? profile.name : 'this profile') : ''].filter(Boolean).join(' · '))),
       h('span', {class:'spbtns'},
         h('button', {class:'btn ghost sm ic up', type:'button', 'aria-label':'Move up', disabled:i === 0 ? '' : null, onclick:() => move(s.id, -1)}, '↑'),
         h('button', {class:'btn ghost sm ic dn', type:'button', 'aria-label':'Move down', disabled:i === mine.length - 1 ? '' : null, onclick:() => move(s.id, 1)}, '↓'),
