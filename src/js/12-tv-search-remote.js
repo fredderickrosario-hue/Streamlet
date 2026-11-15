@@ -97,6 +97,13 @@ function syncTV(){
 }
 mqTV.addEventListener('change', syncTV); addEventListener('resize', syncTV); syncTV();
 { const NP = nativePlayer(); if (NP && FLAVOR === 'auto') NP.device().then(d => { forceTV = !!(d && d.isTV); syncTV(); }).catch(() => {}); }
+/* Samsung TV app shell (tizen/index.html): a key that reached the shell instead of this page is passed in here */
+addEventListener('message', e => {
+  const d = e.data; if (!d || d.streamlet !== 'key' || window.parent === window || e.source !== window.parent) return;
+  const ev = new KeyboardEvent('keydown', {key:d.key, bubbles:true, cancelable:true});
+  try { Object.defineProperty(ev, 'keyCode', {get:() => d.keyCode}); } catch {}
+  (document.activeElement || document.body).dispatchEvent(ev);
+});
 try { if (window.tizen && tizen.tvinputdevice) ['MediaPlayPause','MediaPlay','MediaPause','MediaStop','MediaFastForward','MediaRewind','Info','ColorF0Red','ColorF2Yellow'].forEach(k => { try { tizen.tvinputdevice.registerKey(k); } catch {} }); } catch {}
 
 const FOCUSABLE = 'a[href],button:not([disabled]),input:not([type=hidden]):not([disabled]),select:not([disabled]),textarea:not([disabled]),summary,[tabindex]:not([tabindex="-1"])';

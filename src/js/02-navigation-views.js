@@ -107,6 +107,7 @@ window.addEventListener('popstate', e => {
 });
 $('#exStay').onclick = () => { $('#exitDlg').hidden = true; pageKey = JSON.stringify(pageNow()); history.pushState({page:pageNow(), layers:[]}, ''); };
 $('#exGo').onclick = () => {
+  try { if (window.parent !== window) { parent.postMessage({streamlet:'exit'}, '*'); return; } } catch {}   // Samsung TV app (tizen/index.html) closes itself
   try { if (window.tizen && tizen.application) { tizen.application.getCurrentApplication().exit(); return; } } catch {}
   try { const A = window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.App; if (A && A.exitApp) { A.exitApp(); return; } } catch {}
   exiting = true; history.back(); setTimeout(() => { try { window.close(); } catch {} }, 150);

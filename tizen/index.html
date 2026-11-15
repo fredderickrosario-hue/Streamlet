@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html><head><meta charset="utf-8"><meta name="viewport" content="width=1920">
+<title>Streamlet</title>
+<style>html,body{margin:0;height:100%;background:#0b0b0d;overflow:hidden}iframe{position:fixed;inset:0;width:100%;height:100%;border:0}
+#off{display:none;position:fixed;inset:0;place-items:center;color:#eee;font:28px sans-serif;text-align:center}</style></head>
+<body>
+<!-- Streamlet for Samsung TVs: a thin shell. The app itself is the live TV site, so it updates on its own like the Android APK.
+     This page registers the remote's extra keys and closes the app when Streamlet asks to exit. -->
+<iframe id="app" src="https://fredderickrosario-hue.github.io/Streamlet/tv/?tizen=1" allow="autoplay; fullscreen; encrypted-media; clipboard-write"></iframe>
+<div id="off">Streamlet can't load. Check the TV's internet connection.<br><br>Press OK to try again.</div>
+<script>
+var KEYS = ['MediaPlayPause','MediaPlay','MediaPause','MediaStop','MediaFastForward','MediaRewind','MediaTrackPrevious','MediaTrackNext','Info','ColorF0Red','ColorF1Green','ColorF2Yellow','ColorF3Blue','ChannelUp','ChannelDown'];
+try { KEYS.forEach(function (k) { try { tizen.tvinputdevice.registerKey(k); } catch (e) {} }); } catch (e) {}
+var f = document.getElementById('app');
+function focusApp(){ try { f.focus(); f.contentWindow.focus(); } catch (e) {} }
+f.addEventListener('load', focusApp); window.addEventListener('focus', focusApp);
+window.addEventListener('message', function (e) {
+  if (!e.data || e.data.streamlet !== 'exit') return;
+  try { tizen.application.getCurrentApplication().exit(); } catch (err) {}
+});
+/* keys that land on this page instead of the app (before it has focus) are passed along */
+document.addEventListener('keydown', function (e) {
+  if (document.getElementById('off').style.display === 'grid') { if (e.keyCode === 13) location.reload(); if (e.keyCode === 10009) { try { tizen.application.getCurrentApplication().exit(); } catch (x) {} } return; }
+  focusApp();
+  try { f.contentWindow.postMessage({streamlet:'key', key:e.key, keyCode:e.keyCode}, '*'); } catch (x) {}
+});
+if (!navigator.onLine) document.getElementById('off').style.display = 'grid';
+</script>
+</body></html>
