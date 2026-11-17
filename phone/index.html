@@ -927,6 +927,14 @@ body.tv.pgfix:not(.launch) :is(#settings>.pad,#me>.pad,#wlGrid,#adBrowse,#adInst
 .avownbox{margin:0 22px 8px;border-radius:18px;background:rgba(255,255,255,.04)}
 .avstrip .avb{width:86px} body.tv .avstrip .avb{width:112px}
 .avpop .avbody{padding-bottom:26px;scroll-padding:30px 0}
+/* profile editor v3: no top bar; on the TV everything fits one screen, side by side */
+.pe.pe2{max-width:560px;margin:0 auto;padding:max(22px,env(safe-area-inset-top)) 18px 40px;display:block}
+.pe2 .pe-act{margin-top:20px}
+.pe-avbtn .pbadge{position:absolute;right:6px;bottom:8px;width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,var(--acc),var(--acc2));color:#fff;border:3px solid var(--bg);box-shadow:0 4px 12px rgba(0,0,0,.4);display:flex;align-items:center;justify-content:center;box-sizing:content-box}
+.pe-avbtn .pbadge svg{width:18px;height:18px;stroke:#fff;fill:none}
+body:not(.tv) .pe.pe2{display:flex;flex-direction:column}
+body:not(.tv) .pe2-r{display:contents}
+body:not(.tv) .pe2 .sedh{order:0;margin:4px 0 12px} body:not(.tv) .pe2-l{order:1} body:not(.tv) .pe2 :is(.lbl,.pe-input,.tgl,.pe-act){order:2}
 
 /* manage profiles: the pencil badge sits on the avatar's corner, in our accent color */
 .pav:not(.add){width:fit-content;height:auto;border-radius:0;box-shadow:none}
@@ -2778,7 +2786,7 @@ function editProfile(id){
   const close = () => { try { avClose(); } catch {} keepManage = manageProfiles && !$('#profiles').hidden; popLayer('pedit'); setTimeout(() => { keepManage = false; }, 1500); };
   const name = h('input', {class:'f pe-input', placeholder:'Name', maxlength:'16'}); name.value = pr.name;
   const prev = h('button', {type:'button', class:'avprev pe-avbtn', 'aria-label':'Change picture', title:'Change picture'});
-  const paint = () => { const pen = h('span', {class:'pe-pen'}); pen.innerHTML = PENCIL; prev.replaceChildren(avatarEl(pr, 132), pen); };
+  const paint = () => prev.replaceChildren(avatarEl(pr, 132), h('span', {class:'pbadge', 'aria-hidden':'true'}, PENCIL_SVG()));   // the same pencil as Manage profiles
   prev.onclick = () => avPicker(pr, paint);                            // the picture pop-up (31-avatars.js)
   paint();
   const del = h('button', {class:'btn ghost', type:'button'}, 'Delete profile'); let armed = false;
@@ -2802,13 +2810,12 @@ function editProfile(id){
   const liveName = h('div', {class:'pe-name'}, pr.name || 'New profile');
   name.oninput = () => { liveName.textContent = name.value.trim() || 'New profile'; };
   ed.replaceChildren(
-    h('div', {class:'bar', style:'padding-left:0;padding-right:0'}, h('button', {class:'btn ghost sm', onclick:close}, '← Cancel')),
-    h('div', {class:'pe solo'},
-      h('div', {class:'pecol pecol-l pe-one'},
+    h('div', {class:'pe pe2'},                                          // one screen, nothing to scroll: the picture card, then name, kids and the buttons
+      h('div', {class:'pe2-l'}, h('div', {class:'pe-prev'}, prev, liveName, h('small', {class:'pe-hint'}, 'Select the picture to change it'))),
+      h('div', {class:'pe2-r'},
         h('h2', {class:'sedh'}, isNew ? 'New profile' : 'Edit profile'),
-        h('div', {class:'pe-prev'}, prev, liveName, h('small', {class:'pe-hint'}, 'Select the picture to change it')),
         h('div', {class:'lbl'}, 'Name'), name, kidRow,
-        h('div', {class:'pe-act'}, save, isNew ? null : del))));
+        h('div', {class:'pe-act'}, save, h('button', {class:'btn ghost', type:'button', onclick:close}, 'Cancel'), isNew ? null : del))));
 }
 
 /* corner mark on a poster: a number = episodes you have not watched yet (new or missed), an eye = watched */

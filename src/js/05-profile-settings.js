@@ -205,7 +205,7 @@ function editProfile(id){
   const close = () => { try { avClose(); } catch {} keepManage = manageProfiles && !$('#profiles').hidden; popLayer('pedit'); setTimeout(() => { keepManage = false; }, 1500); };
   const name = h('input', {class:'f pe-input', placeholder:'Name', maxlength:'16'}); name.value = pr.name;
   const prev = h('button', {type:'button', class:'avprev pe-avbtn', 'aria-label':'Change picture', title:'Change picture'});
-  const paint = () => { const pen = h('span', {class:'pe-pen'}); pen.innerHTML = PENCIL; prev.replaceChildren(avatarEl(pr, 132), pen); };
+  const paint = () => prev.replaceChildren(avatarEl(pr, 132), h('span', {class:'pbadge', 'aria-hidden':'true'}, PENCIL_SVG()));   // the same pencil as Manage profiles
   prev.onclick = () => avPicker(pr, paint);                            // the picture pop-up (31-avatars.js)
   paint();
   const del = h('button', {class:'btn ghost', type:'button'}, 'Delete profile'); let armed = false;
@@ -229,13 +229,12 @@ function editProfile(id){
   const liveName = h('div', {class:'pe-name'}, pr.name || 'New profile');
   name.oninput = () => { liveName.textContent = name.value.trim() || 'New profile'; };
   ed.replaceChildren(
-    h('div', {class:'bar', style:'padding-left:0;padding-right:0'}, h('button', {class:'btn ghost sm', onclick:close}, '← Cancel')),
-    h('div', {class:'pe solo'},
-      h('div', {class:'pecol pecol-l pe-one'},
+    h('div', {class:'pe pe2'},                                          // one screen, nothing to scroll: the picture card, then name, kids and the buttons
+      h('div', {class:'pe2-l'}, h('div', {class:'pe-prev'}, prev, liveName, h('small', {class:'pe-hint'}, 'Select the picture to change it'))),
+      h('div', {class:'pe2-r'},
         h('h2', {class:'sedh'}, isNew ? 'New profile' : 'Edit profile'),
-        h('div', {class:'pe-prev'}, prev, liveName, h('small', {class:'pe-hint'}, 'Select the picture to change it')),
         h('div', {class:'lbl'}, 'Name'), name, kidRow,
-        h('div', {class:'pe-act'}, save, isNew ? null : del))));
+        h('div', {class:'pe-act'}, save, h('button', {class:'btn ghost', type:'button', onclick:close}, 'Cancel'), isNew ? null : del))));
 }
 
 /* corner mark on a poster: a number = episodes you have not watched yet (new or missed), an eye = watched */
