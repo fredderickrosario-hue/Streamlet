@@ -355,35 +355,16 @@ function recordProgress(c, stream, pos, dur, force){
   syncSoft = !fin;                                                                          // progress alone can wait for the next quiet moment to go to the cloud
   try { recordProgressNow(c, stream, pos, dur, it, key, es, ee, fin); } finally { syncSoft = false; }
 }
-/* which space's Continue watching a title goes to: the one it was played in, except anime played from another space,
-   which goes to the Anime space (Jujutsu Kaisen played from Cinema keeps going in Anime) */
-const ANIME_ID = /^(kitsu|mal|anilist|anidb):/;
-const isAnimeMeta = it => !!it && (ANIME_ID.test(String(it.id || '')) || (it.genres || []).some(g => /\banime\b/i.test(g))
-  || ((it.genres || []).some(g => /animation/i.test(g)) && (it.lang === 'ja' || /\b(JP|Japan)\b/i.test(String(it.country || '')))));
-const animeSpace = () => spacesFor().find(s => s.id === 'anime') || spacesFor().find(s => s.theme === 'anime');
+/* which space's Continue watching a title goes to: the space it was played in. A space showing "History from all spaces" only shows
+   the others' titles: playing one from there leaves it in the space it already belongs to */
+const spaceKnown = id => !!id && spaces.some(s => s.id === id);
 function histSpaceOf(it){
   const here = cur && cur.id;
-  if (!isAnimeMeta(it) || (cur && (cur.id === 'anime' || cur.theme === 'anime'))) return here;
-  const an = animeSpace(); return an ? an.id : here;
-}
-/* once per profile: anime already in Continue watching from another space moves to the Anime space */
-async function animeRehome(){
-  if (!profile || pget('animeHome1', 0)) return;
-  const an = animeSpace(); if (!an) return;
-  const pid = profile.id, hist = histGet(), out = [];
-  let moved = 0;
-  for (const e of hist) {
-    if (e.space === an.id || e.space !== undefined && !spaces.some(s => s.id === e.space)) { out.push(e); continue; }
-    let anime = ANIME_ID.test(String(e.itemId || ''));
-    if (!anime && /^tt\d+$/.test(e.itemId || '') && tmKey()) {
-      try { const f = await tmLimit(() => tmdbGet(`/find/${e.itemId}?external_source=imdb_id`, tmKey())), x = (f.tv_results || [])[0] || (f.movie_results || [])[0];
-        anime = !!x && (x.genre_ids || []).includes(16) && (x.original_language === 'ja' || (x.origin_country || []).includes('JP')); } catch { if (!navigator.onLine) return; }
-    }
-    if (anime) { out.push({...e, space:an.id, t:(e.t || 0) + 1}); moved++; } else out.push(e);   // +1 ms: the move wins when the cloud copy is merged
+  if (allHist()) {
+    const old = histGet().find(x => x.itemId === it.id); if (old && spaceKnown(old.space)) return old.space;
+    const sh = pget('shows', {})[it.id]; if (sh && spaceKnown(sh.sp)) return sh.sp;
   }
-  if (!profile || profile.id !== pid) return;
-  if (moved) { const now = histGet(); const mv = new Map(out.filter(o => o.space === an.id).map(o => [o.k, o])); pset('history', now.map(e => mv.has(e.k) && mv.get(e.k).t === (e.t || 0) + 1 ? mv.get(e.k) : e)); scheduleSync(); try { homeDirty(); } catch {} }
-  pset('animeHome1', 1);
+  return here;
 }
 function recordProgressNow(c, stream, pos, dur, it, key, es, ee, fin){
   epPut(it.id, es, ee, fin ? {pos:0, dur, done:true} : {pos, dur, done:false});

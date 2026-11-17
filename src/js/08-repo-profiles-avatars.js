@@ -233,7 +233,6 @@ async function selectProfile(p){
   profile = p; try { navAvatar(); } catch {} lsSet('streamlet.profile.last', p.id);
   loadProfileData(); epReset(); try { fillTmdb(); qcFillShows(); } catch {} try { epMigrate(); } catch {} try { for (const q of profiles) showsBackfill(q.id); epReset(); } catch {}
   document.body.classList.toggle('kids', !!p.kids);
-  setTimeout(() => { try { animeRehome(); } catch {} }, 4000);       // anime in another space's Continue watching moves to Anime (once)
   if (p.kids) await kidsReady();
   const st = uiGet(), last = st.startup === 'launcher' ? null : st.startup === 'space' ? st.startSpace : pget('last', null);   // Settings > General > Startup
   const sp = last && spacesFor().find(x => x.id === last) || (p.kids ? spacesFor()[0] : null);
@@ -248,6 +247,8 @@ async function selectProfile(p){
    Entries carry a timestamp (t) so a future sync service can merge by latest. */
 const histGet = () => pget('history', []);
 function histPut(e){
+  const was = histGet().find(x => x.itemId === e.itemId);
+  if (was && was.space && e.space && was.space !== e.space) try { sysLog('CW', `${e.name || e.itemId}: Continue watching moved from ${was.space} to ${e.space}`); } catch {}
   e.t = Math.max(e.t || Date.now(), (pget('removed', {})[e.itemId] || 0) + 1);
   pset('history', [e, ...histGet().filter(x => x.k !== e.k && x.itemId !== e.itemId)].slice(0, 60)); scheduleSync();
 }

@@ -273,7 +273,8 @@ const nuMem = new Map();
 /* remember a series you are watching, and in which space, so Continue watching and the poster numbers can follow it */
 function showNote(id, name, poster, background, addonId){
   if (!profile || !cur) return;
-  const sh = pget('shows', {}); sh[id] = {n:name, p:poster, b:background, a:addonId, ty:'series', sp:cur.id, t:Date.now()};
+  const sh = pget('shows', {}), keep = allHist() && sh[id] && spaces.some(s => s.id === sh[id].sp) ? sh[id].sp : cur.id;   // watched from an all-spaces view: it stays in its own space
+  sh[id] = {n:name, p:poster, b:background, a:addonId, ty:'series', sp:keep, t:Date.now()};
   pset('shows', Object.fromEntries(Object.entries(sh).sort((x, y) => y[1].t - x[1].t).slice(0, 60))); scheduleSync();
 }
 async function showMeta(id, s0){
@@ -347,7 +348,7 @@ function renderCW(){
   refreshCounts();
   nextEpisodeCards(new Set(hist.map(e => e.itemId))).then(extra => {
     if (tok !== cwTok) return;
-    pset('nextcards', extra.map(e => ({...e, sp:cur.id})));                       // next time the row shows these at once
+    const shs = pget('shows', {}); pset('nextcards', extra.map(e => ({...e, sp:(shs[e.itemId] || {}).sp || cur.id})));   // each card keeps its show's space                       // next time the row shows these at once
     strip.querySelectorAll('.cwc').forEach(c => { if (c._next) c.remove(); });
     for (const e of extra) { const c = cwCard(e); c._next = true; strip.append(c); }
     if (extra.length && !row.isConnected) box.append(row); else if (!strip.children.length && row.isConnected) row.remove();

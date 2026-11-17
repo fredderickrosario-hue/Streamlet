@@ -246,3 +246,18 @@ body.tv .avb:focus{outline:3px solid #fff;outline-offset:3px;transform:scale(1.0
 body.tv .pe .pe-one{width:100%;max-width:640px;margin:0 auto;flex:0 1 640px}
 body.tv .pe.solo{grid-template-columns:minmax(0,560px);justify-content:center;max-width:none;overflow:auto}
 body.tv .pe.solo .pe-prev{padding:12px 16px 10px}
+/* picture sheet: rows that scroll sideways */
+.avpop .avcard{max-width:1100px;max-height:92vh;padding:18px 0 6px}
+.avpop .avhead{margin:0 22px 6px}
+.avpop .avbody{padding:0 0 12px;margin:0}
+.avrow{margin:4px 0 6px}
+.avrow h3{margin:8px 22px 2px;font-size:17px;font-weight:800;letter-spacing:.2px}
+.avstrip{display:flex;gap:14px;overflow-x:auto;overflow-y:hidden;padding:12px 22px 14px;scroll-padding:0 22px;scrollbar-width:none;scroll-behavior:smooth}
+.avstrip::-webkit-scrollbar{display:none}
+.avstrip .avb{flex:0 0 auto;width:96px;transition:transform .15s}
+body.tv .avstrip .avb{width:112px}
+.avstrip .avb .av{width:100% !important;height:auto !important;aspect-ratio:1/1;box-shadow:0 6px 16px rgba(0,0,0,.35)}
+.avup .av{background:linear-gradient(135deg,color-mix(in srgb,var(--acc) 70%,#222),#2a2233);display:flex}
+.avup .av svg{width:48%;height:48%}
+.avownbox{margin:0 22px 8px;border-radius:18px;background:rgba(255,255,255,.04)}
+.avstrip .avb{width:86px} body.tv .avstrip .avb{width:112px}
