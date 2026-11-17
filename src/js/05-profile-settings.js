@@ -202,6 +202,7 @@ function editProfile(id){
   const pr = isNew ? {id:'p'+Date.now().toString(36), name:'', emoji:PROFILE_EMOJIS[profiles.length % PROFILE_EMOJIS.length], color:PROFILE_COLORS[profiles.length % PROFILE_COLORS.length], avatar:'a:' + ((profiles.length * 7 + 3) % AV_COUNT)}
                    : JSON.parse(JSON.stringify(profiles.find(x => x.id === id)));
   const ed = $('#profEd'); ed.hidden = false; ed.scrollTop = 0; pushLayer('pedit');
+  if (!ed._noScroll) { ed._noScroll = 1; ed.addEventListener('scroll', () => { if (isTVui() && ed.scrollTop) ed.scrollTop = 0; }); }   // one screen on the TV: focus never shifts it
   const close = () => { try { avClose(); } catch {} keepManage = manageProfiles && !$('#profiles').hidden; popLayer('pedit'); setTimeout(() => { keepManage = false; }, 1500); };
   const name = h('input', {class:'f pe-input', placeholder:'Name', maxlength:'16'}); name.value = pr.name;
   const prev = h('button', {type:'button', class:'avprev pe-avbtn', 'aria-label':'Change picture', title:'Change picture'});
@@ -226,6 +227,8 @@ function editProfile(id){
   }}, isNew ? 'Create profile' : 'Save');
   const kidCb = h('input', {type:'checkbox'}); kidCb.checked = !!pr.kids; kidCb.onchange = () => { pr.kids = kidCb.checked; };
   const kidRow = h('label', {class:'tgl', style:'margin-top:14px'}, h('span', null, h('b', null, 'Kids profile'), h('small', null, 'Only sees spaces made for kids. No Addons, New & Hot or space editing, and search stays in the kids catalogs')), kidCb);
+  kidCb.tabIndex = -1; kidRow.tabIndex = 0;                               // the whole row is one stop for the remote, full width like the fields around it
+  kidRow.onkeydown = e => { if ((e.key === 'Enter' || e.key === ' ' || e.keyCode === 13) && e.target === kidRow) { e.preventDefault(); kidCb.click(); } };
   const liveName = h('div', {class:'pe-name'}, pr.name || 'New profile');
   name.oninput = () => { liveName.textContent = name.value.trim() || 'New profile'; };
   ed.replaceChildren(

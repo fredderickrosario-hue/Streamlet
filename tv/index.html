@@ -1169,6 +1169,8 @@ body:not(.tv) .pe2 .sedh{order:0;margin:4px 0 12px} body:not(.tv) .pe2-l{order:1
 body.tv .sptile:focus{transform:scale(1.04);outline:3px solid #fff;outline-offset:3px}
 .spfoot{display:flex;justify-content:center;padding:6px 22px 4px}
 body.tv .spgrid{grid-template-columns:repeat(3,minmax(0,1fr))}
+body.tv #profEd{padding-bottom:0}
+body.tv .pe2 .tgl:focus{outline:3px solid #fff;outline-offset:3px}
 
 /* manage profiles: the pencil badge sits on the avatar's corner, in our accent color */
 .pav:not(.add){width:fit-content;height:auto;border-radius:0;box-shadow:none}
@@ -3075,6 +3077,7 @@ function editProfile(id){
   const pr = isNew ? {id:'p'+Date.now().toString(36), name:'', emoji:PROFILE_EMOJIS[profiles.length % PROFILE_EMOJIS.length], color:PROFILE_COLORS[profiles.length % PROFILE_COLORS.length], avatar:'a:' + ((profiles.length * 7 + 3) % AV_COUNT)}
                    : JSON.parse(JSON.stringify(profiles.find(x => x.id === id)));
   const ed = $('#profEd'); ed.hidden = false; ed.scrollTop = 0; pushLayer('pedit');
+  if (!ed._noScroll) { ed._noScroll = 1; ed.addEventListener('scroll', () => { if (isTVui() && ed.scrollTop) ed.scrollTop = 0; }); }   // one screen on the TV: focus never shifts it
   const close = () => { try { avClose(); } catch {} keepManage = manageProfiles && !$('#profiles').hidden; popLayer('pedit'); setTimeout(() => { keepManage = false; }, 1500); };
   const name = h('input', {class:'f pe-input', placeholder:'Name', maxlength:'16'}); name.value = pr.name;
   const prev = h('button', {type:'button', class:'avprev pe-avbtn', 'aria-label':'Change picture', title:'Change picture'});
@@ -3099,6 +3102,8 @@ function editProfile(id){
   }}, isNew ? 'Create profile' : 'Save');
   const kidCb = h('input', {type:'checkbox'}); kidCb.checked = !!pr.kids; kidCb.onchange = () => { pr.kids = kidCb.checked; };
   const kidRow = h('label', {class:'tgl', style:'margin-top:14px'}, h('span', null, h('b', null, 'Kids profile'), h('small', null, 'Only sees spaces made for kids. No Addons, New & Hot or space editing, and search stays in the kids catalogs')), kidCb);
+  kidCb.tabIndex = -1; kidRow.tabIndex = 0;                               // the whole row is one stop for the remote, full width like the fields around it
+  kidRow.onkeydown = e => { if ((e.key === 'Enter' || e.key === ' ' || e.keyCode === 13) && e.target === kidRow) { e.preventDefault(); kidCb.click(); } };
   const liveName = h('div', {class:'pe-name'}, pr.name || 'New profile');
   name.oninput = () => { liveName.textContent = name.value.trim() || 'New profile'; };
   ed.replaceChildren(
@@ -5551,7 +5556,7 @@ function focusNav(){
    the card you last had in that row, or the one under where you were. Columns (side menu, search keyboard, search results) keep
    Up / Down to themselves; Left / Right cross between them. */
 const ROW_SEL = '.avstrip,.strip,.dacts2,.srow,.sfilter,.eplist,.slist,.cchips,.dsim,.tbtns,.dptabs,.rrow';
-const ZONE_SEL = '#nav,#search .skb,#search .sres,#profEd .pecol,#spaceEd .sedcol';
+const ZONE_SEL = '#nav,#search .skb,#search .sres,#profEd .pecol,#profEd .pe2-l,#profEd .pe2-r,#spaceEd .sedcol';
 const zoneMem = new WeakMap();                                            // column -> where you were in it
 const rowMem = new WeakMap();                                             // row -> the card you were on
 let navEl = null, navVert = false;                                         // the card that set the column you are travelling down (kept across short lines)

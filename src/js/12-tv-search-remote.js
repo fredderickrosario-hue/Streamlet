@@ -132,7 +132,7 @@ function focusNav(){
    the card you last had in that row, or the one under where you were. Columns (side menu, search keyboard, search results) keep
    Up / Down to themselves; Left / Right cross between them. */
 const ROW_SEL = '.avstrip,.strip,.dacts2,.srow,.sfilter,.eplist,.slist,.cchips,.dsim,.tbtns,.dptabs,.rrow';
-const ZONE_SEL = '#nav,#search .skb,#search .sres,#profEd .pecol,#spaceEd .sedcol';
+const ZONE_SEL = '#nav,#search .skb,#search .sres,#profEd .pecol,#profEd .pe2-l,#profEd .pe2-r,#spaceEd .sedcol';
 const zoneMem = new WeakMap();                                            // column -> where you were in it
 const rowMem = new WeakMap();                                             // row -> the card you were on
 let navEl = null, navVert = false;                                         // the card that set the column you are travelling down (kept across short lines)

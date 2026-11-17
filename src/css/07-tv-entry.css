@@ -290,3 +290,5 @@ body:not(.tv) .pe2 .sedh{order:0;margin:4px 0 12px} body:not(.tv) .pe2-l{order:1
 body.tv .sptile:focus{transform:scale(1.04);outline:3px solid #fff;outline-offset:3px}
 .spfoot{display:flex;justify-content:center;padding:6px 22px 4px}
 body.tv .spgrid{grid-template-columns:repeat(3,minmax(0,1fr))}
+body.tv #profEd{padding-bottom:0}
+body.tv .pe2 .tgl:focus{outline:3px solid #fff;outline-offset:3px}
