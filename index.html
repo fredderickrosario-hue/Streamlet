@@ -1202,6 +1202,18 @@ body.tv .pe-avbtn .pbadge{width:42px;height:42px} body.tv .pe-avbtn .pbadge svg{
 body:not(.tv) .pe.pe2{display:flex;flex-direction:column}
 body:not(.tv) .pe2-r{display:contents}
 body:not(.tv) .pe2 .sedh{order:0;margin:4px 0 12px} body:not(.tv) .pe2-l{order:1} body:not(.tv) .pe2 :is(.lbl,.pe-input,.tgl,.pe-act){order:2}
+/* quick space switcher (32-space-switcher.js), built on the picture pop-up's card */
+.sppop .spcard{max-width:820px;padding:18px 0 14px}
+.spgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:14px;padding:12px 22px;overflow:auto}
+.sptile{flex-direction:row !important;align-items:center !important;padding:14px 16px !important;min-height:0 !important;height:auto !important;aspect-ratio:auto !important;gap:14px !important;font:inherit;cursor:pointer}
+.sptile .sem{font-size:30px !important;background:none !important;width:auto !important;height:auto !important;box-shadow:none !important;padding:0 !important}
+.sptile .stx{flex:1;min-width:0;text-align:left}
+.sptile .snm{font-size:18px} .sptile .sds{font-size:12px;opacity:.85}
+.sptile.here{box-shadow:inset 0 0 0 3px rgba(255,255,255,.85)}
+.sptile:hover,.sptile:focus-visible{transform:scale(1.03);outline:3px solid #fff;outline-offset:3px}
+body.tv .sptile:focus{transform:scale(1.04);outline:3px solid #fff;outline-offset:3px}
+.spfoot{display:flex;justify-content:center;padding:6px 22px 4px}
+body.tv .spgrid{grid-template-columns:repeat(3,minmax(0,1fr))}
 
 /* manage profiles: the pencil badge sits on the avatar's corner, in our accent color */
 .pav:not(.add){width:fit-content;height:auto;border-radius:0;box-shadow:none}
@@ -2369,12 +2381,12 @@ function showTab(name){
   pushPage();
 }
 for (const [k, sel] of Object.entries(TAB_BUTTONS)) $(sel).onclick = () => showTab(k);
-$('#spaceBtn').onclick = () => showLauncher();
+$('#spaceBtn').onclick = () => spaceSwitch();                    // quick switcher pop-up (32-space-switcher.js)
 const isTVui = () => document.body.classList.contains('tv');
 function tvTab(t){ if (!cur) return showLauncher(); srchOn = false; $('#q').value = ''; view = {tab:t, genre:''}; showTab('home'); }
 $('#tabHome').onclick = () => { if (isTVui()) tvTab('home'); else showTab('home'); };
 $('#nvMovies').onclick = () => tvTab('movie'); $('#nvShows').onclick = () => tvTab('series'); $('#nvNew').onclick = () => tvTab('new');
-$('#nvSpace').onclick = () => showLauncher();
+$('#nvSpace').onclick = () => spaceSwitch();
 $('#setAddons').onclick = () => showTab('addons');
 $('#nvSearch').onclick = () => { if (!cur) return showLauncher(); if (isTVui()) { showTab('search'); setTimeout(() => { const k = $('.kkey'); if (k) k.focus({preventScroll:true}); }, 60); return; } if (srchOn || $('#q').value.trim()) { closeSearch(); return; } if ($('#home').hidden) showTab('home'); srchOn = true; renderTabs(); $('#q').focus(); };
 $('#nav').addEventListener('keydown', e => { if ((e.key === 'Enter' || e.key === ' ') && e.target.closest('button')) e.target.closest('button').classList.add('prs'); });
@@ -3470,7 +3482,7 @@ function renderTabs(){
   if (ps) {                                                              // phone: search and spaces live in the sticky top bar
     ps.innerHTML = searching ? X_SVG : SRCH_SVG;
     ps.onclick = () => { if (searching) closeSearch(); else { srchOn = true; renderTabs(); $('#q').focus(); } };
-    pp.onclick = () => showLauncher();
+    pp.onclick = () => spaceSwitch();
   }
   if (searching) { bar.hidden = false; bar.replaceChildren(q); q.hidden = false; return; }
   if (!spaceTabs() || !addons.length) { bar.hidden = true; bar.replaceChildren(); return; }
@@ -5578,7 +5590,7 @@ try { if (window.tizen && tizen.tvinputdevice) ['MediaPlayPause','MediaPlay','Me
 
 const FOCUSABLE = 'a[href],button:not([disabled]),input:not([type=hidden]):not([disabled]),select:not([disabled]),textarea:not([disabled]),summary,[tabindex]:not([tabindex="-1"])';
 function ctxRoot(){
-  for (const id of ['#loadov', '#exitDlg', '#updDlg', '#avPop', '#welcome', '#iosHelp', '#menu', '#ppanel', '#player', '#addonEd', '#profEd', '#spaceEd', '#episode', '#detail']) { const e = $(id); if (e && !e.hidden) return e; }
+  for (const id of ['#loadov', '#exitDlg', '#updDlg', '#avPop', '#spPop', '#welcome', '#iosHelp', '#menu', '#ppanel', '#player', '#addonEd', '#profEd', '#spaceEd', '#episode', '#detail']) { const e = $(id); if (e && !e.hidden) return e; }
   return document.body;
 }
 function focusables(root){
@@ -8590,6 +8602,37 @@ function avOwn(body, pr, pick){
   })();
   return () => { dead = true; FB.fs.deleteDoc(ref).catch(() => {}); };
 }
+/* ---------- quick space switcher: a pop-up over what you're watching (the ⇄ space button, the TV menu's Spaces).
+   The full spaces page stays the front door and the place to manage spaces: "Manage spaces" at the bottom opens it. ---------- */
+let spPop = null;
+function spaceSwitch(){
+  if (!cur || !profile) return showLauncher();
+  if (spPop) return;
+  const list = spacesFor().filter(sp => !spHidden(sp));
+  const tile = sp => {
+    const t = THEMES[sp.theme] || THEMES.ember, here = sp.id === cur.id;
+    return h('button', {type:'button', class:'stile sptile' + (here ? ' here' : ''), style:`--c1:${t.acc};--c2:${t.acc2 || t.acc}`, 'aria-current':here ? 'true' : 'false',
+      onclick:() => { if (here) spClose(); else { spClose(false, true); openSpace(sp.id); } }},
+      h('span', {class:'sem'}, spIcon(sp)), h('span', {class:'stx'}, h('span', {class:'snm'}, sp.name), here ? h('span', {class:'sds'}, 'You are here') : null));
+  };
+  const W = h('div', {id:'spPop', class:'avpop sppop', role:'dialog', 'aria-modal':'true', 'aria-label':'Switch space'},
+    h('div', {class:'avcard spcard'},
+      h('div', {class:'avhead'}, h('h2', null, 'Switch space'), h('button', {class:'btn ghost sm', type:'button', onclick:() => spClose()}, 'Close')),
+      h('div', {class:'spgrid'}, list.map(tile)),
+      h('div', {class:'spfoot'}, h('button', {class:'chip', type:'button', onclick:() => { spClose(false, true); showLauncher(); }}, isKid() ? 'All spaces' : 'Manage spaces'))));
+  document.body.append(W);
+  spPop = {W, back:document.activeElement};
+  try { pushLayer('spop'); } catch {}
+  const f = W.querySelector('.sptile.here') || W.querySelector('.sptile'); if (f) f.focus({preventScroll:true});
+}
+function spClose(fromBack, leaving){                                    // leaving = going somewhere else: drop the layer without a history step,
+  if (!spPop) return;                                                      // or the Back it takes would bring the old space's page back
+  const p = spPop; spPop = null; p.W.remove();
+  if (leaving) { try { const i = layersOpen.lastIndexOf('spop'); if (i >= 0) { layersOpen.splice(i, 1); focusStack.splice(i, 1); if (!layersOpen.length) document.body.classList.remove('inlayer'); history.replaceState({page:pageNow(), layers:[...layersOpen]}, ''); } } catch {} return; }
+  if (!fromBack) { try { if (layersOpen[layersOpen.length - 1] === 'spop') popLayer('spop'); } catch {} }
+  try { if (p.back && p.back.isConnected) p.back.focus({preventScroll:true}); } catch {}
+}
+LAYER_CLOSERS.spop = () => spClose(true);
 </script>
 </body>
 </html>

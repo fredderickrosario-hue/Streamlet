@@ -195,7 +195,7 @@ function renderTabs(){
   if (ps) {                                                              // phone: search and spaces live in the sticky top bar
     ps.innerHTML = searching ? X_SVG : SRCH_SVG;
     ps.onclick = () => { if (searching) closeSearch(); else { srchOn = true; renderTabs(); $('#q').focus(); } };
-    pp.onclick = () => showLauncher();
+    pp.onclick = () => spaceSwitch();
   }
   if (searching) { bar.hidden = false; bar.replaceChildren(q); q.hidden = false; return; }
   if (!spaceTabs() || !addons.length) { bar.hidden = true; bar.replaceChildren(); return; }

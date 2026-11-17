@@ -145,12 +145,12 @@ function showTab(name){
   pushPage();
 }
 for (const [k, sel] of Object.entries(TAB_BUTTONS)) $(sel).onclick = () => showTab(k);
-$('#spaceBtn').onclick = () => showLauncher();
+$('#spaceBtn').onclick = () => spaceSwitch();                    // quick switcher pop-up (32-space-switcher.js)
 const isTVui = () => document.body.classList.contains('tv');
 function tvTab(t){ if (!cur) return showLauncher(); srchOn = false; $('#q').value = ''; view = {tab:t, genre:''}; showTab('home'); }
 $('#tabHome').onclick = () => { if (isTVui()) tvTab('home'); else showTab('home'); };
 $('#nvMovies').onclick = () => tvTab('movie'); $('#nvShows').onclick = () => tvTab('series'); $('#nvNew').onclick = () => tvTab('new');
-$('#nvSpace').onclick = () => showLauncher();
+$('#nvSpace').onclick = () => spaceSwitch();
 $('#setAddons').onclick = () => showTab('addons');
 $('#nvSearch').onclick = () => { if (!cur) return showLauncher(); if (isTVui()) { showTab('search'); setTimeout(() => { const k = $('.kkey'); if (k) k.focus({preventScroll:true}); }, 60); return; } if (srchOn || $('#q').value.trim()) { closeSearch(); return; } if ($('#home').hidden) showTab('home'); srchOn = true; renderTabs(); $('#q').focus(); };
 $('#nav').addEventListener('keydown', e => { if ((e.key === 'Enter' || e.key === ' ') && e.target.closest('button')) e.target.closest('button').classList.add('prs'); });
