@@ -422,7 +422,7 @@ async function tmMeta(type, id){
     poster:d.poster_path ? TM_IMG + 'w500' + d.poster_path : '', background:d.backdrop_path ? TM_IMG + 'original' + d.backdrop_path : '',
     logo:logo ? TM_IMG + 'w500' + logo.file_path : undefined, description:d.overview || '',
     releaseInfo:kind === 'tv' ? [tmYear(d), d.status === 'Ended' && d.last_air_date ? d.last_air_date.slice(0, 4) : ''].filter(Boolean).join('–') + (d.status === 'Ended' ? '' : '–') : tmYear(d),
-    year:tmYear(d), genres:(d.genres || []).map(g => g.name), runtime:run ? run + ' min' : undefined, imdbRating:d.vote_average ? d.vote_average.toFixed(1) : undefined,
+    year:tmYear(d), genres:(d.genres || []).map(g => g.name), lang:d.original_language || undefined, country:(d.origin_country || (d.production_countries || []).map(c => c.iso_3166_1)).join(',') || undefined, runtime:run ? run + ' min' : undefined, imdbRating:d.vote_average ? d.vote_average.toFixed(1) : undefined,
     cast:((d.credits || {}).cast || []).slice(0, 10).map(c => c.name), director:((d.credits || {}).crew || []).filter(c => c.job === 'Director').map(c => c.name),
     trailers:trailer ? [{source:trailer.key, type:'Trailer'}] : [], status:d.status, tmdbStatus:d.status || '', tmdbNext:!!d.next_episode_to_air};
   if (kind === 'tv') {

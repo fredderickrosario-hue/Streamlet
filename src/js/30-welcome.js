@@ -1,7 +1,7 @@
 /* ---------- first launch: pick your spaces, then a TMDB key (or Cinemeta without one), then Real-Debrid. Shown once, on a device whose
    addons are only the built-in Torrentio (a signed-in account that already has addons never sees it). ---------- */
 const WZ_SPACES = [
-  {id:'aio',     name:'Cinema',  emoji:'🍿', icon:'cinema', theme:'googletv', desc:'Everything: movies and shows', tmdb:'tmdb://all'},
+  {id:'aio',     name:'Cinema',  emoji:'🍿', icon:'movies', theme:'googletv', desc:'Everything: movies and shows', tmdb:'tmdb://all'},
   {id:'netflix', name:'Netflix', emoji:'📺', icon:'netflix', theme:'netflix',  desc:"What's on Netflix in Canada", tmdb:'tmdb://netflix'},
   {id:'disney',  name:'Disney',  emoji:'🏰', icon:'castle', theme:'disney',   desc:'Disney, Pixar and Disney Channel', tmdb:'tmdb://disney'},
   {id:'marvel',  name:'Marvel',  emoji:'🦸', icon:'avengers', theme:'marvel',   desc:'The MCU in story order, then the rest', tmdb:'tmdb://marvel'},

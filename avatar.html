@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="color-scheme" content="dark">
+<title>Send a profile picture to Streamlet</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;background:radial-gradient(circle at 50% 30%,#2c1712,#0a0a12 70%);color:#eceef3;font:16px/1.4 system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
+main{width:100%;max-width:380px;padding:28px 22px;text-align:center}
+h1{margin:0 0 6px;font-size:32px}h1 b{color:#ff6b3d}
+p.sub{color:#9aa0b4;margin:0 0 22px}
+button{width:100%;padding:14px;border-radius:14px;border:0;font-size:16px;font-weight:700;color:#fff;background:#ff6b3d;margin:0 0 10px}
+button.ghost{background:#ffffff14}
+#pv{width:160px;height:160px;border-radius:50%;object-fit:cover;margin:0 auto 18px;display:none;box-shadow:0 10px 30px rgba(0,0,0,.5)}
+#msg{min-height:24px;margin-top:8px;font-size:14px;color:#ff8f8f}
+#msg.ok{color:#4ad295}
+</style>
+</head>
+<body>
+<main>
+  <h1>Stream<b>let</b></h1>
+  <p class="sub" id="sub">Pick a photo for your profile. It goes straight to your TV.</p>
+  <img id="pv" alt="">
+  <div id="form">
+    <button id="pick" type="button">Choose a photo</button>
+    <button id="send" type="button" hidden>Send to the TV</button>
+    <input id="file" type="file" accept="image/*" hidden>
+  </div>
+  <div id="msg"></div>
+</main>
+<script type="module">
+import {initializeApp} from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js';
+import {getFirestore, doc, setDoc} from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js';
+const app = initializeApp({apiKey:"AIzaSyB1Ail6UMc7ou1S67kIJl7OPOEzzm_gyZM",authDomain:"streamlet-9439d.firebaseapp.com",projectId:"streamlet-9439d",storageBucket:"streamlet-9439d.firebasestorage.app",messagingSenderId:"838065755328",appId:"1:838065755328:web:ffd0becf3ab0314bb04925"});
+const db = getFirestore(app);
+const $ = s => document.querySelector(s), msg = (t, ok) => { const m = $('#msg'); m.textContent = t; m.className = ok ? 'ok' : ''; };
+const [pid, key] = location.hash.slice(1).split('.');
+const unb64 = s => Uint8Array.from(atob(s.replace(/-/g, '+').replace(/_/g, '/')), c => c.charCodeAt(0));
+const b64 = u => { let s = ''; for (let i = 0; i < u.length; i += 8192) s += String.fromCharCode(...u.subarray(i, i + 8192)); return btoa(s).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, ''); };
+if (!pid || !key) { $('#form').hidden = true; $('#sub').textContent = ''; msg('Open this page by scanning the code on your TV.'); }
+let pic = null;
+const shrink = file => new Promise((res, rej) => {        // a 200 px square from the middle, like the app does
+  const img = new Image(), u = URL.createObjectURL(file);
+  img.onload = () => { const s = Math.min(img.naturalWidth, img.naturalHeight), c = document.createElement('canvas'); c.width = c.height = 200;
+    c.getContext('2d').drawImage(img, (img.naturalWidth - s) / 2, (img.naturalHeight - s) / 2, s, s, 0, 0, 200, 200); URL.revokeObjectURL(u); res(c.toDataURL('image/jpeg', .85)); };
+  img.onerror = () => { URL.revokeObjectURL(u); rej(); };
+  img.src = u;
+});
+$('#pick').onclick = () => $('#file').click();
+$('#file').onchange = async () => {
+  const f = $('#file').files[0]; if (!f) return;
+  try { pic = await shrink(f); } catch { msg("That file isn't a picture this phone can open."); return; }
+  $('#pv').src = pic; $('#pv').style.display = 'block'; $('#send').hidden = false; $('#pick').textContent = 'Choose another'; $('#pick').className = 'ghost'; msg('');
+};
+$('#send').onclick = async () => {
+  if (!pic) return; msg('Sending…', true);
+  try {
+    const k = await crypto.subtle.importKey('raw', unb64(key), 'AES-GCM', false, ['encrypt']), iv = crypto.getRandomValues(new Uint8Array(12));
+    const ct = new Uint8Array(await crypto.subtle.encrypt({name:'AES-GCM', iv}, k, new TextEncoder().encode(JSON.stringify({img:pic}))));
+    await setDoc(doc(db, 'pairings', pid), {iv:b64(iv), ct:b64(ct), t:Date.now()});
+    $('#form').hidden = true; $('#sub').textContent = ''; msg('Sent! It shows up on your TV in a moment. You can close this page.', true);
+  } catch (e) { msg('Something went wrong' + (e && e.code ? ' (' + e.code + ')' : '') + '. Try again.'); }
+};
+</script>
+</body>
+</html>

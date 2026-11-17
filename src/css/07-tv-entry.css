@@ -210,3 +210,39 @@ body.tv #search .rgrid{grid-template-columns:repeat(auto-fill,minmax(150px,1fr))
 .nhrank{position:absolute;left:10px;bottom:6px;z-index:3;font-size:30px;line-height:1;font-weight:800;color:#fff;letter-spacing:-.5px;text-shadow:0 1px 6px rgba(0,0,0,.6);pointer-events:none}
 .nhrank::before{content:"#";font-size:.6em;margin-right:1px;color:var(--acc);font-weight:800;vertical-align:.18em}
 .nhsub{margin:-4px 16px 4px;color:var(--mut);font-size:13px}
+/* profile editor: one column, the picture is the button (31-avatars.js) */
+.pe-one{max-width:560px;margin:0 auto}
+body.tv .pe-one{max-width:720px}
+.pe-avbtn{position:relative;background:none;border:0;padding:6px;border-radius:50%;cursor:pointer;line-height:0}
+.pe-avbtn:focus-visible,.pe-avbtn:hover{outline:3px solid #fff;outline-offset:4px}
+body.tv .pe-avbtn:focus{outline:3px solid #fff;outline-offset:4px;transform:scale(1.04)}
+.pe-pen{position:absolute;right:4px;bottom:6px;width:38px;height:38px;filter:drop-shadow(0 2px 4px rgba(0,0,0,.7))}
+.pe-pen svg{width:100%;height:100%;display:block}
+.pe-hint{color:var(--mut);font-size:13px}
+/* the picture pop-up */
+.avpop{position:fixed;inset:0;z-index:8000;background:rgba(5,5,10,.72);backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;padding:18px}
+.avcard{width:100%;max-width:880px;max-height:min(88vh,900px);display:flex;flex-direction:column;background:linear-gradient(160deg,color-mix(in srgb,var(--acc) 14%,#16161f),#101018);border:1px solid rgba(255,255,255,.08);border-radius:24px;padding:18px 18px 8px;box-shadow:0 30px 80px rgba(0,0,0,.6)}
+.avhead{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:0 4px 10px}
+.avhead h2{margin:0;font-size:22px}
+.avtabs{display:flex;gap:8px;overflow-x:auto;padding:6px;margin:0 -6px 6px;scrollbar-width:none}
+.avtabs::-webkit-scrollbar{display:none}
+.avtabs .chip{flex:0 0 auto;white-space:nowrap}
+.avbody{overflow:auto;padding:6px;margin:0 -6px}
+.avpop .avgrid{grid-template-columns:repeat(auto-fill,minmax(76px,1fr));gap:12px;padding:4px}
+body.tv .avpop .avgrid{grid-template-columns:repeat(auto-fill,minmax(96px,1fr))}
+.avb:hover{transform:scale(1.06)}
+body.tv .avb:focus{outline:3px solid #fff;outline-offset:3px;transform:scale(1.08)}
+.av .ave{font-size:1.15em;line-height:1;filter:drop-shadow(0 2px 3px rgba(0,0,0,.25))}
+.av .avimg{width:100%;height:100%;object-fit:cover;display:block}
+.avown{display:flex;flex-direction:column;align-items:center;gap:12px;padding:18px 6px 22px;text-align:center}
+.avown .btn{min-width:220px}
+.avown-cur{display:flex;flex-direction:column;align-items:center;gap:10px;margin-bottom:8px}
+.avown.tv .pairrow{display:flex;gap:28px;align-items:center;text-align:left}
+.avown.tv .qrbox{width:200px;height:200px;background:#fff;padding:10px;border-radius:12px}
+.avown.tv .qrbox svg{width:100%;height:100%;display:block}
+.avtabs{padding:10px 10px;margin:-4px -10px 2px}
+.avbody{padding:10px;margin:0 -10px}
+.av .ave{font-size:1.3em}
+body.tv .pe .pe-one{width:100%;max-width:640px;margin:0 auto;flex:0 1 640px}
+body.tv .pe.solo{grid-template-columns:minmax(0,560px);justify-content:center;max-width:none;overflow:auto}
+body.tv .pe.solo .pe-prev{padding:12px 16px 10px}

@@ -35,7 +35,7 @@ function applyTheme(key){
   const m = document.querySelector('meta[name=theme-color]'); if (m) m.content = t.bg;
 }
 const DEFAULT_SPACES = [
-  {id:'aio',     name:'Cinema',  emoji:'🍿', icon:'cinema', theme:'googletv', catalogs:[]},
+  {id:'aio',     name:'Cinema',  emoji:'🍿', icon:'movies', theme:'googletv', catalogs:[]},
   {id:'netflix', name:'Netflix', emoji:'📺', icon:'netflix', theme:'netflix',  catalogs:[]},
   {id:'disney',  name:'Disney',  emoji:'🏰', icon:'castle', theme:'disney',   catalogs:[]},
   {id:'anime',   name:'Anime',   emoji:'🍥', icon:'naruto', theme:'anime',    catalogs:[]},

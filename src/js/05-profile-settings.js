@@ -202,16 +202,12 @@ function editProfile(id){
   const pr = isNew ? {id:'p'+Date.now().toString(36), name:'', emoji:PROFILE_EMOJIS[profiles.length % PROFILE_EMOJIS.length], color:PROFILE_COLORS[profiles.length % PROFILE_COLORS.length], avatar:'a:' + ((profiles.length * 7 + 3) % AV_COUNT)}
                    : JSON.parse(JSON.stringify(profiles.find(x => x.id === id)));
   const ed = $('#profEd'); ed.hidden = false; ed.scrollTop = 0; pushLayer('pedit');
-  const close = () => { keepManage = manageProfiles && !$('#profiles').hidden; popLayer('pedit'); setTimeout(() => { keepManage = false; }, 1500); };
+  const close = () => { try { avClose(); } catch {} keepManage = manageProfiles && !$('#profiles').hidden; popLayer('pedit'); setTimeout(() => { keepManage = false; }, 1500); };
   const name = h('input', {class:'f pe-input', placeholder:'Name', maxlength:'16'}); name.value = pr.name;
-  const prev = h('div', {class:'avprev'});
-  const grid = h('div', {class:'avgrid'});
-  const paint = () => {
-    prev.replaceChildren(avatarEl(pr, 132));
-    grid.replaceChildren(...Array.from({length:AV_COUNT}, (_, i) => h('button', {type:'button', class:'avb' + (pr.avatar === 'a:' + i ? ' on' : ''), 'aria-label':'Avatar ' + (i + 1), onclick:() => { pr.avatar = 'a:' + i; paint(); }}, avatarEl({avatar:'a:' + i}, 64))));
-  };
+  const prev = h('button', {type:'button', class:'avprev pe-avbtn', 'aria-label':'Change picture', title:'Change picture'});
+  const paint = () => { const pen = h('span', {class:'pe-pen'}); pen.innerHTML = PENCIL; prev.replaceChildren(avatarEl(pr, 132), pen); };
+  prev.onclick = () => avPicker(pr, paint);                            // the picture pop-up (31-avatars.js)
   paint();
-  const emojis = h('div', {class:'emojis'}, PROFILE_EMOJIS.map(e => h('button', {type:'button', onclick:() => { pr.avatar = ''; pr.emoji = e; paint(); }}, e)));
   const del = h('button', {class:'btn ghost', type:'button'}, 'Delete profile'); let armed = false;
   del.onclick = () => {
     if (profiles.length < 2) { toast('Keep at least one profile.'); return; }
@@ -234,15 +230,12 @@ function editProfile(id){
   name.oninput = () => { liveName.textContent = name.value.trim() || 'New profile'; };
   ed.replaceChildren(
     h('div', {class:'bar', style:'padding-left:0;padding-right:0'}, h('button', {class:'btn ghost sm', onclick:close}, '← Cancel')),
-    h('div', {class:'pe'},
-      h('div', {class:'pecol pecol-l'},
+    h('div', {class:'pe solo'},
+      h('div', {class:'pecol pecol-l pe-one'},
         h('h2', {class:'sedh'}, isNew ? 'New profile' : 'Edit profile'),
-        h('div', {class:'pe-prev'}, prev, liveName),
+        h('div', {class:'pe-prev'}, prev, liveName, h('small', {class:'pe-hint'}, 'Select the picture to change it')),
         h('div', {class:'lbl'}, 'Name'), name, kidRow,
-        h('div', {class:'pe-act'}, save, isNew ? null : del)),
-      h('div', {class:'pecol pecol-r'},
-        h('div', {class:'lbl', style:'margin-top:0'}, 'Choose an avatar'), grid,
-        h('div', {class:'lbl'}, 'Or use an emoji'), emojis)));
+        h('div', {class:'pe-act'}, save, isNew ? null : del))));
 }
 
 /* corner mark on a poster: a number = episodes you have not watched yet (new or missed), an eye = watched */
