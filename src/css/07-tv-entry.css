@@ -261,3 +261,4 @@ body.tv .avstrip .avb{width:112px}
 .avup .av svg{width:48%;height:48%}
 .avownbox{margin:0 22px 8px;border-radius:18px;background:rgba(255,255,255,.04)}
 .avstrip .avb{width:86px} body.tv .avstrip .avb{width:112px}
+.avpop .avbody{padding-bottom:26px;scroll-padding:30px 0}

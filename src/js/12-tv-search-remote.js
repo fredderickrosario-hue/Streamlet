@@ -108,7 +108,7 @@ try { if (window.tizen && tizen.tvinputdevice) ['MediaPlayPause','MediaPlay','Me
 
 const FOCUSABLE = 'a[href],button:not([disabled]),input:not([type=hidden]):not([disabled]),select:not([disabled]),textarea:not([disabled]),summary,[tabindex]:not([tabindex="-1"])';
 function ctxRoot(){
-  for (const id of ['#loadov', '#exitDlg', '#updDlg', '#menu', '#ppanel', '#player', '#addonEd', '#profEd', '#spaceEd', '#episode', '#detail']) { const e = $(id); if (e && !e.hidden) return e; }
+  for (const id of ['#loadov', '#exitDlg', '#updDlg', '#avPop', '#welcome', '#iosHelp', '#menu', '#ppanel', '#player', '#addonEd', '#profEd', '#spaceEd', '#episode', '#detail']) { const e = $(id); if (e && !e.hidden) return e; }
   return document.body;
 }
 function focusables(root){
@@ -131,7 +131,7 @@ function focusNav(){
    Left / Right walk along the line; past its start, Left opens the side menu. Up / Down go to the line above / below and land on
    the card you last had in that row, or the one under where you were. Columns (side menu, search keyboard, search results) keep
    Up / Down to themselves; Left / Right cross between them. */
-const ROW_SEL = '.strip,.dacts2,.srow,.sfilter,.eplist,.slist,.cchips,.dsim,.tbtns,.dptabs,.rrow';
+const ROW_SEL = '.avstrip,.strip,.dacts2,.srow,.sfilter,.eplist,.slist,.cchips,.dsim,.tbtns,.dptabs,.rrow';
 const ZONE_SEL = '#nav,#search .skb,#search .sres,#profEd .pecol,#spaceEd .sedcol';
 const zoneMem = new WeakMap();                                            // column -> where you were in it
 const rowMem = new WeakMap();                                             // row -> the card you were on
