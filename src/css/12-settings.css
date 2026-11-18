@@ -187,3 +187,4 @@ body.tv .wzgrid{grid-template-columns:repeat(2,1fr)}
 .pinkey.pinx{font-size:15px;font-weight:600}
 .pinkey:hover,.pinkey:focus-visible{outline:3px solid #fff;outline-offset:2px}
 body.tv .pinkey:focus{outline:3px solid #fff;outline-offset:2px;transform:scale(1.05)}
+.pspn{display:inline-flex;align-items:center;gap:6px} .pspn .spico{width:1.3em;height:1.3em}

@@ -2,12 +2,12 @@
    The original controls keep their ids and handlers (renderSettings); this file arranges them into categories
    and wires the newer ones. Global settings live in streamlet.ui (this device) or the profile; space settings
    live on the space itself (Spaces category, or the space editor). */
-const SET_CATS = [['app', 'App settings'], ['general', 'General'], ['spaces', 'Spaces'], ['playback', 'Playback'], ['pstart', 'Startup & playback'], ['personal', 'Home rows'], ['content', 'Content'],
+const SET_CATS = [['app', 'App settings'], ['pspaces', 'Spaces'], ['general', 'General'], ['spaces', 'Spaces'], ['playback', 'Playback'], ['pstart', 'Startup & playback'], ['personal', 'Home rows'], ['content', 'Content'],
   ['notif', 'Notifications'], ['tmdb', 'Addons & services'], ['storage', 'Storage & backup'], ['account', 'Account'], ['about', 'About']];
 /* the profile's own settings live in Edit profile (select the picture on the Profile page); the rest are on the Profile page itself */
-const PROFILE_CATS = ['pstart', 'personal', 'content', 'notif'];
+const PROFILE_CATS = ['pspaces', 'pstart', 'personal', 'content', 'notif'];
 /* where a setting lives: this profile (kept with the profile and synced with your account), or this device */
-const PROFILE_UI = new Set(['rows', 'minRate', 'hideG', 'langs', 'favG', 'nt', 'startup', 'startSpace', 'remSrc', 'resume', 'showUpcoming', 'hiddenSp']);
+const PROFILE_UI = new Set(['rows', 'minRate', 'hideG', 'langs', 'favG', 'nt', 'startup', 'startSpace', 'remSrc', 'resume', 'showUpcoming', 'hiddenSp', 'spOrder']);
 const spHidden = sp => { const l = uiGet().hiddenSp; return Array.isArray(l) ? l.includes(sp.id) : !!sp.hidden; };   // which spaces this profile sees on the spaces page
 const uiGet = () => { let p = {}; try { p = (settings && settings.ui) || {}; } catch {} return {...lsGet('streamlet.ui', {}), ...p}; };
 const uiSet = patch => {
@@ -55,6 +55,7 @@ function contentOK(m){
 /* ---- the page: a home list of sections, each opening its own page; search across every setting ---- */
 const SET_ICONS = {
   account:'<circle cx="12" cy="8.5" r="3.6"/><path d="M4.8 20c.9-3.8 3.8-5.6 7.2-5.6s6.3 1.8 7.2 5.6"/>',
+  pspaces:'<rect x="4" y="4" width="6.5" height="6.5" rx="1.6"/><rect x="13.5" y="4" width="6.5" height="6.5" rx="1.6"/><rect x="4" y="13.5" width="6.5" height="6.5" rx="1.6"/><rect x="13.5" y="13.5" width="6.5" height="6.5" rx="1.6"/>',
   app:'<circle cx="12" cy="12" r="3"/><path d="M12 3.5v2.2M12 18.3v2.2M3.5 12h2.2M18.3 12h2.2M6 6l1.6 1.6M16.4 16.4 18 18M6 18l1.6-1.6M16.4 7.6 18 6"/>',
   general:'<path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2.2"/><circle cx="10" cy="17" r="2.2"/>',
   spaces:'<rect x="4" y="4" width="6.5" height="6.5" rx="1.6"/><rect x="13.5" y="4" width="6.5" height="6.5" rx="1.6"/><rect x="4" y="13.5" width="6.5" height="6.5" rx="1.6"/><rect x="13.5" y="13.5" width="6.5" height="6.5" rx="1.6"/>',
@@ -67,7 +68,7 @@ const SET_ICONS = {
   storage:'<ellipse cx="12" cy="6" rx="7.5" ry="2.8"/><path d="M4.5 6v6c0 1.5 3.4 2.8 7.5 2.8s7.5-1.3 7.5-2.8V6M4.5 12v6c0 1.5 3.4 2.8 7.5 2.8s7.5-1.3 7.5-2.8v-6"/>',
   about:'<circle cx="12" cy="12" r="8.5"/><path d="M12 11v5.5M12 7.6v.1"/>',
   signout:'<path d="M14 4h4a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-4"/><path d="M10 8l-4 4 4 4M6 12h10"/>'};
-const SET_GROUPS = [['', ['app', 'spaces', 'account', 'tmdb', 'about']]];
+const SET_GROUPS = [['', ['app', 'account', 'tmdb', 'about']]];        // Spaces: which and in what order is in Edit profile; what's inside them on the spaces page
 const APP_CATS = ['general', 'playback', 'storage'];                    // App settings: one page, this device
 let setCatNow = null, setCatWant = null;
 const setName = c => (SET_CATS.find(x => x[0] === c) || [c, c])[1];
@@ -80,6 +81,7 @@ function setSummary(c){                                                   // wha
   const hid = spaces.filter(spHidden).length, lang = (settings && settings.subLang) || 'off';
   return {
     account:user ? `${user.email || 'Signed in'} · sync, password, delete account` : 'Not signed in · sign in to sync your devices',
+    pspaces:(() => { const l = spacesFor(), n = l.filter(s => !spHidden(s)).length; return `${n} of ${l.length} shown · ${l.filter(s => !spHidden(s)).slice(0, 3).map(s => s.name).join(', ')}${n > 3 ? '…' : ''}`; })(),
     app:'Look, sounds, language, playback, player and storage on this device',
     pstart:`${st} · subtitles ${lang === 'off' ? 'off' : lang} · ${on('resume', true) ? 'resumes where you left off' : 'always from the start'}`,
     general:`${u.ask === false ? '' : ''}${u.theme && u.theme !== 'space' && THEMES[u.theme] ? THEMES[u.theme].n + ' colors' : 'colors follow each space'}`,
@@ -282,6 +284,31 @@ function spacesList(){
         h('button', {class:'btn ghost sm ic dn', type:'button', 'aria-label':'Move down', disabled:i === mine.length - 1 ? '' : null, onclick:() => move(s.id, 1)}, '↓'),
         h('label', {class:'spshow'}, show, h('span', null, 'Show')),
         h('button', {class:'btn ghost sm', type:'button', onclick:() => editSpace(s.id)}, 'Edit')));
+  }));
+}
+
+/* Edit profile > Spaces: this profile's spaces page. Show or hide, and the order; what's inside a space stays shared (spaces page) */
+function pSpacesList(){
+  const box = $('#pspList'); if (!box) return;
+  const mine = spacesFor();
+  const move = (i, d) => { const ids = mine.map(s => s.id), j = i + d; if (j < 0 || j >= ids.length) return; [ids[i], ids[j]] = [ids[j], ids[i]]; uiSet({spOrder:ids}); launcherDirty = true; pSpacesList();
+    requestAnimationFrame(() => { const b = box.querySelector(`.sprow[data-sp="${ids[j]}"] .${d < 0 ? 'up' : 'dn'}:not([disabled])`) || box.querySelector(`.sprow[data-sp="${ids[j]}"] button:not([disabled])`); if (b) b.focus({preventScroll:true}); }); };
+  box.replaceChildren(...mine.map((s, i) => {
+    const t = THEMES[s.theme] || THEMES.ember, off = spHidden(s);
+    const show = h('input', {type:'checkbox'}); show.checked = !off;
+    show.onchange = () => {
+      const now = new Set(mine.filter(spHidden).map(x => x.id));
+      if (show.checked) now.delete(s.id); else { if (mine.length - now.size <= 1) { show.checked = true; toast('Keep at least one space visible'); return; } now.add(s.id); }
+      uiSet({hiddenSp:[...now]}); launcherDirty = true; pSpacesList();
+      requestAnimationFrame(() => { const x = box.querySelector(`.sprow[data-sp="${s.id}"] input`); if (x) x.focus({preventScroll:true}); });
+    };
+    return h('div', {class:'sprow' + (off ? ' off' : ''), 'data-sp':s.id},
+      h('span', {class:'spsw', style:`background:linear-gradient(135deg,${t.acc},${t.acc2 || t.acc})`}),
+      h('span', {class:'rt'}, h('span', {class:'pspn'}, spIcon(s), ' ' + s.name), h('small', null, off ? 'Hidden' : 'Shown')),
+      h('span', {class:'spbtns'},
+        h('button', {class:'btn ghost sm ic up', type:'button', 'aria-label':'Move up', disabled:i === 0 ? '' : null, onclick:() => move(i, -1)}, '↑'),
+        h('button', {class:'btn ghost sm ic dn', type:'button', 'aria-label':'Move down', disabled:i === mine.length - 1 ? '' : null, onclick:() => move(i, 1)}, '↓'),
+        h('label', {class:'spshow'}, show, h('span', null, 'Show'))));
   }));
 }
 

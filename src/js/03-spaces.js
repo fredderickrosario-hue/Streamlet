@@ -45,7 +45,13 @@ let spaces = null;
 try { spaces = JSON.parse(localStorage.getItem('streamlet.spaces2') || 'null'); } catch {}
 if (!Array.isArray(spaces) || !spaces.length) spaces = JSON.parse(JSON.stringify(DEFAULT_SPACES));
 const isKid = () => !!(profile && profile.kids);
-const spacesFor = () => isKid() ? spaces.filter(s => s.kids) : spaces;      // what this profile may open
+const spacesFor = () => {                                                  // what this profile may open, in this profile's order (Edit profile > Spaces)
+  const l = isKid() ? spaces.filter(s => s.kids) : spaces.slice();
+  let o = []; try { o = uiGet().spOrder || []; } catch {}
+  if (!Array.isArray(o) || !o.length) return l;
+  const at = id => { const i = o.indexOf(id); return i < 0 ? 1e6 + spaces.findIndex(s => s.id === id) : i; };
+  return l.sort((a, b) => at(a.id) - at(b.id));
+};
 const saveSpaces = () => { try { localStorage.setItem('streamlet.spaces2', JSON.stringify(spaces)); } catch {} stamp('spacesT'); };
 let cur = null; // the space you're currently in
 const spaceAddons = () => (cur && cur.catalogs.length) ? addons.filter(a => cur.catalogs.includes(a.uid)) : addons;
@@ -141,7 +147,7 @@ function editSpace(id){
   ed.replaceChildren(
     h('div', {class:'bar', style:'padding-left:0;padding-right:0'}, h('button', {class:'btn ghost sm', onclick:close}, '← Cancel')),
     h('div', {class:'sedwrap'},
-      h('h2', {class:'sedh'}, isNew ? 'New space' : 'Edit space'),
+      h('h2', {class:'sedh'}, isNew ? 'New space' : 'Edit space'), h('p', {class:'gnote', style:'margin:-4px 0 10px'}, 'Spaces are shared: changes here apply to every profile. Each profile chooses which spaces it shows, and their order, in Edit profile.'),
       h('div', {class:'sedgrid'},
         h('div', {class:'sedcol'}, prev, h('div', {class:'lbl'}, 'Name'), name, quick, h('div', {class:'lbl'}, 'Icon'), eg),
         h('div', {class:'sedcol'},

@@ -273,6 +273,7 @@ function peSubOpen(c, right, repaint){
   const back = h('button', {class:'btn ghost sm pe-back', type:'button', onclick:() => peSubClose()}, '‹ Back');
   right.replaceChildren(h('div', {class:'pe-subhead'}, back, h('h2', {class:'sedh'}, setName(c))), h('div', {class:'pe-subbody'}, node));
   node.hidden = false; $('#profEd').classList.add('insub');
+  if (c === 'pspaces') pSpacesList();
   try { pushLayer('pesub'); } catch {}
   const f = node.querySelector('button:not([disabled]),input,select,textarea'); (f || back).focus({preventScroll:true});
   right.scrollTop = 0;
