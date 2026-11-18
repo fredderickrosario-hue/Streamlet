@@ -249,7 +249,7 @@ public class ExoPlayerPlugin extends Plugin {
     @PluginMethod
     public void resolveLink(final PluginCall call) {
         final String u = call.getString("url");
-        new Thread(() -> { try { JSObject r = new JSObject(); r.put("url", PlayerActivity.resolveFinal(u)); call.resolve(r); } catch (Exception e) { call.reject(String.valueOf(e.getMessage())); } }).start();
+        new Thread(() -> { try { JSObject r = new JSObject(); String f = PlayerActivity.resolveFinal(u); if (PlayerActivity.DEAD.equals(f)) { call.reject("archive"); return; } r.put("url", f); call.resolve(r); } catch (Exception e) { call.reject(String.valueOf(e.getMessage())); } }).start();
     }
     @PluginMethod
     public void dlStart(PluginCall call) {

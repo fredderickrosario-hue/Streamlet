@@ -412,6 +412,7 @@ public class PlayerActivity extends Activity {
                 AppLog.add("EXO", error.getErrorCodeName() + " (" + ec + ")" + (http > 0 ? " HTTP " + http : "") + " " + String.valueOf(error.getMessage()) + (http > 0 ? " · " + hostOf(String.valueOf(finalOf(streamUrl) != null ? finalOf(streamUrl) : streamUrl)) : ""));
                 boolean network = ec >= 2000 && ec < 3000;            // connection / HTTP problems: the other player would fail too
                 lastHttp = http;
+                for (Throwable t = error; t != null; t = t.getCause()) if ("ARCHIVE".equals(t.getMessage())) { lastHttp = 410; network = true; }   // a RAR: no retry, next source straight away
                 if (http != 429 && http != 503 && network) forgetFinal(streamUrl);   // the real link may have expired: ask the addon again next time
                 if (pendingReload) return;                             // a retry is already on its way: one at a time
                 if (autoRecover && recover(network, error.getErrorCodeName() + (http > 0 ? " HTTP " + http : ""))) return;
@@ -438,10 +439,13 @@ public class PlayerActivity extends Activity {
     static final java.util.concurrent.ConcurrentHashMap<String, Long> FINAL_AT = new java.util.concurrent.ConcurrentHashMap<>();
     static String finalOf(String u) { Long t = u == null ? null : FINAL_AT.get(u); return t != null && System.currentTimeMillis() - t < 3 * 3600_000L ? FINAL.get(u) : null; }
     static void forgetFinal(String u) { if (u != null) { FINAL.remove(u); FINAL_AT.remove(u); } }
+    /** a source that can never play: the torrent is packed in a RAR/ZIP archive (Real-Debrid can't stream those) */
+    static final String DEAD = "streamlet:archive";
     static String resolveFinal(String u) {
         if (u == null || !u.startsWith("http")) return u;
         String hit = finalOf(u); if (hit != null) return hit;
         String rd = rdDirect(u);                                                 // a Torrentio Real-Debrid link: ask Real-Debrid ourselves, Torrentio is never called
+        if (DEAD.equals(rd)) return DEAD;
         if (rd != null) { FINAL.put(u, rd); FINAL_AT.put(u, System.currentTimeMillis()); return rd; }
         for (int attempt = 0; attempt < 3; attempt++) {
             String cur = u; int rc = -1; String retryAfter = null;
@@ -455,6 +459,7 @@ public class PlayerActivity extends Activity {
                     retryAfter = c.getHeaderField("Retry-After"); c.disconnect(); break;
                 }
             } catch (Exception e) { AppLog.add("LINK", "couldn't follow the link: " + e.getClass().getSimpleName()); return u; }
+            if ((rc == 200 || rc == 206) && cur.contains("torrentio.strem.fun/videos/")) { AppLog.add("LINK", "the addon answered with its 'can't play this' video (" + cur.replaceAll(".*/videos/", "") + ")"); return DEAD; }   // e.g. a RAR it can't open
             if (rc == 200 || rc == 206) {
                 AppLog.add("LINK", cur.equals(u) ? "direct link, HTTP " + rc : "real file link found (" + hostOf(cur) + "), reused for this video");
                 FINAL.put(u, cur); FINAL_AT.put(u, System.currentTimeMillis()); return cur;
@@ -506,11 +511,16 @@ public class PlayerActivity extends Activity {
             String dl = new JSONObject(rdCall("POST", "/unrestrict/link", key, "link=" + java.net.URLEncoder.encode(link, "UTF-8"))).getString("download");
             AppLog.add("RD", "file link straight from Real-Debrid in " + (System.currentTimeMillis() - t0) + " ms (" + hostOf(dl) + "), the addon wasn't needed");
             return dl;
+        } catch (ArchiveException e) {
+            AppLog.add("RD", "this torrent is packed in a RAR archive: Real-Debrid can't play it, skipping the source");
+            if (added != null) try { rdCall("DELETE", "/torrents/delete/" + added, key, null); } catch (Exception ignored) { }
+            return DEAD;
         } catch (Exception e) {
             AppLog.add("RD", "Real-Debrid direct failed (" + e.getMessage() + "): using the addon's link");
             return null;
         }
     }
+    static class ArchiveException extends Exception { ArchiveException() { super("packed in an archive"); } }
     /** the Real-Debrid link of the wanted file in a torrent; picks the file first when the torrent waits for it */
     static String rdLinkFor(String key, String id, int fileIdx, String name, boolean select) throws Exception {
         for (int round = 0; round < 8; round++) {
@@ -525,7 +535,7 @@ public class PlayerActivity extends Activity {
             }
             if (want < 0 && fileIdx >= 0) for (int i = 0; i < files.length(); i++) if (files.getJSONObject(i).optInt("id") == fileIdx + 1) want = fileIdx + 1;
             if (want < 0) want = bigId;
-            if (want < 0) return null;
+            if (want < 0) { for (int i = 0; i < files.length(); i++) if (files.getJSONObject(i).optString("path").toLowerCase(Locale.ROOT).matches(".*\\.(rar|r\\d\\d|zip|7z)$")) throw new ArchiveException(); return null; }
             if ("waiting_files_selection".equals(st)) {
                 if (!select) return null;
                 rdCall("POST", "/torrents/selectFiles/" + id, key, "files=" + want); continue;
@@ -578,7 +588,7 @@ public class PlayerActivity extends Activity {
                 .setTrackSelector(tsel)
                 .setMediaSourceFactory(new DefaultMediaSourceFactory(new androidx.media3.datasource.ResolvingDataSource.Factory(new DefaultDataSource.Factory(this, http),
                         spec -> { String u = spec.uri.toString(); if (!u.equals(streamUrl)) return spec;   // only the video link itself (not subtitles or stream pieces)
-                            String f = resolveFinal(u); return f == null || f.equals(u) ? spec : spec.withUri(Uri.parse(f)); }), ex))
+                            String f = resolveFinal(u); if (DEAD.equals(f)) throw new java.io.IOException("ARCHIVE"); return f == null || f.equals(u) ? spec : spec.withUri(Uri.parse(f)); }), ex))
                 .build();
         p.setVideoChangeFrameRateStrategy(optFps ? C.VIDEO_CHANGE_FRAME_RATE_STRATEGY_ONLY_IF_SEAMLESS : C.VIDEO_CHANGE_FRAME_RATE_STRATEGY_OFF);
         return p;
@@ -1949,6 +1959,7 @@ public class PlayerActivity extends Activity {
     }
 
     private String friendly(PlaybackException e) {
+        for (Throwable t = e; t != null; t = t.getCause()) if ("ARCHIVE".equals(t.getMessage())) return "This source is packed in a RAR archive, which Real-Debrid can't play. Try another source.";
         switch (e.errorCode) {
             case PlaybackException.ERROR_CODE_PARSING_CONTAINER_MALFORMED:
             case PlaybackException.ERROR_CODE_PARSING_CONTAINER_UNSUPPORTED:
