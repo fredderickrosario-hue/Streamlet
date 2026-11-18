@@ -194,25 +194,25 @@ function renderProfiles(){
         h('div', {class:'pav'}, avatarEl(pr, 88), manageProfiles ? h('span', {class:'pbadge', 'aria-hidden':'true'}, PENCIL_SVG()) : null, pr.kids ? h('span', {class:'kidtag'}, 'KIDS') : null), h('div', null, pr.name))),
       manageProfiles && profiles.length < 8 ? h('button', {class:'ptile', type:'button', onclick:() => editProfile(null)}, h('div', {class:'pav add'}, '+'), h('div', null, 'Add profile')) : null),
     h('div', {class:'lnks', style:'justify-content:center;margin-top:22px'},
-      h('button', {class:'lnk', type:'button', onclick:() => { manageProfiles = !manageProfiles; renderProfiles(); }}, manageProfiles ? 'Done' : 'Manage profiles')),
+      h('button', {class:'lnk', type:'button', onclick:async () => { if (!manageProfiles && !(await kidGate(null))) return; manageProfiles = !manageProfiles; renderProfiles(); }}, manageProfiles ? 'Done' : 'Manage profiles')),
     manageProfiles && profiles.length > 1 ? h('label', {class:'chk', style:'justify-content:center'}, ask, h('span', null, "Ask who's watching when the app opens")) : null);
 }
-function editProfile(id){
+function editProfile(id, openCat){
   const isNew = !id;
   const pr = isNew ? {id:'p'+Date.now().toString(36), name:'', emoji:PROFILE_EMOJIS[profiles.length % PROFILE_EMOJIS.length], color:PROFILE_COLORS[profiles.length % PROFILE_COLORS.length], avatar:'a:' + ((profiles.length * 7 + 3) % AV_COUNT)}
                    : JSON.parse(JSON.stringify(profiles.find(x => x.id === id)));
   const ed = $('#profEd'); ed.hidden = false; ed.scrollTop = 0; pushLayer('pedit');
   if (!ed._noScroll) { ed._noScroll = 1; ed.addEventListener('scroll', () => { if (isTVui() && ed.scrollTop) ed.scrollTop = 0; }); }   // one screen on the TV: focus never shifts it
-  const close = () => { try { avClose(); } catch {} keepManage = manageProfiles && !$('#profiles').hidden; popLayer('pedit'); setTimeout(() => { keepManage = false; }, 1500); };
+  const close = () => { try { avClose(); } catch {} try { peSubClose(true); } catch {} keepManage = manageProfiles && !$('#profiles').hidden; popLayer('pedit'); setTimeout(() => { keepManage = false; }, 1500); };
   const name = h('input', {class:'f pe-input', placeholder:'Name', maxlength:'16'}); name.value = pr.name;
   const prev = h('button', {type:'button', class:'avprev pe-avbtn', 'aria-label':'Change picture', title:'Change picture'});
   const paint = () => prev.replaceChildren(avatarEl(pr, 132), h('span', {class:'pbadge', 'aria-hidden':'true'}, PENCIL_SVG()));   // the same pencil as Manage profiles
   prev.onclick = () => avPicker(pr, paint);                            // the picture pop-up (31-avatars.js)
   paint();
-  const del = h('button', {class:'btn ghost', type:'button'}, 'Delete profile'); let armed = false;
+  const del = h('button', {class:'btn ghost', type:'button'}, 'Delete'); let armed = false;
   del.onclick = () => {
     if (profiles.length < 2) { toast('Keep at least one profile.'); return; }
-    if (!armed) { armed = true; del.textContent = 'Tap again to delete'; return; }
+    if (!armed) { armed = true; del.textContent = 'Again to delete'; return; }
     profiles = profiles.filter(x => x.id !== pr.id); saveProfiles(); cloudDeleteProfile(pr.id);
     try { Object.keys(localStorage).filter(k => k.startsWith(`streamlet.p.${pr.id}.`)).forEach(k => { localStorage.removeItem(k); lsMem.delete(k); }); } catch {}
     if (profile && profile.id === pr.id) profile = null;
@@ -226,19 +226,68 @@ function editProfile(id){
     saveProfiles(); launcherDirty = true; close();
   }}, isNew ? 'Create profile' : 'Save');
   const kidCb = h('input', {type:'checkbox'}); kidCb.checked = !!pr.kids; kidCb.onchange = () => { pr.kids = kidCb.checked; };
-  const kidRow = h('label', {class:'tgl', style:'margin-top:14px'}, h('span', null, h('b', null, 'Kids profile'), h('small', null, 'Only sees spaces made for kids. No Addons, New & Hot or space editing, and search stays in the kids catalogs')), kidCb);
+  const kidRow = h('label', {class:'tgl', style:'margin-top:14px'}, h('span', null, h('b', null, 'Kids profile'), h('small', null, 'Only kids spaces and catalogs. No settings, addons or New & Hot')), kidCb);
   kidCb.tabIndex = -1; kidRow.tabIndex = 0;                               // the whole row is one stop for the remote, full width like the fields around it
   kidRow.onkeydown = e => { if ((e.key === 'Enter' || e.key === ' ' || e.keyCode === 13) && e.target === kidRow) { e.preventDefault(); kidCb.click(); } };
+  /* kids PIN (33-profile-hub.js): asked before anyone leaves this profile */
+  const pinCb = h('input', {type:'checkbox'}); pinCb.checked = !!pr.pin; pinCb.tabIndex = -1;
+  const pinRow = h('label', {class:'tgl', style:'margin-top:10px'}, h('span', null, h('b', null, 'PIN to leave'), h('small', null, 'Asked before switching to another profile')), pinCb);
+  pinRow.tabIndex = 0; pinRow.hidden = !pr.kids;
+  pinRow.onkeydown = e => { if ((e.key === 'Enter' || e.key === ' ' || e.keyCode === 13) && e.target === pinRow) { e.preventDefault(); pinCb.click(); } };
+  pinCb.onchange = async () => {
+    if (!pinCb.checked) { delete pr.pin; return; }
+    pinCb.checked = false;
+    const a = await pinPad('Choose a 4-digit PIN'); if (!a) return;
+    const b2 = await pinPad('Enter it again'); if (!b2) return;
+    if (a !== b2) { toast("The PINs didn't match. Try again."); return; }
+    pr.pin = await pinHash(pr.id, a); pinCb.checked = true; toast('PIN set. Save to keep it');
+  };
+  kidCb.addEventListener('change', () => { pinRow.hidden = !kidCb.checked; if (!kidCb.checked) { pinCb.checked = false; delete pr.pin; } });
   const liveName = h('div', {class:'pe-name'}, pr.name || 'New profile');
   name.oninput = () => { liveName.textContent = name.value.trim() || 'New profile'; };
+  /* this profile's own settings, opened right here. They follow the profile in use, so they show when you edit your own profile */
+  const mine = !isNew && profile && pr.id === profile.id;
+  if (mine) { try { renderSettings(); } catch (e) { console.warn(e); } }
+  const right = h('div', {class:'pe2-r'});
+  const paintRight = () => right.replaceChildren(
+    h('h2', {class:'sedh'}, isNew ? 'New profile' : 'Edit profile'),
+    mine ? h('div', {class:'pe-sets'}, h('h3', {class:'sgh'}, `${pr.name}'s settings`),
+      h('div', {class:'setcard'}, ...PROFILE_CATS.map(c => setItem(c, setName(c), setSummary(c), () => peSubOpen(c, right, paintRight)))),
+      h('p', {class:'gnote'}, 'These apply right away, only to this profile, and sync with it.'))
+    : isNew ? null : h('p', {class:'gnote pe-note'}, `Switch to ${pr.name} to change ${pr.name}'s own settings.`));
+  paintRight();
   ed.replaceChildren(
-    h('div', {class:'pe pe2'},                                          // one screen, nothing to scroll: the picture card, then name, kids and the buttons
-      h('div', {class:'pe2-l'}, h('div', {class:'pe-prev'}, prev, liveName, h('small', {class:'pe-hint'}, 'Select the picture to change it'))),
-      h('div', {class:'pe2-r'},
-        h('h2', {class:'sedh'}, isNew ? 'New profile' : 'Edit profile'),
-        h('div', {class:'lbl'}, 'Name'), name, kidRow,
-        h('div', {class:'pe-act'}, save, h('button', {class:'btn ghost', type:'button', onclick:close}, 'Cancel'), isNew ? null : del))));
+    h('div', {class:'pe pe2'},                                          // TV: who it is on the left, its settings on the right
+      h('div', {class:'pe2-l'}, h('div', {class:'pe-prev'}, prev, liveName, h('small', {class:'pe-hint'}, 'Select the picture to change it')),
+        h('div', {class:'lbl'}, 'Name'), name, kidRow, pinRow,
+        h('div', {class:'pe-act'}, save, h('button', {class:'btn ghost', type:'button', onclick:close}, 'Cancel'), isNew ? null : del)),
+      right));
+  if (mine && openCat && PROFILE_CATS.includes(openCat)) peSubOpen(openCat, right, paintRight);
 }
+/* a profile settings section inside the editor: the section's own controls are moved in (they keep their handlers) and put back after */
+let peSub = null;
+function peSubOpen(c, right, repaint){
+  peSubClose(true);
+  const node = document.querySelector(`.setcat[data-cat="${c}"]`); if (!node) return;
+  peSub = {node, parent:node.parentNode, next:node.nextSibling, repaint};
+  const back = h('button', {class:'btn ghost sm pe-back', type:'button', onclick:() => peSubClose()}, '‹ Back');
+  right.replaceChildren(h('div', {class:'pe-subhead'}, back, h('h2', {class:'sedh'}, setName(c))), h('div', {class:'pe-subbody'}, node));
+  node.hidden = false; $('#profEd').classList.add('insub');
+  try { pushLayer('pesub'); } catch {}
+  const f = node.querySelector('button:not([disabled]),input,select,textarea'); (f || back).focus({preventScroll:true});
+  right.scrollTop = 0;
+}
+function peSubClose(silent){
+  if (!peSub) return;
+  const p = peSub; peSub = null;
+  p.node.hidden = true; p.parent.insertBefore(p.node, p.next);
+  $('#profEd').classList.remove('insub');
+  if (!silent) { try { if (layersOpen[layersOpen.length - 1] === 'pesub') popLayer('pesub'); } catch {} }
+  else { try { const i = layersOpen.lastIndexOf('pesub'); if (i >= 0) { layersOpen.splice(i, 1); focusStack.splice(i, 1); history.replaceState({page:pageNow(), layers:[...layersOpen]}, ''); } } catch {} }
+  p.repaint();
+  const it = document.querySelector('#profEd .pe-sets .setitem'); if (it && !silent) it.focus({preventScroll:true});
+}
+LAYER_CLOSERS.pesub = () => { if (peSub) { const p = peSub; peSub = null; p.node.hidden = true; p.parent.insertBefore(p.node, p.next); $('#profEd').classList.remove('insub'); p.repaint(); const it = document.querySelector('#profEd .pe-sets .setitem'); if (it) it.focus({preventScroll:true}); } };
 
 /* corner mark on a poster: a number = episodes you have not watched yet (new or missed), an eye = watched */
 const cntMem = new Map();

@@ -230,6 +230,7 @@ function loadProfileData(){
   fillSettingsUI();
 }
 async function selectProfile(p){
+  try { if (!(await kidGate(p))) return; } catch {}                    // leaving a kids profile that has a PIN
   profile = p; try { navAvatar(); } catch {} lsSet('streamlet.profile.last', p.id);
   loadProfileData(); epReset(); try { fillTmdb(); qcFillShows(); } catch {} try { epMigrate(); } catch {} try { for (const q of profiles) showsBackfill(q.id); epReset(); } catch {}
   document.body.classList.toggle('kids', !!p.kids);

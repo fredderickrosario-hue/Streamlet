@@ -58,9 +58,7 @@
     <div class="pad">
 <div id="setHome" class="sethome"></div>
 <div class="setcat" data-cat="general" hidden>
-<div class="sgrp"><h3 class="sgh">Startup</h3><div class="addon"><div class="row2"><span class="rt">When the app opens<small>What to show after choosing a profile</small></span><select id="setStart" class="sel"><option value="last">Last space you used</option><option value="launcher">Spaces page</option><option value="space">A specific space</option></select></div>
-<div class="row2" id="rowStartSp"><span class="rt">Space to open<small>Opened at start when "A specific space" is chosen</small></span><select id="setStartSp" class="sel"></select></div>
-<label class="row2" id="rowAsk"><span class="rt">Ask who’s watching<small>Show the profile picker every time the app opens</small></span><input type="checkbox" id="setAsk"></label></div></div>
+<div class="sgrp"><h3 class="sgh">Who’s watching</h3><div class="addon"><label class="row2" id="rowAsk"><span class="rt">Ask who’s watching<small>Show the profile picker every time the app opens</small></span><input type="checkbox" id="setAsk"></label></div></div>
 <div class="sgrp"><h3 class="sgh">Appearance <small>this device</small></h3><div class="addon"><div class="row2"><span class="rt">Colors<small>Each space can bring its own colors, or keep one look everywhere</small></span><select id="setTheme" class="sel"></select></div>
 <label class="row2"><span class="rt">Animated background<small>Slowly shifting background colors</small></span><input type="checkbox" id="setAnim"></label>
 <label class="row2"><span class="rt">Glass blur<small>Frosted-glass effect. Disable to improve performance on slower devices</small></span><input type="checkbox" id="setGlass"></label>
@@ -77,11 +75,7 @@
 </div>
 <div class="setcat" data-cat="playback" hidden>
 <div class="sgrp"><h3 class="sgh">Sources</h3><div class="addon"><label class="row2"><span class="rt">Automatic source selection<small>Chooses the best source using your audio language, preferred quality and past playback. You can still pick one manually from any title</small></span><input type="checkbox" id="setAuto"></label>
-<div class="row2" id="rowMaxQ"><span class="rt">Maximum quality<small>Upper limit for automatic source selection</small></span><select id="setMaxQ" class="sel"><option value="best">Best available</option><option value="2160">4K</option><option value="1080">1080p</option><option value="720">720p</option></select></div>
-<label class="row2"><span class="rt">Remember my source per show<small>Next episodes start from the same kind of source you picked: group, quality and addon</small></span><input type="checkbox" id="setRemSrc"></label>
-<label class="row2"><span class="rt">Resume where you left off<small>When off, titles always start from the beginning</small></span><input type="checkbox" id="setResume"></label></div></div>
-<div class="sgrp"><h3 class="sgh">Subtitles and audio</h3><div class="addon"><div class="row2"><span class="rt">Subtitles<small>Preferred subtitle language</small></span><select id="setSub" class="sel"></select></div>
-<div class="row2"><span class="rt">Audio<small>Preferred audio language when a stream offers several tracks</small></span><select id="setAud" class="sel"></select></div></div><p class="gnote">Subtitles come from your subtitle addons, such as OpenSubtitles. A space can use its own subtitle language (Spaces > Edit).</p></div>
+<div class="row2" id="rowMaxQ"><span class="rt">Maximum quality<small>Upper limit for automatic source selection</small></span><select id="setMaxQ" class="sel"><option value="best">Best available</option><option value="2160">4K</option><option value="1080">1080p</option><option value="720">720p</option></select></div></div></div>
 <div id="setPlay" hidden><div class="sgrp"><h3 class="sgh">Player <small>this device</small></h3><div class="addon"><div class="row2"><span class="rt" id="skLbl">Skip interval<small id="skHint">Seconds to jump when double-tapping the left or right side of the video</small></span><select id="setSkip" class="sel"><option value="5">5 s</option><option value="10">10 s</option><option value="15">15 s</option><option value="30">30 s</option></select></div>
 <label class="row2"><span class="rt">Autoplay next episode<small>Starts the next episode after a short countdown. When off, you choose</small></span><input type="checkbox" id="setAutoNext"></label>
 <label class="row2"><span class="rt">Skip intros, recaps and credits<small>Skips them automatically when timing data is available. Scenes after the credits still play. Rewind to watch a skipped section</small></span><input type="checkbox" id="setAutoSkip"></label>
@@ -89,6 +83,14 @@
 <label class="row2"><span class="rt">Match frame rate<small>Syncs the display to the video frame rate to reduce judder, where supported</small></span><input type="checkbox" id="setFps"></label>
 <label class="row2"><span class="rt">Tunneled playback<small>May improve 4K and HDR playback. Can affect seeking</small></span><input type="checkbox" id="setTun"></label>
 <label class="row2"><span class="rt">Dolby passthrough<small>Sends Dolby and Atmos audio to your TV in the fallback player. Disable if there is no sound</small></span><input type="checkbox" id="setPass"></label></div></div></div>
+</div>
+<div class="setcat" data-cat="pstart" hidden>
+<div class="sgrp"><h3 class="sgh">When this profile opens</h3><div class="addon"><div class="row2"><span class="rt">When the app opens<small>What to show after choosing a profile</small></span><select id="setStart" class="sel"><option value="last">Last space you used</option><option value="launcher">Spaces page</option><option value="space">A specific space</option></select></div>
+<div class="row2" id="rowStartSp"><span class="rt">Space to open<small>Opened at start when "A specific space" is chosen</small></span><select id="setStartSp" class="sel"></select></div></div></div>
+<div class="sgrp"><h3 class="sgh">Playback</h3><div class="addon"><label class="row2"><span class="rt">Remember my source per show<small>Next episodes start from the same kind of source you picked: group, quality and addon</small></span><input type="checkbox" id="setRemSrc"></label>
+<label class="row2"><span class="rt">Resume where you left off<small>When off, titles always start from the beginning</small></span><input type="checkbox" id="setResume"></label></div></div>
+<div class="sgrp"><h3 class="sgh">Subtitles and audio</h3><div class="addon"><div class="row2"><span class="rt">Subtitles<small>Preferred subtitle language</small></span><select id="setSub" class="sel"></select></div>
+<div class="row2"><span class="rt">Audio<small>Preferred audio language when a stream offers several tracks</small></span><select id="setAud" class="sel"></select></div></div><p class="gnote">Subtitles come from your subtitle addons, such as OpenSubtitles. A space can use its own subtitle language (Spaces > Edit).</p></div>
 </div>
 <div class="setcat" data-cat="personal" hidden>
 <div class="sgrp"><h3 class="sgh">Home rows</h3><div class="addon"><label class="row2"><span class="rt">Featured<small>The large banner at the top of Home</small></span><input type="checkbox" id="setRowHero"></label>
@@ -148,8 +150,9 @@
 <input type="file" id="nfFile" accept=".csv,text/csv" hidden></div></div>
 </div>
 <div class="setcat" data-cat="account" hidden>
-<div class="sgrp"><h3 class="sgh">Profile</h3><div class="addon"><div class="profcard"><div id="profRow"></div></div></div></div>
+<div class="sgrp" hidden><h3 class="sgh">Profile</h3><div class="addon"><div class="profcard"><div id="profRow"></div></div></div></div>
 <div class="sgrp"><h3 class="sgh">Account</h3><div class="addon"><div id="acctCard"></div></div></div>
+<div class="sgrp" id="acctMore" hidden><h3 class="sgh">Security</h3><div class="addon"><div class="row2"><span class="rt">Change password<small id="pwHint">We email you a link to choose a new password</small></span><button class="btn ghost sm" id="pwReset" type="button">Send link</button></div><div class="row2"><span class="rt">Delete account<small>Removes your Streamlet account and everything synced with it: profiles, history, watchlists, addons and settings. Each device keeps what it has until you sign out there</small></span><button class="btn ghost sm danger" id="acctDel" type="button">Delete</button></div></div></div>
 </div>
 <div class="setcat" data-cat="about" hidden>
 <div class="sgrp"><h3 class="sgh">Streamlet</h3><div class="addon"><div class="row2"><span class="rt" id="verLine"></span></div><div class="row2"><span class="rt">Credits<small><a href="https://www.flaticon.com/free-icons/movies" title="movies icons" target="_blank" rel="noopener">Movies icons created by Magnific - Flaticon</a><br><a href="https://www.flaticon.com/free-icons/netflix" title="netflix icons" target="_blank" rel="noopener">Netflix icons created by Pixel perfect - Flaticon</a><br><a href="https://www.flaticon.com/free-icons/marvel" title="marvel icons" target="_blank" rel="noopener">Marvel icons created by pocike - Flaticon</a><br>Profile pictures made with <a href="https://www.dicebear.com" target="_blank" rel="noopener">DiceBear</a>: Adventurer by Lisa Wischofsky (CC BY 4.0), Toon Head by Johan Melin (CC BY 4.0), Big Smile by Ashley Seo (CC BY 4.0), Bottts and Avataaars by Pablo Stanley, Open Peeps by Pablo Stanley (CC0), Lorelei by Lisa Wischofsky (CC0), Notionists by Zoish (CC0), Pixel Art by DiceBear (CC0)</small></span></div>

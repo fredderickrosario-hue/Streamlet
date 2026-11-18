@@ -77,7 +77,7 @@ function showLauncher(){
   };
   L.replaceChildren(
     h('div', {class:'lhead'}, h('h1', null, 'Stream', h('span', {style:'color:var(--acc)'}, 'let')),
-      h('button', {class:'spaceBtn', type:'button', onclick:() => showProfiles()}, profile ? [avatarEl(profile, 22), ' ' + profile.name] : 'Profile', h('i', null, '⇄'))),
+      h('button', {class:'spaceBtn', type:'button', onclick:async () => { if (await kidGate(null)) showProfiles(); }}, profile ? [avatarEl(profile, 22), ' ' + profile.name] : 'Profile', h('i', null, '⇄'))),
     h('div', {class:'lmid'},
       h('h2', {class:'ltitle' + (addons.some(a => !isTio(a.url)) ? '' : ' noadd')}, addons.some(a => !isTio(a.url)) ? 'What are we watching?' : 'Add an addon first'),
       addons.some(a => !isTio(a.url)) ? null : h('p', {class:'lsub'}, 'Open Addons, install one, then pick a space.'),

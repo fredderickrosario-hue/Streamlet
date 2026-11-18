@@ -116,7 +116,7 @@ $('#exGo').onclick = () => {
 /* ---------- views ---------- */
 const TAB_SECTIONS = {home:'#home', search:'#search', watch:'#watch', addons:'#addons', settings:'#settings', me:'#me'};
 const TAB_BUTTONS = {home:'#tabHome', search:'#nvSearch', watch:'#tabWatch', addons:'#tabAddons', settings:'#tabSettings', me:'#tabMe'};
-const TAB_TITLES = {watch:'My List', addons:'Addons', settings:'Settings', me:'Profile'};
+const TAB_TITLES = {watch:'My List', addons:'Addons', settings:'Profile', me:'Profile'};
 function movePill(){
   const nav = $('#nav'), pill = $('#navPill'), b = nav.querySelector('button.on');
   if (!b || !nav.offsetWidth) return;
@@ -125,12 +125,13 @@ function movePill(){
 }
 addEventListener('resize', () => setTimeout(movePill, 50));
 function showTab(name){
+  if (name === 'me') name = 'settings';                                  // Profile and Settings are one page now (33-profile-hub.js)
   if (name !== 'settings') { try { if (layersOpen.includes('setsub')) dropSetSub(); setCatNow = null; } catch {} }   // a Settings section never comes back after you leave Settings
   if (!cur && name === 'home') return showLauncher();
   document.body.classList.remove('launch'); $('#launcher').hidden = true; $('#profiles').hidden = true; $('#login').hidden = true;
   navAvatar();
   for (const [k, sel] of Object.entries(TAB_SECTIONS)) { $(sel).hidden = k !== name; $(TAB_BUTTONS[k]).classList.toggle('on', k === name); }
-  if (isTVui()) $('#tabSettings').classList.toggle('on', name === 'settings' || name === 'addons');   // on TV the addons live inside Settings
+  $('#tabMe').classList.toggle('on', name === 'settings' || name === 'addons');   // the profile picture is the way in; addons live under Sources
   $('#spaceBtn').replaceChildren(...(cur ? [spIcon(cur), ' ' + cur.name] : ['Spaces']), h('i',null,'⇄'));
   $('#q').hidden = name !== 'home'; $('#pageTitle').hidden = true; document.body.classList.toggle('onhome', name === 'home'); document.body.classList.toggle('pgfix', ['watch', 'addons', 'settings', 'me'].includes(name)); document.body.classList.toggle('srchpg', name === 'search');
   $('#q').placeholder = cur ? 'Search '+cur.name+'…' : 'Search…';

@@ -292,3 +292,22 @@ body.tv .sptile:focus{transform:scale(1.04);outline:3px solid #fff;outline-offse
 body.tv .spgrid{grid-template-columns:repeat(3,minmax(0,1fr))}
 body.tv #profEd{padding-bottom:0}
 body.tv .pe2 .tgl:focus{outline:3px solid #fff;outline-offset:3px}
+/* editor v4: who it is (left), its own settings (right) */
+.pe-sets{margin-top:8px} .pe-sets .sgh{margin:6px 2px 8px}
+.pe-note{margin-top:16px}
+.pe-subhead{display:flex;align-items:center;gap:12px;margin:0 0 8px} .pe-subhead .sedh{margin:0}
+.pe-subbody .setcat{display:block}
+body:not(.tv) .pe2 .pe-sets,body:not(.tv) .pe2 .pe-note,body:not(.tv) .pe2 .pe-subhead,body:not(.tv) .pe2 .pe-subbody{order:2}
+body:not(.tv) #profEd.insub .pe2-l,body:not(.tv) #profEd.insub .pe2 > .pe2-r > .sedh{display:none}
+body.tv .pe.pe2{grid-template-columns:minmax(0,340px) minmax(0,520px);align-items:start;padding-top:28px}
+body.tv .pe2-l .pe-prev{padding:16px 14px 12px;gap:8px}
+body.tv .pe2-l .pe-avbtn .av{width:104px !important;height:104px !important;font-size:54px !important}
+body.tv .pe2-l .lbl{margin-top:10px}
+body.tv .pe2-r{max-height:calc(var(--vh,1vh) * 100 - 56px);overflow-y:auto;scrollbar-width:none;padding:4px 8px 30px 4px}
+body.tv .pe2-r::-webkit-scrollbar{display:none}
+body.tv .pe2-r .setitem{padding-top:10px;padding-bottom:10px}
+#profEd [hidden]{display:none !important}
+body.tv .pe2 .pe-act{flex-wrap:nowrap;gap:8px}
+body.tv .pe2 .pe-act .btn{padding:9px 14px;font-size:14px;white-space:nowrap}
+body.tv .pe2-l .tgl{padding:10px 12px}
+body.tv .pe2-l .tgl small{font-size:11.5px}

@@ -1,5 +1,5 @@
 /* ---------- Settings v2: categories, compact rows ---------- */
-#settings [hidden]{display:none !important}
+:is(#settings,#profEd) [hidden]{display:none !important}
 #settings .pagehead{padding-bottom:4px}
 /* header: back arrow + section name on a section page */
 #settings .sethd{display:flex;align-items:center;gap:10px}
@@ -8,77 +8,77 @@
 /* home: search, then sections in cards with a line icon in the accent color (no badge behind it) */
 #settings .sethome{max-width:860px}
 #settings .setq{width:100%;box-sizing:border-box;margin:2px 0 4px;padding:0 16px;min-height:46px;border-radius:14px}
-#settings .setgrp .sgh{margin:16px 4px 6px}
-#settings .setcard{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);border-radius:18px;padding:4px;display:flex;flex-direction:column;gap:2px}
-#settings .setitem{display:flex;align-items:center;gap:14px;width:100%;padding:11px 12px;border:0;border-radius:14px;background:none;color:inherit;text-align:left;cursor:pointer;position:relative}
-#settings .setitem+.setitem::before{content:'';position:absolute;top:-1px;left:50px;right:12px;height:1px;background:rgba(255,255,255,.07)}
-#settings .setitem:is(:hover,:focus-visible){background:rgba(255,255,255,.07);outline:2px solid rgba(255,255,255,.9);outline-offset:-2px}
-#settings .setitem:is(:hover,:focus-visible)::before,#settings .setitem:is(:hover,:focus-visible)+.setitem::before{opacity:0}
-#settings .seticon{flex:0 0 auto;width:24px;height:24px;fill:none;stroke:var(--acc2,var(--acc));stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
-#settings .setx{flex:1;min-width:0}
-#settings .setx b{display:block;font-size:16px;font-weight:650}
-#settings .setx small{display:block;margin-top:2px;font-size:12.5px;color:var(--mut);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-#settings .setchev{font-style:normal;font-size:22px;line-height:1;color:var(--mut);opacity:.7}
-body.tv #settings .setx b{font-size:17px}
-body.tv #settings .setx small{font-size:13.5px}
-#settings .flash{animation:setflash 1.6s ease}
+:is(#settings,#profEd) .setgrp .sgh{margin:16px 4px 6px}
+:is(#settings,#profEd) .setcard{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);border-radius:18px;padding:4px;display:flex;flex-direction:column;gap:2px}
+:is(#settings,#profEd) .setitem{display:flex;align-items:center;gap:14px;width:100%;padding:11px 12px;border:0;border-radius:14px;background:none;color:inherit;text-align:left;cursor:pointer;position:relative}
+:is(#settings,#profEd) .setitem+.setitem::before{content:'';position:absolute;top:-1px;left:50px;right:12px;height:1px;background:rgba(255,255,255,.07)}
+:is(#settings,#profEd) .setitem:is(:hover,:focus-visible){background:rgba(255,255,255,.07);outline:2px solid rgba(255,255,255,.9);outline-offset:-2px}
+:is(#settings,#profEd) .setitem:is(:hover,:focus-visible)::before,:is(#settings,#profEd) .setitem:is(:hover,:focus-visible)+.setitem::before{opacity:0}
+:is(#settings,#profEd) .seticon{flex:0 0 auto;width:24px;height:24px;fill:none;stroke:var(--acc2,var(--acc));stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+:is(#settings,#profEd) .setx{flex:1;min-width:0}
+:is(#settings,#profEd) .setx b{display:block;font-size:16px;font-weight:650}
+:is(#settings,#profEd) .setx small{display:block;margin-top:2px;font-size:12.5px;color:var(--mut);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+:is(#settings,#profEd) .setchev{font-style:normal;font-size:22px;line-height:1;color:var(--mut);opacity:.7}
+body.tv :is(#settings,#profEd) .setx b{font-size:17px}
+body.tv :is(#settings,#profEd) .setx small{font-size:13.5px}
+:is(#settings,#profEd) .flash{animation:setflash 1.6s ease}
 @keyframes setflash{0%,40%{background:color-mix(in srgb,var(--acc) 22%,transparent)}100%{background:transparent}}
-#settings .flash.row2,#settings .flash.sprow{border-radius:10px}
+:is(#settings,#profEd) .flash.row2,:is(#settings,#profEd) .flash.sprow{border-radius:10px}
 @media (min-width:1100px){ body:not(.tv) #settings .sethome{max-width:760px} }
 
 /* groups: a small title over a card; two columns on wide screens */
-#settings .setcat{display:grid;grid-template-columns:minmax(0,1fr);gap:4px 22px;align-items:start}
-@media (min-width:1100px){ body:not(.tv) #settings .setcat{grid-template-columns:repeat(2,minmax(0,1fr))} }
-#settings .sgrp{min-width:0}
-#settings .sgh{margin:12px 4px 6px;font-size:12px;letter-spacing:.9px;text-transform:uppercase;color:var(--mut);font-weight:700}
-#settings .sgh small{font-weight:500;text-transform:none;letter-spacing:0;opacity:.75;margin-left:4px}
-#settings .sgrp .addon{margin:0;padding:2px 16px}
-#settings .row2{padding:10px 0;gap:12px}
-#settings .rt{font-size:15px;line-height:1.25}
-#settings .rt small{font-size:12px;line-height:1.35;margin-top:2px}
-#settings .gnote{margin:6px 6px 2px;font-size:12px;line-height:1.4}
-#settings .profcard{padding:12px 0}
-#settings #acctCard{padding:12px 0}
-#settings #acctCard p{font-size:14px}
-#settings input[type=checkbox]{width:44px;height:26px;border-radius:13px}
-#settings input[type=checkbox]::after{width:20px;height:20px}
-#settings input[type=checkbox]:checked::after{transform:translateX(18px)}
-body.tv #settings .rt{font-size:16px}
-body.tv #settings .rt small{font-size:13px}
-body.tv #settings .sgrp .addon{padding:2px 18px}
-body.tv #settings .sgh{font-size:13px;margin:12px 4px 6px}
+:is(#settings,#profEd) .setcat{display:grid;grid-template-columns:minmax(0,1fr);gap:4px 22px;align-items:start}
+@media (min-width:1100px){ body:not(.tv) :is(#settings,#profEd) .setcat{grid-template-columns:repeat(2,minmax(0,1fr))} }
+:is(#settings,#profEd) .sgrp{min-width:0}
+:is(#settings,#profEd) .sgh{margin:12px 4px 6px;font-size:12px;letter-spacing:.9px;text-transform:uppercase;color:var(--mut);font-weight:700}
+:is(#settings,#profEd) .sgh small{font-weight:500;text-transform:none;letter-spacing:0;opacity:.75;margin-left:4px}
+:is(#settings,#profEd) .sgrp .addon{margin:0;padding:2px 16px}
+:is(#settings,#profEd) .row2{padding:10px 0;gap:12px}
+:is(#settings,#profEd) .rt{font-size:15px;line-height:1.25}
+:is(#settings,#profEd) .rt small{font-size:12px;line-height:1.35;margin-top:2px}
+:is(#settings,#profEd) .gnote{margin:6px 6px 2px;font-size:12px;line-height:1.4}
+:is(#settings,#profEd) .profcard{padding:12px 0}
+:is(#settings,#profEd) #acctCard{padding:12px 0}
+:is(#settings,#profEd) #acctCard p{font-size:14px}
+:is(#settings,#profEd) input[type=checkbox]{width:44px;height:26px;border-radius:13px}
+:is(#settings,#profEd) input[type=checkbox]::after{width:20px;height:20px}
+:is(#settings,#profEd) input[type=checkbox]:checked::after{transform:translateX(18px)}
+body.tv :is(#settings,#profEd) .rt{font-size:16px}
+body.tv :is(#settings,#profEd) .rt small{font-size:13px}
+body.tv :is(#settings,#profEd) .sgrp .addon{padding:2px 18px}
+body.tv :is(#settings,#profEd) .sgh{font-size:13px;margin:12px 4px 6px}
 body:not(.tv) #settings .pad{padding-top:0}
-body:not(.tv) #settings .sgh{margin:14px 4px 6px}
-body:not(.tv) :is(#settings select.sel,#settings input[type=text]){min-height:40px}
+body:not(.tv) :is(#settings,#profEd) .sgh{margin:14px 4px 6px}
+body:not(.tv) :is(:is(#settings,#profEd) select.sel,:is(#settings,#profEd) input[type=text]){min-height:40px}
 
 /* chip pickers (genres, languages) */
-#settings .gchips{display:flex;flex-wrap:wrap;gap:6px;padding:2px 2px 4px}
-#settings .gchips .chip{font-size:13px;padding:6px 12px;min-height:0}
-body.tv #settings .gchips .chip{font-size:14px;padding:7px 14px}
+:is(#settings,#profEd) .gchips{display:flex;flex-wrap:wrap;gap:6px;padding:2px 2px 4px}
+:is(#settings,#profEd) .gchips .chip{font-size:13px;padding:6px 12px;min-height:0}
+body.tv :is(#settings,#profEd) .gchips .chip{font-size:14px;padding:7px 14px}
 
 /* spaces list */
-#settings .splist{display:flex;flex-direction:column}
-#settings .sprow{display:flex;align-items:center;gap:12px;padding:9px 0;border-bottom:1px solid rgba(255,255,255,.07)}
-#settings .sprow:last-child{border-bottom:0}
-#settings .sprow.off .rt{opacity:.55}
-#settings .spsw{flex:0 0 auto;width:10px;align-self:stretch;border-radius:5px}
-#settings .spbtns{display:flex;align-items:center;gap:6px;flex:0 0 auto}
-#settings .spbtns .ic{min-width:36px;padding:0 10px;font-size:16px}
-#settings .spbtns .ic[disabled]{opacity:.3}
-#settings .spshow{display:inline-flex;align-items:center;gap:6px;font-size:13px;color:var(--mut);margin:0 4px}
-body:not(.tv) #settings .sprow{gap:10px}
-body:not(.tv) #settings .spbtns{gap:4px}
-body:not(.tv) #settings .spshow span{display:none}
-body:not(.tv) #settings .spbtns .btn{min-height:36px;padding:0 10px}
+:is(#settings,#profEd) .splist{display:flex;flex-direction:column}
+:is(#settings,#profEd) .sprow{display:flex;align-items:center;gap:12px;padding:9px 0;border-bottom:1px solid rgba(255,255,255,.07)}
+:is(#settings,#profEd) .sprow:last-child{border-bottom:0}
+:is(#settings,#profEd) .sprow.off .rt{opacity:.55}
+:is(#settings,#profEd) .spsw{flex:0 0 auto;width:10px;align-self:stretch;border-radius:5px}
+:is(#settings,#profEd) .spbtns{display:flex;align-items:center;gap:6px;flex:0 0 auto}
+:is(#settings,#profEd) .spbtns .ic{min-width:36px;padding:0 10px;font-size:16px}
+:is(#settings,#profEd) .spbtns .ic[disabled]{opacity:.3}
+:is(#settings,#profEd) .spshow{display:inline-flex;align-items:center;gap:6px;font-size:13px;color:var(--mut);margin:0 4px}
+body:not(.tv) :is(#settings,#profEd) .sprow{gap:10px}
+body:not(.tv) :is(#settings,#profEd) .spbtns{gap:4px}
+body:not(.tv) :is(#settings,#profEd) .spshow span{display:none}
+body:not(.tv) :is(#settings,#profEd) .spbtns .btn{min-height:36px;padding:0 10px}
 
 /* about */
-#settings .abinfo{padding:6px 0 10px}
-#settings .abrow{display:flex;justify-content:space-between;gap:12px;padding:5px 0;font-size:14px;color:var(--mut)}
-#settings .abrow b{color:var(--fg,#fff);font-weight:600}
-#settings #abCred p{margin:8px 0;font-size:13px;line-height:1.45;color:var(--mut)}
-#settings #abCred b{color:var(--fg,#fff)}
-#settings #abCred .muted{opacity:.75}
-#settings .btn.warn{background:#c2410c;color:#fff;border-color:transparent}
+:is(#settings,#profEd) .abinfo{padding:6px 0 10px}
+:is(#settings,#profEd) .abrow{display:flex;justify-content:space-between;gap:12px;padding:5px 0;font-size:14px;color:var(--mut)}
+:is(#settings,#profEd) .abrow b{color:var(--fg,#fff);font-weight:600}
+:is(#settings,#profEd) #abCred p{margin:8px 0;font-size:13px;line-height:1.45;color:var(--mut)}
+:is(#settings,#profEd) #abCred b{color:var(--fg,#fff)}
+:is(#settings,#profEd) #abCred .muted{opacity:.75}
+:is(#settings,#profEd) .btn.warn{background:#c2410c;color:#fff;border-color:transparent}
 
 /* notices ("New for you") */
 .ntcard{position:fixed;z-index:60;right:18px;bottom:18px;width:min(360px,calc(100vw - 36px));box-sizing:border-box;padding:12px 14px;border-radius:18px;
@@ -117,11 +117,11 @@ body:not(.tv) .ntcard{right:12px;left:12px;width:auto;bottom:calc(84px + env(saf
 .pib.on svg{color:var(--acc2,var(--acc))}
 .offrow h2 small{font-weight:500;color:var(--mut)}
 /* who a setting is for */
-#settings .scope{display:inline-block;margin-left:8px;padding:1px 7px;border-radius:6px;font-style:normal;font-size:10.5px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;vertical-align:2px}
-#settings .scope.p{color:var(--acc2,var(--acc));box-shadow:inset 0 0 0 1px currentColor}
-#settings .scope.e{color:var(--mut);box-shadow:inset 0 0 0 1px rgba(255,255,255,.25)}
-#settings .scopekey{margin:8px 4px 0;font-size:12px;color:var(--mut)}
-#settings .scopekey .scope{margin:0 2px 0 0}
+:is(#settings,#profEd) .scope{display:inline-block;margin-left:8px;padding:1px 7px;border-radius:6px;font-style:normal;font-size:10.5px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;vertical-align:2px}
+:is(#settings,#profEd) .scope.p{color:var(--acc2,var(--acc));box-shadow:inset 0 0 0 1px currentColor}
+:is(#settings,#profEd) .scope.e{color:var(--mut);box-shadow:inset 0 0 0 1px rgba(255,255,255,.25)}
+:is(#settings,#profEd) .scopekey{margin:8px 4px 0;font-size:12px;color:var(--mut)}
+:is(#settings,#profEd) .scopekey .scope{margin:0 2px 0 0}
 /* iPhone: a file Safari can't play */
 .ioshelp{position:absolute;inset:auto 16px calc(24px + env(safe-area-inset-bottom,0px));z-index:30;padding:18px;border-radius:18px;background:rgba(18,16,22,.97);box-shadow:0 18px 40px rgba(0,0,0,.6),inset 0 0 0 1px rgba(255,255,255,.1)}
 .ioshelp h3{margin:0 0 6px;font-size:18px}
@@ -162,3 +162,28 @@ body.tv .wztile:focus{transform:scale(1.03);outline:3px solid #fff;outline-offse
 .wzgrid .wztile :is(.snm,.sds){white-space:normal !important;overflow:visible !important;text-overflow:clip !important;display:block}
 body.tv .wzgrid{grid-template-columns:repeat(2,1fr)}
 .wzqrrow .wzqr{height:120px;box-sizing:content-box;align-self:center} .wzqrrow .wzqr svg{width:100%;height:100%;display:block}
+/* Profile page = Profile + Settings (33-profile-hub.js) */
+#tabSettings,#tabAddons{display:none !important}
+.mehub{margin:0 0 18px}
+.mehub .mecard{display:flex;align-items:center;gap:18px;padding:16px 18px}
+.mepic{flex:0 0 auto}
+.metx{min-width:0} .metx h2{margin:0;font-size:24px} .metx p{margin:3px 0 0;color:var(--mut)}
+.mestat{display:flex;gap:14px;margin-top:8px;font-size:13px;color:var(--mut)} .mestat b{color:var(--txt,#fff);font-size:15px}
+.mebtns{display:flex;flex-wrap:wrap;gap:10px;margin-top:12px;padding:4px;align-items:center}
+.mechip{display:inline-flex;align-items:center;gap:6px}
+.meout{margin-top:14px}
+.btn.danger{color:#ff8f8f}
+/* PIN pad */
+.pinpop .pincard{max-width:360px;padding:22px 22px 18px;text-align:center;align-items:center}
+.pincard h2{margin:0 0 14px;font-size:20px}
+.pindots{display:flex;gap:14px;justify-content:center;margin:4px 0 6px}
+.pindots i{width:16px;height:16px;border-radius:50%;border:2px solid rgba(255,255,255,.6)}
+.pindots i.on{background:#fff;border-color:#fff}
+.pindots.shake{animation:pinshake .4s}
+@keyframes pinshake{20%,60%{transform:translateX(-8px)}40%,80%{transform:translateX(8px)}}
+.pinmsg{min-height:20px;margin:0 0 8px;color:#ff8f8f;font-size:14px}
+.pingrid{display:grid;grid-template-columns:repeat(3,72px);gap:12px;justify-content:center;padding:6px}
+.pinkey{height:60px;border-radius:16px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.07);color:#fff;font-size:24px;font-weight:700;cursor:pointer}
+.pinkey.pinx{font-size:15px;font-weight:600}
+.pinkey:hover,.pinkey:focus-visible{outline:3px solid #fff;outline-offset:2px}
+body.tv .pinkey:focus{outline:3px solid #fff;outline-offset:2px;transform:scale(1.05)}

@@ -611,22 +611,22 @@ body:not(.tv) .tvhero::after{display:none}
 .updbtns .btn{margin:0}
 
 /* settings: grouped rows with icon badges and switches */
-#settings .addon{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);border-radius:22px;padding:4px 18px;margin:8px 0}
-#settings #acctCard{padding:14px 18px}
-#settings .profcard{padding:16px 18px}
-#settings #profRow{display:flex;align-items:center;justify-content:space-between;gap:12px}
-#settings .row2{display:flex;align-items:center;gap:14px;padding:14px 0;border-bottom:1px solid rgba(255,255,255,.07)}
-#settings .row2:last-child,#settings .addon>.row2:last-of-type{border-bottom:0}
-#settings .rt{flex:1;min-width:0;font-weight:600;font-size:16px}
-#settings .rt small{display:block;margin-top:2px;font-weight:400;font-size:12.5px;color:var(--mut)}
-#settings select.sel{flex:0 0 auto;max-width:44%;width:auto;min-width:120px;border-radius:12px;padding:9px 12px}
-#settings input[type=checkbox]{-webkit-appearance:none;appearance:none;flex:0 0 auto;width:50px;height:30px;border-radius:15px;background:rgba(255,255,255,.17);position:relative;transition:background .2s;margin:0}
-#settings input[type=checkbox]::after{content:'';position:absolute;top:3px;left:3px;width:24px;height:24px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.4);transition:transform .2s}
-#settings input[type=checkbox]:checked{background:linear-gradient(135deg,var(--acc),var(--acc2))}
-#settings input[type=checkbox]:checked::after{transform:translateX(20px)}
-#settings .gnote{margin:6px 6px 0;font-size:12.5px;line-height:1.45;color:var(--mut)}
-#settings .sh small{font-weight:500;text-transform:none;letter-spacing:0;opacity:.7;margin-left:4px}
-#settings .aboutpad{padding:10px 0}
+:is(#settings,#profEd) .addon{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);border-radius:22px;padding:4px 18px;margin:8px 0}
+:is(#settings,#profEd) #acctCard{padding:14px 18px}
+:is(#settings,#profEd) .profcard{padding:16px 18px}
+:is(#settings,#profEd) #profRow{display:flex;align-items:center;justify-content:space-between;gap:12px}
+:is(#settings,#profEd) .row2{display:flex;align-items:center;gap:14px;padding:14px 0;border-bottom:1px solid rgba(255,255,255,.07)}
+:is(#settings,#profEd) .row2:last-child,:is(#settings,#profEd) .addon>.row2:last-of-type{border-bottom:0}
+:is(#settings,#profEd) .rt{flex:1;min-width:0;font-weight:600;font-size:16px}
+:is(#settings,#profEd) .rt small{display:block;margin-top:2px;font-weight:400;font-size:12.5px;color:var(--mut)}
+:is(#settings,#profEd) select.sel{flex:0 0 auto;max-width:44%;width:auto;min-width:120px;border-radius:12px;padding:9px 12px}
+:is(#settings,#profEd) input[type=checkbox]{-webkit-appearance:none;appearance:none;flex:0 0 auto;width:50px;height:30px;border-radius:15px;background:rgba(255,255,255,.17);position:relative;transition:background .2s;margin:0}
+:is(#settings,#profEd) input[type=checkbox]::after{content:'';position:absolute;top:3px;left:3px;width:24px;height:24px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.4);transition:transform .2s}
+:is(#settings,#profEd) input[type=checkbox]:checked{background:linear-gradient(135deg,var(--acc),var(--acc2))}
+:is(#settings,#profEd) input[type=checkbox]:checked::after{transform:translateX(20px)}
+:is(#settings,#profEd) .gnote{margin:6px 6px 0;font-size:12.5px;line-height:1.45;color:var(--mut)}
+:is(#settings,#profEd) .sh small{font-weight:500;text-transform:none;letter-spacing:0;opacity:.7;margin-left:4px}
+:is(#settings,#profEd) .aboutpad{padding:10px 0}
 
 .rgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(104px,1fr));gap:14px 12px;padding:6px 14px 30px}
 .rgrid .card{width:auto;text-align:left}
@@ -945,6 +945,14 @@ body:not(.tv) .pe2 .sedh{order:0;margin:4px 0 12px} body:not(.tv) .pe2-l{order:1
 .sptile.here{box-shadow:inset 0 0 0 3px rgba(255,255,255,.85)}
 .sptile:hover,.sptile:focus-visible{transform:scale(1.03);outline:3px solid #fff;outline-offset:3px}
 .spfoot{display:flex;justify-content:center;padding:6px 22px 4px}
+/* editor v4: who it is (left), its own settings (right) */
+.pe-sets{margin-top:8px} .pe-sets .sgh{margin:6px 2px 8px}
+.pe-note{margin-top:16px}
+.pe-subhead{display:flex;align-items:center;gap:12px;margin:0 0 8px} .pe-subhead .sedh{margin:0}
+.pe-subbody .setcat{display:block}
+body:not(.tv) .pe2 .pe-sets,body:not(.tv) .pe2 .pe-note,body:not(.tv) .pe2 .pe-subhead,body:not(.tv) .pe2 .pe-subbody{order:2}
+body:not(.tv) #profEd.insub .pe2-l,body:not(.tv) #profEd.insub .pe2 > .pe2-r > .sedh{display:none}
+#profEd [hidden]{display:none !important}
 
 /* manage profiles: the pencil badge sits on the avatar's corner, in our accent color */
 .pav:not(.add){width:fit-content;height:auto;border-radius:0;box-shadow:none}
@@ -1077,11 +1085,11 @@ body:not(.tv) #mlTabs .chip{flex:1 1 auto;padding:0 12px}
 body:not(.tv) .gtile{border-radius:12px}
 
 /* fields */
-body:not(.tv) :is(.f,.add input,select.sel,#settings select.sel,#settings input[type=text]){min-height:44px;box-sizing:border-box;border-radius:12px;padding:0 14px;font-size:15px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);color:var(--text)}
-body:not(.tv) :is(select.sel,#settings select.sel){padding-right:10px}
+body:not(.tv) :is(.f,.add input,select.sel,:is(#settings,#profEd) select.sel,:is(#settings,#profEd) input[type=text]){min-height:44px;box-sizing:border-box;border-radius:12px;padding:0 14px;font-size:15px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);color:var(--text)}
+body:not(.tv) :is(select.sel,:is(#settings,#profEd) select.sel){padding-right:10px}
 body:not(.tv) textarea.f{padding:12px 14px;line-height:1.45}
 body:not(.tv) .pe-input{border-radius:12px}
-:is(.row2.stack,#settings .row2.stack){flex-direction:column;align-items:stretch;gap:10px}
+:is(.row2.stack,:is(#settings,#profEd) .row2.stack){flex-direction:column;align-items:stretch;gap:10px}
 .row2.stack .inrow{align-self:flex-start;max-width:100%}
 body:not(.tv) .row2.stack .inrow:has(.f){align-self:stretch}
 body:not(.tv) .inrow .f{flex:1}
@@ -1089,7 +1097,7 @@ body:not(.tv) .inrow .f{flex:1}
 .inrow .f{min-width:0;width:auto;height:auto}
 
 /* cards and the rows inside them */
-body:not(.tv) :is(.addon,.acard,.rcard,#settings .addon){border-radius:18px}
+body:not(.tv) :is(.addon,.acard,.rcard,:is(#settings,#profEd) .addon){border-radius:18px}
 body:not(.tv) .rcard{padding:14px 16px;margin:10px 0}
 body:not(.tv) .pe-prev{border-radius:18px}
 body:not(.tv) :is(.tgl,.opt,.stream,.adbox summary){border-radius:14px}
@@ -1120,24 +1128,24 @@ body:not(.tv) .lmid .lsub{text-align:left;margin:0 0 18px;color:rgba(255,255,255
 body:not(.tv) .wgrid .card .s,body:not(.tv) .rgrid .card .s{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .ep .eseen{color:var(--acc)}
 .ep .eseen svg{fill:color-mix(in srgb,var(--acc) 45%,transparent)}
-body:not(.tv) #settings .tvonly{display:none}
+body:not(.tv) :is(#settings,#profEd) .tvonly{display:none}
 /* ---------- TV polish: one set of sizes, edges and focus rings on every TV page (the phone keeps its own) ----------
    pages line up on the title's left edge · content 900px wide at most · buttons 46px, small 38px · chips 40px, fully round
    focus: a 3px white ring drawn inside the item, so no row, list or page edge can ever crop it */
 
 /* pages: tabs and lists start exactly under the title */
 body.tv.pgfix:not(.launch) :is(#mlTabs,#wlTabs,#adSeg){padding-left:0;padding-right:0;margin-left:0}
-body.tv :is(.addon,.acard,.rcard,#addBox,.mestats,.mebtns,.adbox,#settings .addon){max-width:860px;box-sizing:border-box}
+body.tv :is(.addon,.acard,.rcard,#addBox,.mestats,.mebtns,.adbox,:is(#settings,#profEd) .addon){max-width:860px;box-sizing:border-box}
 
 /* buttons */
 
 /* chips */
 
 /* fields */
-body.tv :is(.f,.add input,select.sel,#settings select.sel){min-height:46px;box-sizing:border-box;border-radius:12px;padding:0 14px;font-size:16px}
+body.tv :is(.f,.add input,select.sel,:is(#settings,#profEd) select.sel){min-height:46px;box-sizing:border-box;border-radius:12px;padding:0 14px;font-size:16px}
 
 /* cards and the rows inside them */
-body.tv :is(.addon,.acard,.rcard,#settings .addon){border-radius:20px}
+body.tv :is(.addon,.acard,.rcard,:is(#settings,#profEd) .addon){border-radius:20px}
 body.tv :is(.tgl,.opt,.stream,.adbox summary){border-radius:14px}
 
 /* switches for every on/off option, not only the ones in Settings */
@@ -1160,7 +1168,7 @@ body.tv :is(button.card,.cwb,.wlb):focus-visible .poster{outline:3px solid #fff;
 /* launcher: two rows of spaces and the buttons below fit on one screen */
 body.tv #tabAddons{display:none}   /* addons are reached from Settings on TV */
 /* dropdowns: one clean pill with a chevron, same on phone and TV */
-html body select.sel,html body #settings select.sel{-webkit-appearance:none !important;appearance:none !important;padding-right:34px !important;cursor:pointer;
+html body select.sel,html body :is(#settings,#profEd) select.sel{-webkit-appearance:none !important;appearance:none !important;padding-right:34px !important;cursor:pointer;
   background-color:rgba(255,255,255,.07) !important;background-repeat:no-repeat !important;background-position:right 12px center !important;background-size:14px 14px !important;
   background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23ffffff' stroke-opacity='.7' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E") !important;text-overflow:ellipsis}
 select.sel option{background:#15151d;color:#fff}
@@ -1189,7 +1197,7 @@ body.tv :is(button.card,.cwb,.wlb):is(:focus-visible,:hover) .poster{outline:0 !
 #updDlg .updmsg{margin:4px 0 0;font-size:12px;color:rgba(255,255,255,.5)}
 /* kids profiles: no addon management, no New & Hot, no space editing */
 body.kids :is(#tabAddons,#nvNew,#setAddons,.lfoot,.newwrap,.sedit){display:none !important}
-body.kids #settings .addon.tvonly{display:none !important}
+body.kids :is(#settings,#profEd) .addon.tvonly{display:none !important}
 /* "Manage profiles" / "Done": a soft pill when focused instead of a white box */
 .lnk{border-radius:999px;padding:8px 16px;transition:background .15s,color .15s}
 .lnk:focus-visible,.lnk:hover{outline:none !important;box-shadow:none;background:rgba(255,255,255,.12);color:#fff;text-decoration:none}
@@ -1290,7 +1298,7 @@ body.launch.tv{overflow:hidden}
 .spico.pic img{width:100%;height:100%;object-fit:contain;display:block}
 .spico.avengers img{filter:invert(1) brightness(.92)}   /* the dark grey A turned light, so it shows on the dark tiles */
 /* ---------- Settings v2: categories, compact rows ---------- */
-#settings [hidden]{display:none !important}
+:is(#settings,#profEd) [hidden]{display:none !important}
 #settings .pagehead{padding-bottom:4px}
 /* header: back arrow + section name on a section page */
 #settings .sethd{display:flex;align-items:center;gap:10px}
@@ -1299,70 +1307,77 @@ body.launch.tv{overflow:hidden}
 /* home: search, then sections in cards with a line icon in the accent color (no badge behind it) */
 #settings .sethome{max-width:860px}
 #settings .setq{width:100%;box-sizing:border-box;margin:2px 0 4px;padding:0 16px;min-height:46px;border-radius:14px}
-#settings .setgrp .sgh{margin:16px 4px 6px}
-#settings .setcard{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);border-radius:18px;padding:4px;display:flex;flex-direction:column;gap:2px}
-#settings .setitem{display:flex;align-items:center;gap:14px;width:100%;padding:11px 12px;border:0;border-radius:14px;background:none;color:inherit;text-align:left;cursor:pointer;position:relative}
-#settings .setitem+.setitem::before{content:'';position:absolute;top:-1px;left:50px;right:12px;height:1px;background:rgba(255,255,255,.07)}
-#settings .setitem:is(:hover,:focus-visible){background:rgba(255,255,255,.07);outline:2px solid rgba(255,255,255,.9);outline-offset:-2px}
-#settings .setitem:is(:hover,:focus-visible)::before,#settings .setitem:is(:hover,:focus-visible)+.setitem::before{opacity:0}
-#settings .seticon{flex:0 0 auto;width:24px;height:24px;fill:none;stroke:var(--acc2,var(--acc));stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
-#settings .setx{flex:1;min-width:0}
-#settings .setx b{display:block;font-size:16px;font-weight:650}
-#settings .setx small{display:block;margin-top:2px;font-size:12.5px;color:var(--mut);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-#settings .setchev{font-style:normal;font-size:22px;line-height:1;color:var(--mut);opacity:.7}
-#settings .flash{animation:setflash 1.6s ease}
+:is(#settings,#profEd) .setgrp .sgh{margin:16px 4px 6px}
+:is(#settings,#profEd) .setcard{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);border-radius:18px;padding:4px;display:flex;flex-direction:column;gap:2px}
+:is(#settings,#profEd) .setitem{display:flex;align-items:center;gap:14px;width:100%;padding:11px 12px;border:0;border-radius:14px;background:none;color:inherit;text-align:left;cursor:pointer;position:relative}
+:is(#settings,#profEd) .setitem+.setitem::before{content:'';position:absolute;top:-1px;left:50px;right:12px;height:1px;background:rgba(255,255,255,.07)}
+:is(#settings,#profEd) .setitem:is(:hover,:focus-visible){background:rgba(255,255,255,.07);outline:2px solid rgba(255,255,255,.9);outline-offset:-2px}
+:is(#settings,#profEd) .setitem:is(:hover,:focus-visible)::before,:is(#settings,#profEd) .setitem:is(:hover,:focus-visible)+.setitem::before{opacity:0}
+:is(#settings,#profEd) .seticon{flex:0 0 auto;width:24px;height:24px;fill:none;stroke:var(--acc2,var(--acc));stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+:is(#settings,#profEd) .setx{flex:1;min-width:0}
+:is(#settings,#profEd) .setx b{display:block;font-size:16px;font-weight:650}
+:is(#settings,#profEd) .setx small{display:block;margin-top:2px;font-size:12.5px;color:var(--mut);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+:is(#settings,#profEd) .setchev{font-style:normal;font-size:22px;line-height:1;color:var(--mut);opacity:.7}
+body.tv :is(#settings,#profEd) .setx b{font-size:17px}
+body.tv :is(#settings,#profEd) .setx small{font-size:13.5px}
+:is(#settings,#profEd) .flash{animation:setflash 1.6s ease}
 @keyframes setflash{0%,40%{background:color-mix(in srgb,var(--acc) 22%,transparent)}100%{background:transparent}}
-#settings .flash.row2,#settings .flash.sprow{border-radius:10px}
+:is(#settings,#profEd) .flash.row2,:is(#settings,#profEd) .flash.sprow{border-radius:10px}
 @media (min-width:1100px){ body:not(.tv) #settings .sethome{max-width:760px} }
 
 /* groups: a small title over a card; two columns on wide screens */
-#settings .setcat{display:grid;grid-template-columns:minmax(0,1fr);gap:4px 22px;align-items:start}
-@media (min-width:1100px){ body:not(.tv) #settings .setcat{grid-template-columns:repeat(2,minmax(0,1fr))} }
-#settings .sgrp{min-width:0}
-#settings .sgh{margin:12px 4px 6px;font-size:12px;letter-spacing:.9px;text-transform:uppercase;color:var(--mut);font-weight:700}
-#settings .sgh small{font-weight:500;text-transform:none;letter-spacing:0;opacity:.75;margin-left:4px}
-#settings .sgrp .addon{margin:0;padding:2px 16px}
-#settings .row2{padding:10px 0;gap:12px}
-#settings .rt{font-size:15px;line-height:1.25}
-#settings .rt small{font-size:12px;line-height:1.35;margin-top:2px}
-#settings .gnote{margin:6px 6px 2px;font-size:12px;line-height:1.4}
-#settings .profcard{padding:12px 0}
-#settings #acctCard{padding:12px 0}
-#settings #acctCard p{font-size:14px}
-#settings input[type=checkbox]{width:44px;height:26px;border-radius:13px}
-#settings input[type=checkbox]::after{width:20px;height:20px}
-#settings input[type=checkbox]:checked::after{transform:translateX(18px)}
+:is(#settings,#profEd) .setcat{display:grid;grid-template-columns:minmax(0,1fr);gap:4px 22px;align-items:start}
+@media (min-width:1100px){ body:not(.tv) :is(#settings,#profEd) .setcat{grid-template-columns:repeat(2,minmax(0,1fr))} }
+:is(#settings,#profEd) .sgrp{min-width:0}
+:is(#settings,#profEd) .sgh{margin:12px 4px 6px;font-size:12px;letter-spacing:.9px;text-transform:uppercase;color:var(--mut);font-weight:700}
+:is(#settings,#profEd) .sgh small{font-weight:500;text-transform:none;letter-spacing:0;opacity:.75;margin-left:4px}
+:is(#settings,#profEd) .sgrp .addon{margin:0;padding:2px 16px}
+:is(#settings,#profEd) .row2{padding:10px 0;gap:12px}
+:is(#settings,#profEd) .rt{font-size:15px;line-height:1.25}
+:is(#settings,#profEd) .rt small{font-size:12px;line-height:1.35;margin-top:2px}
+:is(#settings,#profEd) .gnote{margin:6px 6px 2px;font-size:12px;line-height:1.4}
+:is(#settings,#profEd) .profcard{padding:12px 0}
+:is(#settings,#profEd) #acctCard{padding:12px 0}
+:is(#settings,#profEd) #acctCard p{font-size:14px}
+:is(#settings,#profEd) input[type=checkbox]{width:44px;height:26px;border-radius:13px}
+:is(#settings,#profEd) input[type=checkbox]::after{width:20px;height:20px}
+:is(#settings,#profEd) input[type=checkbox]:checked::after{transform:translateX(18px)}
+body.tv :is(#settings,#profEd) .rt{font-size:16px}
+body.tv :is(#settings,#profEd) .rt small{font-size:13px}
+body.tv :is(#settings,#profEd) .sgrp .addon{padding:2px 18px}
+body.tv :is(#settings,#profEd) .sgh{font-size:13px;margin:12px 4px 6px}
 body:not(.tv) #settings .pad{padding-top:0}
-body:not(.tv) #settings .sgh{margin:14px 4px 6px}
-body:not(.tv) :is(#settings select.sel,#settings input[type=text]){min-height:40px}
+body:not(.tv) :is(#settings,#profEd) .sgh{margin:14px 4px 6px}
+body:not(.tv) :is(:is(#settings,#profEd) select.sel,:is(#settings,#profEd) input[type=text]){min-height:40px}
 
 /* chip pickers (genres, languages) */
-#settings .gchips{display:flex;flex-wrap:wrap;gap:6px;padding:2px 2px 4px}
-#settings .gchips .chip{font-size:13px;padding:6px 12px;min-height:0}
+:is(#settings,#profEd) .gchips{display:flex;flex-wrap:wrap;gap:6px;padding:2px 2px 4px}
+:is(#settings,#profEd) .gchips .chip{font-size:13px;padding:6px 12px;min-height:0}
+body.tv :is(#settings,#profEd) .gchips .chip{font-size:14px;padding:7px 14px}
 
 /* spaces list */
-#settings .splist{display:flex;flex-direction:column}
-#settings .sprow{display:flex;align-items:center;gap:12px;padding:9px 0;border-bottom:1px solid rgba(255,255,255,.07)}
-#settings .sprow:last-child{border-bottom:0}
-#settings .sprow.off .rt{opacity:.55}
-#settings .spsw{flex:0 0 auto;width:10px;align-self:stretch;border-radius:5px}
-#settings .spbtns{display:flex;align-items:center;gap:6px;flex:0 0 auto}
-#settings .spbtns .ic{min-width:36px;padding:0 10px;font-size:16px}
-#settings .spbtns .ic[disabled]{opacity:.3}
-#settings .spshow{display:inline-flex;align-items:center;gap:6px;font-size:13px;color:var(--mut);margin:0 4px}
-body:not(.tv) #settings .sprow{gap:10px}
-body:not(.tv) #settings .spbtns{gap:4px}
-body:not(.tv) #settings .spshow span{display:none}
-body:not(.tv) #settings .spbtns .btn{min-height:36px;padding:0 10px}
+:is(#settings,#profEd) .splist{display:flex;flex-direction:column}
+:is(#settings,#profEd) .sprow{display:flex;align-items:center;gap:12px;padding:9px 0;border-bottom:1px solid rgba(255,255,255,.07)}
+:is(#settings,#profEd) .sprow:last-child{border-bottom:0}
+:is(#settings,#profEd) .sprow.off .rt{opacity:.55}
+:is(#settings,#profEd) .spsw{flex:0 0 auto;width:10px;align-self:stretch;border-radius:5px}
+:is(#settings,#profEd) .spbtns{display:flex;align-items:center;gap:6px;flex:0 0 auto}
+:is(#settings,#profEd) .spbtns .ic{min-width:36px;padding:0 10px;font-size:16px}
+:is(#settings,#profEd) .spbtns .ic[disabled]{opacity:.3}
+:is(#settings,#profEd) .spshow{display:inline-flex;align-items:center;gap:6px;font-size:13px;color:var(--mut);margin:0 4px}
+body:not(.tv) :is(#settings,#profEd) .sprow{gap:10px}
+body:not(.tv) :is(#settings,#profEd) .spbtns{gap:4px}
+body:not(.tv) :is(#settings,#profEd) .spshow span{display:none}
+body:not(.tv) :is(#settings,#profEd) .spbtns .btn{min-height:36px;padding:0 10px}
 
 /* about */
-#settings .abinfo{padding:6px 0 10px}
-#settings .abrow{display:flex;justify-content:space-between;gap:12px;padding:5px 0;font-size:14px;color:var(--mut)}
-#settings .abrow b{color:var(--fg,#fff);font-weight:600}
-#settings #abCred p{margin:8px 0;font-size:13px;line-height:1.45;color:var(--mut)}
-#settings #abCred b{color:var(--fg,#fff)}
-#settings #abCred .muted{opacity:.75}
-#settings .btn.warn{background:#c2410c;color:#fff;border-color:transparent}
+:is(#settings,#profEd) .abinfo{padding:6px 0 10px}
+:is(#settings,#profEd) .abrow{display:flex;justify-content:space-between;gap:12px;padding:5px 0;font-size:14px;color:var(--mut)}
+:is(#settings,#profEd) .abrow b{color:var(--fg,#fff);font-weight:600}
+:is(#settings,#profEd) #abCred p{margin:8px 0;font-size:13px;line-height:1.45;color:var(--mut)}
+:is(#settings,#profEd) #abCred b{color:var(--fg,#fff)}
+:is(#settings,#profEd) #abCred .muted{opacity:.75}
+:is(#settings,#profEd) .btn.warn{background:#c2410c;color:#fff;border-color:transparent}
 
 /* notices ("New for you") */
 .ntcard{position:fixed;z-index:60;right:18px;bottom:18px;width:min(360px,calc(100vw - 36px));box-sizing:border-box;padding:12px 14px;border-radius:18px;
@@ -1401,11 +1416,11 @@ body:not(.tv) .ntcard{right:12px;left:12px;width:auto;bottom:calc(84px + env(saf
 .pib.on svg{color:var(--acc2,var(--acc))}
 .offrow h2 small{font-weight:500;color:var(--mut)}
 /* who a setting is for */
-#settings .scope{display:inline-block;margin-left:8px;padding:1px 7px;border-radius:6px;font-style:normal;font-size:10.5px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;vertical-align:2px}
-#settings .scope.p{color:var(--acc2,var(--acc));box-shadow:inset 0 0 0 1px currentColor}
-#settings .scope.e{color:var(--mut);box-shadow:inset 0 0 0 1px rgba(255,255,255,.25)}
-#settings .scopekey{margin:8px 4px 0;font-size:12px;color:var(--mut)}
-#settings .scopekey .scope{margin:0 2px 0 0}
+:is(#settings,#profEd) .scope{display:inline-block;margin-left:8px;padding:1px 7px;border-radius:6px;font-style:normal;font-size:10.5px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;vertical-align:2px}
+:is(#settings,#profEd) .scope.p{color:var(--acc2,var(--acc));box-shadow:inset 0 0 0 1px currentColor}
+:is(#settings,#profEd) .scope.e{color:var(--mut);box-shadow:inset 0 0 0 1px rgba(255,255,255,.25)}
+:is(#settings,#profEd) .scopekey{margin:8px 4px 0;font-size:12px;color:var(--mut)}
+:is(#settings,#profEd) .scopekey .scope{margin:0 2px 0 0}
 /* iPhone: a file Safari can't play */
 .ioshelp{position:absolute;inset:auto 16px calc(24px + env(safe-area-inset-bottom,0px));z-index:30;padding:18px;border-radius:18px;background:rgba(18,16,22,.97);box-shadow:0 18px 40px rgba(0,0,0,.6),inset 0 0 0 1px rgba(255,255,255,.1)}
 .ioshelp h3{margin:0 0 6px;font-size:18px}
@@ -1444,6 +1459,30 @@ body:not(.tv) .ntcard{right:12px;left:12px;width:auto;bottom:calc(84px + env(saf
 .wzgrid .wztile .stx{flex:1;min-width:0;text-align:left}
 .wzgrid .wztile :is(.snm,.sds){white-space:normal !important;overflow:visible !important;text-overflow:clip !important;display:block}
 .wzqrrow .wzqr{height:120px;box-sizing:content-box;align-self:center} .wzqrrow .wzqr svg{width:100%;height:100%;display:block}
+/* Profile page = Profile + Settings (33-profile-hub.js) */
+#tabSettings,#tabAddons{display:none !important}
+.mehub{margin:0 0 18px}
+.mehub .mecard{display:flex;align-items:center;gap:18px;padding:16px 18px}
+.mepic{flex:0 0 auto}
+.metx{min-width:0} .metx h2{margin:0;font-size:24px} .metx p{margin:3px 0 0;color:var(--mut)}
+.mestat{display:flex;gap:14px;margin-top:8px;font-size:13px;color:var(--mut)} .mestat b{color:var(--txt,#fff);font-size:15px}
+.mebtns{display:flex;flex-wrap:wrap;gap:10px;margin-top:12px;padding:4px;align-items:center}
+.mechip{display:inline-flex;align-items:center;gap:6px}
+.meout{margin-top:14px}
+.btn.danger{color:#ff8f8f}
+/* PIN pad */
+.pinpop .pincard{max-width:360px;padding:22px 22px 18px;text-align:center;align-items:center}
+.pincard h2{margin:0 0 14px;font-size:20px}
+.pindots{display:flex;gap:14px;justify-content:center;margin:4px 0 6px}
+.pindots i{width:16px;height:16px;border-radius:50%;border:2px solid rgba(255,255,255,.6)}
+.pindots i.on{background:#fff;border-color:#fff}
+.pindots.shake{animation:pinshake .4s}
+@keyframes pinshake{20%,60%{transform:translateX(-8px)}40%,80%{transform:translateX(8px)}}
+.pinmsg{min-height:20px;margin:0 0 8px;color:#ff8f8f;font-size:14px}
+.pingrid{display:grid;grid-template-columns:repeat(3,72px);gap:12px;justify-content:center;padding:6px}
+.pinkey{height:60px;border-radius:16px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.07);color:#fff;font-size:24px;font-weight:700;cursor:pointer}
+.pinkey.pinx{font-size:15px;font-weight:600}
+.pinkey:hover,.pinkey:focus-visible{outline:3px solid #fff;outline-offset:2px}
 </style>
 </head>
 <body>
@@ -1504,9 +1543,7 @@ body:not(.tv) .ntcard{right:12px;left:12px;width:auto;bottom:calc(84px + env(saf
     <div class="pad">
 <div id="setHome" class="sethome"></div>
 <div class="setcat" data-cat="general" hidden>
-<div class="sgrp"><h3 class="sgh">Startup</h3><div class="addon"><div class="row2"><span class="rt">When the app opens<small>What to show after choosing a profile</small></span><select id="setStart" class="sel"><option value="last">Last space you used</option><option value="launcher">Spaces page</option><option value="space">A specific space</option></select></div>
-<div class="row2" id="rowStartSp"><span class="rt">Space to open<small>Opened at start when "A specific space" is chosen</small></span><select id="setStartSp" class="sel"></select></div>
-<label class="row2" id="rowAsk"><span class="rt">Ask who’s watching<small>Show the profile picker every time the app opens</small></span><input type="checkbox" id="setAsk"></label></div></div>
+<div class="sgrp"><h3 class="sgh">Who’s watching</h3><div class="addon"><label class="row2" id="rowAsk"><span class="rt">Ask who’s watching<small>Show the profile picker every time the app opens</small></span><input type="checkbox" id="setAsk"></label></div></div>
 <div class="sgrp"><h3 class="sgh">Appearance <small>this device</small></h3><div class="addon"><div class="row2"><span class="rt">Colors<small>Each space can bring its own colors, or keep one look everywhere</small></span><select id="setTheme" class="sel"></select></div>
 <label class="row2"><span class="rt">Animated background<small>Slowly shifting background colors</small></span><input type="checkbox" id="setAnim"></label>
 <label class="row2"><span class="rt">Glass blur<small>Frosted-glass effect. Disable to improve performance on slower devices</small></span><input type="checkbox" id="setGlass"></label>
@@ -1523,11 +1560,7 @@ body:not(.tv) .ntcard{right:12px;left:12px;width:auto;bottom:calc(84px + env(saf
 </div>
 <div class="setcat" data-cat="playback" hidden>
 <div class="sgrp"><h3 class="sgh">Sources</h3><div class="addon"><label class="row2"><span class="rt">Automatic source selection<small>Chooses the best source using your audio language, preferred quality and past playback. You can still pick one manually from any title</small></span><input type="checkbox" id="setAuto"></label>
-<div class="row2" id="rowMaxQ"><span class="rt">Maximum quality<small>Upper limit for automatic source selection</small></span><select id="setMaxQ" class="sel"><option value="best">Best available</option><option value="2160">4K</option><option value="1080">1080p</option><option value="720">720p</option></select></div>
-<label class="row2"><span class="rt">Remember my source per show<small>Next episodes start from the same kind of source you picked: group, quality and addon</small></span><input type="checkbox" id="setRemSrc"></label>
-<label class="row2"><span class="rt">Resume where you left off<small>When off, titles always start from the beginning</small></span><input type="checkbox" id="setResume"></label></div></div>
-<div class="sgrp"><h3 class="sgh">Subtitles and audio</h3><div class="addon"><div class="row2"><span class="rt">Subtitles<small>Preferred subtitle language</small></span><select id="setSub" class="sel"></select></div>
-<div class="row2"><span class="rt">Audio<small>Preferred audio language when a stream offers several tracks</small></span><select id="setAud" class="sel"></select></div></div><p class="gnote">Subtitles come from your subtitle addons, such as OpenSubtitles. A space can use its own subtitle language (Spaces > Edit).</p></div>
+<div class="row2" id="rowMaxQ"><span class="rt">Maximum quality<small>Upper limit for automatic source selection</small></span><select id="setMaxQ" class="sel"><option value="best">Best available</option><option value="2160">4K</option><option value="1080">1080p</option><option value="720">720p</option></select></div></div></div>
 <div id="setPlay" hidden><div class="sgrp"><h3 class="sgh">Player <small>this device</small></h3><div class="addon"><div class="row2"><span class="rt" id="skLbl">Skip interval<small id="skHint">Seconds to jump when double-tapping the left or right side of the video</small></span><select id="setSkip" class="sel"><option value="5">5 s</option><option value="10">10 s</option><option value="15">15 s</option><option value="30">30 s</option></select></div>
 <label class="row2"><span class="rt">Autoplay next episode<small>Starts the next episode after a short countdown. When off, you choose</small></span><input type="checkbox" id="setAutoNext"></label>
 <label class="row2"><span class="rt">Skip intros, recaps and credits<small>Skips them automatically when timing data is available. Scenes after the credits still play. Rewind to watch a skipped section</small></span><input type="checkbox" id="setAutoSkip"></label>
@@ -1535,6 +1568,14 @@ body:not(.tv) .ntcard{right:12px;left:12px;width:auto;bottom:calc(84px + env(saf
 <label class="row2"><span class="rt">Match frame rate<small>Syncs the display to the video frame rate to reduce judder, where supported</small></span><input type="checkbox" id="setFps"></label>
 <label class="row2"><span class="rt">Tunneled playback<small>May improve 4K and HDR playback. Can affect seeking</small></span><input type="checkbox" id="setTun"></label>
 <label class="row2"><span class="rt">Dolby passthrough<small>Sends Dolby and Atmos audio to your TV in the fallback player. Disable if there is no sound</small></span><input type="checkbox" id="setPass"></label></div></div></div>
+</div>
+<div class="setcat" data-cat="pstart" hidden>
+<div class="sgrp"><h3 class="sgh">When this profile opens</h3><div class="addon"><div class="row2"><span class="rt">When the app opens<small>What to show after choosing a profile</small></span><select id="setStart" class="sel"><option value="last">Last space you used</option><option value="launcher">Spaces page</option><option value="space">A specific space</option></select></div>
+<div class="row2" id="rowStartSp"><span class="rt">Space to open<small>Opened at start when "A specific space" is chosen</small></span><select id="setStartSp" class="sel"></select></div></div></div>
+<div class="sgrp"><h3 class="sgh">Playback</h3><div class="addon"><label class="row2"><span class="rt">Remember my source per show<small>Next episodes start from the same kind of source you picked: group, quality and addon</small></span><input type="checkbox" id="setRemSrc"></label>
+<label class="row2"><span class="rt">Resume where you left off<small>When off, titles always start from the beginning</small></span><input type="checkbox" id="setResume"></label></div></div>
+<div class="sgrp"><h3 class="sgh">Subtitles and audio</h3><div class="addon"><div class="row2"><span class="rt">Subtitles<small>Preferred subtitle language</small></span><select id="setSub" class="sel"></select></div>
+<div class="row2"><span class="rt">Audio<small>Preferred audio language when a stream offers several tracks</small></span><select id="setAud" class="sel"></select></div></div><p class="gnote">Subtitles come from your subtitle addons, such as OpenSubtitles. A space can use its own subtitle language (Spaces > Edit).</p></div>
 </div>
 <div class="setcat" data-cat="personal" hidden>
 <div class="sgrp"><h3 class="sgh">Home rows</h3><div class="addon"><label class="row2"><span class="rt">Featured<small>The large banner at the top of Home</small></span><input type="checkbox" id="setRowHero"></label>
@@ -1594,8 +1635,9 @@ body:not(.tv) .ntcard{right:12px;left:12px;width:auto;bottom:calc(84px + env(saf
 <input type="file" id="nfFile" accept=".csv,text/csv" hidden></div></div>
 </div>
 <div class="setcat" data-cat="account" hidden>
-<div class="sgrp"><h3 class="sgh">Profile</h3><div class="addon"><div class="profcard"><div id="profRow"></div></div></div></div>
+<div class="sgrp" hidden><h3 class="sgh">Profile</h3><div class="addon"><div class="profcard"><div id="profRow"></div></div></div></div>
 <div class="sgrp"><h3 class="sgh">Account</h3><div class="addon"><div id="acctCard"></div></div></div>
+<div class="sgrp" id="acctMore" hidden><h3 class="sgh">Security</h3><div class="addon"><div class="row2"><span class="rt">Change password<small id="pwHint">We email you a link to choose a new password</small></span><button class="btn ghost sm" id="pwReset" type="button">Send link</button></div><div class="row2"><span class="rt">Delete account<small>Removes your Streamlet account and everything synced with it: profiles, history, watchlists, addons and settings. Each device keeps what it has until you sign out there</small></span><button class="btn ghost sm danger" id="acctDel" type="button">Delete</button></div></div></div>
 </div>
 <div class="setcat" data-cat="about" hidden>
 <div class="sgrp"><h3 class="sgh">Streamlet</h3><div class="addon"><div class="row2"><span class="rt" id="verLine"></span></div><div class="row2"><span class="rt">Credits<small><a href="https://www.flaticon.com/free-icons/movies" title="movies icons" target="_blank" rel="noopener">Movies icons created by Magnific - Flaticon</a><br><a href="https://www.flaticon.com/free-icons/netflix" title="netflix icons" target="_blank" rel="noopener">Netflix icons created by Pixel perfect - Flaticon</a><br><a href="https://www.flaticon.com/free-icons/marvel" title="marvel icons" target="_blank" rel="noopener">Marvel icons created by pocike - Flaticon</a><br>Profile pictures made with <a href="https://www.dicebear.com" target="_blank" rel="noopener">DiceBear</a>: Adventurer by Lisa Wischofsky (CC BY 4.0), Toon Head by Johan Melin (CC BY 4.0), Big Smile by Ashley Seo (CC BY 4.0), Bottts and Avataaars by Pablo Stanley, Open Peeps by Pablo Stanley (CC0), Lorelei by Lisa Wischofsky (CC0), Notionists by Zoish (CC0), Pixel Art by DiceBear (CC0)</small></span></div>
@@ -2025,7 +2067,7 @@ $('#exGo').onclick = () => {
 /* ---------- views ---------- */
 const TAB_SECTIONS = {home:'#home', search:'#search', watch:'#watch', addons:'#addons', settings:'#settings', me:'#me'};
 const TAB_BUTTONS = {home:'#tabHome', search:'#nvSearch', watch:'#tabWatch', addons:'#tabAddons', settings:'#tabSettings', me:'#tabMe'};
-const TAB_TITLES = {watch:'My List', addons:'Addons', settings:'Settings', me:'Profile'};
+const TAB_TITLES = {watch:'My List', addons:'Addons', settings:'Profile', me:'Profile'};
 function movePill(){
   const nav = $('#nav'), pill = $('#navPill'), b = nav.querySelector('button.on');
   if (!b || !nav.offsetWidth) return;
@@ -2034,12 +2076,13 @@ function movePill(){
 }
 addEventListener('resize', () => setTimeout(movePill, 50));
 function showTab(name){
+  if (name === 'me') name = 'settings';                                  // Profile and Settings are one page now (33-profile-hub.js)
   if (name !== 'settings') { try { if (layersOpen.includes('setsub')) dropSetSub(); setCatNow = null; } catch {} }   // a Settings section never comes back after you leave Settings
   if (!cur && name === 'home') return showLauncher();
   document.body.classList.remove('launch'); $('#launcher').hidden = true; $('#profiles').hidden = true; $('#login').hidden = true;
   navAvatar();
   for (const [k, sel] of Object.entries(TAB_SECTIONS)) { $(sel).hidden = k !== name; $(TAB_BUTTONS[k]).classList.toggle('on', k === name); }
-  if (isTVui()) $('#tabSettings').classList.toggle('on', name === 'settings' || name === 'addons');   // on TV the addons live inside Settings
+  $('#tabMe').classList.toggle('on', name === 'settings' || name === 'addons');   // the profile picture is the way in; addons live under Sources
   $('#spaceBtn').replaceChildren(...(cur ? [spIcon(cur), ' ' + cur.name] : ['Spaces']), h('i',null,'⇄'));
   $('#q').hidden = name !== 'home'; $('#pageTitle').hidden = true; document.body.classList.toggle('onhome', name === 'home'); document.body.classList.toggle('pgfix', ['watch', 'addons', 'settings', 'me'].includes(name)); document.body.classList.toggle('srchpg', name === 'search');
   $('#q').placeholder = cur ? 'Search '+cur.name+'…' : 'Search…';
@@ -2164,7 +2207,7 @@ function showLauncher(){
   };
   L.replaceChildren(
     h('div', {class:'lhead'}, h('h1', null, 'Stream', h('span', {style:'color:var(--acc)'}, 'let')),
-      h('button', {class:'spaceBtn', type:'button', onclick:() => showProfiles()}, profile ? [avatarEl(profile, 22), ' ' + profile.name] : 'Profile', h('i', null, '⇄'))),
+      h('button', {class:'spaceBtn', type:'button', onclick:async () => { if (await kidGate(null)) showProfiles(); }}, profile ? [avatarEl(profile, 22), ' ' + profile.name] : 'Profile', h('i', null, '⇄'))),
     h('div', {class:'lmid'},
       h('h2', {class:'ltitle' + (addons.some(a => !isTio(a.url)) ? '' : ' noadd')}, addons.some(a => !isTio(a.url)) ? 'What are we watching?' : 'Add an addon first'),
       addons.some(a => !isTio(a.url)) ? null : h('p', {class:'lsub'}, 'Open Addons, install one, then pick a space.'),
@@ -2785,25 +2828,25 @@ function renderProfiles(){
         h('div', {class:'pav'}, avatarEl(pr, 88), manageProfiles ? h('span', {class:'pbadge', 'aria-hidden':'true'}, PENCIL_SVG()) : null, pr.kids ? h('span', {class:'kidtag'}, 'KIDS') : null), h('div', null, pr.name))),
       manageProfiles && profiles.length < 8 ? h('button', {class:'ptile', type:'button', onclick:() => editProfile(null)}, h('div', {class:'pav add'}, '+'), h('div', null, 'Add profile')) : null),
     h('div', {class:'lnks', style:'justify-content:center;margin-top:22px'},
-      h('button', {class:'lnk', type:'button', onclick:() => { manageProfiles = !manageProfiles; renderProfiles(); }}, manageProfiles ? 'Done' : 'Manage profiles')),
+      h('button', {class:'lnk', type:'button', onclick:async () => { if (!manageProfiles && !(await kidGate(null))) return; manageProfiles = !manageProfiles; renderProfiles(); }}, manageProfiles ? 'Done' : 'Manage profiles')),
     manageProfiles && profiles.length > 1 ? h('label', {class:'chk', style:'justify-content:center'}, ask, h('span', null, "Ask who's watching when the app opens")) : null);
 }
-function editProfile(id){
+function editProfile(id, openCat){
   const isNew = !id;
   const pr = isNew ? {id:'p'+Date.now().toString(36), name:'', emoji:PROFILE_EMOJIS[profiles.length % PROFILE_EMOJIS.length], color:PROFILE_COLORS[profiles.length % PROFILE_COLORS.length], avatar:'a:' + ((profiles.length * 7 + 3) % AV_COUNT)}
                    : JSON.parse(JSON.stringify(profiles.find(x => x.id === id)));
   const ed = $('#profEd'); ed.hidden = false; ed.scrollTop = 0; pushLayer('pedit');
   if (!ed._noScroll) { ed._noScroll = 1; ed.addEventListener('scroll', () => { if (isTVui() && ed.scrollTop) ed.scrollTop = 0; }); }   // one screen on the TV: focus never shifts it
-  const close = () => { try { avClose(); } catch {} keepManage = manageProfiles && !$('#profiles').hidden; popLayer('pedit'); setTimeout(() => { keepManage = false; }, 1500); };
+  const close = () => { try { avClose(); } catch {} try { peSubClose(true); } catch {} keepManage = manageProfiles && !$('#profiles').hidden; popLayer('pedit'); setTimeout(() => { keepManage = false; }, 1500); };
   const name = h('input', {class:'f pe-input', placeholder:'Name', maxlength:'16'}); name.value = pr.name;
   const prev = h('button', {type:'button', class:'avprev pe-avbtn', 'aria-label':'Change picture', title:'Change picture'});
   const paint = () => prev.replaceChildren(avatarEl(pr, 132), h('span', {class:'pbadge', 'aria-hidden':'true'}, PENCIL_SVG()));   // the same pencil as Manage profiles
   prev.onclick = () => avPicker(pr, paint);                            // the picture pop-up (31-avatars.js)
   paint();
-  const del = h('button', {class:'btn ghost', type:'button'}, 'Delete profile'); let armed = false;
+  const del = h('button', {class:'btn ghost', type:'button'}, 'Delete'); let armed = false;
   del.onclick = () => {
     if (profiles.length < 2) { toast('Keep at least one profile.'); return; }
-    if (!armed) { armed = true; del.textContent = 'Tap again to delete'; return; }
+    if (!armed) { armed = true; del.textContent = 'Again to delete'; return; }
     profiles = profiles.filter(x => x.id !== pr.id); saveProfiles(); cloudDeleteProfile(pr.id);
     try { Object.keys(localStorage).filter(k => k.startsWith(`streamlet.p.${pr.id}.`)).forEach(k => { localStorage.removeItem(k); lsMem.delete(k); }); } catch {}
     if (profile && profile.id === pr.id) profile = null;
@@ -2817,19 +2860,68 @@ function editProfile(id){
     saveProfiles(); launcherDirty = true; close();
   }}, isNew ? 'Create profile' : 'Save');
   const kidCb = h('input', {type:'checkbox'}); kidCb.checked = !!pr.kids; kidCb.onchange = () => { pr.kids = kidCb.checked; };
-  const kidRow = h('label', {class:'tgl', style:'margin-top:14px'}, h('span', null, h('b', null, 'Kids profile'), h('small', null, 'Only sees spaces made for kids. No Addons, New & Hot or space editing, and search stays in the kids catalogs')), kidCb);
+  const kidRow = h('label', {class:'tgl', style:'margin-top:14px'}, h('span', null, h('b', null, 'Kids profile'), h('small', null, 'Only kids spaces and catalogs. No settings, addons or New & Hot')), kidCb);
   kidCb.tabIndex = -1; kidRow.tabIndex = 0;                               // the whole row is one stop for the remote, full width like the fields around it
   kidRow.onkeydown = e => { if ((e.key === 'Enter' || e.key === ' ' || e.keyCode === 13) && e.target === kidRow) { e.preventDefault(); kidCb.click(); } };
+  /* kids PIN (33-profile-hub.js): asked before anyone leaves this profile */
+  const pinCb = h('input', {type:'checkbox'}); pinCb.checked = !!pr.pin; pinCb.tabIndex = -1;
+  const pinRow = h('label', {class:'tgl', style:'margin-top:10px'}, h('span', null, h('b', null, 'PIN to leave'), h('small', null, 'Asked before switching to another profile')), pinCb);
+  pinRow.tabIndex = 0; pinRow.hidden = !pr.kids;
+  pinRow.onkeydown = e => { if ((e.key === 'Enter' || e.key === ' ' || e.keyCode === 13) && e.target === pinRow) { e.preventDefault(); pinCb.click(); } };
+  pinCb.onchange = async () => {
+    if (!pinCb.checked) { delete pr.pin; return; }
+    pinCb.checked = false;
+    const a = await pinPad('Choose a 4-digit PIN'); if (!a) return;
+    const b2 = await pinPad('Enter it again'); if (!b2) return;
+    if (a !== b2) { toast("The PINs didn't match. Try again."); return; }
+    pr.pin = await pinHash(pr.id, a); pinCb.checked = true; toast('PIN set. Save to keep it');
+  };
+  kidCb.addEventListener('change', () => { pinRow.hidden = !kidCb.checked; if (!kidCb.checked) { pinCb.checked = false; delete pr.pin; } });
   const liveName = h('div', {class:'pe-name'}, pr.name || 'New profile');
   name.oninput = () => { liveName.textContent = name.value.trim() || 'New profile'; };
+  /* this profile's own settings, opened right here. They follow the profile in use, so they show when you edit your own profile */
+  const mine = !isNew && profile && pr.id === profile.id;
+  if (mine) { try { renderSettings(); } catch (e) { console.warn(e); } }
+  const right = h('div', {class:'pe2-r'});
+  const paintRight = () => right.replaceChildren(
+    h('h2', {class:'sedh'}, isNew ? 'New profile' : 'Edit profile'),
+    mine ? h('div', {class:'pe-sets'}, h('h3', {class:'sgh'}, `${pr.name}'s settings`),
+      h('div', {class:'setcard'}, ...PROFILE_CATS.map(c => setItem(c, setName(c), setSummary(c), () => peSubOpen(c, right, paintRight)))),
+      h('p', {class:'gnote'}, 'These apply right away, only to this profile, and sync with it.'))
+    : isNew ? null : h('p', {class:'gnote pe-note'}, `Switch to ${pr.name} to change ${pr.name}'s own settings.`));
+  paintRight();
   ed.replaceChildren(
-    h('div', {class:'pe pe2'},                                          // one screen, nothing to scroll: the picture card, then name, kids and the buttons
-      h('div', {class:'pe2-l'}, h('div', {class:'pe-prev'}, prev, liveName, h('small', {class:'pe-hint'}, 'Select the picture to change it'))),
-      h('div', {class:'pe2-r'},
-        h('h2', {class:'sedh'}, isNew ? 'New profile' : 'Edit profile'),
-        h('div', {class:'lbl'}, 'Name'), name, kidRow,
-        h('div', {class:'pe-act'}, save, h('button', {class:'btn ghost', type:'button', onclick:close}, 'Cancel'), isNew ? null : del))));
+    h('div', {class:'pe pe2'},                                          // TV: who it is on the left, its settings on the right
+      h('div', {class:'pe2-l'}, h('div', {class:'pe-prev'}, prev, liveName, h('small', {class:'pe-hint'}, 'Select the picture to change it')),
+        h('div', {class:'lbl'}, 'Name'), name, kidRow, pinRow,
+        h('div', {class:'pe-act'}, save, h('button', {class:'btn ghost', type:'button', onclick:close}, 'Cancel'), isNew ? null : del)),
+      right));
+  if (mine && openCat && PROFILE_CATS.includes(openCat)) peSubOpen(openCat, right, paintRight);
 }
+/* a profile settings section inside the editor: the section's own controls are moved in (they keep their handlers) and put back after */
+let peSub = null;
+function peSubOpen(c, right, repaint){
+  peSubClose(true);
+  const node = document.querySelector(`.setcat[data-cat="${c}"]`); if (!node) return;
+  peSub = {node, parent:node.parentNode, next:node.nextSibling, repaint};
+  const back = h('button', {class:'btn ghost sm pe-back', type:'button', onclick:() => peSubClose()}, '‹ Back');
+  right.replaceChildren(h('div', {class:'pe-subhead'}, back, h('h2', {class:'sedh'}, setName(c))), h('div', {class:'pe-subbody'}, node));
+  node.hidden = false; $('#profEd').classList.add('insub');
+  try { pushLayer('pesub'); } catch {}
+  const f = node.querySelector('button:not([disabled]),input,select,textarea'); (f || back).focus({preventScroll:true});
+  right.scrollTop = 0;
+}
+function peSubClose(silent){
+  if (!peSub) return;
+  const p = peSub; peSub = null;
+  p.node.hidden = true; p.parent.insertBefore(p.node, p.next);
+  $('#profEd').classList.remove('insub');
+  if (!silent) { try { if (layersOpen[layersOpen.length - 1] === 'pesub') popLayer('pesub'); } catch {} }
+  else { try { const i = layersOpen.lastIndexOf('pesub'); if (i >= 0) { layersOpen.splice(i, 1); focusStack.splice(i, 1); history.replaceState({page:pageNow(), layers:[...layersOpen]}, ''); } } catch {} }
+  p.repaint();
+  const it = document.querySelector('#profEd .pe-sets .setitem'); if (it && !silent) it.focus({preventScroll:true});
+}
+LAYER_CLOSERS.pesub = () => { if (peSub) { const p = peSub; peSub = null; p.node.hidden = true; p.parent.insertBefore(p.node, p.next); $('#profEd').classList.remove('insub'); p.repaint(); const it = document.querySelector('#profEd .pe-sets .setitem'); if (it) it.focus({preventScroll:true}); } };
 
 /* corner mark on a poster: a number = episodes you have not watched yet (new or missed), an eye = watched */
 const cntMem = new Map();
@@ -3677,6 +3769,7 @@ function loadProfileData(){
   fillSettingsUI();
 }
 async function selectProfile(p){
+  try { if (!(await kidGate(p))) return; } catch {}                    // leaving a kids profile that has a PIN
   profile = p; try { navAvatar(); } catch {} lsSet('streamlet.profile.last', p.id);
   loadProfileData(); epReset(); try { fillTmdb(); qcFillShows(); } catch {} try { epMigrate(); } catch {} try { for (const q of profiles) showsBackfill(q.id); epReset(); } catch {}
   document.body.classList.toggle('kids', !!p.kids);
@@ -4555,7 +4648,7 @@ async function runUpdate(btn = $('#apkInstall'), msg = $('#apkMsg')){
 function showUpdState(){
   const msg = $('#apkMsg'), inst = $('#apkInstall');
   if (!updInfo) return;
-  $('#tabSettings').classList.toggle('upd', !!updInfo.newer);
+  $('#tabSettings').classList.toggle('upd', !!updInfo.newer); $('#tabMe').classList.toggle('upd', !!updInfo.newer);
   inst.hidden = !updInfo.newer;
   if (updInfo.newer) { if (!inst.dataset.ready && !inst.dataset.busy) inst.textContent = `Download ${vName(updInfo.latest)}`; inst.onclick = () => runUpdate(); msg.textContent = `Installed: ${vName(updInfo.cur)}. ${vName(updInfo.latest)} is available.`; }
   else msg.textContent = `You're up to date (${vName(updInfo.cur)}).`;
@@ -5214,7 +5307,7 @@ try { if (window.tizen && tizen.tvinputdevice) ['MediaPlayPause','MediaPlay','Me
 
 const FOCUSABLE = 'a[href],button:not([disabled]),input:not([type=hidden]):not([disabled]),select:not([disabled]),textarea:not([disabled]),summary,[tabindex]:not([tabindex="-1"])';
 function ctxRoot(){
-  for (const id of ['#loadov', '#exitDlg', '#updDlg', '#avPop', '#spPop', '#welcome', '#iosHelp', '#menu', '#ppanel', '#player', '#addonEd', '#profEd', '#spaceEd', '#episode', '#detail']) { const e = $(id); if (e && !e.hidden) return e; }
+  for (const id of ['#loadov', '#exitDlg', '#updDlg', '#pinPop', '#avPop', '#spPop', '#welcome', '#iosHelp', '#menu', '#ppanel', '#player', '#addonEd', '#profEd', '#spaceEd', '#episode', '#detail']) { const e = $(id); if (e && !e.hidden) return e; }
   return document.body;
 }
 function focusables(root){
@@ -7083,8 +7176,10 @@ function eoSection(meta, reload){
    The original controls keep their ids and handlers (renderSettings); this file arranges them into categories
    and wires the newer ones. Global settings live in streamlet.ui (this device) or the profile; space settings
    live on the space itself (Spaces category, or the space editor). */
-const SET_CATS = [['general', 'General'], ['spaces', 'Spaces'], ['playback', 'Playback'], ['personal', 'Personalization'], ['content', 'Content'],
-  ['notif', 'Notifications'], ['tmdb', 'TMDB & addons'], ['storage', 'Storage & backup'], ['account', 'Account'], ['about', 'About']];
+const SET_CATS = [['general', 'General'], ['spaces', 'Spaces'], ['playback', 'Playback'], ['pstart', 'Startup & playback'], ['personal', 'Home rows'], ['content', 'Content'],
+  ['notif', 'Notifications'], ['tmdb', 'Addons & services'], ['storage', 'Storage & backup'], ['account', 'Account'], ['about', 'About']];
+/* the profile's own settings live in Edit profile (select the picture on the Profile page); the rest are on the Profile page itself */
+const PROFILE_CATS = ['pstart', 'personal', 'content', 'notif'];
 /* where a setting lives: this profile (kept with the profile and synced with your account), or this device */
 const PROFILE_UI = new Set(['rows', 'minRate', 'hideG', 'langs', 'favG', 'nt', 'startup', 'startSpace', 'remSrc', 'resume', 'showUpcoming', 'hiddenSp']);
 const spHidden = sp => { const l = uiGet().hiddenSp; return Array.isArray(l) ? l.includes(sp.id) : !!sp.hidden; };   // which spaces this profile sees on the spaces page
@@ -7137,13 +7232,15 @@ const SET_ICONS = {
   general:'<path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2.2"/><circle cx="10" cy="17" r="2.2"/>',
   spaces:'<rect x="4" y="4" width="6.5" height="6.5" rx="1.6"/><rect x="13.5" y="4" width="6.5" height="6.5" rx="1.6"/><rect x="4" y="13.5" width="6.5" height="6.5" rx="1.6"/><rect x="13.5" y="13.5" width="6.5" height="6.5" rx="1.6"/>',
   playback:'<rect x="3" y="5" width="18" height="14" rx="2.6"/><path d="M10 9.2v5.6l4.6-2.8z"/>',
+  pstart:'<circle cx="12" cy="12" r="8.5"/><path d="M10.2 8.6v6.8l5.4-3.4z"/>',
   personal:'<path d="M12 3.5l2.4 5 5.4.6-4 3.7 1.1 5.4L12 15.5l-4.9 2.7 1.1-5.4-4-3.7 5.4-.6z"/>',
   content:'<path d="M4 5h16l-6 7.5V19l-4 1.5v-8z"/>',
   notif:'<path d="M6 16V11a6 6 0 0 1 12 0v5l1.5 2h-15z"/><path d="M10 20.5a2 2 0 0 0 4 0"/>',
   tmdb:'<path d="M20.5 11H19V7a2 2 0 0 0-2-2h-4V3.5a2.5 2.5 0 0 0-5 0V5H4a2 2 0 0 0-2 2v3.8h1.5a2.7 2.7 0 0 1 0 5.4H2V20a2 2 0 0 0 2 2h3.8v-1.5a2.7 2.7 0 0 1 5.4 0V22H17a2 2 0 0 0 2-2v-4h1.5a2.5 2.5 0 0 0 0-5z" transform="translate(.6 .6) scale(.9)"/>',
   storage:'<ellipse cx="12" cy="6" rx="7.5" ry="2.8"/><path d="M4.5 6v6c0 1.5 3.4 2.8 7.5 2.8s7.5-1.3 7.5-2.8V6M4.5 12v6c0 1.5 3.4 2.8 7.5 2.8s7.5-1.3 7.5-2.8v-6"/>',
-  about:'<circle cx="12" cy="12" r="8.5"/><path d="M12 11v5.5M12 7.6v.1"/>'};
-const SET_GROUPS = [['You', ['account']], ['App', ['general', 'spaces', 'playback', 'personal', 'content', 'notif']], ['Sources', ['tmdb']], ['Data', ['storage']], ['Help', ['about']]];
+  about:'<circle cx="12" cy="12" r="8.5"/><path d="M12 11v5.5M12 7.6v.1"/>',
+  signout:'<path d="M14 4h4a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-4"/><path d="M10 8l-4 4 4 4M6 12h10"/>'};
+const SET_GROUPS = [['App settings', ['general', 'spaces', 'playback', 'storage']], ['Account', ['account']], ['Sources', ['tmdb']], ['About', ['about']]];
 let setCatNow = null, setCatWant = null;
 const setName = c => (SET_CATS.find(x => x[0] === c) || [c, c])[1];
 function setSummary(c){                                                   // what each section is set to right now
@@ -7154,10 +7251,11 @@ function setSummary(c){                                                   // wha
   const ntOn = [nt.ep && 'new episodes', nt.season && 'returning seasons', nt.wl && 'watchlist releases'].filter(Boolean);
   const hid = spaces.filter(spHidden).length, lang = (settings && settings.subLang) || 'off';
   return {
-    account:`${profile ? profile.name : 'Profile'} · ${user ? (user.email || 'Signed in') : 'Not signed in'}`,
-    general:`${st} · ${u.theme && u.theme !== 'space' && THEMES[u.theme] ? THEMES[u.theme].n + ' colors' : 'colors follow each space'}`,
+    account:user ? `${user.email || 'Signed in'} · sync, password, delete account` : 'Not signed in · sign in to sync your devices',
+    pstart:`${st} · subtitles ${lang === 'off' ? 'off' : lang} · ${on('resume', true) ? 'resumes where you left off' : 'always from the start'}`,
+    general:`${u.ask === false ? '' : ''}${u.theme && u.theme !== 'space' && THEMES[u.theme] ? THEMES[u.theme].n + ' colors' : 'colors follow each space'}`,
     spaces:`${spaces.length} space${spaces.length === 1 ? '' : 's'}${hid ? ` · ${hid} hidden` : ''} · order, visibility and settings`,
-    playback:`${on('autoPick', true) ? 'Automatic source, ' + q : 'You pick the source'} · subtitles ${lang === 'off' ? 'off' : lang}`,
+    playback:`${on('autoPick', true) ? 'Automatic source, ' + q : 'You pick the source'}`,
     personal:`${rows} of 6 home rows on`,
     content:[u.minRate ? u.minRate + '+ rating' : 'Any rating', (u.hideG || []).length ? `${u.hideG.length} genre${u.hideG.length > 1 ? 's' : ''} hidden` : '', (u.langs || []).length ? `${u.langs.length} language${u.langs.length > 1 ? 's' : ''}` : 'all languages', u.showUpcoming === false ? 'unreleased hidden' : ''].filter(Boolean).join(' · '),
     notif:ntOn.length ? ntOn.join(', ').replace(/^./, x => x.toUpperCase()) : 'Off',
@@ -7170,7 +7268,7 @@ const setItem = (c, title, sub, onclick) => h('button', {class:'setitem', type:'
 function showSetHome(){
   const from = setCatNow; setCatNow = null;
   for (const el of document.querySelectorAll('#settings .setcat')) el.hidden = true;
-  $('#setBack').hidden = true; $('#setTitle').textContent = 'Settings'; $('#settings').classList.remove('insub');
+  $('#setBack').hidden = true; $('#setTitle').textContent = 'Profile'; $('#settings').classList.remove('insub');
   const home = $('#setHome'); home.hidden = false;
   const q = h('input', {type:'search', class:'f setq', id:'setQ', placeholder:'Search settings', autocomplete:'off', spellcheck:'false', 'aria-label':'Search settings'});
   const list = h('div', {class:'setlist'});
@@ -7179,23 +7277,26 @@ function showSetHome(){
     if (!t) { list.replaceChildren(...SET_GROUPS.map(([g, cats]) => h('div', {class:'setgrp'}, h('h3', {class:'sgh'}, g),
       h('div', {class:'setcard'}, ...cats.map(c => setItem(c, setName(c), setSummary(c), () => openSetCat(c))))))); return; }
     const hits = [];
-    for (const cat of document.querySelectorAll('#settings .setcat')) for (const r of cat.querySelectorAll('.row2, .sprow')) {
+    for (const cat of document.querySelectorAll('#settings .setcat')) { if (PROFILE_CATS.includes(cat.dataset.cat)) continue; for (const r of cat.querySelectorAll('.row2, .sprow')) {
       const off = r.closest('[hidden]'); if (off && off !== cat) continue;                     // rows that don't apply here (e.g. player settings on the web)
       const rt = r.querySelector('.rt'); if (!rt) continue;
       const title = (rt.firstChild && rt.firstChild.textContent || '').trim(), hint = ((rt.querySelector('small') || {}).textContent || '').trim();
       const gh = r.closest('.sgrp') && r.closest('.sgrp').querySelector('.sgh'), grp = gh ? gh.textContent.trim() : '';
       if ((title + ' ' + hint + ' ' + grp + ' ' + setName(cat.dataset.cat)).toLowerCase().includes(t)) hits.push({cat:cat.dataset.cat, r, title, hint});
-    }
+    } }
     list.replaceChildren(hits.length ? h('div', {class:'setcard'}, ...hits.slice(0, 30).map(x => setItem(x.cat, x.title || setName(x.cat), setName(x.cat) + (x.hint ? ' · ' + x.hint : ''), () => openSetCat(x.cat, x.r))))
       : h('p', {class:'gnote', style:'padding:10px 4px'}, `Nothing matches "${q.value.trim()}".`));
   };
   q.oninput = paint; paint();
-  const who = profile ? profile.name : 'this profile';
-  home.replaceChildren(q, h('p', {class:'scopekey'}, h('i', {class:'scope p'}, 'Profile'), ` only for ${who} · `, h('i', {class:'scope e'}, 'Everyone'), ' every profile · the rest: this device'), list);
+  const who = profile ? profile.name : 'this profile', kid = typeof isKid === 'function' && isKid();
+  if (kid) { home.replaceChildren(meCard()); return; }                    // a kids profile: its card and switching, no settings
+  const out = user ? h('div', {class:'setcard meout'}, setItem('signout', 'Sign out', (user.email || 'Signed in') + ' · this device forgets the account', signOutAsk)) : null;
+  home.replaceChildren(meCard(), q, h('p', {class:'scopekey'}, `${who}'s own settings: select the picture. `, h('i', {class:'scope e'}, 'Everyone'), ' shared by every profile · the rest: this device'), list, out);
   if (from && document.body.classList.contains('tv') && !$('#settings').hidden) requestAnimationFrame(() => { const b = list.querySelector(`.setitem[data-cat="${from}"]`); if (b) b.focus(); });   // back on the section you came from
 }
 function openSetCat(c, row){
   if (!SET_CATS.some(x => x[0] === c)) return;
+  if (PROFILE_CATS.includes(c)) { if (profile) editProfile(profile.id, c); return; }   // the profile's own settings open in Edit profile
   if (!isTVui() && !layersOpen.includes('setsub')) pushLayer('setsub');   // phone: the back gesture returns to the list. TV: Back is handled as 'go up' (tvBackStep)
   setCatNow = c;
   $('#setHome').hidden = true; $('#settings').classList.add('insub');
@@ -7205,6 +7306,7 @@ function openSetCat(c, row){
   if (c === 'spaces') spacesList();
   if (c === 'storage') storageInfo();
   if (c === 'about') aboutInfo();
+  if (c === 'account') { try { acctMoreFill(); } catch {} }
   if (c === 'tmdb') $('#adSum').textContent = `${addons.length} installed · install, remove and reorder the sources for your catalogs and streams`;
   requestAnimationFrame(() => {
     if (row) { row.scrollIntoView({block:'center'}); row.classList.add('flash'); setTimeout(() => row.classList.remove('flash'), 1600); }
@@ -7306,7 +7408,7 @@ function settingsPlus(){
 }
 /* who a setting is for: this profile, this device, or everyone on the account */
 const SCOPE = {
-  profile:['setStart', 'setStartSp', 'setRemSrc', 'setResume', 'setRowHero', 'setRowCW', 'setRowBYW', 'setRowWL', 'setRowRec', 'setRowFav', 'setMinRate', 'setHideG', 'setLangs', 'setFavG', 'setNtEp', 'setNtSeason', 'setNtWl', 'setUpc', 'setSub', 'setAud'],
+  profile:[], _was:['setStart', 'setStartSp', 'setRemSrc', 'setResume', 'setRowHero', 'setRowCW', 'setRowBYW', 'setRowWL', 'setRowRec', 'setRowFav', 'setMinRate', 'setHideG', 'setLangs', 'setFavG', 'setNtEp', 'setNtSeason', 'setNtWl', 'setUpc', 'setSub', 'setAud'],
   everyone:['setTmdb', 'setAddons', 'qcShows', 'spNew', 'tioRd', 'tioKey', 'tioProv', 'tioSort', 'tioQf', 'tioLimit', 'tioSize', 'tioLang']};
 function scopeTags(){
   const tag = (row, kind) => { const rt = row && row.querySelector('.rt'); if (!rt || rt.querySelector('.scope')) return; const t = h('i', {class:'scope ' + kind, title:kind === 'p' ? 'Only for this profile' : 'For every profile on this account'}, kind === 'p' ? 'Profile' : 'Everyone'); const sm = rt.querySelector('small'); rt.insertBefore(t, sm); };
@@ -8164,6 +8266,104 @@ function spClose(fromBack, leaving){                                    // leavi
   try { if (p.back && p.back.isConnected) p.back.focus({preventScroll:true}); } catch {}
 }
 LAYER_CLOSERS.spop = () => spClose(true);
+/* ---------- the Profile page: Profile and Settings in one. Your card at the top (select the picture to edit the profile and its own
+   settings), then App settings, Account, Sources and About, then Sign out. Kids profiles only get their card. ---------- */
+function meCard(){
+  const pr = profile; if (!pr) return h('div');
+  const kid = isKid(), hs = histGet().length, ws = wlGet().length;
+  const pic = h('button', {type:'button', class:'pe-avbtn mepic', 'aria-label':'Edit profile', title:'Edit profile', onclick:async () => { if (await kidGate(null)) editProfile(pr.id); }},
+    avatarEl(pr, 96), h('span', {class:'pbadge', 'aria-hidden':'true'}, PENCIL_SVG()));
+  const others = profiles.filter(x => x.id !== pr.id);
+  return h('div', {class:'mehub'},
+    h('div', {class:'addon mecard'}, pic,
+      h('div', {class:'metx'}, h('h2', null, pr.name), h('p', null, kid ? 'Kids profile' : user ? (user.email || 'Signed in') : 'This device only'),
+        h('div', {class:'mestat'}, h('span', null, h('b', null, String(hs)), ' in progress'), h('span', null, h('b', null, String(ws)), ' in watchlist')))),
+    h('div', {class:'mebtns'},
+      h('button', {class:'btn', type:'button', onclick:async () => { if (await kidGate(null)) showProfiles(); }}, 'Switch profile'),
+      kid ? null : h('button', {class:'btn ghost', type:'button', onclick:() => { manageProfiles = true; showProfiles(); manageProfiles = true; renderProfiles(); }}, 'Manage profiles'),
+      ...others.slice(0, 4).map(x => h('button', {class:'chip mechip', type:'button', onclick:() => selectProfile(x)}, avatarEl(x, 22), ' ' + x.name))));
+}
+let soArmed = 0;
+function signOutAsk(e){
+  const b = e && e.currentTarget, small = b && b.querySelector('small');
+  if (Date.now() - soArmed > 4000) { soArmed = Date.now(); if (small) small.textContent = 'Select again to sign out. This device forgets the account and its data'; return; }
+  (async () => { try { await FB.au.signOut(auth); } catch {} try { Object.keys(localStorage).filter(k => k.startsWith('streamlet.')).forEach(k => localStorage.removeItem(k)); } catch {} location.reload(); })();
+}
+
+/* Account > Security: password link and account deletion (with everything stored under it) */
+function acctMoreFill(){
+  const box = $('#acctMore'); if (!box) return;
+  box.hidden = !(FB && user && user.email);
+  if (box.hidden) return;
+  const pw = $('#pwReset'), del = $('#acctDel');
+  pw.onclick = async () => {
+    pw.disabled = true;
+    try { await FB.au.sendPasswordResetEmail(auth, user.email); $('#pwHint').textContent = `Link sent to ${user.email}. Check your inbox and spam folder`; toast('Password link sent'); }
+    catch (e) { toast("Couldn't send it: " + (e.code || e.message)); }
+    pw.disabled = false;
+  };
+  let armed = 0;
+  del.onclick = async () => {
+    if (Date.now() - armed > 6000) { armed = Date.now(); del.textContent = 'Select again to delete'; toast('This cannot be undone. Select Delete again to confirm'); return; }
+    del.disabled = true; del.textContent = 'Deleting…';
+    const {doc, deleteDoc, getDocs, collection} = FB.fs, uid = user.uid;
+    try {
+      for (const sub of ['profiles', 'sync']) { try { const q = await getDocs(collection(db, 'users', uid, sub)); for (const d of q.docs) await deleteDoc(d.ref); } catch {} }
+      try { await deleteDoc(doc(db, 'users', uid)); } catch {}
+      await FB.au.deleteUser(user);
+      try { Object.keys(localStorage).filter(k => k.startsWith('streamlet.')).forEach(k => localStorage.removeItem(k)); } catch {}
+      toast('Account deleted'); setTimeout(() => location.reload(), 1200);
+    } catch (e) {
+      del.disabled = false; del.textContent = 'Delete';
+      if (e && e.code === 'auth/requires-recent-login') toast('For safety, sign out and sign in again, then delete the account right away');
+      else toast("Couldn't delete the account: " + (e.code || e.message));
+    }
+  };
+}
+
+/* ---------- kids PIN: a kids profile can ask for a 4-digit PIN before anyone leaves it (switching profile, managing profiles, editing) ---------- */
+async function pinHash(pid, pin){
+  const b = await crypto.subtle.digest('SHA-256', new TextEncoder().encode('streamlet-pin:' + pid + ':' + pin));
+  return [...new Uint8Array(b)].map(x => x.toString(16).padStart(2, '0')).join('');
+}
+const kidFrom = () => profile || profiles.find(x => x.id === lsGet('streamlet.profile.last', null)) || null;
+async function kidGate(target){                                            // true = go ahead
+  const from = kidFrom();
+  if (!from || !from.kids || !from.pin || (target && target.id === from.id)) return true;
+  if (kidGate.ok && Date.now() - kidGate.ok < 60000) return true;          // a minute after the right PIN, no asking again
+  const ok = await pinPad(`Enter ${from.name}'s PIN`, async v => (await pinHash(from.id, v)) === from.pin);
+  if (ok) kidGate.ok = Date.now();
+  return !!ok;
+}
+/* a 4-digit pad that works with a remote, a mouse or the keyboard. check(v) → true when right; without check it returns the digits */
+function pinPad(title, check){
+  return new Promise(res => {
+    let v = '', busy = false;
+    const dots = h('div', {class:'pindots'}), msg = h('p', {class:'pinmsg', 'aria-live':'polite'});
+    const paintD = () => dots.replaceChildren(...[0, 1, 2, 3].map(i => h('i', {class:i < v.length ? 'on' : ''})));
+    const done = r => { W.remove(); document.removeEventListener('keydown', kd, true); try { const i = layersOpen.lastIndexOf('pin'); if (i >= 0) { layersOpen.splice(i, 1); focusStack.splice(i, 1); if (!layersOpen.length) document.body.classList.remove('inlayer'); history.replaceState({page:pageNow(), layers:[...layersOpen]}, ''); } } catch {} pinPad.cancel = null; res(r); };
+    const add = async d => {
+      if (busy || v.length >= 4) return; v += d; paintD();
+      if (v.length < 4) return;
+      if (!check) return done(v);
+      busy = true; const ok = await check(v); busy = false;
+      if (ok) return done(true);
+      msg.textContent = 'Wrong PIN. Try again.'; W.querySelector('.pindots').classList.add('shake'); setTimeout(() => { v = ''; paintD(); W.querySelector('.pindots').classList.remove('shake'); }, 450);
+    };
+    const del = () => { v = v.slice(0, -1); paintD(); msg.textContent = ''; };
+    const key = (label, fn, cls) => h('button', {type:'button', class:'pinkey' + (cls ? ' ' + cls : ''), onclick:fn}, label);
+    const W = h('div', {id:'pinPop', class:'avpop pinpop', role:'dialog', 'aria-modal':'true', 'aria-label':title},
+      h('div', {class:'avcard pincard'}, h('h2', null, title), dots, msg,
+        h('div', {class:'pingrid'}, ...[1, 2, 3, 4, 5, 6, 7, 8, 9].map(n => key(String(n), () => add(String(n)))), key('Cancel', () => done(false), 'pinx'), key('0', () => add('0')), key('⌫', del, 'pinx'))));
+    const kd = e => { if (/^\d$/.test(e.key)) { e.preventDefault(); e.stopPropagation(); add(e.key); } else if (e.key === 'Backspace' && document.activeElement && !document.activeElement.matches('input')) { e.preventDefault(); del(); } };
+    document.addEventListener('keydown', kd, true);
+    document.body.append(W); paintD();
+    pinPad.cancel = () => done(false);
+    try { pushLayer('pin'); } catch {}
+    const f = W.querySelector('.pinkey'); if (f) f.focus({preventScroll:true});
+  });
+}
+LAYER_CLOSERS.pin = () => { if (pinPad.cancel) pinPad.cancel(); };
 </script>
 </body>
 </html>

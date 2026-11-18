@@ -2,8 +2,10 @@
    The original controls keep their ids and handlers (renderSettings); this file arranges them into categories
    and wires the newer ones. Global settings live in streamlet.ui (this device) or the profile; space settings
    live on the space itself (Spaces category, or the space editor). */
-const SET_CATS = [['general', 'General'], ['spaces', 'Spaces'], ['playback', 'Playback'], ['personal', 'Personalization'], ['content', 'Content'],
-  ['notif', 'Notifications'], ['tmdb', 'TMDB & addons'], ['storage', 'Storage & backup'], ['account', 'Account'], ['about', 'About']];
+const SET_CATS = [['general', 'General'], ['spaces', 'Spaces'], ['playback', 'Playback'], ['pstart', 'Startup & playback'], ['personal', 'Home rows'], ['content', 'Content'],
+  ['notif', 'Notifications'], ['tmdb', 'Addons & services'], ['storage', 'Storage & backup'], ['account', 'Account'], ['about', 'About']];
+/* the profile's own settings live in Edit profile (select the picture on the Profile page); the rest are on the Profile page itself */
+const PROFILE_CATS = ['pstart', 'personal', 'content', 'notif'];
 /* where a setting lives: this profile (kept with the profile and synced with your account), or this device */
 const PROFILE_UI = new Set(['rows', 'minRate', 'hideG', 'langs', 'favG', 'nt', 'startup', 'startSpace', 'remSrc', 'resume', 'showUpcoming', 'hiddenSp']);
 const spHidden = sp => { const l = uiGet().hiddenSp; return Array.isArray(l) ? l.includes(sp.id) : !!sp.hidden; };   // which spaces this profile sees on the spaces page
@@ -56,13 +58,15 @@ const SET_ICONS = {
   general:'<path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2.2"/><circle cx="10" cy="17" r="2.2"/>',
   spaces:'<rect x="4" y="4" width="6.5" height="6.5" rx="1.6"/><rect x="13.5" y="4" width="6.5" height="6.5" rx="1.6"/><rect x="4" y="13.5" width="6.5" height="6.5" rx="1.6"/><rect x="13.5" y="13.5" width="6.5" height="6.5" rx="1.6"/>',
   playback:'<rect x="3" y="5" width="18" height="14" rx="2.6"/><path d="M10 9.2v5.6l4.6-2.8z"/>',
+  pstart:'<circle cx="12" cy="12" r="8.5"/><path d="M10.2 8.6v6.8l5.4-3.4z"/>',
   personal:'<path d="M12 3.5l2.4 5 5.4.6-4 3.7 1.1 5.4L12 15.5l-4.9 2.7 1.1-5.4-4-3.7 5.4-.6z"/>',
   content:'<path d="M4 5h16l-6 7.5V19l-4 1.5v-8z"/>',
   notif:'<path d="M6 16V11a6 6 0 0 1 12 0v5l1.5 2h-15z"/><path d="M10 20.5a2 2 0 0 0 4 0"/>',
   tmdb:'<path d="M20.5 11H19V7a2 2 0 0 0-2-2h-4V3.5a2.5 2.5 0 0 0-5 0V5H4a2 2 0 0 0-2 2v3.8h1.5a2.7 2.7 0 0 1 0 5.4H2V20a2 2 0 0 0 2 2h3.8v-1.5a2.7 2.7 0 0 1 5.4 0V22H17a2 2 0 0 0 2-2v-4h1.5a2.5 2.5 0 0 0 0-5z" transform="translate(.6 .6) scale(.9)"/>',
   storage:'<ellipse cx="12" cy="6" rx="7.5" ry="2.8"/><path d="M4.5 6v6c0 1.5 3.4 2.8 7.5 2.8s7.5-1.3 7.5-2.8V6M4.5 12v6c0 1.5 3.4 2.8 7.5 2.8s7.5-1.3 7.5-2.8v-6"/>',
-  about:'<circle cx="12" cy="12" r="8.5"/><path d="M12 11v5.5M12 7.6v.1"/>'};
-const SET_GROUPS = [['You', ['account']], ['App', ['general', 'spaces', 'playback', 'personal', 'content', 'notif']], ['Sources', ['tmdb']], ['Data', ['storage']], ['Help', ['about']]];
+  about:'<circle cx="12" cy="12" r="8.5"/><path d="M12 11v5.5M12 7.6v.1"/>',
+  signout:'<path d="M14 4h4a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-4"/><path d="M10 8l-4 4 4 4M6 12h10"/>'};
+const SET_GROUPS = [['App settings', ['general', 'spaces', 'playback', 'storage']], ['Account', ['account']], ['Sources', ['tmdb']], ['About', ['about']]];
 let setCatNow = null, setCatWant = null;
 const setName = c => (SET_CATS.find(x => x[0] === c) || [c, c])[1];
 function setSummary(c){                                                   // what each section is set to right now
@@ -73,10 +77,11 @@ function setSummary(c){                                                   // wha
   const ntOn = [nt.ep && 'new episodes', nt.season && 'returning seasons', nt.wl && 'watchlist releases'].filter(Boolean);
   const hid = spaces.filter(spHidden).length, lang = (settings && settings.subLang) || 'off';
   return {
-    account:`${profile ? profile.name : 'Profile'} · ${user ? (user.email || 'Signed in') : 'Not signed in'}`,
-    general:`${st} · ${u.theme && u.theme !== 'space' && THEMES[u.theme] ? THEMES[u.theme].n + ' colors' : 'colors follow each space'}`,
+    account:user ? `${user.email || 'Signed in'} · sync, password, delete account` : 'Not signed in · sign in to sync your devices',
+    pstart:`${st} · subtitles ${lang === 'off' ? 'off' : lang} · ${on('resume', true) ? 'resumes where you left off' : 'always from the start'}`,
+    general:`${u.ask === false ? '' : ''}${u.theme && u.theme !== 'space' && THEMES[u.theme] ? THEMES[u.theme].n + ' colors' : 'colors follow each space'}`,
     spaces:`${spaces.length} space${spaces.length === 1 ? '' : 's'}${hid ? ` · ${hid} hidden` : ''} · order, visibility and settings`,
-    playback:`${on('autoPick', true) ? 'Automatic source, ' + q : 'You pick the source'} · subtitles ${lang === 'off' ? 'off' : lang}`,
+    playback:`${on('autoPick', true) ? 'Automatic source, ' + q : 'You pick the source'}`,
     personal:`${rows} of 6 home rows on`,
     content:[u.minRate ? u.minRate + '+ rating' : 'Any rating', (u.hideG || []).length ? `${u.hideG.length} genre${u.hideG.length > 1 ? 's' : ''} hidden` : '', (u.langs || []).length ? `${u.langs.length} language${u.langs.length > 1 ? 's' : ''}` : 'all languages', u.showUpcoming === false ? 'unreleased hidden' : ''].filter(Boolean).join(' · '),
     notif:ntOn.length ? ntOn.join(', ').replace(/^./, x => x.toUpperCase()) : 'Off',
@@ -89,7 +94,7 @@ const setItem = (c, title, sub, onclick) => h('button', {class:'setitem', type:'
 function showSetHome(){
   const from = setCatNow; setCatNow = null;
   for (const el of document.querySelectorAll('#settings .setcat')) el.hidden = true;
-  $('#setBack').hidden = true; $('#setTitle').textContent = 'Settings'; $('#settings').classList.remove('insub');
+  $('#setBack').hidden = true; $('#setTitle').textContent = 'Profile'; $('#settings').classList.remove('insub');
   const home = $('#setHome'); home.hidden = false;
   const q = h('input', {type:'search', class:'f setq', id:'setQ', placeholder:'Search settings', autocomplete:'off', spellcheck:'false', 'aria-label':'Search settings'});
   const list = h('div', {class:'setlist'});
@@ -98,23 +103,26 @@ function showSetHome(){
     if (!t) { list.replaceChildren(...SET_GROUPS.map(([g, cats]) => h('div', {class:'setgrp'}, h('h3', {class:'sgh'}, g),
       h('div', {class:'setcard'}, ...cats.map(c => setItem(c, setName(c), setSummary(c), () => openSetCat(c))))))); return; }
     const hits = [];
-    for (const cat of document.querySelectorAll('#settings .setcat')) for (const r of cat.querySelectorAll('.row2, .sprow')) {
+    for (const cat of document.querySelectorAll('#settings .setcat')) { if (PROFILE_CATS.includes(cat.dataset.cat)) continue; for (const r of cat.querySelectorAll('.row2, .sprow')) {
       const off = r.closest('[hidden]'); if (off && off !== cat) continue;                     // rows that don't apply here (e.g. player settings on the web)
       const rt = r.querySelector('.rt'); if (!rt) continue;
       const title = (rt.firstChild && rt.firstChild.textContent || '').trim(), hint = ((rt.querySelector('small') || {}).textContent || '').trim();
       const gh = r.closest('.sgrp') && r.closest('.sgrp').querySelector('.sgh'), grp = gh ? gh.textContent.trim() : '';
       if ((title + ' ' + hint + ' ' + grp + ' ' + setName(cat.dataset.cat)).toLowerCase().includes(t)) hits.push({cat:cat.dataset.cat, r, title, hint});
-    }
+    } }
     list.replaceChildren(hits.length ? h('div', {class:'setcard'}, ...hits.slice(0, 30).map(x => setItem(x.cat, x.title || setName(x.cat), setName(x.cat) + (x.hint ? ' · ' + x.hint : ''), () => openSetCat(x.cat, x.r))))
       : h('p', {class:'gnote', style:'padding:10px 4px'}, `Nothing matches "${q.value.trim()}".`));
   };
   q.oninput = paint; paint();
-  const who = profile ? profile.name : 'this profile';
-  home.replaceChildren(q, h('p', {class:'scopekey'}, h('i', {class:'scope p'}, 'Profile'), ` only for ${who} · `, h('i', {class:'scope e'}, 'Everyone'), ' every profile · the rest: this device'), list);
+  const who = profile ? profile.name : 'this profile', kid = typeof isKid === 'function' && isKid();
+  if (kid) { home.replaceChildren(meCard()); return; }                    // a kids profile: its card and switching, no settings
+  const out = user ? h('div', {class:'setcard meout'}, setItem('signout', 'Sign out', (user.email || 'Signed in') + ' · this device forgets the account', signOutAsk)) : null;
+  home.replaceChildren(meCard(), q, h('p', {class:'scopekey'}, `${who}'s own settings: select the picture. `, h('i', {class:'scope e'}, 'Everyone'), ' shared by every profile · the rest: this device'), list, out);
   if (from && document.body.classList.contains('tv') && !$('#settings').hidden) requestAnimationFrame(() => { const b = list.querySelector(`.setitem[data-cat="${from}"]`); if (b) b.focus(); });   // back on the section you came from
 }
 function openSetCat(c, row){
   if (!SET_CATS.some(x => x[0] === c)) return;
+  if (PROFILE_CATS.includes(c)) { if (profile) editProfile(profile.id, c); return; }   // the profile's own settings open in Edit profile
   if (!isTVui() && !layersOpen.includes('setsub')) pushLayer('setsub');   // phone: the back gesture returns to the list. TV: Back is handled as 'go up' (tvBackStep)
   setCatNow = c;
   $('#setHome').hidden = true; $('#settings').classList.add('insub');
@@ -124,6 +132,7 @@ function openSetCat(c, row){
   if (c === 'spaces') spacesList();
   if (c === 'storage') storageInfo();
   if (c === 'about') aboutInfo();
+  if (c === 'account') { try { acctMoreFill(); } catch {} }
   if (c === 'tmdb') $('#adSum').textContent = `${addons.length} installed · install, remove and reorder the sources for your catalogs and streams`;
   requestAnimationFrame(() => {
     if (row) { row.scrollIntoView({block:'center'}); row.classList.add('flash'); setTimeout(() => row.classList.remove('flash'), 1600); }
@@ -225,7 +234,7 @@ function settingsPlus(){
 }
 /* who a setting is for: this profile, this device, or everyone on the account */
 const SCOPE = {
-  profile:['setStart', 'setStartSp', 'setRemSrc', 'setResume', 'setRowHero', 'setRowCW', 'setRowBYW', 'setRowWL', 'setRowRec', 'setRowFav', 'setMinRate', 'setHideG', 'setLangs', 'setFavG', 'setNtEp', 'setNtSeason', 'setNtWl', 'setUpc', 'setSub', 'setAud'],
+  profile:[], _was:['setStart', 'setStartSp', 'setRemSrc', 'setResume', 'setRowHero', 'setRowCW', 'setRowBYW', 'setRowWL', 'setRowRec', 'setRowFav', 'setMinRate', 'setHideG', 'setLangs', 'setFavG', 'setNtEp', 'setNtSeason', 'setNtWl', 'setUpc', 'setSub', 'setAud'],
   everyone:['setTmdb', 'setAddons', 'qcShows', 'spNew', 'tioRd', 'tioKey', 'tioProv', 'tioSort', 'tioQf', 'tioLimit', 'tioSize', 'tioLang']};
 function scopeTags(){
   const tag = (row, kind) => { const rt = row && row.querySelector('.rt'); if (!rt || rt.querySelector('.scope')) return; const t = h('i', {class:'scope ' + kind, title:kind === 'p' ? 'Only for this profile' : 'For every profile on this account'}, kind === 'p' ? 'Profile' : 'Everyone'); const sm = rt.querySelector('small'); rt.insertBefore(t, sm); };

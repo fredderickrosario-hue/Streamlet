@@ -52,11 +52,11 @@ body:not(.tv) #mlTabs .chip{flex:1 1 auto;padding:0 12px}
 body:not(.tv) .gtile{border-radius:12px}
 
 /* fields */
-body:not(.tv) :is(.f,.add input,select.sel,#settings select.sel,#settings input[type=text]){min-height:44px;box-sizing:border-box;border-radius:12px;padding:0 14px;font-size:15px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);color:var(--text)}
-body:not(.tv) :is(select.sel,#settings select.sel){padding-right:10px}
+body:not(.tv) :is(.f,.add input,select.sel,:is(#settings,#profEd) select.sel,:is(#settings,#profEd) input[type=text]){min-height:44px;box-sizing:border-box;border-radius:12px;padding:0 14px;font-size:15px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);color:var(--text)}
+body:not(.tv) :is(select.sel,:is(#settings,#profEd) select.sel){padding-right:10px}
 body:not(.tv) textarea.f{padding:12px 14px;line-height:1.45}
 body:not(.tv) .pe-input{border-radius:12px}
-:is(.row2.stack,#settings .row2.stack){flex-direction:column;align-items:stretch;gap:10px}
+:is(.row2.stack,:is(#settings,#profEd) .row2.stack){flex-direction:column;align-items:stretch;gap:10px}
 .row2.stack .inrow{align-self:flex-start;max-width:100%}
 body:not(.tv) .row2.stack .inrow:has(.f){align-self:stretch}
 body:not(.tv) .inrow .f{flex:1}
@@ -65,7 +65,7 @@ body:not(.tv) .inrow .f{flex:1}
 body.tv .inrow .f{width:min(32vw,340px)}
 
 /* cards and the rows inside them */
-body:not(.tv) :is(.addon,.acard,.rcard,#settings .addon){border-radius:18px}
+body:not(.tv) :is(.addon,.acard,.rcard,:is(#settings,#profEd) .addon){border-radius:18px}
 body:not(.tv) .rcard{padding:14px 16px;margin:10px 0}
 body:not(.tv) .pe-prev{border-radius:18px}
 body:not(.tv) :is(.tgl,.opt,.stream,.adbox summary){border-radius:14px}
@@ -96,4 +96,4 @@ body:not(.tv) .lmid .lsub{text-align:left;margin:0 0 18px;color:rgba(255,255,255
 body:not(.tv) .wgrid .card .s,body:not(.tv) .rgrid .card .s{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .ep .eseen{color:var(--acc)}
 .ep .eseen svg{fill:color-mix(in srgb,var(--acc) 45%,transparent)}
-body:not(.tv) #settings .tvonly{display:none}
+body:not(.tv) :is(#settings,#profEd) .tvonly{display:none}

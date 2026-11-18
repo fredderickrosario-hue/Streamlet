@@ -212,7 +212,7 @@ async function runUpdate(btn = $('#apkInstall'), msg = $('#apkMsg')){
 function showUpdState(){
   const msg = $('#apkMsg'), inst = $('#apkInstall');
   if (!updInfo) return;
-  $('#tabSettings').classList.toggle('upd', !!updInfo.newer);
+  $('#tabSettings').classList.toggle('upd', !!updInfo.newer); $('#tabMe').classList.toggle('upd', !!updInfo.newer);
   inst.hidden = !updInfo.newer;
   if (updInfo.newer) { if (!inst.dataset.ready && !inst.dataset.busy) inst.textContent = `Download ${vName(updInfo.latest)}`; inst.onclick = () => runUpdate(); msg.textContent = `Installed: ${vName(updInfo.cur)}. ${vName(updInfo.latest)} is available.`; }
   else msg.textContent = `You're up to date (${vName(updInfo.cur)}).`;
