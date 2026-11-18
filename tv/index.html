@@ -6395,9 +6395,15 @@ async function qcStreams(id){
       for (const s of src.filter(s => /mp4/i.test(s.container || s.type || '') && !/mpegurl|dash/i.test(s.type || '')).sort((a, b) => (b.height || 0) - (a.height || 0)))
         out.push({name:'TVA+', title:`MP4 · ${s.height ? s.height + 'p' : Math.round((s.encoding_rate || 0) / 1000) + ' kbps'}`, url:https(s.src)});
       const cand = (j.text_tracks || []).filter(t => t.src && /vtt/i.test(t.src + (t.mime_type || '')) && !/^(metadata|chapters|thumbnails)$/i.test(t.kind || ''));
-      const okSub = t => qcCached('sub' + t.src, 3600e3, async () => { try { const r = await qcGet(https(t.src)), b = String(r.body || ''); return r.status === 200 && /^\uFEFF?WEBVTT/.test(b) && /-->/.test(b); } catch { return false; } });
-      const good = (await Promise.all(cand.map(async t => (await okSub(t)) ? t : null))).filter(Boolean);   // tracks that don't load or are empty are left out (Indéfendable's first two)
-      const subs = good.map((t, i) => ({id:'qc' + i, url:https(t.src), lang:t.srclang || 'fr'}));
+      const okSub = t => qcCached('sub' + t.src, 3600e3, async () => { try {
+        const r = await qcGet(https(t.src)), b = String(r.body || '');
+        if (r.status !== 200 || !/^\uFEFF?WEBVTT/.test(b) || !/-->/.test(b)) return false;
+        /* TVA+ places some lines at the right edge or mid-screen: drop the cue positions so every line sits at the bottom, centred */
+        const flat = b.replace(/^(\s*(?:\d+:)?\d{1,2}:\d\d[.,]\d+\s+-->\s+(?:\d+:)?\d{1,2}:\d\d[.,]\d+)[^\r\n]*/gm, '$1');
+        return 'data:text/vtt;base64,' + btoa(unescape(encodeURIComponent(flat)));
+      } catch { return false; } });
+      const good = (await Promise.all(cand.map(async t => { const d = await okSub(t); return d ? {...t, flat:d} : null; }))).filter(Boolean);   // tracks that don't load or are empty are left out (Indéfendable's first two)
+      const subs = good.map((t, i) => ({id:'qc' + i, url:t.flat, lang:t.srclang || 'fr'}));
       if (cand.length !== good.length) qcLog(`${slug}: ${cand.length - good.length} of ${cand.length} subtitle tracks don't work, left out`);
       if (subs.length) out.forEach(o => { o.subtitles = subs; });
       if (out.length) return out;
