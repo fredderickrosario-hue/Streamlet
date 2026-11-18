@@ -10,7 +10,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with: { node-version: 22 }
-      - run: npm install --no-save playwright
+      - run: npm install --no-save playwright esbuild@0.24.2
       - run: npx playwright install --with-deps chromium
       - run: node build.js && git diff --exit-code -- index.html tv phone
       - run: node tests/smoke.js

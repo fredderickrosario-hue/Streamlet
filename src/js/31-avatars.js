@@ -52,7 +52,7 @@ function avPaint(el, v){
     return true;
   }
   if (/^m:\d+$/.test(v)) { el.innerHTML = monSvg(+v.slice(2)); return true; }
-  if (/^d:[a-z]+\/\d+$/.test(v)) { el.style.background = '#2a2233'; el.replaceChildren(h('img', {class:'avimg', src:AV_BASE() + v.slice(2) + '.svg', alt:'', loading:'lazy', draggable:'false'})); return true; }
+  if (/^d:[a-z]+\/\d+$/.test(v)) { el.style.background = '#2a2233'; el.replaceChildren(h('img', {class:'avimg', src:AV_BASE() + v.slice(2) + '.webp', decoding:'async', alt:'', loading:'lazy', draggable:'false'})); return true; }
   if (/^img:data:image\//.test(v)) { el.style.background = '#222'; el.replaceChildren(h('img', {class:'avimg', src:v.slice(4), alt:'', draggable:'false'})); return true; }
   return false;
 }
@@ -65,7 +65,11 @@ function avPicker(pr, onPick){
   let stopOwn = null;
   const pick = v => { pr.avatar = v; onPick(); avClose(); };
   const tile = v => h('button', {type:'button', class:'avb' + (pr.avatar === v ? ' on' : ''), 'aria-label':'Picture', onclick:() => pick(v)}, avatarEl({avatar:v}, 88));
-  const row = (title, items) => h('section', {class:'avrow'}, h('h3', null, title), h('div', {class:'avstrip'}, items));
+  /* rows are filled when they come near the screen (or the row above gets the focus): opening stays quick on a TV */
+  const lazy = [];
+  const row = (title, make, now) => { const strip = h('div', {class:'avstrip'}), sec = h('section', {class:'avrow'}, h('h3', null, title), strip);
+    sec._fill = () => { if (sec._done) return; sec._done = 1; strip.replaceChildren(...make()); }; if (now) sec._fill(); else lazy.push(sec); return sec; };
+  const mineIs = (re) => re.test(pr.avatar || '');
   const ownBox = h('div', {class:'avownbox', hidden:true});
   const upBtn = h('button', {type:'button', class:'avb avup', 'aria-label':'Use your own picture'});
   upBtn.innerHTML = `<span class="av">${UPLOAD}</span>`;
@@ -77,15 +81,24 @@ function avPicker(pr, onPick){
   const mine = /^img:/.test(pr.avatar || '') ? [tile(pr.avatar)] : [];
   const rows = [
     h('section', {class:'avrow'}, h('h3', null, 'Your picture'), h('div', {class:'avstrip'}, upBtn, ...mine), ownBox),
-    row('Animal friends', Array.from({length:AV_COUNT}, (_, i) => tile('a:' + i))),
-    ...AV_PACKS.map(([k, name]) => row(name, Array.from({length:24}, (_, i) => tile(k === 'monsters' ? 'm:' + i : 'd:' + k + '/' + i)))),
-    row('Emoji', AV_EMOJI_ROW.map(tile))];
+    row('Animal friends', () => Array.from({length:AV_COUNT}, (_, i) => tile('a:' + i)), true),
+    ...AV_PACKS.map(([k, name], j) => row(name, () => Array.from({length:24}, (_, i) => tile(k === 'monsters' ? 'm:' + i : 'd:' + k + '/' + i)),
+      j < 2 || mineIs(k === 'monsters' ? /^m:/ : new RegExp('^d:' + k + '/')))),
+    row('Emoji', () => AV_EMOJI_ROW.map(tile), mineIs(/^e:/))];
   const W = h('div', {id:'avPop', class:'avpop', role:'dialog', 'aria-modal':'true', 'aria-label':'Choose a picture'},
     h('div', {class:'avcard'},
       h('div', {class:'avhead'}, h('h2', null, 'Choose a picture'), h('button', {class:'btn ghost sm', type:'button', onclick:() => avClose()}, 'Close')),
       h('div', {class:'avbody'}, rows)));
   document.body.append(W);
-  avPop = {W, stop:() => { if (stopOwn) stopOwn(); }};
+  const body = W.querySelector('.avbody'), secs = rows.slice();
+  let io = null;
+  try { io = new IntersectionObserver(es => { for (const e of es) if (e.isIntersecting) { e.target._fill && e.target._fill(); io.unobserve(e.target); } }, {root:body, rootMargin:'400px 0px'}); lazy.forEach(x => io.observe(x)); }
+  catch { lazy.forEach(x => x._fill()); }
+  const idle = window.requestIdleCallback || (f => setTimeout(f, 60));
+  const more = () => { const x = lazy.find(r => !r._done); if (!x || !avPop) return; x._fill(); idle(more); };   // the rest, one row at a time when the device is free
+  setTimeout(() => idle(more), 350);
+  body.addEventListener('focusin', e => { const i = secs.indexOf(e.target.closest('.avrow')); for (const k of [i + 1, i + 2]) if (secs[k] && secs[k]._fill) secs[k]._fill(); });
+  avPop = {W, stop:() => { if (stopOwn) stopOwn(); if (io) io.disconnect(); }};
   try { pushLayer('avpop'); } catch {}
   const on = W.querySelector('.avb.on') || W.querySelector('.avrow:nth-child(2) .avb');
   if (on) { on.focus({preventScroll:true}); on.scrollIntoView({block:'center', inline:'center'}); }

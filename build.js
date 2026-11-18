@@ -7,10 +7,16 @@
 // - phone build: drops every one-line `body.tv ...{}` CSS rule (the TV layout), TV build: forced TV mode
 // - both: relative asset links point one folder up, no service worker (the apps load the page from the network)
 const fs = require('fs');
+/* smaller pages load and parse faster (old Android TVs most of all): inline CSS and scripts are minified with esbuild when it's installed
+   (npm i --no-save esbuild@0.24.2). Top-level names are kept, so nothing that calls them by name breaks */
+let esb = null; try { esb = require('esbuild'); } catch {}
+const mini = html => !esb ? html : html
+  .replace(/<style>([\s\S]*?)<\/style>/g, (m, c) => '<style>' + esb.transformSync(c, {loader:'css', minify:true}).code.trim() + '</style>')
+  .replace(/<script>([\s\S]*?)<\/script>/g, (m, c) => '<script>' + esb.transformSync(c, {loader:'js', minifyWhitespace:true, minifySyntax:true, minifyIdentifiers:true, target:'es2019', legalComments:'none'}).code.trim() + '</script>');
 const read = f => fs.readFileSync(f, 'utf8');
 const dir = d => fs.readdirSync(d).filter(f => !f.startsWith('.')).sort().map(f => read(`${d}/${f}`)).join('');
 const src = read('src/head.html') + dir('src/css') + read('src/body.html') + dir('src/js') + read('src/tail.html');
-fs.writeFileSync('index.html', src);
+fs.writeFileSync('index.html', mini(src));
 for (const f of ['tv', 'phone']) {
   let s = src.replace("const FLAVOR = 'auto';", `const FLAVOR = '${f}';`);
   const other = f === 'tv' ? 'phone' : 'tv';
@@ -31,6 +37,7 @@ for (const f of ['tv', 'phone']) {
   for (const a of ['manifest.webmanifest', 'icon.svg', 'apple-touch-icon.png', 'logo.svg']) s = s.split(`"${a}"`).join(`"../${a}"`);
   s = s.replace(/^if \('serviceWorker' in navigator[^\n]*\n/m, '');
   fs.mkdirSync(f, { recursive: true });
+  s = mini(s);
   fs.writeFileSync(`${f}/index.html`, s);
   console.log(f, (s.length / 1024).toFixed(0) + ' KB (source ' + (src.length / 1024).toFixed(0) + ' KB)');
 }

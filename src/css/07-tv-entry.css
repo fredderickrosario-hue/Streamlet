@@ -318,3 +318,9 @@ body.tv .pe2-l .tgl small{font-size:11.5px}
 .cropv img{position:absolute;left:50%;top:50%;max-width:none;user-select:none;-webkit-user-drag:none}
 .cropz{width:220px;accent-color:var(--acc)}
 .croph{margin:0;color:var(--mut);font-size:13px}
+/* picture sheet: light to draw. No blur behind it, no shadow per picture, empty rows keep their height until filled */
+.avpop{backdrop-filter:none !important;-webkit-backdrop-filter:none !important;background:rgba(5,5,10,.82)}
+.avstrip{min-height:112px;contain:layout paint}
+body.tv .avstrip{min-height:128px}
+.avstrip .avb .av{box-shadow:none !important}
+.avb .avimg{background:#2a2233}
