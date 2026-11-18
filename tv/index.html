@@ -1773,6 +1773,16 @@ body.tv .wzgrid{grid-template-columns:repeat(2,1fr)}
 .pinkey:hover,.pinkey:focus-visible{outline:3px solid #fff;outline-offset:2px}
 body.tv .pinkey:focus{outline:3px solid #fff;outline-offset:2px;transform:scale(1.05)}
 .pspn{display:inline-flex;align-items:center;gap:6px} .pspn .spico{width:1.3em;height:1.3em}
+/* style audit fixes: focus rings that were cut by their scrolling row or card */
+:is(#settings,#profEd) .setback{margin-left:4px}
+.mehub .mecard{overflow:visible}
+body:not(.tv) .cchips{padding:5px 6px 6px !important;margin:-5px -6px -2px !important}
+body:not(.tv) .srow{padding-top:6px !important;padding-left:6px !important;padding-right:20px !important;margin-left:-6px !important;margin-right:-6px !important}
+body:not(.tv) .eplist{padding-left:6px !important;margin-left:-6px !important;padding-top:6px !important}
+body:not(.tv) .gstrip{padding-right:20px !important}
+body:not(.tv).onhome:not(.launch) #tabsBar{padding-top:6px}
+body:not(.tv) #list{padding-left:6px;padding-right:6px;margin-left:-6px;margin-right:-6px}
+body:not(.tv) :is(.eplist,.slist,.dsim,.srow,.cchips){scroll-padding-left:6px}
 </style>
 </head>
 <body>
