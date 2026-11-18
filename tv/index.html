@@ -6530,11 +6530,18 @@ async function qcMappedStreams(tt, season, episode){
   return qcRcStreams(`qc:rc:${ent.path}/${best.epId}/${best.slug}`);
 }
 const QC_MANIFEST = {id:'app.streamlet.quebec', version:'1.0.0', name:'Québec', description:'TVA+ and ICI TOU.TV series, read straight from the sites on this device',
-  resources:['catalog', {name:'meta', types:['series'], idPrefixes:['qc:']}, {name:'stream', types:['series'], idPrefixes:['qc:', ...Object.keys(QC_IMDB).map(k => k + ':')]}], types:['series'], idPrefixes:['qc:'], catalogs:[{type:'series', id:'qc-shows', name:'Séries québécoises'}]};
+  resources:['catalog', {name:'meta', types:['series'], idPrefixes:['qc:']}, {name:'stream', types:['series'], idPrefixes:['qc:', ...Object.keys(QC_IMDB).map(k => k + ':')]}], types:['series'], idPrefixes:['qc:'], catalogs:[{type:'series', id:'qc-shows', name:'Séries québécoises'}, {type:'series', id:'qc-new', name:'Nouveautés québécoises'}, {type:'series', id:'qc-tva', name:'Sur TVA+'}, {type:'series', id:'qc-tou', name:'Sur ICI TOU.TV'}]};
 async function qcRoute(url){
   if (!nativePlayer()) throw new Error('Québec only works in the Android apps');
   const path = decodeURIComponent(url.replace(/^qc:\/\/[^/]*\//, '').replace(/\.json(\?.*)?$/, ''));
   if (path === 'manifest') return QC_MANIFEST;
+  if (/^catalog\/series\/qc-(new|tva|tou)/.test(path)) {                    // Québec shows found through TMDB that really are on TVA+ or ICI TOU.TV
+    const k = path.match(/qc-(new|tva|tou)/)[1], pool = qcDiscoverSoon(), mine = new Set(qcShowList().map(qcShowId));
+    let l = pool.filter(x => !mine.has(x.id));
+    if (k === 'new') l = l.slice().sort((a, b) => String(b.last || b.first || '').localeCompare(String(a.last || a.first || ''))).slice(0, 20);
+    else l = l.filter(x => x.src === k);
+    return {metas:l.map(x => ({id:x.id, type:'series', name:x.name, poster:x.poster, background:x.background, description:x.description, releaseInfo:(x.first || '').slice(0, 4), genres:x.genres}))};
+  }
   if (path.startsWith('catalog/')) {
     const metas = await Promise.all(qcShowList().map(async e => {
       const id = qcCinemetaId(e), fallback = {id, type:'series', name:qcTitleCase(e.path.split('/').pop().replace(/-/g, ' ')), poster:'', background:'', description:''};
@@ -6651,6 +6658,71 @@ $('#touChk').onclick = async () => {
 document.addEventListener('visibilitychange', () => { if (!document.hidden) touRefresh(); });
 setTimeout(touRefresh, 1200);
 for (const a of addons) if (a.url && a.url.startsWith('qc://')) a.manifest = QC_MANIFEST;          // built-in: always use the current manifest, no reinstall needed
+
+/* ---------- more Québec shows: TMDB finds the series from TVA and ICI Radio-Canada / ICI TOU.TV; each is kept only if its page is really
+   there (tvaplus.ca/tva/<name> or ici.tou.tv/<name>), so everything listed can play. Checked once a week, kept on this device ---------- */
+const qcSlug = n => String(n || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/&/g, ' et ').replace(/['’]/g, '-').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+async function qcNetworks(key){
+  const have = lsGet('streamlet.qcnet', null); if (have && Date.now() - have.t < 30 * 864e5 && (have.tva.length || have.tou.length)) return have;
+  const out = {tva:new Set(), tou:new Set()};
+  const nets = async q => { try { const f = await tmdbGet(`/search/tv?query=${encodeURIComponent(q)}`, key), x = (f.results || []).find(r => (r.origin_country || []).includes('CA')) || (f.results || [])[0]; if (!x) return; const d = await tmdbGet(`/tv/${x.id}`, key);
+    for (const n of d.networks || []) { if (/\bTVA\b/i.test(n.name)) out.tva.add(n.id); else if (/radio-canada|\bICI\b|tou\.?tv/i.test(n.name)) out.tou.add(n.id); } } catch {} };
+  await Promise.all(['Indéfendable', 'Les Armes', 'District 31', 'STAT', 'Les Pays d\'en haut', 'Fugueuse'].map(nets));
+  const v = {t:Date.now(), tva:[...out.tva], tou:[...out.tou]}; lsSet('streamlet.qcnet', v); qcLog(`networks: TVA ${v.tva.join(',') || 'none'} · Radio-Canada/TOU.TV ${v.tou.join(',') || 'none'}`);
+  return v;
+}
+let qcDiscBusy = null;
+/* what's known now (even if a week old), without waiting: the first check takes a minute or two, the rows fill in when it's done */
+function qcDiscoverSoon(){
+  const have = lsGet('streamlet.qcdisc', null), fresh = have && Date.now() - have.t < 7 * 864e5;
+  if (!fresh && !qcDiscBusy) qcDiscover().then(l => { if (l.length) { try { homeDirty(); } catch {} } }).catch(() => {});
+  return have && Array.isArray(have.l) ? have.l : [];
+}
+function qcDiscover(){
+  const key = (typeof tmKey === 'function' && tmKey()) || ''; if (!key) return Promise.resolve([]);
+  const have = lsGet('streamlet.qcdisc', null); if (have && Date.now() - have.t < 7 * 864e5 && Array.isArray(have.l)) return Promise.resolve(have.l);
+  if (qcDiscBusy) return qcDiscBusy;
+  return qcDiscBusy = (async () => {
+    try {
+      const net = await qcNetworks(key), cands = [];
+      for (const [src, ids] of [['tva', net.tva], ['tou', net.tou]]) {
+        if (!ids.length) continue;
+        for (const page of [1, 2, 3]) {
+          try { const r = await tmdbGet(`/discover/tv?with_networks=${ids.join('|')}&sort_by=popularity.desc&page=${page}`, key);
+            for (const x of r.results || []) cands.push({src, x}); } catch {}
+        }
+      }
+      const checked = lsGet('streamlet.qcver', {}), out = [], seen = new Set();
+      const one = async ({src, x}) => {
+        const slug = qcSlug(x.name), path = src === 'tva' ? '/tva/' + slug : slug, key2 = src + ':' + path;
+        if (!slug || seen.has(key2)) return; seen.add(key2);
+        let ok = checked[key2] && Date.now() - checked[key2].t < 30 * 864e5 ? checked[key2].ok : null;
+        if (ok === null) { try { const i = await (src === 'tva' ? qcShowInfo(path) : qcTouShow(slug)); ok = !!(i && i.name); } catch { ok = false; } checked[key2] = {ok, t:Date.now()}; }
+        if (!ok) return;
+        const img = p => p ? 'https://image.tmdb.org/t/p/w500' + p : '';
+        out.push({id:`qc:${src}:${path}`, src, name:x.name, poster:img(x.poster_path), background:x.backdrop_path ? 'https://image.tmdb.org/t/p/w1280' + x.backdrop_path : img(x.poster_path),
+          description:x.overview || '', first:x.first_air_date || '', pop:x.popularity || 0, gids:x.genre_ids || [], genres:tmGenreNames(x.genre_ids, 'tv')});
+      };
+      for (let i = 0; i < cands.length; i += 4) await Promise.all(cands.slice(i, i + 4).map(one));
+      lsSet('streamlet.qcver', checked);
+      out.sort((a, b) => b.pop - a.pop);
+      qcLog(`more shows: ${out.length} of ${cands.length} found on TVA+ or ICI TOU.TV`);
+      if (out.length) lsSet('streamlet.qcdisc', {t:Date.now(), l:out});
+      return out;
+    } finally { qcDiscBusy = null; }
+  })();
+}
+/* the Québec space's own "Your next watch / Because you watched": other Québec shows, closest genres first */
+const qcOnlySpace = () => { try { const l = spaceAddons(); return l.length > 0 && l.every(a => /^qc:\/\//.test(a.url || '')); } catch { return false; } };
+async function qcSimilar(seed){
+  const pool = qcDiscoverSoon(); if (!pool.length) return [];
+  const a = addons.find(x => /^qc:\/\//.test(x.url || '')); if (!a) return [];
+  let gs = []; const me = pool.find(x => x.id === seed.id);
+  if (me) gs = me.gids; else { try { const f = await tmdbGet(`/search/tv?query=${encodeURIComponent(seed.name || '')}`, tmKey()), x = (f.results || []).find(r => (r.origin_country || []).includes('CA')); if (x) gs = x.genre_ids || []; } catch {} }
+  const score = x => x.gids.filter(g => gs.includes(g)).length * 100 + x.pop;
+  return pool.filter(x => x.id !== seed.id).sort((p, q) => score(q) - score(p)).slice(0, 14)
+    .map(x => ({a, type:'series', m:{id:x.id, type:'series', name:x.name, poster:x.poster, background:x.background, description:x.description, releaseInfo:(x.first || '').slice(0, 4)}}));
+}
 /* ---------- Import Netflix viewing activity (the CSV from Account > Viewing activity > Download all) ----------
    Each show is matched to its IMDb entry through Cinemeta, its episodes are matched by name, and everything is marked watched.
    Before anything is saved you choose, per show, which space it belongs to (so anime can go to the Anime space) or skip it. */
@@ -6803,6 +6875,7 @@ function personalSeeds(){
   return {seeds: out, any: !!(watched.length || liked.length), wl, mine: new Set([...likeHere().map(e => e.itemId), ...Object.keys(sh), ...wdGet().map(m => m.itemId), ...wlGet().map(e => e.itemId)])};
 }
 async function personalRecs(s){
+  if (typeof qcOnlySpace === 'function' && qcOnlySpace()) return qcSimilar(s);   // the Québec space recommends Québec shows only
   let list = recsCache.get(s.id);
   if (!list) {
     const a = addons.find(x => x.uid === s.addonId || x.manifest.id === s.addonId) || spaceAddons()[0] || addons[0];

@@ -13,6 +13,7 @@ function personalSeeds(){
   return {seeds: out, any: !!(watched.length || liked.length), wl, mine: new Set([...likeHere().map(e => e.itemId), ...Object.keys(sh), ...wdGet().map(m => m.itemId), ...wlGet().map(e => e.itemId)])};
 }
 async function personalRecs(s){
+  if (typeof qcOnlySpace === 'function' && qcOnlySpace()) return qcSimilar(s);   // the Québec space recommends Québec shows only
   let list = recsCache.get(s.id);
   if (!list) {
     const a = addons.find(x => x.uid === s.addonId || x.manifest.id === s.addonId) || spaceAddons()[0] || addons[0];
