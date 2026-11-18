@@ -281,14 +281,14 @@ async function playNative(s, title, ctx){
   const qc = /^(TVA\+|Radio-Canada|ICI TOU\.TV|Noovo|Télé-Québec)/.test(String(s.name || '')) || /^qc:/.test(String(ctx && ctx.id || ''));   // Québec sources: only their own FR-CA captions
   if (ctx && !ctx.offline && !qc) { try { subs = await withTimeout(collectSubs(ctx), 5000); } catch {} }   // a downloaded file brings its own subtitles
   const segs = await segP;
-  for (const sub of (s.subtitles || [])) subs.push({url:sub.url, lang:sub.lang || 'eng'});
+  for (const sub of (s.subtitles || [])) subs.push({url:sub.url, lang:sub.lang || 'eng', label:sub.label});
   const pref = qc ? 'fr' : effSub() !== 'off' ? effSub() : null;          // Québec: FR-CA on by default
   subs.sort((a, b) => (pref && sameLang(b.lang, pref) ? 1 : 0) - (pref && sameLang(a.lang, pref) ? 1 : 0));
   const seen = {}, picked = [];
   for (const x of subs) {                      // preferred language: up to 6 options, others: up to 2 each
     const n = langName(x.lang), cap = pref && sameLang(x.lang, pref) ? 6 : 2;
     seen[n] = seen[n] || 0;
-    if (seen[n] < cap && picked.length < 24) { seen[n]++; picked.push({url:x.url, lang:code2(x.lang) || String(x.lang), label:qc ? 'FR-CA' + (seen[n] > 1 ? ' ' + seen[n] : '') : n + (seen[n] > 1 ? ' ' + seen[n] : '')}); }
+    if (seen[n] < cap && picked.length < 24) { seen[n]++; picked.push({url:x.url, lang:code2(x.lang) || String(x.lang), label:x.label ? x.label : qc ? 'FR-CA' + (seen[n] > 1 ? ' ' + seen[n] : '') : n + (seen[n] > 1 ? ' ' + seen[n] : '')}); }
   }
   const saved = ctx && histGet().find(x => x.k === `${ctx.type}|${ctx.id}`);
   const startMs = ctx && ctx.fresh || uiGet().resume === false ? 0 : saved && !saved.upnext && saved.pos > 20 ? Math.round(saved.pos * 1000) : 0;   // Settings > Playback > Resume
