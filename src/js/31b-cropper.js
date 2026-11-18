@@ -8,11 +8,11 @@ function makeCropper(file){
       const S = 240, W = img.naturalWidth, H = img.naturalHeight, base = S / Math.min(W, H);
       let z = 1, x = 0, y = 0;                                             // zoom on top of "cover", and the picture's offset from centre (in view px)
       const wrap = document.createElement('div'); wrap.className = 'crop';
-      wrap.innerHTML = '<div class="cropv"><img alt="" draggable="false"></div><input class="cropz" type="range" min="1" max="4" step="0.01" value="1" aria-label="Zoom"><p class="croph">Drag to move · pinch or slide to zoom</p>';
-      const view = wrap.querySelector('.cropv'), pic = view.querySelector('img'), zr = wrap.querySelector('.cropz');
-      pic.src = url;
+      wrap.innerHTML = '<div class="cropw"><img class="cropg" alt="" draggable="false"><div class="cropv"><img alt="" draggable="false"></div></div><input class="cropz" type="range" min="1" max="4" step="0.01" value="1" aria-label="Zoom"><p class="croph">Drag to move · pinch or slide to zoom</p>';
+      const view = wrap.querySelector('.cropw'), pic = wrap.querySelector('.cropv img'), ghost = wrap.querySelector('.cropg'), zr = wrap.querySelector('.cropz');
+      pic.src = ghost.src = url;                                           // the part outside the circle shows faded, to see what's around
       const clamp = () => { const s = base * z, mx = Math.max(0, (W * s - S) / 2), my = Math.max(0, (H * s - S) / 2); x = Math.min(mx, Math.max(-mx, x)); y = Math.min(my, Math.max(-my, y)); };
-      const paint = () => { clamp(); const s = base * z; pic.style.width = W * s + 'px'; pic.style.height = H * s + 'px'; pic.style.transform = `translate(${x - W * s / 2}px,${y - H * s / 2}px)`; zr.value = z; };
+      const paint = () => { clamp(); const s = base * z; for (const im of [pic, ghost]) { im.style.width = W * s + 'px'; im.style.height = H * s + 'px'; im.style.transform = `translate(${x - W * s / 2}px,${y - H * s / 2}px)`; } zr.value = z; };
       const zoomTo = nz => { const k = Math.min(4, Math.max(1, nz)) / z; z *= k; x *= k; y *= k; paint(); };
       const pts = new Map(); let last = null, pinch = 0;
       view.addEventListener('pointerdown', e => { view.setPointerCapture(e.pointerId); pts.set(e.pointerId, [e.clientX, e.clientY]); last = [e.clientX, e.clientY]; e.preventDefault(); });

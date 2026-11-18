@@ -324,3 +324,8 @@ body.tv .pe2-l .tgl small{font-size:11.5px}
 body.tv .avstrip{min-height:128px}
 .avstrip .avb .av{box-shadow:none !important}
 .avb .avimg{background:#2a2233}
+/* cropper: faded picture around the circle */
+.cropw{position:relative;width:300px;height:300px;max-width:84vw;max-height:84vw;overflow:hidden;border-radius:20px;touch-action:none;cursor:grab;background:#000}
+.cropw:active{cursor:grabbing}
+.cropg{position:absolute;left:50%;top:50%;max-width:none;opacity:.5;user-select:none;-webkit-user-drag:none;pointer-events:none}
+.cropw .cropv{position:absolute;left:50%;top:50%;margin:-120px 0 0 -120px;pointer-events:none;cursor:inherit}
