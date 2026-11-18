@@ -39,6 +39,8 @@ import android.widget.LinearLayout;
 import android.widget.ScrollView;
 import android.widget.TextView;
 import androidx.media3.common.Format;
+import androidx.media3.common.text.Cue;
+import androidx.media3.common.text.CueGroup;
 import androidx.media3.common.Tracks;
 import androidx.media3.common.TrackSelectionOverride;
 import androidx.media3.ui.CaptionStyleCompat;
@@ -155,6 +157,18 @@ public class PlayerActivity extends Activity {
     private long segTarget = 0, creditsShownAt = 0;
     private boolean creditsDismissed = false;
     private boolean subsWanted = false;
+    /** subtitles marked "flat" (Québec / TVA+): every line at the bottom, centred, whatever position the file asks for */
+    private boolean subFlat = false;
+    private final Player.Listener flatCues = new Player.Listener() {
+        @Override public void onCues(CueGroup cg) {
+            if (!subFlat || view == null || view.getSubtitleView() == null) return;
+            List<Cue> out = new ArrayList<>();
+            for (Cue c : cg.cues) out.add(c.buildUpon().setLine(Cue.DIMEN_UNSET, Cue.TYPE_UNSET).setLineAnchor(Cue.TYPE_UNSET)
+                    .setPosition(Cue.DIMEN_UNSET).setPositionAnchor(Cue.TYPE_UNSET).setSize(Cue.DIMEN_UNSET)
+                    .setTextAlignment(android.text.Layout.Alignment.ALIGN_CENTER).setVerticalType(Cue.TYPE_UNSET).build());
+            view.getSubtitleView().setCues(out);                      // runs after PlayerView's own listener, so this is what shows
+        }
+    };
     private boolean autoNextOn = true, autoSkipOn = false;           // settings: start the next episode by itself, skip intros and recaps by themselves
     private long skippedIntro = -1, skippedRecap = -1;
     private FrameLayout nextLayer;
@@ -310,6 +324,7 @@ public class PlayerActivity extends Activity {
                 .setMediaMetadata(new MediaMetadata.Builder().setTitle(title == null ? "" : title).build());
         List<MediaItem.SubtitleConfiguration> subs = new ArrayList<>();
         try {
+            subFlat = false;
             JSONArray arr = new JSONArray(in.getStringExtra("subs") == null ? "[]" : in.getStringExtra("subs"));
             for (int i = 0; i < arr.length(); i++) {
                 JSONObject o = arr.getJSONObject(i);
@@ -322,6 +337,7 @@ public class PlayerActivity extends Activity {
                 SubCfg sc = new SubCfg();
                 sc.url = su; sc.mime = mime; sc.lang = o.optString("lang", null); sc.label = o.optString("label", null);
                 sc.vtt = MimeTypes.TEXT_VTT.equals(mime);
+                if (o.optBoolean("flat", false)) subFlat = true;
                 sc.shiftable = !MimeTypes.TEXT_SSA.equals(mime);
                 subCfgs.add(sc);
                 subs.add(new MediaItem.SubtitleConfiguration.Builder(Uri.parse(su))
@@ -403,7 +419,7 @@ public class PlayerActivity extends Activity {
                 showError(friendly(error), error.getErrorCodeName());
             }
         };
-        player.addListener(playerListener);
+        player.addListener(playerListener); player.addListener(flatCues);
 
         mediaItem = item.build();
         player.setMediaItem(mediaItem, Math.max(0L, startMs));
@@ -1009,7 +1025,7 @@ public class PlayerActivity extends Activity {
         view.setPlayer(player);
         if (trackParams != null) player.setTrackSelectionParameters(trackParams);
         if (optTunnel && tsel != null) tsel.setParameters(tsel.buildUponParameters().setTunnelingEnabled(true));
-        player.addListener(playerListener);
+        player.addListener(playerListener); player.addListener(flatCues);
         player.setMediaItem(mediaItem, pos);
         player.prepare();
         player.setPlaybackParameters(new androidx.media3.common.PlaybackParameters(newSpeed, 1f));

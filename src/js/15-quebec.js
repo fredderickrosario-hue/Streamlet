@@ -85,18 +85,6 @@ async function qcMeta(path){
   return {id:'qc:tva:' + path, type:'series', name:info.name, poster:info.poster, background:info.background, description:info.description, videos, releaseInfo:''};
 }
 const qcPolicy = {};
-/* WebVTT -> SubRip: same lines and times, without positions, styles or notes */
-function qcVttToSrt(b){
-  const ts = t => { const m = t.trim().match(/^(?:(\d+):)?(\d{1,2}):(\d\d)[.,](\d{1,3})$/); return m ? `${String(m[1] || 0).padStart(2, '0')}:${m[2].padStart(2, '0')}:${m[3]},${m[4].padEnd(3, '0')}` : null; };
-  const out = []; let n = 0;
-  for (const blk of String(b).replace(/\r/g, '').split(/\n{2,}/)) {
-    const lines = blk.split('\n'), i = lines.findIndex(l => l.includes('-->')); if (i < 0) continue;
-    const [a, z] = lines[i].split('-->'), A = ts(a), Z = ts(String(z).trim().split(/\s+/)[0]); if (!A || !Z) continue;
-    const text = lines.slice(i + 1).join('\n').replace(/<\/?(?:c|v|lang|ruby|rt)[^>]*>/g, '').trim(); if (!text) continue;
-    out.push(`${++n}\n${A} --> ${Z}\n${text}`);
-  }
-  return out.join('\n\n') + '\n';
-}
 async function qcStreams(id){
   const slug = id.replace(/^qc:tva:/, ''), {ent} = await qcPageData(slug);
   if (!ent.videoId) throw new Error('No video on that page');
@@ -111,18 +99,10 @@ async function qcStreams(id){
       for (const s of src.filter(s => /mpegurl/i.test(s.type || ''))) { out.push({name:'TVA+', title:'HLS · adaptive', url:https(s.src)}); break; }
       for (const s of src.filter(s => /mp4/i.test(s.container || s.type || '') && !/mpegurl|dash/i.test(s.type || '')).sort((a, b) => (b.height || 0) - (a.height || 0)))
         out.push({name:'TVA+', title:`MP4 · ${s.height ? s.height + 'p' : Math.round((s.encoding_rate || 0) / 1000) + ' kbps'}`, url:https(s.src)});
-      /* TEST: every subtitle track TVA+ gives, as it comes (A, B…). Details go to the log (QC) so the one that works can be kept */
-      const all = (j.text_tracks || []).filter(t => t.src), subs = [];
-      for (let i = 0; i < all.length; i++) {
-        const t = all[i], L = String.fromCharCode(65 + i), u = https(t.src);
-        let info = 'not read', flat = null;
-        try { const r = await qcCached('subraw' + u, 3600e3, () => qcGet(u)), b = String(r.body || '');
-          info = `HTTP ${r.status} · ${b.length} chars · ${/^\uFEFF?WEBVTT/.test(b) ? 'WEBVTT' : 'starts "' + b.slice(0, 20).replace(/\s+/g, ' ') + '"'} · ${(b.match(/-->/g) || []).length} cues`;
-          } catch (e) { info = 'error ' + e.message; }   // no 'bas' copies: a whole subtitle file inside the link made the player crash (too big to hand over)
-        qcLog(`subs ${slug} ${L}: kind=${t.kind || '-'} lang=${t.srclang || '-'} label=${t.label || '-'} mime=${t.mime_type || '-'} default=${!!t.default} · ${info} · ${u.slice(0, 90)}`);
-        subs.push({id:'qc' + L, url:/\.vtt/i.test(u) ? u : u + '#.vtt', lang:t.srclang || 'fr', label:`Test ${L}`});   // '#.vtt' tells the player it is WebVTT
-        if (flat) subs.push({id:'qc' + L + 'b', url:flat, lang:t.srclang || 'fr', label:`Test ${L} bas`});
-      }
+      /* the real captions only (kind captions/subtitles; the others are seek-bar thumbnails). '#.vtt' tells the player it's WebVTT,
+         flat: the player puts every line at the bottom, centred (TVA+ places some at the right edge) */
+      const subs = (j.text_tracks || []).filter(t => t.src && /^(captions|subtitles)$/i.test(t.kind || '')).map((t, i) => { const u = https(t.src);
+        return {id:'qc' + i, url:/\.vtt/i.test(u) ? u : u + '#.vtt', lang:t.srclang || 'fr', label:'FR-CA' + (i ? ' ' + (i + 1) : ''), flat:true}; });
       if (subs.length) out.forEach(o => { o.subtitles = subs; });
       if (out.length) return out;
     } catch {}
