@@ -1190,6 +1190,13 @@ body.tv .pe2 .pe-act{flex-wrap:nowrap;gap:8px}
 body.tv .pe2 .pe-act .btn{padding:9px 14px;font-size:14px;white-space:nowrap}
 body.tv .pe2-l .tgl{padding:10px 12px}
 body.tv .pe2-l .tgl small{font-size:11.5px}
+/* picture cropper (31b-cropper.js) */
+.crop{display:flex;flex-direction:column;align-items:center;gap:12px;outline:none}
+.cropv{position:relative;width:240px;height:240px;border-radius:50%;overflow:hidden;touch-action:none;cursor:grab;background:#000;box-shadow:0 0 0 3px var(--acc),0 10px 30px rgba(0,0,0,.5)}
+.cropv:active{cursor:grabbing}
+.cropv img{position:absolute;left:50%;top:50%;max-width:none;user-select:none;-webkit-user-drag:none}
+.cropz{width:220px;accent-color:var(--acc)}
+.croph{margin:0;color:var(--mut);font-size:13px}
 
 /* manage profiles: the pencil badge sits on the avatar's corner, in our accent color */
 .pav:not(.add){width:fit-content;height:auto;border-radius:0;box-shadow:none}
@@ -1808,13 +1815,12 @@ body:not(.tv) #nav{border-radius:24px !important}
 .smark{display:inline-flex;align-items:center;gap:6px}
 .smark svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2}
 /* phone and web: no hover border. A pencil or a mouse gets a slightly darker background and a small lift; the keyboard keeps its ring */
-@media (hover:hover){
-  body:not(.tv) :is(button,a,label.tgl,.stile,.card,.poster,.ep,.scard):hover:not(:focus-visible){outline:none !important}
-  body:not(.tv) :is(.btn,.chip,.pillx,.gtile,.hb,.eb,.pinkey,.backbtn,.ibtn,.pib,.smark,.sw,.kkey):hover:not(:focus-visible){filter:brightness(.86);transform:scale(1.03)}
-  body:not(.tv) :is(.stile,.sptile,.wztile,.avb,.ptile,.card,.poster,.ep,.scard,.gtile):hover:not(:focus-visible){filter:brightness(.86);transform:scale(1.03)}
-  body:not(.tv) :is(.setitem,.acard,.tgl,.sprow):hover:not(:focus-visible){background-color:rgba(0,0,0,.14);transform:scale(1.01);outline:none !important}
-  body:not(.tv) :is(.btn,.chip,.pillx,.hb,.stile,.sptile,.wztile,.avb,.ptile,.card,.poster,.ep,.scard,.gtile,.setitem,.acard,.tgl,.sprow,.backbtn,.eb,.pinkey){transition:transform .15s,filter .15s,background-color .15s}
-}
+/* hover only once a mouse or a pen has moved over the page (body.hov, 33-profile-hub.js): fingers never trigger it */
+  body.hov:not(.tv) :is(button,a,label.tgl,.stile,.card,.poster,.ep,.scard):hover:not(:focus-visible){outline:none !important}
+  body.hov:not(.tv) :is(.btn,.chip,.pillx,.gtile,.hb,.eb,.pinkey,.backbtn,.ibtn,.pib,.smark,.sw,.kkey):hover:not(:focus-visible){filter:brightness(.8);transform:scale(1.04)}
+  body.hov:not(.tv) :is(.stile,.sptile,.wztile,.avb,.ptile,.card,.poster,.ep,.scard,.gtile):hover:not(:focus-visible){filter:brightness(.8);transform:scale(1.04)}
+  body.hov:not(.tv) :is(.setitem,.acard,.tgl,.sprow):hover:not(:focus-visible){background-color:rgba(0,0,0,.14);transform:scale(1.01);outline:none !important}
+  body.hov:not(.tv) :is(.btn,.chip,.pillx,.hb,.stile,.sptile,.wztile,.avb,.ptile,.card,.poster,.ep,.scard,.gtile,.setitem,.acard,.tgl,.sprow,.backbtn,.eb,.pinkey){transition:transform .15s,filter .15s,background-color .15s}
 .drtacts{margin-right:4px}
 :is(.sw,summary){border-radius:12px !important}
 .spaceBtn{border-radius:999px !important}
@@ -3221,6 +3227,11 @@ function editProfile(id, openCat){
   const pr = isNew ? {id:'p'+Date.now().toString(36), name:'', emoji:PROFILE_EMOJIS[profiles.length % PROFILE_EMOJIS.length], color:PROFILE_COLORS[profiles.length % PROFILE_COLORS.length], avatar:'a:' + ((profiles.length * 7 + 3) % AV_COUNT)}
                    : JSON.parse(JSON.stringify(profiles.find(x => x.id === id)));
   const ed = $('#profEd'); ed.hidden = false; ed.scrollTop = 0; pushLayer('pedit');
+  if (!ed._focScroll) { ed._focScroll = 1; ed.addEventListener('focusin', e => {                 // the settings column scrolls to whatever the remote lands on
+    const col = e.target.closest && e.target.closest('.pe2-r'); if (!col || col.scrollHeight <= col.clientHeight) return;
+    const r = e.target.getBoundingClientRect(), c = col.getBoundingClientRect(), pad = 40;
+    if (r.bottom > c.bottom - pad) col.scrollTop += r.bottom - c.bottom + pad; else if (r.top < c.top + pad) col.scrollTop -= c.top + pad - r.top;
+  }); }
   if (!ed._noScroll) { ed._noScroll = 1; ed.addEventListener('scroll', () => { if (isTVui() && ed.scrollTop) ed.scrollTop = 0; }); }   // one screen on the TV: focus never shifts it
   const close = () => { try { avClose(); } catch {} try { peSubClose(true); } catch {} keepManage = manageProfiles && !$('#profiles').hidden; popLayer('pedit'); setTimeout(() => { keepManage = false; }, 1500); };
   const name = h('input', {class:'f pe-input', placeholder:'Name', maxlength:'16'}); name.value = pr.name;
@@ -6383,7 +6394,11 @@ async function qcStreams(id){
       for (const s of src.filter(s => /mpegurl/i.test(s.type || ''))) { out.push({name:'TVA+', title:'HLS · adaptive', url:https(s.src)}); break; }
       for (const s of src.filter(s => /mp4/i.test(s.container || s.type || '') && !/mpegurl|dash/i.test(s.type || '')).sort((a, b) => (b.height || 0) - (a.height || 0)))
         out.push({name:'TVA+', title:`MP4 · ${s.height ? s.height + 'p' : Math.round((s.encoding_rate || 0) / 1000) + ' kbps'}`, url:https(s.src)});
-      const subs = (j.text_tracks || []).filter(t => t.src && /vtt/i.test(t.src + (t.mime_type || ''))).map((t, i) => ({id:'qc' + i, url:https(t.src), lang:t.srclang || 'fr'}));
+      const cand = (j.text_tracks || []).filter(t => t.src && /vtt/i.test(t.src + (t.mime_type || '')) && !/^(metadata|chapters|thumbnails)$/i.test(t.kind || ''));
+      const okSub = t => qcCached('sub' + t.src, 3600e3, async () => { try { const r = await qcGet(https(t.src)), b = String(r.body || ''); return r.status === 200 && /^\uFEFF?WEBVTT/.test(b) && /-->/.test(b); } catch { return false; } });
+      const good = (await Promise.all(cand.map(async t => (await okSub(t)) ? t : null))).filter(Boolean);   // tracks that don't load or are empty are left out (Indéfendable's first two)
+      const subs = good.map((t, i) => ({id:'qc' + i, url:https(t.src), lang:t.srclang || 'fr'}));
+      if (cand.length !== good.length) qcLog(`${slug}: ${cand.length - good.length} of ${cand.length} subtitle tracks don't work, left out`);
       if (subs.length) out.forEach(o => { o.subtitles = subs; });
       if (out.length) return out;
     } catch {}
@@ -6540,7 +6555,8 @@ async function qcRoute(url){
     const tm = id.match(/^(tt\d+):(\d+):(\d+)$/);
     if (tm) {                                                              // signed in to TOU.TV: try it first, then Radio-Canada's site, then the TOU.TV link
       const ent = QC_IMDB[tm[1]];
-      const first = ent ? touApp(ent.path, +tm[2], +tm[3]) : [];        // Stat: the ICI TOU.TV app at that episode comes first
+      const first = ent ? touApp(ent.path, +tm[2], +tm[3]) : [];        // Stat: the ICI TOU.TV app at that episode
+      if (first.length) return {streams:first};                             // ICI TOU.TV shows: Play opens the episode in the app, no source list
       if (ent && await touOn()) { const r = await touStreams(ent.path, +tm[2], +tm[3]); if (r.ok) return {streams:[...first, ...r.streams, ...touWeb(ent.path, +tm[2], +tm[3])]}; }
       const rest = await qcMappedStreams(tm[1], +tm[2], +tm[3]);
       return {streams:ent ? [...first, ...rest.filter(x => x.url), ...touWeb(ent.path, +tm[2], +tm[3]), ...rest.filter(x => !x.url && !x.touApp)] : rest};
@@ -6548,6 +6564,7 @@ async function qcRoute(url){
     if (/^qc:rc:/.test(id)) return {streams:await qcRcStreams(id)};
     if (/^qc:tou:/.test(id)) {
       const [slug, ep] = id.replace(/^qc:tou:/, '').split('/'), m = String(ep || '').match(/s(\d+)e(\d+)/i), app = {name:'ICI TOU.TV', title:'Open in the ICI TOU.TV app', externalUrl:'toutv://' + id.replace(/^qc:tou:/, '')};
+      if (m && touApp(slug, +m[1], +m[2]).length) return {streams:touApp(slug, +m[1], +m[2])};   // straight to the episode in the app
       if (m) { const r = await touStreams(slug, +m[1], +m[2]); return {streams:[...touApp(slug, +m[1], +m[2]), ...(r.ok ? r.streams : []), ...touWeb(slug, +m[1], +m[2]), app]}; }
       return {streams:[app]};
     }
@@ -8742,7 +8759,14 @@ function avOwn(body, pr, pick){
   if (!tv || typeof qrcode !== 'function') {
     const inp = h('input', {type:'file', accept:'image/*', hidden:true});
     const msg = h('p', {class:'sub'}, 'Any photo or picture. It is cropped to a square from the middle.');
-    inp.onchange = async () => { const f = inp.files && inp.files[0]; if (!f) return; msg.textContent = 'One moment…'; try { pick('img:' + await avShrink(f)); } catch { msg.textContent = "That file isn't a picture Streamlet can open."; } };
+    inp.onchange = async () => {
+      const f = inp.files && inp.files[0]; inp.value = ''; if (!f) return;
+      let cr; try { cr = await makeCropper(f); } catch { msg.textContent = "That file isn't a picture Streamlet can open."; return; }
+      const use = h('button', {class:'btn', type:'button', onclick:() => pick('img:' + cr.result())}, 'Use this picture');
+      const again = h('button', {class:'btn ghost', type:'button', onclick:() => inp.click()}, 'Choose another');
+      body.replaceChildren(h('div', {class:'avown'}, cr.el, h('div', {class:'mebtns', style:'justify-content:center'}, again, use), inp));
+      use.focus({preventScroll:true});
+    };
     body.replaceChildren(h('div', {class:'avown'}, mine, h('button', {class:'btn', type:'button', onclick:() => inp.click()}, 'Choose a picture'), msg, inp));
     return null;
   }
@@ -8781,6 +8805,53 @@ function avOwn(body, pr, pick){
   })();
   return () => { dead = true; FB.fs.deleteDoc(ref).catch(() => {}); };
 }
+/* Streamlet picture cropper: drag to move, pinch / wheel / slider to zoom, inside a circle. Used by the app (profile picture)
+   and by avatar.html (picture sent from a phone to the TV). makeCropper(file) → Promise<{el, result()}>; result() gives a 256 px JPEG data URL. */
+function makeCropper(file){
+  return new Promise((res, rej) => {
+    const url = URL.createObjectURL(file), img = new Image();
+    img.onerror = () => { URL.revokeObjectURL(url); rej(new Error('not a picture')); };
+    img.onload = () => {
+      const S = 240, W = img.naturalWidth, H = img.naturalHeight, base = S / Math.min(W, H);
+      let z = 1, x = 0, y = 0;                                             // zoom on top of "cover", and the picture's offset from centre (in view px)
+      const wrap = document.createElement('div'); wrap.className = 'crop';
+      wrap.innerHTML = '<div class="cropv"><img alt="" draggable="false"></div><input class="cropz" type="range" min="1" max="4" step="0.01" value="1" aria-label="Zoom"><p class="croph">Drag to move · pinch or slide to zoom</p>';
+      const view = wrap.querySelector('.cropv'), pic = view.querySelector('img'), zr = wrap.querySelector('.cropz');
+      pic.src = url;
+      const clamp = () => { const s = base * z, mx = Math.max(0, (W * s - S) / 2), my = Math.max(0, (H * s - S) / 2); x = Math.min(mx, Math.max(-mx, x)); y = Math.min(my, Math.max(-my, y)); };
+      const paint = () => { clamp(); const s = base * z; pic.style.width = W * s + 'px'; pic.style.height = H * s + 'px'; pic.style.transform = `translate(${x - W * s / 2}px,${y - H * s / 2}px)`; zr.value = z; };
+      const zoomTo = nz => { const k = Math.min(4, Math.max(1, nz)) / z; z *= k; x *= k; y *= k; paint(); };
+      const pts = new Map(); let last = null, pinch = 0;
+      view.addEventListener('pointerdown', e => { view.setPointerCapture(e.pointerId); pts.set(e.pointerId, [e.clientX, e.clientY]); last = [e.clientX, e.clientY]; e.preventDefault(); });
+      view.addEventListener('pointermove', e => {
+        if (!pts.has(e.pointerId)) return;
+        pts.set(e.pointerId, [e.clientX, e.clientY]);
+        if (pts.size === 2) { const [a, b] = [...pts.values()], d = Math.hypot(a[0] - b[0], a[1] - b[1]); if (pinch) zoomTo(z * d / pinch); pinch = d; return; }
+        if (last) { x += e.clientX - last[0]; y += e.clientY - last[1]; paint(); }
+        last = [e.clientX, e.clientY];
+      });
+      const up = e => { pts.delete(e.pointerId); pinch = 0; last = pts.size ? [...pts.values()][0] : null; };
+      view.addEventListener('pointerup', up); view.addEventListener('pointercancel', up);
+      view.addEventListener('wheel', e => { e.preventDefault(); zoomTo(z * (e.deltaY < 0 ? 1.08 : 1 / 1.08)); }, {passive:false});
+      zr.oninput = () => zoomTo(+zr.value);
+      wrap.tabIndex = -1;
+      wrap.addEventListener('keydown', e => {                              // arrows move, + / - zoom (remote, keyboard)
+        const m = {ArrowLeft:[12, 0], ArrowRight:[-12, 0], ArrowUp:[0, 12], ArrowDown:[0, -12]}[e.key];
+        if (m && e.target !== zr) { x += m[0]; y += m[1]; paint(); e.preventDefault(); }
+        if (e.key === '+' || e.key === '=') zoomTo(z * 1.1); if (e.key === '-') zoomTo(z / 1.1);
+      });
+      paint();
+      res({el:wrap, result(){
+        const c = document.createElement('canvas'); c.width = c.height = 256;
+        const s = base * z, sx = (W * s / 2 - x - S / 2) / s, sy = (H * s / 2 - y - S / 2) / s, sw = S / s;
+        c.getContext('2d').drawImage(img, sx, sy, sw, sw, 0, 0, 256, 256);
+        URL.revokeObjectURL(url); return c.toDataURL('image/jpeg', .86);
+      }});
+    };
+    img.src = url;
+  });
+}
+if (typeof window !== 'undefined') window.makeCropper = makeCropper;
 /* ---------- quick space switcher: a pop-up over what you're watching (the ⇄ space button, the TV menu's Spaces).
    The full spaces page stays the front door and the place to manage spaces: "Manage spaces" at the bottom opens it. ---------- */
 let spPop = null;
@@ -8913,6 +8984,10 @@ function pinPad(title, check){
   });
 }
 LAYER_CLOSERS.pin = () => { if (pinPad.cancel) pinPad.cancel(); };
+
+/* a mouse or a pen (S Pen hover included) turns on hover effects on phone and web; a finger turns them off again */
+addEventListener('pointermove', e => { if (e.pointerType === 'mouse' || e.pointerType === 'pen') document.body.classList.add('hov'); }, {passive:true});
+addEventListener('pointerdown', e => { if (e.pointerType === 'touch') document.body.classList.remove('hov'); }, {passive:true});
 </script>
 </body>
 </html>

@@ -202,6 +202,11 @@ function editProfile(id, openCat){
   const pr = isNew ? {id:'p'+Date.now().toString(36), name:'', emoji:PROFILE_EMOJIS[profiles.length % PROFILE_EMOJIS.length], color:PROFILE_COLORS[profiles.length % PROFILE_COLORS.length], avatar:'a:' + ((profiles.length * 7 + 3) % AV_COUNT)}
                    : JSON.parse(JSON.stringify(profiles.find(x => x.id === id)));
   const ed = $('#profEd'); ed.hidden = false; ed.scrollTop = 0; pushLayer('pedit');
+  if (!ed._focScroll) { ed._focScroll = 1; ed.addEventListener('focusin', e => {                 // the settings column scrolls to whatever the remote lands on
+    const col = e.target.closest && e.target.closest('.pe2-r'); if (!col || col.scrollHeight <= col.clientHeight) return;
+    const r = e.target.getBoundingClientRect(), c = col.getBoundingClientRect(), pad = 40;
+    if (r.bottom > c.bottom - pad) col.scrollTop += r.bottom - c.bottom + pad; else if (r.top < c.top + pad) col.scrollTop -= c.top + pad - r.top;
+  }); }
   if (!ed._noScroll) { ed._noScroll = 1; ed.addEventListener('scroll', () => { if (isTVui() && ed.scrollTop) ed.scrollTop = 0; }); }   // one screen on the TV: focus never shifts it
   const close = () => { try { avClose(); } catch {} try { peSubClose(true); } catch {} keepManage = manageProfiles && !$('#profiles').hidden; popLayer('pedit'); setTimeout(() => { keepManage = false; }, 1500); };
   const name = h('input', {class:'f pe-input', placeholder:'Name', maxlength:'16'}); name.value = pr.name;

@@ -99,3 +99,7 @@ function pinPad(title, check){
   });
 }
 LAYER_CLOSERS.pin = () => { if (pinPad.cancel) pinPad.cancel(); };
+
+/* a mouse or a pen (S Pen hover included) turns on hover effects on phone and web; a finger turns them off again */
+addEventListener('pointermove', e => { if (e.pointerType === 'mouse' || e.pointerType === 'pen') document.body.classList.add('hov'); }, {passive:true});
+addEventListener('pointerdown', e => { if (e.pointerType === 'touch') document.body.classList.remove('hov'); }, {passive:true});

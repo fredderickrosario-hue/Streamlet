@@ -118,7 +118,14 @@ function avOwn(body, pr, pick){
   if (!tv || typeof qrcode !== 'function') {
     const inp = h('input', {type:'file', accept:'image/*', hidden:true});
     const msg = h('p', {class:'sub'}, 'Any photo or picture. It is cropped to a square from the middle.');
-    inp.onchange = async () => { const f = inp.files && inp.files[0]; if (!f) return; msg.textContent = 'One moment…'; try { pick('img:' + await avShrink(f)); } catch { msg.textContent = "That file isn't a picture Streamlet can open."; } };
+    inp.onchange = async () => {
+      const f = inp.files && inp.files[0]; inp.value = ''; if (!f) return;
+      let cr; try { cr = await makeCropper(f); } catch { msg.textContent = "That file isn't a picture Streamlet can open."; return; }
+      const use = h('button', {class:'btn', type:'button', onclick:() => pick('img:' + cr.result())}, 'Use this picture');
+      const again = h('button', {class:'btn ghost', type:'button', onclick:() => inp.click()}, 'Choose another');
+      body.replaceChildren(h('div', {class:'avown'}, cr.el, h('div', {class:'mebtns', style:'justify-content:center'}, again, use), inp));
+      use.focus({preventScroll:true});
+    };
     body.replaceChildren(h('div', {class:'avown'}, mine, h('button', {class:'btn', type:'button', onclick:() => inp.click()}, 'Choose a picture'), msg, inp));
     return null;
   }

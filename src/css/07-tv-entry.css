@@ -311,3 +311,10 @@ body.tv .pe2 .pe-act{flex-wrap:nowrap;gap:8px}
 body.tv .pe2 .pe-act .btn{padding:9px 14px;font-size:14px;white-space:nowrap}
 body.tv .pe2-l .tgl{padding:10px 12px}
 body.tv .pe2-l .tgl small{font-size:11.5px}
+/* picture cropper (31b-cropper.js) */
+.crop{display:flex;flex-direction:column;align-items:center;gap:12px;outline:none}
+.cropv{position:relative;width:240px;height:240px;border-radius:50%;overflow:hidden;touch-action:none;cursor:grab;background:#000;box-shadow:0 0 0 3px var(--acc),0 10px 30px rgba(0,0,0,.5)}
+.cropv:active{cursor:grabbing}
+.cropv img{position:absolute;left:50%;top:50%;max-width:none;user-select:none;-webkit-user-drag:none}
+.cropz{width:220px;accent-color:var(--acc)}
+.croph{margin:0;color:var(--mut);font-size:13px}

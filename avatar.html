@@ -13,7 +13,10 @@ h1{margin:0 0 6px;font-size:32px}h1 b{color:#ff6b3d}
 p.sub{color:#9aa0b4;margin:0 0 22px}
 button{width:100%;padding:14px;border-radius:14px;border:0;font-size:16px;font-weight:700;color:#fff;background:#ff6b3d;margin:0 0 10px}
 button.ghost{background:#ffffff14}
-#pv{width:160px;height:160px;border-radius:50%;object-fit:cover;margin:0 auto 18px;display:none;box-shadow:0 10px 30px rgba(0,0,0,.5)}
+.crop{display:flex;flex-direction:column;align-items:center;gap:12px;margin:0 0 18px;outline:none}
+.cropv{position:relative;width:240px;height:240px;border-radius:50%;overflow:hidden;touch-action:none;cursor:grab;background:#000;box-shadow:0 0 0 3px #ff6b3d,0 10px 30px rgba(0,0,0,.5)}
+.cropv img{position:absolute;left:50%;top:50%;max-width:none;user-select:none;-webkit-user-drag:none}
+.cropz{width:220px;accent-color:#ff6b3d}.croph{margin:0;color:#9aa0b4;font-size:13px}
 #msg{min-height:24px;margin-top:8px;font-size:14px;color:#ff8f8f}
 #msg.ok{color:#4ad295}
 </style>
@@ -22,7 +25,7 @@ button.ghost{background:#ffffff14}
 <main>
   <h1>Stream<b>let</b></h1>
   <p class="sub" id="sub">Pick a photo for your profile. It goes straight to your TV.</p>
-  <img id="pv" alt="">
+  <div id="pvBox"></div>
   <div id="form">
     <button id="pick" type="button">Choose a photo</button>
     <button id="send" type="button" hidden>Send to the TV</button>
@@ -30,6 +33,7 @@ button.ghost{background:#ffffff14}
   </div>
   <div id="msg"></div>
 </main>
+<script src="src/js/31b-cropper.js"></script>
 <script type="module">
 import {initializeApp} from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js';
 import {getFirestore, doc, setDoc} from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js';
@@ -40,7 +44,7 @@ const [pid, key] = location.hash.slice(1).split('.');
 const unb64 = s => Uint8Array.from(atob(s.replace(/-/g, '+').replace(/_/g, '/')), c => c.charCodeAt(0));
 const b64 = u => { let s = ''; for (let i = 0; i < u.length; i += 8192) s += String.fromCharCode(...u.subarray(i, i + 8192)); return btoa(s).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, ''); };
 if (!pid || !key) { $('#form').hidden = true; $('#sub').textContent = ''; msg('Open this page by scanning the code on your TV.'); }
-let pic = null;
+let pic = null, crop = null;
 const shrink = file => new Promise((res, rej) => {        // a 200 px square from the middle, like the app does
   const img = new Image(), u = URL.createObjectURL(file);
   img.onload = () => { const s = Math.min(img.naturalWidth, img.naturalHeight), c = document.createElement('canvas'); c.width = c.height = 200;
@@ -51,11 +55,11 @@ const shrink = file => new Promise((res, rej) => {        // a 200 px square fro
 $('#pick').onclick = () => $('#file').click();
 $('#file').onchange = async () => {
   const f = $('#file').files[0]; if (!f) return;
-  try { pic = await shrink(f); } catch { msg("That file isn't a picture this phone can open."); return; }
-  $('#pv').src = pic; $('#pv').style.display = 'block'; $('#send').hidden = false; $('#pick').textContent = 'Choose another'; $('#pick').className = 'ghost'; msg('');
+  try { crop = await makeCropper(f); } catch { msg("That file isn't a picture this phone can open."); return; }
+  pic = true; $('#file').value = ''; $('#pvBox').replaceChildren(crop.el); $('#send').hidden = false; $('#pick').textContent = 'Choose another'; $('#pick').className = 'ghost'; msg('');
 };
 $('#send').onclick = async () => {
-  if (!pic) return; msg('Sending…', true);
+  if (!pic) return; pic = crop.result(); msg('Sending…', true);
   try {
     const k = await crypto.subtle.importKey('raw', unb64(key), 'AES-GCM', false, ['encrypt']), iv = crypto.getRandomValues(new Uint8Array(12));
     const ct = new Uint8Array(await crypto.subtle.encrypt({name:'AES-GCM', iv}, k, new TextEncoder().encode(JSON.stringify({img:pic}))));

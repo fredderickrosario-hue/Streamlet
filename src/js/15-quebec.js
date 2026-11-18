@@ -99,7 +99,11 @@ async function qcStreams(id){
       for (const s of src.filter(s => /mpegurl/i.test(s.type || ''))) { out.push({name:'TVA+', title:'HLS · adaptive', url:https(s.src)}); break; }
       for (const s of src.filter(s => /mp4/i.test(s.container || s.type || '') && !/mpegurl|dash/i.test(s.type || '')).sort((a, b) => (b.height || 0) - (a.height || 0)))
         out.push({name:'TVA+', title:`MP4 · ${s.height ? s.height + 'p' : Math.round((s.encoding_rate || 0) / 1000) + ' kbps'}`, url:https(s.src)});
-      const subs = (j.text_tracks || []).filter(t => t.src && /vtt/i.test(t.src + (t.mime_type || ''))).map((t, i) => ({id:'qc' + i, url:https(t.src), lang:t.srclang || 'fr'}));
+      const cand = (j.text_tracks || []).filter(t => t.src && /vtt/i.test(t.src + (t.mime_type || '')) && !/^(metadata|chapters|thumbnails)$/i.test(t.kind || ''));
+      const okSub = t => qcCached('sub' + t.src, 3600e3, async () => { try { const r = await qcGet(https(t.src)), b = String(r.body || ''); return r.status === 200 && /^\uFEFF?WEBVTT/.test(b) && /-->/.test(b); } catch { return false; } });
+      const good = (await Promise.all(cand.map(async t => (await okSub(t)) ? t : null))).filter(Boolean);   // tracks that don't load or are empty are left out (Indéfendable's first two)
+      const subs = good.map((t, i) => ({id:'qc' + i, url:https(t.src), lang:t.srclang || 'fr'}));
+      if (cand.length !== good.length) qcLog(`${slug}: ${cand.length - good.length} of ${cand.length} subtitle tracks don't work, left out`);
       if (subs.length) out.forEach(o => { o.subtitles = subs; });
       if (out.length) return out;
     } catch {}
@@ -256,7 +260,8 @@ async function qcRoute(url){
     const tm = id.match(/^(tt\d+):(\d+):(\d+)$/);
     if (tm) {                                                              // signed in to TOU.TV: try it first, then Radio-Canada's site, then the TOU.TV link
       const ent = QC_IMDB[tm[1]];
-      const first = ent ? touApp(ent.path, +tm[2], +tm[3]) : [];        // Stat: the ICI TOU.TV app at that episode comes first
+      const first = ent ? touApp(ent.path, +tm[2], +tm[3]) : [];        // Stat: the ICI TOU.TV app at that episode
+      if (first.length) return {streams:first};                             // ICI TOU.TV shows: Play opens the episode in the app, no source list
       if (ent && await touOn()) { const r = await touStreams(ent.path, +tm[2], +tm[3]); if (r.ok) return {streams:[...first, ...r.streams, ...touWeb(ent.path, +tm[2], +tm[3])]}; }
       const rest = await qcMappedStreams(tm[1], +tm[2], +tm[3]);
       return {streams:ent ? [...first, ...rest.filter(x => x.url), ...touWeb(ent.path, +tm[2], +tm[3]), ...rest.filter(x => !x.url && !x.touApp)] : rest};
@@ -264,6 +269,7 @@ async function qcRoute(url){
     if (/^qc:rc:/.test(id)) return {streams:await qcRcStreams(id)};
     if (/^qc:tou:/.test(id)) {
       const [slug, ep] = id.replace(/^qc:tou:/, '').split('/'), m = String(ep || '').match(/s(\d+)e(\d+)/i), app = {name:'ICI TOU.TV', title:'Open in the ICI TOU.TV app', externalUrl:'toutv://' + id.replace(/^qc:tou:/, '')};
+      if (m && touApp(slug, +m[1], +m[2]).length) return {streams:touApp(slug, +m[1], +m[2])};   // straight to the episode in the app
       if (m) { const r = await touStreams(slug, +m[1], +m[2]); return {streams:[...touApp(slug, +m[1], +m[2]), ...(r.ok ? r.streams : []), ...touWeb(slug, +m[1], +m[2]), app]}; }
       return {streams:[app]};
     }

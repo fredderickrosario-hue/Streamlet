@@ -223,13 +223,12 @@ body:not(.tv) #nav{border-radius:24px !important}
 .smark{display:inline-flex;align-items:center;gap:6px}
 .smark svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2}
 /* phone and web: no hover border. A pencil or a mouse gets a slightly darker background and a small lift; the keyboard keeps its ring */
-@media (hover:hover){
-  body:not(.tv) :is(button,a,label.tgl,.stile,.card,.poster,.ep,.scard):hover:not(:focus-visible){outline:none !important}
-  body:not(.tv) :is(.btn,.chip,.pillx,.gtile,.hb,.eb,.pinkey,.backbtn,.ibtn,.pib,.smark,.sw,.kkey):hover:not(:focus-visible){filter:brightness(.86);transform:scale(1.03)}
-  body:not(.tv) :is(.stile,.sptile,.wztile,.avb,.ptile,.card,.poster,.ep,.scard,.gtile):hover:not(:focus-visible){filter:brightness(.86);transform:scale(1.03)}
-  body:not(.tv) :is(.setitem,.acard,.tgl,.sprow):hover:not(:focus-visible){background-color:rgba(0,0,0,.14);transform:scale(1.01);outline:none !important}
-  body:not(.tv) :is(.btn,.chip,.pillx,.hb,.stile,.sptile,.wztile,.avb,.ptile,.card,.poster,.ep,.scard,.gtile,.setitem,.acard,.tgl,.sprow,.backbtn,.eb,.pinkey){transition:transform .15s,filter .15s,background-color .15s}
-}
+/* hover only once a mouse or a pen has moved over the page (body.hov, 33-profile-hub.js): fingers never trigger it */
+  body.hov:not(.tv) :is(button,a,label.tgl,.stile,.card,.poster,.ep,.scard):hover:not(:focus-visible){outline:none !important}
+  body.hov:not(.tv) :is(.btn,.chip,.pillx,.gtile,.hb,.eb,.pinkey,.backbtn,.ibtn,.pib,.smark,.sw,.kkey):hover:not(:focus-visible){filter:brightness(.8);transform:scale(1.04)}
+  body.hov:not(.tv) :is(.stile,.sptile,.wztile,.avb,.ptile,.card,.poster,.ep,.scard,.gtile):hover:not(:focus-visible){filter:brightness(.8);transform:scale(1.04)}
+  body.hov:not(.tv) :is(.setitem,.acard,.tgl,.sprow):hover:not(:focus-visible){background-color:rgba(0,0,0,.14);transform:scale(1.01);outline:none !important}
+  body.hov:not(.tv) :is(.btn,.chip,.pillx,.hb,.stile,.sptile,.wztile,.avb,.ptile,.card,.poster,.ep,.scard,.gtile,.setitem,.acard,.tgl,.sprow,.backbtn,.eb,.pinkey){transition:transform .15s,filter .15s,background-color .15s}
 .drtacts{margin-right:4px}
 :is(.sw,summary){border-radius:12px !important}
 .spaceBtn{border-radius:999px !important}
