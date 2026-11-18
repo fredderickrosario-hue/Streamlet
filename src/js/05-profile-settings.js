@@ -17,7 +17,15 @@ function renderMe(){
       ));
 }
 const APP_BUILD = '2.0';
+/* the Profile page opens with just its card and list; the settings sections are prepared the first time one opens (quicker on a TV) */
+let setFilled = false, setRowWant = null;
 function renderSettings(){
+  setFilled = false;
+  if (setCatWant) { setFilled = true; settingsFillAll(); return; }
+  $('#setBack').onclick = closeSetSub; dropSetSub(); showSetHome();
+}
+function settingsFilled(){ if (!setFilled) { setFilled = true; settingsFillAll(); } }
+function settingsFillAll(){
   fillAccountUI(); fillSettingsUI();
   const u = lsGet('streamlet.ui', {}), tv = document.body.classList.contains('tv');
   const up = $('#setUpc'); up.checked = uiGet().showUpcoming !== false; up.onchange = () => uiSet({showUpcoming:up.checked});
@@ -253,7 +261,7 @@ function editProfile(id, openCat){
   name.oninput = () => { liveName.textContent = name.value.trim() || 'New profile'; };
   /* this profile's own settings, opened right here. They follow the profile in use, so they show when you edit your own profile */
   const mine = !isNew && profile && pr.id === profile.id;
-  if (mine) { try { renderSettings(); } catch (e) { console.warn(e); } }
+  if (mine) { try { settingsFilled(); } catch (e) { console.warn(e); } }
   const right = h('div', {class:'pe2-r'});
   const paintRight = () => right.replaceChildren(
     h('h2', {class:'sedh'}, isNew ? 'New profile' : 'Edit profile'),

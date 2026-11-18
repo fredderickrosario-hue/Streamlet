@@ -127,7 +127,9 @@ function showSetHome(){
 }
 function openSetCat(c, row){
   if (!SET_CATS.some(x => x[0] === c)) return;
-  if (PROFILE_CATS.includes(c)) { if (profile) editProfile(profile.id, c); return; }   // the profile's own settings open in Edit profile
+  if (PROFILE_CATS.includes(c)) { if (profile) editProfile(profile.id, c); return; }
+  if (!setFilled) { setFilled = true; setCatWant = c; setRowWant = row || null; settingsFillAll(); return; }   // first section opened: prepare them all, settingsPlus reopens this one
+  if (!row && setRowWant) { row = setRowWant; setRowWant = null; }   // the profile's own settings open in Edit profile
   if (!isTVui() && !layersOpen.includes('setsub')) pushLayer('setsub');   // phone: the back gesture returns to the list. TV: Back is handled as 'go up' (tvBackStep)
   setCatNow = c;
   $('#setHome').hidden = true; $('#settings').classList.add('insub');
