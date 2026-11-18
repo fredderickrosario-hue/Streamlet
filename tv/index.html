@@ -6380,6 +6380,18 @@ async function qcMeta(path){
   return {id:'qc:tva:' + path, type:'series', name:info.name, poster:info.poster, background:info.background, description:info.description, videos, releaseInfo:''};
 }
 const qcPolicy = {};
+/* WebVTT -> SubRip: same lines and times, without positions, styles or notes */
+function qcVttToSrt(b){
+  const ts = t => { const m = t.trim().match(/^(?:(\d+):)?(\d{1,2}):(\d\d)[.,](\d{1,3})$/); return m ? `${String(m[1] || 0).padStart(2, '0')}:${m[2].padStart(2, '0')}:${m[3]},${m[4].padEnd(3, '0')}` : null; };
+  const out = []; let n = 0;
+  for (const blk of String(b).replace(/\r/g, '').split(/\n{2,}/)) {
+    const lines = blk.split('\n'), i = lines.findIndex(l => l.includes('-->')); if (i < 0) continue;
+    const [a, z] = lines[i].split('-->'), A = ts(a), Z = ts(String(z).trim().split(/\s+/)[0]); if (!A || !Z) continue;
+    const text = lines.slice(i + 1).join('\n').replace(/<\/?(?:c|v|lang|ruby|rt)[^>]*>/g, '').trim(); if (!text) continue;
+    out.push(`${++n}\n${A} --> ${Z}\n${text}`);
+  }
+  return out.join('\n\n') + '\n';
+}
 async function qcStreams(id){
   const slug = id.replace(/^qc:tva:/, ''), {ent} = await qcPageData(slug);
   if (!ent.videoId) throw new Error('No video on that page');
@@ -6399,8 +6411,7 @@ async function qcStreams(id){
         const r = await qcGet(https(t.src)), b = String(r.body || '');
         if (r.status !== 200 || !/^\uFEFF?WEBVTT/.test(b) || !/-->/.test(b)) return false;
         /* TVA+ places some lines at the right edge or mid-screen: drop the cue positions so every line sits at the bottom, centred */
-        const flat = b.replace(/^(\s*(?:\d+:)?\d{1,2}:\d\d[.,]\d+\s+-->\s+(?:\d+:)?\d{1,2}:\d\d[.,]\d+)[^\r\n]*/gm, '$1');
-        return 'data:text/vtt;base64,' + btoa(unescape(encodeURIComponent(flat)));
+        return 'data:application/x-subrip;base64,' + btoa(unescape(encodeURIComponent(qcVttToSrt(b))));   // SRT has no positions; the player reads it as SubRip
       } catch { return false; } });
       const good = (await Promise.all(cand.map(async t => { const d = await okSub(t); return d ? {...t, flat:d} : null; }))).filter(Boolean);   // tracks that don't load or are empty are left out (Indéfendable's first two)
       const subs = good.map((t, i) => ({id:'qc' + i, url:t.flat, lang:t.srclang || 'fr'}));

@@ -316,7 +316,7 @@ public class PlayerActivity extends Activity {
                 String su = o.optString("url", "");
                 if (su.isEmpty()) continue;
                 String lower = su.toLowerCase(Locale.ROOT);
-                String mime = lower.contains(".vtt") ? MimeTypes.TEXT_VTT
+                String mime = (lower.contains(".vtt") || lower.startsWith("data:text/vtt")) ? MimeTypes.TEXT_VTT
                         : (lower.contains(".ass") || lower.contains(".ssa")) ? MimeTypes.TEXT_SSA
                         : MimeTypes.APPLICATION_SUBRIP;
                 SubCfg sc = new SubCfg();
