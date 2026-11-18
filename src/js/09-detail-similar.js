@@ -4,7 +4,7 @@ async function openResume(e){
   const a = addons.find(x => x.uid === e.addonId || x.manifest.id === e.addonId) || spaceAddons()[0] || addons[0];
   if (!a) return;
   const item = {id:e.itemId, type:e.itemType, name:e.name, poster:e.poster, background:e.background};
-  if (!profile || (!autoPickOn() && !(e.stream && e.stream.url))) return openDetail(a, e.itemType, item, {resume:e});
+  if (!profile || (!autoPickOn() && !(e.stream && e.stream.url && !/^(TVA\+|Radio-Canada|ICI TOU\.TV)/.test(String(e.stream.name || ''))))) return openDetail(a, e.itemType, item, {resume:e});
   showLoading();
   let meta = {...item};
   try { const ma = supports(a, 'meta', e.itemType, e.itemId) ? a : addons.find(x => supports(x, 'meta', e.itemType, e.itemId)); if (ma) { const r = await getJSON(`${ma.base}/meta/${e.itemType}/${enc(e.itemId)}.json`); meta = {...item, ...r.meta}; } } catch {}
@@ -15,7 +15,8 @@ async function openResume(e){
     const sorted = meta.videos.filter(v => v && v.id).sort((x, y) => ((x.season ?? 1) - (y.season ?? 1)) || ((x.episode ?? 0) - (y.episode ?? 0))), v = sorted.find(x => x.id === e.id);
     if (v) base = episodeBase(a, e.itemType, meta, v, sorted);
   }
-  if (e.stream && e.stream.url && !e.upnext) { await hideLoading(); await playStream(e.stream, e.name, {type:e.type, id:e.id, ...base}); backToEntry(a, e.itemType, item); return; }
+  const qcSaved = e.stream && (/^(TVA\+|Radio-Canada|ICI TOU\.TV)/.test(String(e.stream.name || '')) || /^qc:/.test(String(e.id || '')));   // Québec: fetch again, the saved link has no subtitles and expires
+  if (e.stream && e.stream.url && !e.upnext && !qcSaved) { await hideLoading(); await playStream(e.stream, e.name, {type:e.type, id:e.id, ...base}); backToEntry(a, e.itemType, item); return; }
   if (!(await autoPlay(e.type, e.id, e.name, base))) openDetail(a, e.itemType, item, {resume:e}); else backToEntry(a, e.itemType, item);
 }
 const IC = {
