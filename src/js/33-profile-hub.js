@@ -4,16 +4,19 @@ function meCard(){
   const pr = profile; if (!pr) return h('div');
   const kid = isKid(), hs = histGet().length, ws = wlGet().length;
   const pic = h('button', {type:'button', class:'pe-avbtn mepic', 'aria-label':'Edit profile', title:'Edit profile', onclick:async () => { if (await kidGate(null)) editProfile(pr.id); }},
-    avatarEl(pr, 96), h('span', {class:'pbadge', 'aria-hidden':'true'}, PENCIL_SVG()));
+    avatarEl(pr, 140), h('span', {class:'pbadge', 'aria-hidden':'true'}, PENCIL_SVG()));
   const others = profiles.filter(x => x.id !== pr.id);
-  return h('div', {class:'mehub'},
-    h('div', {class:'addon mecard'}, pic,
-      h('div', {class:'metx'}, h('h2', null, pr.name), h('p', null, kid ? 'Kids profile' : user ? (user.email || 'Signed in') : 'This device only'),
-        h('div', {class:'mestat'}, h('span', null, h('b', null, String(hs)), ' in progress'), h('span', null, h('b', null, String(ws)), ' in watchlist')))),
-    h('div', {class:'mebtns'},
-      h('button', {class:'btn', type:'button', onclick:async () => { if (await kidGate(null)) showProfiles(); }}, 'Switch profile'),
-      kid ? null : h('button', {class:'btn ghost', type:'button', onclick:() => { manageProfiles = true; showProfiles(); manageProfiles = true; renderProfiles(); }}, 'Manage profiles'),
-      ...others.slice(0, 4).map(x => h('button', {class:'chip mechip', type:'button', onclick:() => selectProfile(x)}, avatarEl(x, 22), ' ' + x.name))));
+  const swap = others.length ? h('div', {class:'meswap'}, h('div', {class:'meswh'}, 'Switch to'),
+    h('div', {class:'meswr'}, ...others.slice(0, 6).map(x => h('button', {class:'meswb', type:'button', onclick:() => selectProfile(x)}, avatarEl(x, 64), h('span', null, x.name))))) : null;
+  return h('div', {class:'mehub mehub2'},
+    h('div', {class:'mehero'},
+      h('div', {class:'meid'}, pic,
+        h('div', {class:'metx'}, h('h2', null, pr.name), h('p', null, kid ? 'Kids profile' : user ? (user.email || 'Signed in') : 'This device only'),
+          h('div', {class:'mestat'}, h('span', null, h('b', null, String(hs)), ' in progress'), h('span', null, h('b', null, String(ws)), ' in watchlist')),
+          h('div', {class:'mebtns'},
+            h('button', {class:'btn', type:'button', onclick:async () => { if (await kidGate(null)) showProfiles(); }}, 'Switch profile'),
+            kid ? null : h('button', {class:'btn ghost', type:'button', onclick:() => { manageProfiles = true; showProfiles(); manageProfiles = true; renderProfiles(); }}, 'Manage profiles')))),
+      swap));
 }
 let soArmed = 0;
 function signOutAsk(e){

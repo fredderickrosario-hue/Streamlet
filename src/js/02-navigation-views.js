@@ -91,6 +91,13 @@ window.addEventListener('popstate', e => {
   if (exiting) return;
   const st = e.state;
   if (!st || st.guard) { if (tvBackStep()) return; $('#exitDlg').hidden = false; return; }
+  /* TV: Back that closes no layer lands on an older page entry left behind by a pop-up we closed by going somewhere else
+     (the space switcher, a PIN, the setup). Never jump back to that old page: keep this one and treat it as Back = go up */
+  if (document.body.classList.contains('tv') && (st.layers || []).length >= layersOpen.length && $('#exitDlg').hidden) {
+    history.replaceState({page:pageNow(), layers:[...layersOpen]}, ''); pageKey = JSON.stringify(pageNow());
+    if (tvBackStep()) return;
+    $('#exitDlg').hidden = false; return;
+  }
   $('#exitDlg').hidden = true;
   const want = st.layers || [];
   let restore = null;

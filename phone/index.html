@@ -1529,6 +1529,34 @@ body:not(.tv) #nav{border-radius:24px !important}
 .drtacts{margin-right:4px}
 :is(.sw,summary){border-radius:12px !important}
 .spaceBtn{border-radius:999px !important}
+/* Profile page v2: a bigger card on top (who you are, switch quickly), the menus underneath */
+.mehub2{margin:4px 0 22px}
+.mehero{position:relative;border-radius:24px;padding:24px 26px;background:linear-gradient(135deg,color-mix(in srgb,var(--acc) 26%,transparent),color-mix(in srgb,var(--acc2,var(--acc)) 10%,transparent) 60%,rgba(255,255,255,.03));border:1px solid rgba(255,255,255,.1);display:flex;align-items:center;gap:28px;flex-wrap:wrap}
+.meid{display:flex;align-items:center;gap:26px;flex:1 1 380px;min-width:0}
+.mehub2 .metx h2{font-size:34px;margin:0;line-height:1.1}
+.mehub2 .metx p{margin:6px 0 0;font-size:15px}
+.mehub2 .mestat{margin-top:10px;font-size:14px;gap:18px} .mehub2 .mestat b{font-size:17px}
+.mehub2 .mebtns{margin:14px 0 0 -4px}
+.mehub2 .pe-avbtn .pbadge{right:8px;bottom:10px;width:38px;height:38px} .mehub2 .pe-avbtn .pbadge svg{width:19px;height:19px}
+.meswap{flex:0 1 auto;padding-left:26px;border-left:1px solid rgba(255,255,255,.12)}
+.meswh{font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--mut);margin:0 0 10px 4px}
+.meswr{display:flex;gap:14px;flex-wrap:wrap;padding:4px}
+.meswb{display:flex;flex-direction:column;align-items:center;gap:8px;background:none;border:0;color:inherit;font:inherit;font-size:14px;font-weight:600;cursor:pointer;padding:6px;border-radius:20px;width:92px}
+.meswb span{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.meswb:focus-visible,body.tv .meswb:focus{outline:3px solid #fff;outline-offset:2px}
+body:not(.tv) .mehero{flex-direction:column;align-items:stretch;padding:20px;gap:18px}
+body:not(.tv) .meid{flex-direction:column;text-align:center;gap:14px;flex-basis:auto}
+body:not(.tv) .mehub2 .metx h2{font-size:28px} body:not(.tv) .mehub2 .mestat{justify-content:center}
+body:not(.tv) .mehub2 .mebtns{justify-content:center;margin-left:0}
+body:not(.tv) .meswap{border-left:0;padding-left:0;border-top:1px solid rgba(255,255,255,.12);padding-top:14px}
+body:not(.tv) .meswh{text-align:center}
+body:not(.tv) .meswr{justify-content:center}
+.mehub2 .mebtns{flex-wrap:nowrap} .mehub2 .mebtns .btn{white-space:nowrap}
+body:not(.tv) .mehub2 .mebtns .btn{flex:1 1 0;padding-left:10px;padding-right:10px}
+/* the picture buttons (Profile page, Edit profile): the whole picture is the button, but the highlight goes on the pencil */
+.pe-avbtn:is(:focus,:focus-visible,:hover){outline:none !important;transform:none !important;filter:none !important}
+.pe-avbtn .pbadge{transition:transform .15s,box-shadow .15s}
+.pe-avbtn:is(:focus-visible,:hover) .pbadge,body.tv .pe-avbtn:focus .pbadge{box-shadow:0 0 0 3px #fff,0 4px 12px rgba(0,0,0,.4) !important;transform:scale(1.15)}
 </style>
 </head>
 <body>
@@ -2091,6 +2119,13 @@ window.addEventListener('popstate', e => {
   if (exiting) return;
   const st = e.state;
   if (!st || st.guard) { if (tvBackStep()) return; $('#exitDlg').hidden = false; return; }
+  /* TV: Back that closes no layer lands on an older page entry left behind by a pop-up we closed by going somewhere else
+     (the space switcher, a PIN, the setup). Never jump back to that old page: keep this one and treat it as Back = go up */
+  if (document.body.classList.contains('tv') && (st.layers || []).length >= layersOpen.length && $('#exitDlg').hidden) {
+    history.replaceState({page:pageNow(), layers:[...layersOpen]}, ''); pageKey = JSON.stringify(pageNow());
+    if (tvBackStep()) return;
+    $('#exitDlg').hidden = false; return;
+  }
   $('#exitDlg').hidden = true;
   const want = st.layers || [];
   let restore = null;
@@ -8365,16 +8400,19 @@ function meCard(){
   const pr = profile; if (!pr) return h('div');
   const kid = isKid(), hs = histGet().length, ws = wlGet().length;
   const pic = h('button', {type:'button', class:'pe-avbtn mepic', 'aria-label':'Edit profile', title:'Edit profile', onclick:async () => { if (await kidGate(null)) editProfile(pr.id); }},
-    avatarEl(pr, 96), h('span', {class:'pbadge', 'aria-hidden':'true'}, PENCIL_SVG()));
+    avatarEl(pr, 140), h('span', {class:'pbadge', 'aria-hidden':'true'}, PENCIL_SVG()));
   const others = profiles.filter(x => x.id !== pr.id);
-  return h('div', {class:'mehub'},
-    h('div', {class:'addon mecard'}, pic,
-      h('div', {class:'metx'}, h('h2', null, pr.name), h('p', null, kid ? 'Kids profile' : user ? (user.email || 'Signed in') : 'This device only'),
-        h('div', {class:'mestat'}, h('span', null, h('b', null, String(hs)), ' in progress'), h('span', null, h('b', null, String(ws)), ' in watchlist')))),
-    h('div', {class:'mebtns'},
-      h('button', {class:'btn', type:'button', onclick:async () => { if (await kidGate(null)) showProfiles(); }}, 'Switch profile'),
-      kid ? null : h('button', {class:'btn ghost', type:'button', onclick:() => { manageProfiles = true; showProfiles(); manageProfiles = true; renderProfiles(); }}, 'Manage profiles'),
-      ...others.slice(0, 4).map(x => h('button', {class:'chip mechip', type:'button', onclick:() => selectProfile(x)}, avatarEl(x, 22), ' ' + x.name))));
+  const swap = others.length ? h('div', {class:'meswap'}, h('div', {class:'meswh'}, 'Switch to'),
+    h('div', {class:'meswr'}, ...others.slice(0, 6).map(x => h('button', {class:'meswb', type:'button', onclick:() => selectProfile(x)}, avatarEl(x, 64), h('span', null, x.name))))) : null;
+  return h('div', {class:'mehub mehub2'},
+    h('div', {class:'mehero'},
+      h('div', {class:'meid'}, pic,
+        h('div', {class:'metx'}, h('h2', null, pr.name), h('p', null, kid ? 'Kids profile' : user ? (user.email || 'Signed in') : 'This device only'),
+          h('div', {class:'mestat'}, h('span', null, h('b', null, String(hs)), ' in progress'), h('span', null, h('b', null, String(ws)), ' in watchlist')),
+          h('div', {class:'mebtns'},
+            h('button', {class:'btn', type:'button', onclick:async () => { if (await kidGate(null)) showProfiles(); }}, 'Switch profile'),
+            kid ? null : h('button', {class:'btn ghost', type:'button', onclick:() => { manageProfiles = true; showProfiles(); manageProfiles = true; renderProfiles(); }}, 'Manage profiles')))),
+      swap));
 }
 let soArmed = 0;
 function signOutAsk(e){
