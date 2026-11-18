@@ -111,14 +111,14 @@ async function qcStreams(id){
       for (const s of src.filter(s => /mpegurl/i.test(s.type || ''))) { out.push({name:'TVA+', title:'HLS · adaptive', url:https(s.src)}); break; }
       for (const s of src.filter(s => /mp4/i.test(s.container || s.type || '') && !/mpegurl|dash/i.test(s.type || '')).sort((a, b) => (b.height || 0) - (a.height || 0)))
         out.push({name:'TVA+', title:`MP4 · ${s.height ? s.height + 'p' : Math.round((s.encoding_rate || 0) / 1000) + ' kbps'}`, url:https(s.src)});
-      /* TEST: every subtitle track TVA+ gives, as it comes (A, B…) and moved to the bottom (A bas…). Details go to the log (QC) so the one that works can be kept */
+      /* TEST: every subtitle track TVA+ gives, as it comes (A, B…). Details go to the log (QC) so the one that works can be kept */
       const all = (j.text_tracks || []).filter(t => t.src), subs = [];
       for (let i = 0; i < all.length; i++) {
         const t = all[i], L = String.fromCharCode(65 + i), u = https(t.src);
         let info = 'not read', flat = null;
         try { const r = await qcCached('subraw' + u, 3600e3, () => qcGet(u)), b = String(r.body || '');
           info = `HTTP ${r.status} · ${b.length} chars · ${/^\uFEFF?WEBVTT/.test(b) ? 'WEBVTT' : 'starts "' + b.slice(0, 20).replace(/\s+/g, ' ') + '"'} · ${(b.match(/-->/g) || []).length} cues`;
-          if (r.status === 200 && /-->/.test(b)) flat = 'data:application/x-subrip;base64,' + btoa(unescape(encodeURIComponent(qcVttToSrt(b)))); } catch (e) { info = 'error ' + e.message; }
+          } catch (e) { info = 'error ' + e.message; }   // no 'bas' copies: a whole subtitle file inside the link made the player crash (too big to hand over)
         qcLog(`subs ${slug} ${L}: kind=${t.kind || '-'} lang=${t.srclang || '-'} label=${t.label || '-'} mime=${t.mime_type || '-'} default=${!!t.default} · ${info} · ${u.slice(0, 90)}`);
         subs.push({id:'qc' + L, url:/\.vtt/i.test(u) ? u : u + '#.vtt', lang:t.srclang || 'fr', label:`Test ${L}`});   // '#.vtt' tells the player it is WebVTT
         if (flat) subs.push({id:'qc' + L + 'b', url:flat, lang:t.srclang || 'fr', label:`Test ${L} bas`});
