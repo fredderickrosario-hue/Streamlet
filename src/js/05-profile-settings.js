@@ -115,6 +115,7 @@ $('#closeBtn').onclick = async () => {
   try { const A = window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.App; if (A && A.exitApp) { await A.exitApp(); return; } } catch {}
   window.close(); toast('You can close this tab.');
 };
+$('#restartBtn').onclick = () => $('#updBtn').onclick();             // About > Restart: same as Restart in the Close Streamlet dialog
 $('#updBtn').onclick = async () => {                                  // clears everything the app has cached (never your data), then starts again with a fresh copy
   toast('Clearing the cache…');
   try { for (const r of await navigator.serviceWorker.getRegistrations()) await r.unregister(); } catch {}

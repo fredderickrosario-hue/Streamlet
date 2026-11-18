@@ -2070,7 +2070,7 @@ body.tv .mehero{flex-direction:column;align-items:stretch;gap:16px;padding:22px 
 <div id="abInfo" class="abinfo"></div></div></div>
 <div class="sgrp"><h3 class="sgh">Credits</h3><div class="addon"><div id="abCred" class="abinfo"></div></div></div>
 <div class="sgrp"><h3 class="sgh">Help</h3><div class="addon"><details class="adbox" id="logBox" style="margin:10px 0"><summary>Diagnostics</summary><div id="logBody" style="margin-top:8px"></div></details>
-<div class="aboutpad" style="display:flex;gap:10px;flex-wrap:wrap"><button class="btn ghost sm" id="closeBtn" type="button">Close app</button></div></div></div>
+<div class="aboutpad" style="display:flex;gap:10px;flex-wrap:wrap"><button class="btn ghost sm" id="closeBtn" type="button">Close app</button><button class="btn ghost sm" id="restartBtn" type="button" title="Clears the cache and starts Streamlet again. Profiles, lists and settings stay">Restart</button></div></div></div>
 </div>
     </div>
   </section>
@@ -3190,6 +3190,7 @@ $('#closeBtn').onclick = async () => {
   try { const A = window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.App; if (A && A.exitApp) { await A.exitApp(); return; } } catch {}
   window.close(); toast('You can close this tab.');
 };
+$('#restartBtn').onclick = () => $('#updBtn').onclick();             // About > Restart: same as Restart in the Close Streamlet dialog
 $('#updBtn').onclick = async () => {                                  // clears everything the app has cached (never your data), then starts again with a fresh copy
   toast('Clearing the cache…');
   try { for (const r of await navigator.serviceWorker.getRegistrations()) await r.unregister(); } catch {}
