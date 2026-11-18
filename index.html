@@ -1893,7 +1893,7 @@ body.tv .pinkey:focus{outline:3px solid #fff;outline-offset:2px;transform:scale(
 <div class="sgrp"><h3 class="sgh">Add</h3><div class="addon"><div class="row2"><span class="rt">New space<small>Group addons with their own colors and settings</small></span><button class="btn ghost sm" id="spNew" type="button">Create</button></div></div></div>
 </div>
 <div class="setcat" data-cat="playback" hidden>
-<div class="sgrp"><h3 class="sgh">Sources</h3><div class="addon"><label class="row2"><span class="rt">Automatic source selection<small>Chooses the best source using your audio language, preferred quality and past playback. You can still pick one manually from any title</small></span><input type="checkbox" id="setAuto"></label>
+<div class="sgrp"><h3 class="sgh">Source selection</h3><div class="addon"><label class="row2"><span class="rt">Automatic source selection<small>Chooses the best source using your audio language, preferred quality and past playback. You can still pick one manually from any title</small></span><input type="checkbox" id="setAuto"></label>
 <div class="row2" id="rowMaxQ"><span class="rt">Maximum quality<small>Upper limit for automatic source selection</small></span><select id="setMaxQ" class="sel"><option value="best">Best available</option><option value="2160">4K</option><option value="1080">1080p</option><option value="720">720p</option></select></div></div></div>
 <div id="setPlay" hidden><div class="sgrp"><h3 class="sgh">Player <small>this device</small></h3><div class="addon"><div class="row2"><span class="rt" id="skLbl">Skip interval<small id="skHint">Seconds to jump when double-tapping the left or right side of the video</small></span><select id="setSkip" class="sel"><option value="5">5 s</option><option value="10">10 s</option><option value="15">15 s</option><option value="30">30 s</option></select></div>
 <label class="row2"><span class="rt">Autoplay next episode<small>Starts the next episode after a short countdown. When off, you choose</small></span><input type="checkbox" id="setAutoNext"></label>
@@ -7655,7 +7655,7 @@ function eoSection(meta, reload){
    The original controls keep their ids and handlers (renderSettings); this file arranges them into categories
    and wires the newer ones. Global settings live in streamlet.ui (this device) or the profile; space settings
    live on the space itself (Spaces category, or the space editor). */
-const SET_CATS = [['general', 'General'], ['spaces', 'Spaces'], ['playback', 'Playback'], ['pstart', 'Startup & playback'], ['personal', 'Home rows'], ['content', 'Content'],
+const SET_CATS = [['app', 'App settings'], ['general', 'General'], ['spaces', 'Spaces'], ['playback', 'Playback'], ['pstart', 'Startup & playback'], ['personal', 'Home rows'], ['content', 'Content'],
   ['notif', 'Notifications'], ['tmdb', 'Addons & services'], ['storage', 'Storage & backup'], ['account', 'Account'], ['about', 'About']];
 /* the profile's own settings live in Edit profile (select the picture on the Profile page); the rest are on the Profile page itself */
 const PROFILE_CATS = ['pstart', 'personal', 'content', 'notif'];
@@ -7708,6 +7708,7 @@ function contentOK(m){
 /* ---- the page: a home list of sections, each opening its own page; search across every setting ---- */
 const SET_ICONS = {
   account:'<circle cx="12" cy="8.5" r="3.6"/><path d="M4.8 20c.9-3.8 3.8-5.6 7.2-5.6s6.3 1.8 7.2 5.6"/>',
+  app:'<circle cx="12" cy="12" r="3"/><path d="M12 3.5v2.2M12 18.3v2.2M3.5 12h2.2M18.3 12h2.2M6 6l1.6 1.6M16.4 16.4 18 18M6 18l1.6-1.6M16.4 7.6 18 6"/>',
   general:'<path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2.2"/><circle cx="10" cy="17" r="2.2"/>',
   spaces:'<rect x="4" y="4" width="6.5" height="6.5" rx="1.6"/><rect x="13.5" y="4" width="6.5" height="6.5" rx="1.6"/><rect x="4" y="13.5" width="6.5" height="6.5" rx="1.6"/><rect x="13.5" y="13.5" width="6.5" height="6.5" rx="1.6"/>',
   playback:'<rect x="3" y="5" width="18" height="14" rx="2.6"/><path d="M10 9.2v5.6l4.6-2.8z"/>',
@@ -7719,7 +7720,8 @@ const SET_ICONS = {
   storage:'<ellipse cx="12" cy="6" rx="7.5" ry="2.8"/><path d="M4.5 6v6c0 1.5 3.4 2.8 7.5 2.8s7.5-1.3 7.5-2.8V6M4.5 12v6c0 1.5 3.4 2.8 7.5 2.8s7.5-1.3 7.5-2.8v-6"/>',
   about:'<circle cx="12" cy="12" r="8.5"/><path d="M12 11v5.5M12 7.6v.1"/>',
   signout:'<path d="M14 4h4a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-4"/><path d="M10 8l-4 4 4 4M6 12h10"/>'};
-const SET_GROUPS = [['App settings', ['general', 'spaces', 'playback', 'storage']], ['Account', ['account']], ['Sources', ['tmdb']], ['About', ['about']]];
+const SET_GROUPS = [['', ['app', 'spaces', 'account', 'tmdb', 'about']]];
+const APP_CATS = ['general', 'playback', 'storage'];                    // App settings: one page, this device
 let setCatNow = null, setCatWant = null;
 const setName = c => (SET_CATS.find(x => x[0] === c) || [c, c])[1];
 function setSummary(c){                                                   // what each section is set to right now
@@ -7731,6 +7733,7 @@ function setSummary(c){                                                   // wha
   const hid = spaces.filter(spHidden).length, lang = (settings && settings.subLang) || 'off';
   return {
     account:user ? `${user.email || 'Signed in'} · sync, password, delete account` : 'Not signed in · sign in to sync your devices',
+    app:'Look, sounds, language, playback, player and storage on this device',
     pstart:`${st} · subtitles ${lang === 'off' ? 'off' : lang} · ${on('resume', true) ? 'resumes where you left off' : 'always from the start'}`,
     general:`${u.ask === false ? '' : ''}${u.theme && u.theme !== 'space' && THEMES[u.theme] ? THEMES[u.theme].n + ' colors' : 'colors follow each space'}`,
     spaces:`${spaces.length} space${spaces.length === 1 ? '' : 's'}${hid ? ` · ${hid} hidden` : ''} · order, visibility and settings`,
@@ -7753,7 +7756,7 @@ function showSetHome(){
   const list = h('div', {class:'setlist'});
   const paint = () => {
     const t = q.value.trim().toLowerCase();
-    if (!t) { list.replaceChildren(...SET_GROUPS.map(([g, cats]) => h('div', {class:'setgrp'}, h('h3', {class:'sgh'}, g),
+    if (!t) { list.replaceChildren(...SET_GROUPS.map(([g, cats]) => h('div', {class:'setgrp'}, g ? h('h3', {class:'sgh'}, g) : null,
       h('div', {class:'setcard'}, ...cats.map(c => setItem(c, setName(c), setSummary(c), () => openSetCat(c))))))); return; }
     const hits = [];
     for (const cat of document.querySelectorAll('#settings .setcat')) { if (PROFILE_CATS.includes(cat.dataset.cat)) continue; for (const r of cat.querySelectorAll('.row2, .sprow')) {
@@ -7770,7 +7773,7 @@ function showSetHome(){
   const who = profile ? profile.name : 'this profile', kid = typeof isKid === 'function' && isKid();
   if (kid) { home.replaceChildren(meCard()); return; }                    // a kids profile: its card and switching, no settings
   const out = user ? h('div', {class:'setcard meout'}, setItem('signout', 'Sign out', (user.email || 'Signed in') + ' · this device forgets the account', signOutAsk)) : null;
-  home.replaceChildren(meCard(), q, h('p', {class:'scopekey'}, `${who}'s own settings: select the picture. `, h('i', {class:'scope e'}, 'Everyone'), ' shared by every profile · the rest: this device'), list, out);
+  home.replaceChildren(meCard(), list, out);                            // no search: a short list now
   if (from && document.body.classList.contains('tv') && !$('#settings').hidden) requestAnimationFrame(() => { const b = list.querySelector(`.setitem[data-cat="${from}"]`); if (b) b.focus(); });   // back on the section you came from
 }
 function openSetCat(c, row){
@@ -7779,17 +7782,19 @@ function openSetCat(c, row){
   if (!isTVui() && !layersOpen.includes('setsub')) pushLayer('setsub');   // phone: the back gesture returns to the list. TV: Back is handled as 'go up' (tvBackStep)
   setCatNow = c;
   $('#setHome').hidden = true; $('#settings').classList.add('insub');
-  for (const el of document.querySelectorAll('#settings .setcat')) el.hidden = el.dataset.cat !== c;
+  const show = c === 'app' ? APP_CATS : [c];
+  for (const el of document.querySelectorAll('#settings .setcat')) el.hidden = !show.includes(el.dataset.cat);
   $('#setBack').hidden = false; $('#setTitle').textContent = setName(c);
   const pad = $('#settings>.pad'); if (pad) pad.scrollTop = 0; window.scrollTo(0, 0);
   if (c === 'spaces') spacesList();
-  if (c === 'storage') storageInfo();
+  if (show.includes('storage')) storageInfo();
+  for (const g of document.querySelectorAll('#settings .setcat:not([hidden]) .sgrp')) { const rows = g.querySelectorAll('.row2'); if (rows.length) g.hidden = [...rows].every(r => r.hidden); }   // a group whose rows don't apply here (Who's watching with one profile)
   if (c === 'about') aboutInfo();
   if (c === 'account') { try { acctMoreFill(); } catch {} }
   if (c === 'tmdb') $('#adSum').textContent = `${addons.length} installed · install, remove and reorder the sources for your catalogs and streams`;
   requestAnimationFrame(() => {
     if (row) { row.scrollIntoView({block:'center'}); row.classList.add('flash'); setTimeout(() => row.classList.remove('flash'), 1600); }
-    if (document.body.classList.contains('tv')) { const f = (row || document.querySelector(`#settings .setcat[data-cat="${c}"]`)).querySelector('button:not([disabled]),input,select,textarea,summary'); if (f) f.focus({preventScroll:!!row}); }
+    if (document.body.classList.contains('tv')) { const f = (row || document.querySelector(`#settings .setcat[data-cat="${show[0]}"]`)).querySelector('button:not([disabled]),input,select,textarea,summary'); if (f) f.focus({preventScroll:!!row}); }
   });
 }
 const setCat = c => openSetCat(c);
