@@ -1998,7 +1998,7 @@ body.tv .mehero{flex-direction:column;align-items:stretch;gap:16px;padding:22px 
 <label class="row2" id="rowDlWifi" hidden><span class="rt">Download on Wi-Fi only<small>When off, downloads also use mobile data</small></span><input type="checkbox" id="setDlWifi"></label>
 <div class="row2"><span class="rt">Rows and title pages<small>Kept so Home opens at once. Loaded again as needed</small></span><button class="btn ghost sm" id="stClrData" type="button">Clear</button></div>
 <div class="row2"><span class="rt">Temporary data<small>Failed sources, logs and recent lookups</small></span><button class="btn ghost sm" id="stClrTmp" type="button">Clear</button></div>
-<div class="row2"><span class="rt">Clear all caches<small>Removes everything cached, then restarts. Profiles, lists and settings stay</small></span><button class="btn ghost sm" id="updBtn" type="button">Clear cache &amp; restart</button></div></div></div>
+</div></div>
 <div class="sgrp"><h3 class="sgh">Backup</h3><div class="addon"><div class="row2 stack"><span class="rt">Watch history backup<small>Save this profile's watch history to a file, or restore it from one. Restoring merges with existing data</small></span><span class="inrow"><button class="btn ghost sm" id="bkOut" type="button">Save</button><button class="btn ghost sm" id="bkIn" type="button">Restore</button></span></div>
 <div class="row2 stack"><span class="rt">Full backup<small>Settings, spaces, addons and every profile’s lists and history in one file. It contains your addon links and keys: keep it private</small></span><span class="inrow"><button class="btn ghost sm" id="fbOut" type="button">Save</button><button class="btn ghost sm" id="fbIn" type="button">Restore</button></span></div>
 <input type="file" id="bkFile" accept="application/json,.json" hidden>
@@ -2063,7 +2063,7 @@ body.tv .mehero{flex-direction:column;align-items:stretch;gap:16px;padding:22px 
   <div id="pback" hidden style="position:absolute;inset:0;z-index:2"></div>
   <div class="ppanel" id="ppanel" hidden></div>
 </div>
-<div id="exitDlg" class="dlg" hidden><div class="box"><h3>Close Streamlet?</h3><p>You're at the very beginning, so going back again will close the app.</p><div class="dbtns"><button class="btn ghost" id="exStay" type="button">Stay</button><button class="btn" id="exGo" type="button">Close app</button></div></div></div>
+<div id="exitDlg" class="dlg" hidden><div class="box"><h3>Close Streamlet?</h3><p>You're at the very beginning, so going back again will close the app.</p><div class="dbtns"><button class="btn ghost" id="exStay" type="button">Stay</button><button class="btn ghost" id="updBtn" type="button" title="Clears the cache and starts Streamlet again. Profiles, lists and settings stay">Restart</button><button class="btn" id="exGo" type="button">Close app</button></div></div></div>
 <div id="menu" class="dlg menu" hidden></div>
 <div id="updDlg" class="dlg" hidden><div class="box updbox">
   <div class="updart" aria-hidden="true"><img src="../logo.svg" alt=""><i></i><i></i><i></i></div>
