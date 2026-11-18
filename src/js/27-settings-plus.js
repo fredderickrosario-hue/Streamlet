@@ -240,12 +240,13 @@ function settingsPlus(){
   }
 }
 /* who a setting is for: this profile, this device, or everyone on the account */
-const SCOPE = {
+const SCOPE = {off:true,
   profile:[], _was:['setStart', 'setStartSp', 'setRemSrc', 'setResume', 'setRowHero', 'setRowCW', 'setRowBYW', 'setRowWL', 'setRowRec', 'setRowFav', 'setMinRate', 'setHideG', 'setLangs', 'setFavG', 'setNtEp', 'setNtSeason', 'setNtWl', 'setUpc', 'setSub', 'setAud'],
   everyone:['setTmdb', 'setAddons', 'qcShows', 'spNew', 'tioRd', 'tioKey', 'tioProv', 'tioSort', 'tioQf', 'tioLimit', 'tioSize', 'tioLang']};
 function scopeTags(){
   const tag = (row, kind) => { const rt = row && row.querySelector('.rt'); if (!rt || rt.querySelector('.scope')) return; const t = h('i', {class:'scope ' + kind, title:kind === 'p' ? 'Only for this profile' : 'For every profile on this account'}, kind === 'p' ? 'Profile' : 'Everyone'); const sm = rt.querySelector('small'); rt.insertBefore(t, sm); };
   for (const id of SCOPE.profile) { const el = document.getElementById(id); if (el) tag(el.closest('.row2'), 'p'); }
+  if (SCOPE.off) return;                                                // the page structure says what is shared now
   for (const id of SCOPE.everyone) { const el = document.getElementById(id); if (el) tag(el.closest('.row2'), 'e'); }
 }
 let homeDirtyT = 0;

@@ -145,9 +145,8 @@ function editSpace(id){
   const tgl = (cb, title, sub) => h('label', {class:'tgl'}, h('span', null, h('b', null, title), sub ? h('small', null, sub) : null), cb);
   const langRow = (title, key, first) => { const sel = h('select', {class:'sel'}, h('option', {value:''}, 'Same as Settings'), h('option', {value:first[0]}, first[1]), ...LANGS.map(l => h('option', {value:l.c[0]}, l.n))); sel.value = s[key] || ''; sel.onchange = () => { s[key] = sel.value; }; return h('label', {class:'tgl'}, h('span', null, h('b', null, title)), sel); };
   ed.replaceChildren(
-    h('div', {class:'bar', style:'padding-left:0;padding-right:0'}, h('button', {class:'btn ghost sm', onclick:close}, '← Cancel')),
     h('div', {class:'sedwrap'},
-      h('h2', {class:'sedh'}, isNew ? 'New space' : 'Edit space'), h('p', {class:'gnote', style:'margin:-4px 0 10px'}, 'Spaces are shared: changes here apply to every profile. Each profile chooses which spaces it shows, and their order, in Edit profile.'),
+      h('div', {class:'titlerow'}, backBtn(close, 'Cancel'), h('h2', {class:'sedh'}, isNew ? 'New space' : 'Edit space')), h('p', {class:'gnote', style:'margin:-4px 0 10px'}, 'Spaces are shared: changes here apply to every profile. Each profile chooses which spaces it shows, and their order, in Edit profile.'),
       h('div', {class:'sedgrid'},
         h('div', {class:'sedcol'}, prev, h('div', {class:'lbl'}, 'Name'), name, quick, h('div', {class:'lbl'}, 'Icon'), eg),
         h('div', {class:'sedcol'},

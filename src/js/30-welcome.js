@@ -71,7 +71,6 @@ function wzDraw(){
       wzQr('https://www.themoviedb.org/settings/api'),
       h('div', {class:'inrow'}, inp), msg,
       h('div', {class:'wzbtns'},
-        h('button', {class:'btn ghost', type:'button', onclick:() => { wz.step = 0; wzDraw(); }}, 'Back'),
         h('button', {class:'btn ghost', type:'button', onclick:() => { wz.key = ''; wz.step = 2; wzDraw(); }}, 'Skip, use Cinemeta'),
         h('button', {class:'btn', type:'button', onclick:go}, 'Continue')),
       h('p', {class:'sub wzfine'}, 'Without a key, your spaces show Cinemeta\'s popular movies and shows instead. Add a key later in Settings > TMDB & addons and Netflix, Disney, Marvel and Kids switch to their own rows.')];
@@ -97,7 +96,6 @@ function wzDraw(){
       wzQr('https://real-debrid.com/apitoken'),
       h('div', {class:'inrow'}, inp), msg,
       h('div', {class:'wzbtns'},
-        h('button', {class:'btn ghost', type:'button', onclick:() => { wz.step = 1; wzDraw(); }}, 'Back'),
         h('button', {class:'btn ghost', type:'button', onclick:() => { wz.rd = ''; wzFinish(); }}, 'Later'),
         h('button', {class:'btn', type:'button', onclick:go}, 'Finish')),
       h('p', {class:'sub wzfine'}, 'You can add or change it anytime in Settings > TMDB & addons > Torrentio.')];
@@ -106,7 +104,8 @@ function wzDraw(){
     body = [h('h1', null, wz.done ? "You're all set" : 'Setting up…'), h('div', {class:'wzlog'}, (wz.log || []).map(l => h('p', null, l))),
       wz.done ? h('div', {class:'wzbtns'}, h('button', {class:'btn', type:'button', onclick:wzClose}, 'Start watching')) : null];
   }
-  W.replaceChildren(h('div', {class:'wzcard'}, wz.step < 3 ? dots : null, ...body.filter(Boolean)));
+  const bk = wz.step === 1 || wz.step === 2 ? backBtn(() => { wz.step--; wzDraw(); }) : null;
+  W.replaceChildren(h('div', {class:'wzcard'}, wz.step < 3 ? h('div', {class:'wztop'}, bk, dots) : null, ...body.filter(Boolean)));
   const f = W.querySelector(wz.step === 0 ? '.wztile' : wz.step === 3 ? '.btn' : 'input');
   if (f) f.focus({preventScroll:true});
 }

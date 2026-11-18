@@ -54,12 +54,12 @@
     <div id="wlGrid" class="wgrid"></div>
   </section>
   <section id="settings" hidden>
-    <div class="pagehead sethd"><button class="setback" id="setBack" type="button" aria-label="Back to Settings" hidden><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg></button><h1 id="setTitle">Settings</h1></div>
+    <div class="pagehead sethd"><button class="setback backbtn" id="setBack" type="button" aria-label="Back to Settings" hidden><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg></button><h1 id="setTitle">Settings</h1></div>
     <div class="pad">
 <div id="setHome" class="sethome"></div>
 <div class="setcat" data-cat="general" hidden>
 <div class="sgrp"><h3 class="sgh">Who’s watching</h3><div class="addon"><label class="row2" id="rowAsk"><span class="rt">Ask who’s watching<small>Show the profile picker every time the app opens</small></span><input type="checkbox" id="setAsk"></label></div></div>
-<div class="sgrp"><h3 class="sgh">Appearance <small>this device</small></h3><div class="addon"><div class="row2"><span class="rt">Colors<small>Each space can bring its own colors, or keep one look everywhere</small></span><select id="setTheme" class="sel"></select></div>
+<div class="sgrp"><h3 class="sgh">Appearance</h3><div class="addon"><div class="row2"><span class="rt">Colors<small>Each space can bring its own colors, or keep one look everywhere</small></span><select id="setTheme" class="sel"></select></div>
 <label class="row2"><span class="rt">Animated background<small>Slowly shifting background colors</small></span><input type="checkbox" id="setAnim"></label>
 <label class="row2"><span class="rt">Glass blur<small>Frosted-glass effect. Disable to improve performance on slower devices</small></span><input type="checkbox" id="setGlass"></label>
 <label class="row2"><span class="rt">Navigation sounds<small>Subtle sounds when navigating and selecting</small></span><input type="checkbox" id="setSnd"></label>
@@ -76,7 +76,7 @@
 <div class="setcat" data-cat="playback" hidden>
 <div class="sgrp"><h3 class="sgh">Source selection</h3><div class="addon"><label class="row2"><span class="rt">Automatic source selection<small>Chooses the best source using your audio language, preferred quality and past playback. You can still pick one manually from any title</small></span><input type="checkbox" id="setAuto"></label>
 <div class="row2" id="rowMaxQ"><span class="rt">Maximum quality<small>Upper limit for automatic source selection</small></span><select id="setMaxQ" class="sel"><option value="best">Best available</option><option value="2160">4K</option><option value="1080">1080p</option><option value="720">720p</option></select></div></div></div>
-<div id="setPlay" hidden><div class="sgrp"><h3 class="sgh">Player <small>this device</small></h3><div class="addon"><div class="row2"><span class="rt" id="skLbl">Skip interval<small id="skHint">Seconds to jump when double-tapping the left or right side of the video</small></span><select id="setSkip" class="sel"><option value="5">5 s</option><option value="10">10 s</option><option value="15">15 s</option><option value="30">30 s</option></select></div>
+<div id="setPlay" hidden><div class="sgrp"><h3 class="sgh">Player</h3><div class="addon"><div class="row2"><span class="rt" id="skLbl">Skip interval<small id="skHint">Seconds to jump when double-tapping the left or right side of the video</small></span><select id="setSkip" class="sel"><option value="5">5 s</option><option value="10">10 s</option><option value="15">15 s</option><option value="30">30 s</option></select></div>
 <label class="row2"><span class="rt">Autoplay next episode<small>Starts the next episode after a short countdown. When off, you choose</small></span><input type="checkbox" id="setAutoNext"></label>
 <label class="row2"><span class="rt">Skip intros, recaps and credits<small>Skips them automatically when timing data is available. Scenes after the credits still play. Rewind to watch a skipped section</small></span><input type="checkbox" id="setAutoSkip"></label>
 <label class="row2"><span class="rt">Hardware decoding<small>Improves performance and reduces heat. Disable only if the video appears distorted</small></span><input type="checkbox" id="setHw"></label>

@@ -281,12 +281,14 @@ async function openDetail(addon, type, item, opts = {}){
     if (withStreams && sorted.length) {                                    // ---- series: seasons + episodes
       const seasons = [...new Set(sorted.map(v => v.season ?? 1))];
       if (curSeason === null || !seasons.includes(curSeason)) { const nx = profile ? epNext(meta.id, sorted).v : null; curSeason = nx && seasons.includes(nx.season ?? 1) ? (nx.season ?? 1) : (seasons.find(x => x >= 1) ?? seasons[0]); }
-      const srow = h('div', {class:'srow'}), list = h('div', {class:'eplist'});
+      const srow = h('div', {class:'srow'}), list = h('div', {class:'eplist'}), hdActs = h('span', {class:'drtacts'});   // season actions sit in the Episodes heading
       const draw = () => {
         const inSeason = sorted.filter(v => (v.season ?? 1) === curSeason), allSeen = inSeason.length && inSeason.every(v => epDone(meta.id, v.season ?? 1, v.episode));
         srow.replaceChildren(...seasons.map(sn => h('button', {class:'chip' + (sn === curSeason ? ' on' : ''), type:'button', onclick:() => { curSeason = sn; draw(); }}, sn === 0 ? 'Specials' : 'Season ' + sn)),
-          profile ? h('button', {class:'chip mark', type:'button', onclick:() => { epMark(meta.id, inSeason, !allSeen); toast(allSeen ? 'Season marked as unwatched' : 'Season marked as watched'); draw(); }}, allSeen ? 'Unmark season' : 'Mark season watched') : null,
-          dlOn() ? h('button', {class:'chip mark', type:'button', onclick:() => dlSeason(addon, type, meta, inSeason, sorted)}, '⤓ Download season') : null);
+          );
+        const mk = profile ? h('button', {class:'btn ghost sm smark', type:'button', title:allSeen ? 'Mark this season as unwatched' : 'Mark this season as watched', onclick:() => { epMark(meta.id, inSeason, !allSeen); toast(allSeen ? 'Season marked as unwatched' : 'Season marked as watched'); draw(); }}) : null;
+        if (mk) mk.innerHTML = EYE_SVG + `<span>${allSeen ? 'Mark unwatched' : 'Mark watched'}</span>`;
+        hdActs.replaceChildren(...[mk, dlOn() ? h('button', {class:'btn ghost sm smark', type:'button', title:'Download this season', onclick:() => dlSeason(addon, type, meta, inSeason, sorted)}, '⤓ Download') : null].filter(Boolean));
         list.replaceChildren(...sorted.filter(v => (v.season ?? 1) === curSeason).map(v => {
           const hist = null, soon = v.released && new Date(v.released) > new Date();
           const th = v.thumbnail || meta.background;
@@ -294,7 +296,7 @@ async function openDetail(addon, type, item, opts = {}){
         }));
         epPref(list, meta.id);
       };
-      draw(); body.append(tvRows('Episodes', [srow, list]));
+      draw(); { const rows = tvRows('Episodes', [srow, list]), hd = rows.querySelector('.dmain .drt'); if (hd) { hd.classList.add('drtx'); hd.append(hdActs); } body.append(rows); }
     } else if (withStreams) {                                              // ---- movie / single title: streams right here
       const box = h('div', {class:'dbox'});
       body.append(tvRows('Sources', [box]));

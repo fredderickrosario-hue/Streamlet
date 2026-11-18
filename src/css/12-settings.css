@@ -40,9 +40,6 @@ body.tv :is(#settings,#profEd) .setx small{font-size:13.5px}
 :is(#settings,#profEd) .profcard{padding:12px 0}
 :is(#settings,#profEd) #acctCard{padding:12px 0}
 :is(#settings,#profEd) #acctCard p{font-size:14px}
-:is(#settings,#profEd) input[type=checkbox]{width:44px;height:26px;border-radius:13px}
-:is(#settings,#profEd) input[type=checkbox]::after{width:20px;height:20px}
-:is(#settings,#profEd) input[type=checkbox]:checked::after{transform:translateX(18px)}
 body.tv :is(#settings,#profEd) .rt{font-size:16px}
 body.tv :is(#settings,#profEd) .rt small{font-size:13px}
 body.tv :is(#settings,#profEd) .sgrp .addon{padding:2px 18px}
@@ -198,3 +195,41 @@ body:not(.tv) .gstrip{padding-right:20px !important}
 body:not(.tv).onhome:not(.launch) #tabsBar{padding-top:6px}
 body:not(.tv) #list{padding-left:6px;padding-right:6px;margin-left:-6px;margin-right:-6px}
 body:not(.tv) :is(.eplist,.slist,.dsim,.srow,.cchips){scroll-padding-left:6px}
+
+/* ================= style system (audit, Nov 17) =================
+   corners: 12px buttons, fields and dropdowns · round chips and pills · 20px cards and lists · 24px tiles and pop-ups
+   one back button (.backbtn), one Play (white pill), one pencil badge (accent, bottom-right), one switch size */
+:is(.btn,.gbtn,.kkey,select,.sel,input.f,textarea.f,textarea,.f,#addUrl,.eb,.pinkey,#toast,.backbtn,.smark){border-radius:12px !important}
+:is(.chip,.pillx,.tag,.gtile,.hb){border-radius:999px !important}
+:is(.addon,.setcard,.acard,.mecard,.pe-prev,.tgl){border-radius:20px !important}
+:is(.stile,.sptile,.wztile,.avcard,.pincard,.spcard){border-radius:24px !important}
+body:not(.tv) #nav{border-radius:24px !important}
+/* Play: a white pill everywhere (Home banner, title and episode pages) */
+.hb.p{background:#fff !important;color:#0d0d14 !important;box-shadow:0 6px 18px rgba(0,0,0,.28) !important}
+.hb.p svg{fill:currentColor}
+/* back button */
+.backbtn{display:inline-flex;align-items:center;justify-content:center;flex:0 0 auto;width:40px;height:40px;padding:0;margin:0;border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.07);color:inherit;cursor:pointer}
+.backbtn:focus-visible,body.tv .backbtn:focus{outline:3px solid #fff;outline-offset:2px}
+:is(#settings,#profEd) .setback.backbtn{margin-left:4px;margin-right:6px}
+.titlerow{display:flex;align-items:center;gap:12px;margin:6px 0 8px;padding:4px} .titlerow h2{margin:0}
+.pe-subhead .backbtn{margin:2px}
+.wztop{display:flex;align-items:center;gap:14px;margin:0 0 6px;padding:4px} .wztop .wzdots{margin:0}
+/* pencil badge: the Manage profiles one, also on space tiles */
+#launcher .swrap .sedit{top:auto !important;left:auto !important;right:10px !important;bottom:12px !important;width:30px !important;height:30px !important;background:linear-gradient(135deg,var(--acc),var(--acc2,var(--acc))) !important;border:3px solid var(--bg);box-shadow:0 4px 12px rgba(0,0,0,.4)}
+#launcher .swrap .sedit svg{width:15px;height:15px;stroke:#fff}
+/* season actions in the Episodes heading */
+.drtx{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.drtacts{display:inline-flex;gap:8px;margin-left:auto;padding:4px;font-size:14px;font-weight:600}
+.smark{display:inline-flex;align-items:center;gap:6px}
+.smark svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2}
+/* phone and web: no hover border. A pencil or a mouse gets a slightly darker background and a small lift; the keyboard keeps its ring */
+@media (hover:hover){
+  body:not(.tv) :is(button,a,label.tgl,.stile,.card,.poster,.ep,.scard):hover:not(:focus-visible){outline:none !important}
+  body:not(.tv) :is(.btn,.chip,.pillx,.gtile,.hb,.eb,.pinkey,.backbtn,.ibtn,.pib,.smark,.sw,.kkey):hover:not(:focus-visible){filter:brightness(.86);transform:scale(1.03)}
+  body:not(.tv) :is(.stile,.sptile,.wztile,.avb,.ptile,.card,.poster,.ep,.scard,.gtile):hover:not(:focus-visible){filter:brightness(.86);transform:scale(1.03)}
+  body:not(.tv) :is(.setitem,.acard,.tgl,.sprow):hover:not(:focus-visible){background-color:rgba(0,0,0,.14);transform:scale(1.01);outline:none !important}
+  body:not(.tv) :is(.btn,.chip,.pillx,.hb,.stile,.sptile,.wztile,.avb,.ptile,.card,.poster,.ep,.scard,.gtile,.setitem,.acard,.tgl,.sprow,.backbtn,.eb,.pinkey){transition:transform .15s,filter .15s,background-color .15s}
+}
+.drtacts{margin-right:4px}
+:is(.sw,summary){border-radius:12px !important}
+.spaceBtn{border-radius:999px !important}

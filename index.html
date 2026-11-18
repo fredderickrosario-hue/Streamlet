@@ -1670,9 +1670,6 @@ body.tv :is(#settings,#profEd) .setx small{font-size:13.5px}
 :is(#settings,#profEd) .profcard{padding:12px 0}
 :is(#settings,#profEd) #acctCard{padding:12px 0}
 :is(#settings,#profEd) #acctCard p{font-size:14px}
-:is(#settings,#profEd) input[type=checkbox]{width:44px;height:26px;border-radius:13px}
-:is(#settings,#profEd) input[type=checkbox]::after{width:20px;height:20px}
-:is(#settings,#profEd) input[type=checkbox]:checked::after{transform:translateX(18px)}
 body.tv :is(#settings,#profEd) .rt{font-size:16px}
 body.tv :is(#settings,#profEd) .rt small{font-size:13px}
 body.tv :is(#settings,#profEd) .sgrp .addon{padding:2px 18px}
@@ -1828,6 +1825,44 @@ body:not(.tv) .gstrip{padding-right:20px !important}
 body:not(.tv).onhome:not(.launch) #tabsBar{padding-top:6px}
 body:not(.tv) #list{padding-left:6px;padding-right:6px;margin-left:-6px;margin-right:-6px}
 body:not(.tv) :is(.eplist,.slist,.dsim,.srow,.cchips){scroll-padding-left:6px}
+
+/* ================= style system (audit, Nov 17) =================
+   corners: 12px buttons, fields and dropdowns · round chips and pills · 20px cards and lists · 24px tiles and pop-ups
+   one back button (.backbtn), one Play (white pill), one pencil badge (accent, bottom-right), one switch size */
+:is(.btn,.gbtn,.kkey,select,.sel,input.f,textarea.f,textarea,.f,#addUrl,.eb,.pinkey,#toast,.backbtn,.smark){border-radius:12px !important}
+:is(.chip,.pillx,.tag,.gtile,.hb){border-radius:999px !important}
+:is(.addon,.setcard,.acard,.mecard,.pe-prev,.tgl){border-radius:20px !important}
+:is(.stile,.sptile,.wztile,.avcard,.pincard,.spcard){border-radius:24px !important}
+body:not(.tv) #nav{border-radius:24px !important}
+/* Play: a white pill everywhere (Home banner, title and episode pages) */
+.hb.p{background:#fff !important;color:#0d0d14 !important;box-shadow:0 6px 18px rgba(0,0,0,.28) !important}
+.hb.p svg{fill:currentColor}
+/* back button */
+.backbtn{display:inline-flex;align-items:center;justify-content:center;flex:0 0 auto;width:40px;height:40px;padding:0;margin:0;border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.07);color:inherit;cursor:pointer}
+.backbtn:focus-visible,body.tv .backbtn:focus{outline:3px solid #fff;outline-offset:2px}
+:is(#settings,#profEd) .setback.backbtn{margin-left:4px;margin-right:6px}
+.titlerow{display:flex;align-items:center;gap:12px;margin:6px 0 8px;padding:4px} .titlerow h2{margin:0}
+.pe-subhead .backbtn{margin:2px}
+.wztop{display:flex;align-items:center;gap:14px;margin:0 0 6px;padding:4px} .wztop .wzdots{margin:0}
+/* pencil badge: the Manage profiles one, also on space tiles */
+#launcher .swrap .sedit{top:auto !important;left:auto !important;right:10px !important;bottom:12px !important;width:30px !important;height:30px !important;background:linear-gradient(135deg,var(--acc),var(--acc2,var(--acc))) !important;border:3px solid var(--bg);box-shadow:0 4px 12px rgba(0,0,0,.4)}
+#launcher .swrap .sedit svg{width:15px;height:15px;stroke:#fff}
+/* season actions in the Episodes heading */
+.drtx{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.drtacts{display:inline-flex;gap:8px;margin-left:auto;padding:4px;font-size:14px;font-weight:600}
+.smark{display:inline-flex;align-items:center;gap:6px}
+.smark svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2}
+/* phone and web: no hover border. A pencil or a mouse gets a slightly darker background and a small lift; the keyboard keeps its ring */
+@media (hover:hover){
+  body:not(.tv) :is(button,a,label.tgl,.stile,.card,.poster,.ep,.scard):hover:not(:focus-visible){outline:none !important}
+  body:not(.tv) :is(.btn,.chip,.pillx,.gtile,.hb,.eb,.pinkey,.backbtn,.ibtn,.pib,.smark,.sw,.kkey):hover:not(:focus-visible){filter:brightness(.86);transform:scale(1.03)}
+  body:not(.tv) :is(.stile,.sptile,.wztile,.avb,.ptile,.card,.poster,.ep,.scard,.gtile):hover:not(:focus-visible){filter:brightness(.86);transform:scale(1.03)}
+  body:not(.tv) :is(.setitem,.acard,.tgl,.sprow):hover:not(:focus-visible){background-color:rgba(0,0,0,.14);transform:scale(1.01);outline:none !important}
+  body:not(.tv) :is(.btn,.chip,.pillx,.hb,.stile,.sptile,.wztile,.avb,.ptile,.card,.poster,.ep,.scard,.gtile,.setitem,.acard,.tgl,.sprow,.backbtn,.eb,.pinkey){transition:transform .15s,filter .15s,background-color .15s}
+}
+.drtacts{margin-right:4px}
+:is(.sw,summary){border-radius:12px !important}
+.spaceBtn{border-radius:999px !important}
 </style>
 </head>
 <body>
@@ -1884,12 +1919,12 @@ body:not(.tv) :is(.eplist,.slist,.dsim,.srow,.cchips){scroll-padding-left:6px}
     <div id="wlGrid" class="wgrid"></div>
   </section>
   <section id="settings" hidden>
-    <div class="pagehead sethd"><button class="setback" id="setBack" type="button" aria-label="Back to Settings" hidden><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg></button><h1 id="setTitle">Settings</h1></div>
+    <div class="pagehead sethd"><button class="setback backbtn" id="setBack" type="button" aria-label="Back to Settings" hidden><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg></button><h1 id="setTitle">Settings</h1></div>
     <div class="pad">
 <div id="setHome" class="sethome"></div>
 <div class="setcat" data-cat="general" hidden>
 <div class="sgrp"><h3 class="sgh">Who’s watching</h3><div class="addon"><label class="row2" id="rowAsk"><span class="rt">Ask who’s watching<small>Show the profile picker every time the app opens</small></span><input type="checkbox" id="setAsk"></label></div></div>
-<div class="sgrp"><h3 class="sgh">Appearance <small>this device</small></h3><div class="addon"><div class="row2"><span class="rt">Colors<small>Each space can bring its own colors, or keep one look everywhere</small></span><select id="setTheme" class="sel"></select></div>
+<div class="sgrp"><h3 class="sgh">Appearance</h3><div class="addon"><div class="row2"><span class="rt">Colors<small>Each space can bring its own colors, or keep one look everywhere</small></span><select id="setTheme" class="sel"></select></div>
 <label class="row2"><span class="rt">Animated background<small>Slowly shifting background colors</small></span><input type="checkbox" id="setAnim"></label>
 <label class="row2"><span class="rt">Glass blur<small>Frosted-glass effect. Disable to improve performance on slower devices</small></span><input type="checkbox" id="setGlass"></label>
 <label class="row2"><span class="rt">Navigation sounds<small>Subtle sounds when navigating and selecting</small></span><input type="checkbox" id="setSnd"></label>
@@ -1906,7 +1941,7 @@ body:not(.tv) :is(.eplist,.slist,.dsim,.srow,.cchips){scroll-padding-left:6px}
 <div class="setcat" data-cat="playback" hidden>
 <div class="sgrp"><h3 class="sgh">Source selection</h3><div class="addon"><label class="row2"><span class="rt">Automatic source selection<small>Chooses the best source using your audio language, preferred quality and past playback. You can still pick one manually from any title</small></span><input type="checkbox" id="setAuto"></label>
 <div class="row2" id="rowMaxQ"><span class="rt">Maximum quality<small>Upper limit for automatic source selection</small></span><select id="setMaxQ" class="sel"><option value="best">Best available</option><option value="2160">4K</option><option value="1080">1080p</option><option value="720">720p</option></select></div></div></div>
-<div id="setPlay" hidden><div class="sgrp"><h3 class="sgh">Player <small>this device</small></h3><div class="addon"><div class="row2"><span class="rt" id="skLbl">Skip interval<small id="skHint">Seconds to jump when double-tapping the left or right side of the video</small></span><select id="setSkip" class="sel"><option value="5">5 s</option><option value="10">10 s</option><option value="15">15 s</option><option value="30">30 s</option></select></div>
+<div id="setPlay" hidden><div class="sgrp"><h3 class="sgh">Player</h3><div class="addon"><div class="row2"><span class="rt" id="skLbl">Skip interval<small id="skHint">Seconds to jump when double-tapping the left or right side of the video</small></span><select id="setSkip" class="sel"><option value="5">5 s</option><option value="10">10 s</option><option value="15">15 s</option><option value="30">30 s</option></select></div>
 <label class="row2"><span class="rt">Autoplay next episode<small>Starts the next episode after a short countdown. When off, you choose</small></span><input type="checkbox" id="setAutoNext"></label>
 <label class="row2"><span class="rt">Skip intros, recaps and credits<small>Skips them automatically when timing data is available. Scenes after the credits still play. Rewind to watch a skipped section</small></span><input type="checkbox" id="setAutoSkip"></label>
 <label class="row2"><span class="rt">Hardware decoding<small>Improves performance and reduces heat. Disable only if the video appears distorted</small></span><input type="checkbox" id="setHw"></label>
@@ -2623,9 +2658,8 @@ function editSpace(id){
   const tgl = (cb, title, sub) => h('label', {class:'tgl'}, h('span', null, h('b', null, title), sub ? h('small', null, sub) : null), cb);
   const langRow = (title, key, first) => { const sel = h('select', {class:'sel'}, h('option', {value:''}, 'Same as Settings'), h('option', {value:first[0]}, first[1]), ...LANGS.map(l => h('option', {value:l.c[0]}, l.n))); sel.value = s[key] || ''; sel.onchange = () => { s[key] = sel.value; }; return h('label', {class:'tgl'}, h('span', null, h('b', null, title)), sel); };
   ed.replaceChildren(
-    h('div', {class:'bar', style:'padding-left:0;padding-right:0'}, h('button', {class:'btn ghost sm', onclick:close}, '← Cancel')),
     h('div', {class:'sedwrap'},
-      h('h2', {class:'sedh'}, isNew ? 'New space' : 'Edit space'), h('p', {class:'gnote', style:'margin:-4px 0 10px'}, 'Spaces are shared: changes here apply to every profile. Each profile chooses which spaces it shows, and their order, in Edit profile.'),
+      h('div', {class:'titlerow'}, backBtn(close, 'Cancel'), h('h2', {class:'sedh'}, isNew ? 'New space' : 'Edit space')), h('p', {class:'gnote', style:'margin:-4px 0 10px'}, 'Spaces are shared: changes here apply to every profile. Each profile chooses which spaces it shows, and their order, in Edit profile.'),
       h('div', {class:'sedgrid'},
         h('div', {class:'sedcol'}, prev, h('div', {class:'lbl'}, 'Name'), name, quick, h('div', {class:'lbl'}, 'Icon'), eg),
         h('div', {class:'sedcol'},
@@ -2705,6 +2739,10 @@ const SP_ICON_DEF = {aio:['movies', '🌐', '🍿'], netflix:['netflix', '🍿',
   if (ch) localStorage.setItem('streamlet.spaces2', JSON.stringify(spaces));
   localStorage.setItem('streamlet.spIcons3', '1');
 } catch {} })();
+
+/* one back button for the whole app: a chevron in a rounded square, top-left next to the page title */
+const BACK_SVG = '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>';
+const backBtn = (onclick, label = 'Back') => { const b = h('button', {class:'backbtn', type:'button', 'aria-label':label, title:label, onclick}); b.innerHTML = BACK_SVG; return b; };
 /* ---------- watchlist ---------- */
 const wlGet = () => pget('watchlist', []);
 const wlHere = () => wlGet().filter(e => !e.spaces || !cur || e.spaces.includes(cur.id));   // entries saved before spaces existed show everywhere
@@ -3186,7 +3224,7 @@ function renderProfiles(){
         h('div', {class:'pav'}, avatarEl(pr, 88), manageProfiles ? h('span', {class:'pbadge', 'aria-hidden':'true'}, PENCIL_SVG()) : null, pr.kids ? h('span', {class:'kidtag'}, 'KIDS') : null), h('div', null, pr.name))),
       manageProfiles && profiles.length < 8 ? h('button', {class:'ptile', type:'button', onclick:() => editProfile(null)}, h('div', {class:'pav add'}, '+'), h('div', null, 'Add profile')) : null),
     h('div', {class:'lnks', style:'justify-content:center;margin-top:22px'},
-      h('button', {class:'lnk', type:'button', onclick:async () => { if (!manageProfiles && !(await kidGate(null))) return; manageProfiles = !manageProfiles; renderProfiles(); }}, manageProfiles ? 'Done' : 'Manage profiles')),
+      h('button', {class:'btn ghost sm', type:'button', onclick:async () => { if (!manageProfiles && !(await kidGate(null))) return; manageProfiles = !manageProfiles; renderProfiles(); }}, manageProfiles ? 'Done' : 'Manage profiles')),
     manageProfiles && profiles.length > 1 ? h('label', {class:'chk', style:'justify-content:center'}, ask, h('span', null, "Ask who's watching when the app opens")) : null);
 }
 function editProfile(id, openCat){
@@ -3262,7 +3300,7 @@ function peSubOpen(c, right, repaint){
   peSubClose(true);
   const node = document.querySelector(`.setcat[data-cat="${c}"]`); if (!node) return;
   peSub = {node, parent:node.parentNode, next:node.nextSibling, repaint};
-  const back = h('button', {class:'btn ghost sm pe-back', type:'button', onclick:() => peSubClose()}, '‹ Back');
+  const back = backBtn(() => peSubClose());
   right.replaceChildren(h('div', {class:'pe-subhead'}, back, h('h2', {class:'sedh'}, setName(c))), h('div', {class:'pe-subbody'}, node));
   node.hidden = false; $('#profEd').classList.add('insub');
   if (c === 'pspaces') pSpacesList();
@@ -3875,9 +3913,9 @@ function editAddon(uid){
   const msg = h('div', {class:'msg', style:'margin-top:8px'});
   const run = async fn => { msg.className = 'msg'; msg.textContent = 'Checking…'; try { await fn(); } catch (e) { msg.className = 'msg err'; msg.textContent = e.message || 'Failed.'; } };
   ed.replaceChildren(
-    h('div', {class:'bar', style:'padding-left:0;padding-right:0'}, h('button', {class:'btn ghost sm', onclick:close}, '← Back')),
+
     h('div', {class:'sheetbody', style:'padding:0 16px'},
-      h('h2', {style:'margin:6px 0 2px'}, an(a)), h('p', {style:'margin:0 0 6px;color:var(--mut);font-size:13px'}, a.manifest.name + (a.manifest.version ? ' · v' + a.manifest.version : '') + ' · ' + a.uid),
+      h('div', {class:'titlerow'}, backBtn(close), h('h2', {style:'margin:0'}, an(a))), h('p', {style:'margin:0 0 6px;color:var(--mut);font-size:13px'}, a.manifest.name + (a.manifest.version ? ' · v' + a.manifest.version : '') + ' · ' + a.uid),
       h('div', {class:'lbl'}, 'Name'), name,
       h('div', {class:'lbl'}, 'Link (includes your settings, and any private keys)'), link,
       h('div', {class:'rrow', style:'margin-top:8px'},
@@ -4554,12 +4592,14 @@ async function openDetail(addon, type, item, opts = {}){
     if (withStreams && sorted.length) {                                    // ---- series: seasons + episodes
       const seasons = [...new Set(sorted.map(v => v.season ?? 1))];
       if (curSeason === null || !seasons.includes(curSeason)) { const nx = profile ? epNext(meta.id, sorted).v : null; curSeason = nx && seasons.includes(nx.season ?? 1) ? (nx.season ?? 1) : (seasons.find(x => x >= 1) ?? seasons[0]); }
-      const srow = h('div', {class:'srow'}), list = h('div', {class:'eplist'});
+      const srow = h('div', {class:'srow'}), list = h('div', {class:'eplist'}), hdActs = h('span', {class:'drtacts'});   // season actions sit in the Episodes heading
       const draw = () => {
         const inSeason = sorted.filter(v => (v.season ?? 1) === curSeason), allSeen = inSeason.length && inSeason.every(v => epDone(meta.id, v.season ?? 1, v.episode));
         srow.replaceChildren(...seasons.map(sn => h('button', {class:'chip' + (sn === curSeason ? ' on' : ''), type:'button', onclick:() => { curSeason = sn; draw(); }}, sn === 0 ? 'Specials' : 'Season ' + sn)),
-          profile ? h('button', {class:'chip mark', type:'button', onclick:() => { epMark(meta.id, inSeason, !allSeen); toast(allSeen ? 'Season marked as unwatched' : 'Season marked as watched'); draw(); }}, allSeen ? 'Unmark season' : 'Mark season watched') : null,
-          dlOn() ? h('button', {class:'chip mark', type:'button', onclick:() => dlSeason(addon, type, meta, inSeason, sorted)}, '⤓ Download season') : null);
+          );
+        const mk = profile ? h('button', {class:'btn ghost sm smark', type:'button', title:allSeen ? 'Mark this season as unwatched' : 'Mark this season as watched', onclick:() => { epMark(meta.id, inSeason, !allSeen); toast(allSeen ? 'Season marked as unwatched' : 'Season marked as watched'); draw(); }}) : null;
+        if (mk) mk.innerHTML = EYE_SVG + `<span>${allSeen ? 'Mark unwatched' : 'Mark watched'}</span>`;
+        hdActs.replaceChildren(...[mk, dlOn() ? h('button', {class:'btn ghost sm smark', type:'button', title:'Download this season', onclick:() => dlSeason(addon, type, meta, inSeason, sorted)}, '⤓ Download') : null].filter(Boolean));
         list.replaceChildren(...sorted.filter(v => (v.season ?? 1) === curSeason).map(v => {
           const hist = null, soon = v.released && new Date(v.released) > new Date();
           const th = v.thumbnail || meta.background;
@@ -4567,7 +4607,7 @@ async function openDetail(addon, type, item, opts = {}){
         }));
         epPref(list, meta.id);
       };
-      draw(); body.append(tvRows('Episodes', [srow, list]));
+      draw(); { const rows = tvRows('Episodes', [srow, list]), hd = rows.querySelector('.dmain .drt'); if (hd) { hd.classList.add('drtx'); hd.append(hdActs); } body.append(rows); }
     } else if (withStreams) {                                              // ---- movie / single title: streams right here
       const box = h('div', {class:'dbox'});
       body.append(tvRows('Sources', [box]));
@@ -7914,12 +7954,13 @@ function settingsPlus(){
   }
 }
 /* who a setting is for: this profile, this device, or everyone on the account */
-const SCOPE = {
+const SCOPE = {off:true,
   profile:[], _was:['setStart', 'setStartSp', 'setRemSrc', 'setResume', 'setRowHero', 'setRowCW', 'setRowBYW', 'setRowWL', 'setRowRec', 'setRowFav', 'setMinRate', 'setHideG', 'setLangs', 'setFavG', 'setNtEp', 'setNtSeason', 'setNtWl', 'setUpc', 'setSub', 'setAud'],
   everyone:['setTmdb', 'setAddons', 'qcShows', 'spNew', 'tioRd', 'tioKey', 'tioProv', 'tioSort', 'tioQf', 'tioLimit', 'tioSize', 'tioLang']};
 function scopeTags(){
   const tag = (row, kind) => { const rt = row && row.querySelector('.rt'); if (!rt || rt.querySelector('.scope')) return; const t = h('i', {class:'scope ' + kind, title:kind === 'p' ? 'Only for this profile' : 'For every profile on this account'}, kind === 'p' ? 'Profile' : 'Everyone'); const sm = rt.querySelector('small'); rt.insertBefore(t, sm); };
   for (const id of SCOPE.profile) { const el = document.getElementById(id); if (el) tag(el.closest('.row2'), 'p'); }
+  if (SCOPE.off) return;                                                // the page structure says what is shared now
   for (const id of SCOPE.everyone) { const el = document.getElementById(id); if (el) tag(el.closest('.row2'), 'e'); }
 }
 let homeDirtyT = 0;
@@ -8526,7 +8567,6 @@ function wzDraw(){
       wzQr('https://www.themoviedb.org/settings/api'),
       h('div', {class:'inrow'}, inp), msg,
       h('div', {class:'wzbtns'},
-        h('button', {class:'btn ghost', type:'button', onclick:() => { wz.step = 0; wzDraw(); }}, 'Back'),
         h('button', {class:'btn ghost', type:'button', onclick:() => { wz.key = ''; wz.step = 2; wzDraw(); }}, 'Skip, use Cinemeta'),
         h('button', {class:'btn', type:'button', onclick:go}, 'Continue')),
       h('p', {class:'sub wzfine'}, 'Without a key, your spaces show Cinemeta\'s popular movies and shows instead. Add a key later in Settings > TMDB & addons and Netflix, Disney, Marvel and Kids switch to their own rows.')];
@@ -8552,7 +8592,6 @@ function wzDraw(){
       wzQr('https://real-debrid.com/apitoken'),
       h('div', {class:'inrow'}, inp), msg,
       h('div', {class:'wzbtns'},
-        h('button', {class:'btn ghost', type:'button', onclick:() => { wz.step = 1; wzDraw(); }}, 'Back'),
         h('button', {class:'btn ghost', type:'button', onclick:() => { wz.rd = ''; wzFinish(); }}, 'Later'),
         h('button', {class:'btn', type:'button', onclick:go}, 'Finish')),
       h('p', {class:'sub wzfine'}, 'You can add or change it anytime in Settings > TMDB & addons > Torrentio.')];
@@ -8561,7 +8600,8 @@ function wzDraw(){
     body = [h('h1', null, wz.done ? "You're all set" : 'Setting up…'), h('div', {class:'wzlog'}, (wz.log || []).map(l => h('p', null, l))),
       wz.done ? h('div', {class:'wzbtns'}, h('button', {class:'btn', type:'button', onclick:wzClose}, 'Start watching')) : null];
   }
-  W.replaceChildren(h('div', {class:'wzcard'}, wz.step < 3 ? dots : null, ...body.filter(Boolean)));
+  const bk = wz.step === 1 || wz.step === 2 ? backBtn(() => { wz.step--; wzDraw(); }) : null;
+  W.replaceChildren(h('div', {class:'wzcard'}, wz.step < 3 ? h('div', {class:'wztop'}, bk, dots) : null, ...body.filter(Boolean)));
   const f = W.querySelector(wz.step === 0 ? '.wztile' : wz.step === 3 ? '.btn' : 'input');
   if (f) f.focus({preventScroll:true});
 }

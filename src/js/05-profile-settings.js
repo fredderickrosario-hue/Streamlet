@@ -194,7 +194,7 @@ function renderProfiles(){
         h('div', {class:'pav'}, avatarEl(pr, 88), manageProfiles ? h('span', {class:'pbadge', 'aria-hidden':'true'}, PENCIL_SVG()) : null, pr.kids ? h('span', {class:'kidtag'}, 'KIDS') : null), h('div', null, pr.name))),
       manageProfiles && profiles.length < 8 ? h('button', {class:'ptile', type:'button', onclick:() => editProfile(null)}, h('div', {class:'pav add'}, '+'), h('div', null, 'Add profile')) : null),
     h('div', {class:'lnks', style:'justify-content:center;margin-top:22px'},
-      h('button', {class:'lnk', type:'button', onclick:async () => { if (!manageProfiles && !(await kidGate(null))) return; manageProfiles = !manageProfiles; renderProfiles(); }}, manageProfiles ? 'Done' : 'Manage profiles')),
+      h('button', {class:'btn ghost sm', type:'button', onclick:async () => { if (!manageProfiles && !(await kidGate(null))) return; manageProfiles = !manageProfiles; renderProfiles(); }}, manageProfiles ? 'Done' : 'Manage profiles')),
     manageProfiles && profiles.length > 1 ? h('label', {class:'chk', style:'justify-content:center'}, ask, h('span', null, "Ask who's watching when the app opens")) : null);
 }
 function editProfile(id, openCat){
@@ -270,7 +270,7 @@ function peSubOpen(c, right, repaint){
   peSubClose(true);
   const node = document.querySelector(`.setcat[data-cat="${c}"]`); if (!node) return;
   peSub = {node, parent:node.parentNode, next:node.nextSibling, repaint};
-  const back = h('button', {class:'btn ghost sm pe-back', type:'button', onclick:() => peSubClose()}, '‹ Back');
+  const back = backBtn(() => peSubClose());
   right.replaceChildren(h('div', {class:'pe-subhead'}, back, h('h2', {class:'sedh'}, setName(c))), h('div', {class:'pe-subbody'}, node));
   node.hidden = false; $('#profEd').classList.add('insub');
   if (c === 'pspaces') pSpacesList();
