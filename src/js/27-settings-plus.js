@@ -168,7 +168,8 @@ function settingsPlus(){
   else { dropSetSub(); showSetHome(); }                                  // the gear always lands on the main Settings list
 
   scopeTags();
-  try { tioWire(); tioFill(); } catch (e) { console.warn(e); }               // Torrentio (29-torrentio.js)
+  try { tioWire(); tioFill(); } catch (e) { console.warn(e); }
+  try { phoneBtns(); } catch {}                                          // TV: type keys and links on your phone (34-phone-paste.js)               // Torrentio (29-torrentio.js)
   /* General */
   const stS = $('#setStart'), stSp = $('#setStartSp');
   stS.value = u.startup || 'last';

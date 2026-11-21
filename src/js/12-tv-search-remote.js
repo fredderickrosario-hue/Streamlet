@@ -108,7 +108,7 @@ try { if (window.tizen && tizen.tvinputdevice) ['MediaPlayPause','MediaPlay','Me
 
 const FOCUSABLE = 'a[href],button:not([disabled]),input:not([type=hidden]):not([disabled]),select:not([disabled]),textarea:not([disabled]),summary,[tabindex]:not([tabindex="-1"])';
 function ctxRoot(){
-  for (const id of ['#loadov', '#exitDlg', '#updDlg', '#pinPop', '#avPop', '#spPop', '#welcome', '#iosHelp', '#menu', '#ppanel', '#player', '#addonEd', '#profEd', '#spaceEd', '#episode', '#detail']) { const e = $(id); if (e && !e.hidden) return e; }
+  for (const id of ['#loadov', '#exitDlg', '#updDlg', '#ppPop', '#pinPop', '#avPop', '#spPop', '#welcome', '#iosHelp', '#menu', '#ppanel', '#player', '#addonEd', '#profEd', '#spaceEd', '#episode', '#detail']) { const e = $(id); if (e && !e.hidden) return e; }
   return document.body;
 }
 function focusables(root){

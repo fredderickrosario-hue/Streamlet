@@ -75,6 +75,7 @@ function wzDraw(){
         h('button', {class:'btn', type:'button', onclick:go}, 'Continue')),
       h('p', {class:'sub wzfine'}, 'Without a key, your spaces show Cinemeta\'s popular movies and shows instead. Add a key later in Settings > TMDB & addons and Netflix, Disney, Marvel and Kids switch to their own rows.')];
     inp.onkeydown = e => { if (e.key === 'Enter') go(); };
+    setTimeout(() => phoneBtn(inp, 'TMDB API key', 'your TMDB API key'), 0);
   } else if (wz.step === 2) {
     const inp = h('input', {class:'f', type:'password', placeholder:'Real-Debrid API token', value:wz.rd, autocomplete:'off', spellcheck:'false', autocapitalize:'off'});
     const go = async () => {
@@ -100,6 +101,7 @@ function wzDraw(){
         h('button', {class:'btn', type:'button', onclick:go}, 'Finish')),
       h('p', {class:'sub wzfine'}, 'You can add or change it anytime in Settings > TMDB & addons > Torrentio.')];
     inp.onkeydown = e => { if (e.key === 'Enter') go(); };
+    setTimeout(() => phoneBtn(inp, 'Real-Debrid token', 'your Real-Debrid token'), 0);
   } else {
     body = [h('h1', null, wz.done ? "You're all set" : 'Setting up…'), h('div', {class:'wzlog'}, (wz.log || []).map(l => h('p', null, l))),
       wz.done ? h('div', {class:'wzbtns'}, h('button', {class:'btn', type:'button', onclick:wzClose}, 'Start watching')) : null];

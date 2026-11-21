@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="color-scheme" content="dark">
+<title>Send to Streamlet</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;background:radial-gradient(circle at 50% 30%,#2c1712,#0a0a12 70%);color:#eceef3;font:16px/1.4 system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
+main{width:100%;max-width:420px;padding:28px 22px;text-align:center}
+h1{margin:0 0 6px;font-size:32px}h1 b{color:#ff6b3d}
+p.sub{color:#9aa0b4;margin:0 0 18px}
+textarea{width:100%;min-height:110px;padding:14px;border-radius:14px;border:1px solid #ffffff26;background:#ffffff0d;color:#fff;font:15px/1.4 ui-monospace,Menlo,monospace;resize:vertical;margin:0 0 12px;word-break:break-all}
+button{width:100%;padding:14px;border-radius:14px;border:0;font-size:16px;font-weight:700;color:#fff;background:#ff6b3d;margin:0 0 10px}
+button.ghost{background:#ffffff14}
+#msg{min-height:24px;margin-top:8px;font-size:14px;color:#ff8f8f}#msg.ok{color:#4ad295}
+</style>
+</head>
+<body>
+<main>
+  <h1>Stream<b>let</b></h1>
+  <p class="sub" id="sub">Paste it here. It goes straight to your TV.</p>
+  <div id="form">
+    <textarea id="txt" placeholder="Paste here" autocapitalize="off" autocorrect="off" spellcheck="false"></textarea>
+    <button id="paste" class="ghost" type="button">Paste from clipboard</button>
+    <button id="send" type="button">Send to the TV</button>
+  </div>
+  <div id="msg"></div>
+</main>
+<script type="module">
+import {initializeApp} from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js';
+import {getFirestore, doc, setDoc} from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js';
+const app = initializeApp({apiKey:"AIzaSyB1Ail6UMc7ou1S67kIJl7OPOEzzm_gyZM",authDomain:"streamlet-9439d.firebaseapp.com",projectId:"streamlet-9439d",storageBucket:"streamlet-9439d.firebasestorage.app",messagingSenderId:"838065755328",appId:"1:838065755328:web:ffd0becf3ab0314bb04925"});
+const db = getFirestore(app);
+const $ = s => document.querySelector(s), msg = (t, ok) => { const m = $('#msg'); m.textContent = t; m.className = ok ? 'ok' : ''; };
+const [pid, key] = location.hash.slice(1).split('.'), what = new URLSearchParams(location.search).get('t');
+if (what) { document.title = what + ' · Streamlet'; $('#sub').textContent = `${what}: paste it here. It goes straight to your TV.`; }
+const unb64 = s => Uint8Array.from(atob(s.replace(/-/g, '+').replace(/_/g, '/')), c => c.charCodeAt(0));
+const b64 = u => btoa(String.fromCharCode(...u)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+if (!pid || !key) { $('#form').hidden = true; msg('Open this page by scanning the code on your TV.'); }
+if (!navigator.clipboard || !navigator.clipboard.readText) $('#paste').hidden = true;
+$('#paste').onclick = async () => { try { $('#txt').value = (await navigator.clipboard.readText()).trim(); } catch { msg('Long-press the box and choose Paste.'); } };
+$('#send').onclick = async () => {
+  const text = $('#txt').value.trim(); if (!text) { msg('Paste something first.'); return; }
+  msg('Sending…', true);
+  try {
+    const k = await crypto.subtle.importKey('raw', unb64(key), 'AES-GCM', false, ['encrypt']), iv = crypto.getRandomValues(new Uint8Array(12));
+    const ct = new Uint8Array(await crypto.subtle.encrypt({name:'AES-GCM', iv}, k, new TextEncoder().encode(JSON.stringify({text}))));
+    await setDoc(doc(db, 'pairings', pid), {iv:b64(iv), ct:b64(ct), t:Date.now()});
+    $('#form').hidden = true; $('#sub').textContent = ''; msg('Sent! It shows up on your TV in a moment. You can close this page.', true);
+  } catch (e) { msg('Something went wrong' + (e && e.code ? ' (' + e.code + ')' : '') + '. Try again.'); }
+};
+</script>
+</body>
+</html>
