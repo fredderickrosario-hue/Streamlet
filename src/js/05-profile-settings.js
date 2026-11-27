@@ -215,14 +215,14 @@ function renderProfiles(){
 let psT = 0, psFor = null, psList = [], psI = 0, psTrend = null;
 function pshowEl(){ return h('div', {class:'pshow', 'aria-hidden':'true'}, h('div', {class:'psbg'}), h('div', {class:'psin'})); }
 function psPics(pr){
-  const out = [], seen = new Set(), add = (e, tag) => { const id = e.itemId || e.id, bg = e.background; if (!bg || !id || seen.has(id)) return; seen.add(id); out.push({name:e.name || '', bg, tag}); };
+  const tall = !document.body.classList.contains('tv'), out = [], seen = new Set(), add = (e, tag) => { const id = e.itemId || e.id, bg = tall ? (e.poster || e.background) : e.background; if (!bg || !id || seen.has(id)) return; seen.add(id); out.push({name:e.name || '', bg, tag, tall:tall && !!e.poster}); };   // phone (portrait): the poster
   for (const e of (plsGet(pr.id, 'history', []) || []).filter(x => !x.upnext)) add(e, 'Continue watching');
   for (const e of plsGet(pr.id, 'watchlist', []) || []) add(e, 'On your list');
   return out.slice(0, 10);
 }
 async function psTrending(){
   if (psTrend) return psTrend; const key = lsGet('streamlet.tmdb', ''); if (!key) return [];
-  try { const r = await tmdbGet('/trending/all/week', key); psTrend = (r.results || []).filter(x => x.backdrop_path).slice(0, 10).map(x => ({name:x.title || x.name || '', bg:'https://image.tmdb.org/t/p/w1280' + x.backdrop_path, tag:'Trending this week'})); } catch { psTrend = []; }
+  try { const r = await tmdbGet('/trending/all/week', key); const tall = !document.body.classList.contains('tv'); psTrend = (r.results || []).filter(x => tall ? x.poster_path : x.backdrop_path).slice(0, 10).map(x => ({name:x.title || x.name || '', bg:tall ? 'https://image.tmdb.org/t/p/w780' + x.poster_path : 'https://image.tmdb.org/t/p/w1280' + x.backdrop_path, tag:'Trending this week', tall})); } catch { psTrend = []; }
   return psTrend;
 }
 function pshowFor(pr){
@@ -246,10 +246,11 @@ function psShow(){
     if (bg.lastChild !== img) { img.remove(); return; }
     requestAnimationFrame(() => { img.classList.add('on'); for (const o of [...bg.children]) if (o !== img) o.classList.remove('on'); });
     setTimeout(() => { for (const o of [...bg.children]) if (o !== img && !o.classList.contains('on')) o.remove(); }, 1200);
-    tin.replaceChildren(h('div', {class:'pstag'}, it.tag), h('div', {class:'psname'}, it.name));
+    tin.replaceChildren(h('div', {class:'pstag'}, it.tag), it.tall ? null : h('div', {class:'psname'}, it.name));   // a poster already shows its title
   };
   img.onerror = () => img.remove();
   img.src = it.bg; bg.append(img);
+  if (it.tall) P.querySelector('.pshow').style.setProperty('--psb', `url("${String(it.bg).replace(/"/g, '%22')}")`);   // phone: a blurred copy of the poster fills the screen behind it
   if (psList.length > 1) psT = setTimeout(() => { psI++; psShow(); }, 7000);
 }
 function editProfile(id, openCat){
