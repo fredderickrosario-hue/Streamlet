@@ -228,6 +228,7 @@ function moveFocus(dir, rep){
     return;
   }
   /* Up / Down: the next line, same column */
+  if (tv && !inNav && tvRowStep(cur, dir)) return;
   let N = lines[li + (dir === 'down' ? 1 : -1)];
   const cols = inNav ? [] : navZones(root, list).filter(z => z !== zone && !(zone && zone.matches('#search .skb, #search .sres') && z.matches('#search .skb, #search .sres')));
   if (!inNav && (!zone || !N)) {                                            // a column below / above may be nearer than the next line: enter it (the left one first)
@@ -324,17 +325,33 @@ function tvSlot(el){
   const rows = $('#rows'); if (!rows || !rows.contains(el) || !rows.querySelector('.tvhero')) return null;
   const s = el.closest(TV_SLOT); return s && rows.contains(s) ? s : null;
 }
-function tvRows(slot){
+const tvSlots = () => [...$('#rows').querySelectorAll(TV_SLOT)].filter(s => !s.hidden && s.querySelector(FOCUSABLE));
+function tvRows(slot, dir){
   const b = document.body, rows = $('#rows');
-  if (!slot) { b.classList.remove('rowsfix'); if (rows) rows.querySelectorAll('.up').forEach(x => x.classList.remove('up')); return 0; }
+  if (!slot) { b.classList.remove('rowsfix'); if (rows) rows.querySelectorAll('.rshow,.rcur').forEach(x => x.classList.remove('rshow', 'rcur')); return 0; }
+  const all = tvSlots(), i = all.indexOf(slot), was = rows.querySelector('.rcur');
+  rows.querySelectorAll('.rshow,.rcur').forEach(x => x.classList.remove('rshow', 'rcur'));
+  slot.classList.add('rshow', 'rcur'); if (i >= 0 && all[i + 1]) all[i + 1].classList.add('rshow');
   b.classList.add('rowsfix');
-  let before = true; for (const s of rows.querySelectorAll(TV_SLOT)) { if (s === slot) before = false; s.classList.toggle('up', before && !s.hidden); }
-  const k = (b.getBoundingClientRect().height / (b.offsetHeight || 1)) || 1;     // the page may be zoomed to fit the TV
-  return Math.max(0, scrollY + slot.getBoundingClientRect().top - innerHeight * .5 * k);
+  rows.classList.toggle('rgo-u', dir === 'up');
+  if (was && was !== slot) { slot.style.animation = 'none'; void slot.offsetWidth; slot.style.animation = ''; }   // replay the short slide-in
+  return 0;
 }
-function rowSwitch(dir){
-  const r = $('#rows'); if (!r) return;
-  r.classList.remove('rsw-d', 'rsw-u'); void r.offsetWidth; r.classList.add(dir === 'down' ? 'rsw-d' : 'rsw-u');
+/* Up / Down on the TV home carousel: the previous / next row (hidden rows can't be found on screen, so go by order) */
+function tvRowStep(cur, dir){
+  const slot = tvSlot(cur); if (!slot || !document.body.classList.contains('rowsfix')) return false;
+  const all = tvSlots(), i = all.indexOf(slot), t = all[i + (dir === 'down' ? 1 : -1)];
+  if (!t) {
+    if (dir === 'up') { tvRows(null); const hb = $('#rows .tvhero .hb.p') || $('#rows .tvhero .hb'); if (hb) navGo(hb, dir, false, true, null); }
+    return true;
+  }
+  tvRows(t, dir);
+  const els = focusables(t), strip = t.querySelector('.strip');
+  const x = (navEl && navEl.isConnected ? navEl : cur).getBoundingClientRect();
+  const land = navLand({row:strip, els}, (x.left + x.right) / 2, null);
+  if (land) { navVert = true; try { land.focus({preventScroll:true}); } finally { navVert = false; } }
+  window.scrollTo(0, 0);
+  return true;
 }
 function revealEl(el, dir, rep, tv, edge){
   if (document.body.classList.contains('tv') && el.closest('.pecol-r') && scrollNested(el, edge)) return;
@@ -388,14 +405,13 @@ function revealEl(el, dir, rep, tv, edge){
   }
   const slot = tvSlot(el);
   if (el.closest('.tvhero')) { tvRows(null); window.scrollTo(0, 0); }
-  else if (slot && (dir === 'up' || dir === 'down' || !document.body.classList.contains('rowsfix'))) window.scrollTo(0, tvRows(slot));   // TV home: the row you are on always sits in the same spot under the picture
+  else if (slot && !slot.classList.contains('rcur')) { tvRows(slot, dir); window.scrollTo(0, 0); }   // TV home carousel: this row becomes the one on show
   else if (slot) {}
   else if (edge) window.scrollTo(0, edge === 'top' ? 0 : 1e7);                 // last item in that direction: show the whole end of the page
   else if (strip && (dir === 'up' || dir === 'down') && strip.parentElement) strip.parentElement.scrollIntoView({block:'center', inline:'nearest'});   // moving between rows: the row snaps to the middle of the screen
   else if (!strip && (dir === 'up' || dir === 'down')) el.scrollIntoView({block:'center', inline:'nearest'});
   else (strip || el).scrollIntoView({block:'nearest', inline:'nearest'});
   const y1 = scrollY, x1 = strip ? strip.scrollLeft : 0;
-  if (slot && (dir === 'up' || dir === 'down') && document.body.classList.contains('rowsfix')) { rowSwitch(dir); return; }   // TV home: rows switch in place (a quick slide), no long scroll
   if (y0 === y1 && x0 === x1) return;
   window.scrollTo(0, y0); if (strip) strip.scrollLeft = x0;
   cancelAnimationFrame(scrollAnim);
