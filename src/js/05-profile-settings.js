@@ -313,7 +313,12 @@ function ribEl(iid){                                                     // show
 }
 function posterEl(meta){
   const p = h('div', {class:'poster'}, (meta.name||'?').trim().charAt(0).toUpperCase());
-  if (meta.poster) p.append(h('img', {src:meta.poster, loading:'lazy', decoding:'async', alt:'', onerror:e=>e.target.remove()}));
+  if (document.body.classList.contains('tv') && (meta.background || meta.poster)) {   // TV: landscape cards. The wide picture when there is one, else the poster over a blurred copy of itself
+    p.classList.add('wide');
+    const bg = meta.background && meta.background !== meta.poster ? meta.background : null;
+    if (bg) p.append(h('img', {src:bg, loading:'lazy', decoding:'async', alt:'', onerror:e => { e.target.remove(); if (meta.poster) { p.classList.add('fit'); p.append(h('img', {class:'wfill', src:meta.poster, alt:''}), h('img', {class:'wfit', src:meta.poster, alt:''})); } }}));
+    else { p.classList.add('fit'); p.append(h('img', {class:'wfill', src:meta.poster, loading:'lazy', decoding:'async', alt:''}), h('img', {class:'wfit', src:meta.poster, loading:'lazy', decoding:'async', alt:'', onerror:e => e.target.remove()})); }
+  } else if (meta.poster) p.append(h('img', {src:meta.poster, loading:'lazy', decoding:'async', alt:'', onerror:e=>e.target.remove()}));
   const iid = meta.itemId || meta.id;
   if (iid) { p.dataset.iid = iid; const rb = ribEl(iid); if (rb) p.append(rb); }
   const rs = relState(meta, meta.type); if (rs) p.append(h('span', {class:'rtag ' + rs}, relLabel(rs)));
@@ -324,7 +329,7 @@ function posterEl(meta){
 function cwCard(e){
   const pct = e.dur ? Math.min(100, Math.round(e.pos / e.dur * 100)) : 0;
   const label = (e.ep ? `S${e.ep.season ?? 1}:E${e.ep.episode ?? '?'}` : '') + (e.upnext ? ' · Next episode' : (e.dur ? (e.ep ? ' · ' : '') + Math.max(1, Math.round((e.dur - e.pos) / 60)) + 'm left' : ''));
-  const po = posterEl({name:e.name, poster:e.poster, itemId:e.itemId, type:e.itemType || e.type});
+  const po = posterEl({name:e.name, poster:e.poster, background:e.background, itemId:e.itemId, type:e.itemType || e.type});
   if (e.upnext) {                                                        // one label at most: a new season (its first episode), or a new episode of a show that airs week by week
     const age = e.rel ? Date.now() - Date.parse(e.rel) : Infinity, sOpen = e.ep && e.ep.episode === 1 && (e.ep.season ?? 1) >= 2;
     po.querySelectorAll('.rtag.season, .upn').forEach(x => x.remove());
