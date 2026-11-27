@@ -265,3 +265,9 @@ body.tv .mehero{flex-direction:column;align-items:stretch;gap:16px;padding:22px 
 .pe-avbtn:is(:focus-visible,:hover) .pbadge,body.tv .pe-avbtn:focus .pbadge{box-shadow:0 0 0 3px #fff,0 4px 12px rgba(0,0,0,.4) !important;transform:scale(1.15)}
 .meswr{padding:7px !important;margin:-7px}
 .pbtn{white-space:nowrap;flex:0 0 auto}
+/* focused pills and buttons: filled with the accent color instead of a white ring (whole app) */
+:is(.chip,.pillx,.btn,.gtile,.gsort,.hb,.smark,.ibtn.txt):focus-visible{outline:none !important;background:var(--acc) !important;color:#fff !important;border-color:transparent !important;box-shadow:0 6px 22px rgba(0,0,0,.35) !important}
+:is(.chip,.pillx,.btn,.gtile,.gsort,.hb,.smark):focus-visible svg{stroke:currentColor}
+/* TV show page tabs: no pill, the focused tab is just brighter with its underline */
+body.tv #detail .dtab:focus-visible{outline:none !important;background:none !important;color:#fff;transform:scale(1.06)}
+body.tv :is(#detail,#episode) .dp2 :is(.chip,.pillx,.btn,.smark):focus-visible{box-shadow:none !important;outline:none !important}

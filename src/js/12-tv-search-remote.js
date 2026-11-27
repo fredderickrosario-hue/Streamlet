@@ -264,14 +264,14 @@ function tvEntryReveal(el, lock){
     const want = !row || row.closest('.dtabtv') || row === dp.querySelector('.drow') ? 0 : dp.scrollTop + (row.getBoundingClientRect().top - dr.top - 74 * k) / k;   // tabbed: the tab bar stays at the top
     dp.scrollTo({top:Math.max(0, want), behavior:'smooth'});
   }
-  const vs = el.closest('.evlist,.scol,.dtabtv .dsim,.ddscroll');                                  // tabbed show page: the season column and the episode list scroll up and down
+  const vs = el.closest('.evlist,.scol,.dtabtv .dsim,.ddcast');                                  // tabbed show page: the season column and the episode list scroll up and down
   if (vs) {
     const item = el.closest('.evlist > *, .scol > *, .dsim > *, .ddcast > *') || el, sr = vs.getBoundingClientRect(), br = item.getBoundingClientRect(), kk = sr.height / (vs.offsetHeight || sr.height) || 1, m = 40 * kk;
     if (item === vs.firstElementChild) vs.scrollTo({top:0, behavior:'smooth'});
     else if (br.bottom > sr.bottom - m) vs.scrollTo({top:vs.scrollTop + (br.bottom - (sr.bottom - m)) / kk, behavior:'smooth'});
     else if (br.top < sr.top + m) vs.scrollTo({top:vs.scrollTop - (sr.top + m - br.top) / kk, behavior:'smooth'});
   }
-  const hs = el.closest('.srow,.sfilter,.eplist,.slist,.dsim,.cchips');
+  const hs = !vs && el.closest('.srow,.sfilter,.eplist,.slist,.dsim,.cchips');
   if (hs) {
     const item = el.closest('.srow > *, .sfilter > *, .eplist > *, .slist > *, .dsim > *') || el, sr = hs.getBoundingClientRect(), br = item.getBoundingClientRect(), kk = sr.width / (hs.offsetWidth || sr.width) || 1, m = 70 * kk;
     if (item === hs.firstElementChild) hs.scrollTo({left:0, behavior:'smooth'});
