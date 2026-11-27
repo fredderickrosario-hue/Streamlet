@@ -131,8 +131,8 @@ function focusNav(){
    Left / Right walk along the line; past its start, Left opens the side menu. Up / Down go to the line above / below and land on
    the card you last had in that row, or the one under where you were. Columns (side menu, search keyboard, search results) keep
    Up / Down to themselves; Left / Right cross between them. */
-const ROW_SEL = '.avstrip,.strip,.dacts2,.srow,.sfilter,.eplist,.slist,.cchips,.dsim,.tbtns,.dptabs,.rrow';
-const ZONE_SEL = '#detail .scol,#detail .evlist,#nav,#search .skb,#search .sres,#profEd .pecol,#profEd .pe2-l,#profEd .pe2-r,#spaceEd .sedcol';
+const ROW_SEL = '.avstrip,.strip,.dacts2,.srow,.sfilter,.eplist,.slist,.cchips:not(.dtabtv .cchips),.dsim:not(.dtabtv .dsim),.tbtns,.dptabs,.rrow';
+const ZONE_SEL = '#detail .scol,#detail .evlist,#detail .dtabtv .dsim,#detail .ddcast,#nav,#search .skb,#search .sres,#profEd .pecol,#profEd .pe2-l,#profEd .pe2-r,#spaceEd .sedcol';
 const zoneMem = new WeakMap();                                            // column -> where you were in it
 const rowMem = new WeakMap();                                             // row -> the card you were on
 let navEl = null, navVert = false;                                         // the card that set the column you are travelling down (kept across short lines)
@@ -264,9 +264,9 @@ function tvEntryReveal(el, lock){
     const want = !row || row.closest('.dtabtv') || row === dp.querySelector('.drow') ? 0 : dp.scrollTop + (row.getBoundingClientRect().top - dr.top - 74 * k) / k;   // tabbed: the tab bar stays at the top
     dp.scrollTo({top:Math.max(0, want), behavior:'smooth'});
   }
-  const vs = el.closest('.evlist,.scol');                                  // tabbed show page: the season column and the episode list scroll up and down
+  const vs = el.closest('.evlist,.scol,.dtabtv .dsim,.ddscroll');                                  // tabbed show page: the season column and the episode list scroll up and down
   if (vs) {
-    const item = el.closest('.evlist > *, .scol > *') || el, sr = vs.getBoundingClientRect(), br = item.getBoundingClientRect(), kk = sr.height / (vs.offsetHeight || sr.height) || 1, m = 40 * kk;
+    const item = el.closest('.evlist > *, .scol > *, .dsim > *, .ddcast > *') || el, sr = vs.getBoundingClientRect(), br = item.getBoundingClientRect(), kk = sr.height / (vs.offsetHeight || sr.height) || 1, m = 40 * kk;
     if (item === vs.firstElementChild) vs.scrollTo({top:0, behavior:'smooth'});
     else if (br.bottom > sr.bottom - m) vs.scrollTo({top:vs.scrollTop + (br.bottom - (sr.bottom - m)) / kk, behavior:'smooth'});
     else if (br.top < sr.top + m) vs.scrollTo({top:vs.scrollTop - (sr.top + m - br.top) / kk, behavior:'smooth'});

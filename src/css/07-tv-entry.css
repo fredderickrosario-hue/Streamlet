@@ -368,3 +368,25 @@ body.tv #detail .dp2 .evlist .ep:focus-visible .ethumb::after{opacity:0}
 body.tv #detail .dp2 .scol .chip{justify-content:flex-start}
 body.tv #detail .etv{height:calc(var(--vh,1vh) * 88 - 86px)}
 body.tv #detail .evlist{-webkit-mask-image:linear-gradient(to bottom,#000 calc(100% - 40px),transparent);mask-image:linear-gradient(to bottom,#000 calc(100% - 40px),transparent)}
+/* TV Details tab */
+body.tv #detail .ddet{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.25fr);gap:48px;height:calc(var(--vh,1vh) * 88 - 86px);margin:0}
+body.tv #detail .ddh{margin:0 0 14px;font-size:14px;font-weight:800;letter-spacing:.8px;text-transform:uppercase;color:#9ea2b3}
+body.tv #detail .dddesc{margin:0 0 22px;font-size:16px;line-height:1.6;color:#d6d9e3;max-width:560px}
+body.tv #detail .ddfacts{display:grid;grid-template-columns:auto 1fr;gap:10px 22px;margin:0;font-size:15px}
+body.tv #detail .ddfacts dt{color:#9ea2b3;font-weight:650}
+body.tv #detail .ddfacts dd{margin:0;color:#fff;font-weight:650}
+body.tv #detail .ddr{display:flex;flex-direction:column;min-height:0}
+body.tv #detail .ddcast{display:grid;grid-template-columns:repeat(auto-fill,minmax(104px,1fr));gap:14px;align-content:start;min-height:0;overflow-y:auto;scrollbar-width:none;padding:6px 64px 30px 6px;margin:-6px 0 0 -6px;-webkit-mask-image:linear-gradient(to bottom,#000 calc(100% - 40px),transparent);mask-image:linear-gradient(to bottom,#000 calc(100% - 40px),transparent)}
+body.tv #detail .ddcast::-webkit-scrollbar{display:none}
+body.tv #detail .ccard{display:flex;flex-direction:column;gap:3px;padding:0 0 6px;background:none;border:0;border-radius:12px;color:#fff;font:inherit;text-align:left;cursor:pointer}
+body.tv #detail .ccard img, body.tv #detail .ccard .cini{width:100%;aspect-ratio:4/5;object-fit:cover;border-radius:12px;margin:0 0 6px;background:rgba(255,255,255,.07)}
+body.tv #detail .ccard .cini{display:flex;align-items:center;justify-content:center;font-size:28px;font-weight:800;color:#6f7385}
+body.tv #detail .ccard b{font-size:14px;line-height:1.25;padding:0 4px}
+body.tv #detail .ccard .crole{font-size:12.5px;color:#9ea2b3;padding:0 4px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+body.tv #detail .ccard:focus-visible{outline:3px solid #fff;outline-offset:3px}
+/* TV More like this tab: a grid that fills the tab and scrolls */
+body.tv #detail .dtabtv .dsimr{margin:0}
+body.tv #detail .dtabtv .dsimr .dpane{height:calc(var(--vh,1vh) * 88 - 86px);display:flex;flex-direction:column}
+body.tv #detail .dtabtv .dsim{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:22px 16px;align-content:start;flex:1;min-height:0;overflow-y:auto;overflow-x:hidden;padding:8px 64px 30px 8px;margin:-8px 0 0 -8px;-webkit-mask-image:linear-gradient(to bottom,#000 calc(100% - 40px),transparent);mask-image:linear-gradient(to bottom,#000 calc(100% - 40px),transparent)}
+body.tv #detail .dtabtv .dsim .card{width:auto;flex:none}
+body.tv #detail .dtabtv .dsim .poster.wide{width:100%;height:auto;aspect-ratio:16/9}

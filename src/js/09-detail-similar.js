@@ -290,9 +290,49 @@ function tvRowsFor(addon, type, meta, title, els, opts = {}){
     simRow));
 }
 
+/* TV Details tab: the story and the facts on the left, the cast as photo cards on the right, crew under them */
+const castFull = new Map();
+function castList(meta, type){
+  const key = lsGet('streamlet.tmdb', ''); if (!key) return Promise.resolve(null);
+  const ck = String(meta.id) + type;
+  if (!castFull.has(ck)) castFull.set(ck, tmRef(meta, type).then(r => r && r.id ? tmdbGet(`/${r.k}/${r.id}/${r.k === 'tv' ? 'aggregate_credits' : 'credits'}`, key) : null)
+    .then(c => c ? (c.cast || []).slice(0, 16).map(x => ({name:x.name, role:x.character || ((x.roles || [])[0] || {}).character || '', pic:x.profile_path ? 'https://image.tmdb.org/t/p/w185' + x.profile_path : ''})) : null)
+    .catch(() => { castFull.delete(ck); return null; }));
+  return castFull.get(ck);
+}
+function tvDetails(meta, type, sorted){
+  const genres = listOf(meta, 'genres', 'genres').length ? listOf(meta, 'genres', 'genres') : listOf(meta, 'genre', 'genres');
+  const seas = sorted ? [...new Set(sorted.map(v => v.season ?? 1))].filter(x => x > 0) : [];
+  const facts = [
+    ['Genres', genres.slice(0, 4).join(', ')],
+    [type === 'series' ? 'Aired' : 'Released', meta.releaseInfo || meta.year],
+    ['Status', meta.status && type === 'series' ? ({'Returning Series':'Still airing', 'Ended':'Ended', 'Canceled':'Cancelled', 'In Production':'In production'}[meta.status] || meta.status) : ''],
+    ['Seasons', seas.length ? String(seas.length) : ''],
+    ['Episodes', sorted && sorted.length ? String(sorted.filter(v => (v.season ?? 1) > 0).length) : ''],
+    ['Length', fmtRun(meta.runtime) + (type === 'series' && meta.runtime ? ' an episode' : '')],
+    ['Rating', meta.imdbRating ? '★ ' + meta.imdbRating : ''],
+    ['Director', listOf(meta, 'director', 'director').slice(0, 3).join(', ')],
+    ['Writer', listOf(meta, 'writer', 'writer').slice(0, 3).join(', ')]].filter(f => f[1]);
+  const cast = h('div', {class:'ddcast'});
+  const names = listOf(meta, 'cast', 'cast').slice(0, 16);
+  const card = c => h('button', {class:'ccard', type:'button', onclick:() => searchFor(c.name)},
+    c.pic ? h('img', {src:c.pic, alt:'', loading:'lazy', decoding:'async', onerror:e => { e.target.replaceWith(h('span', {class:'cini'}, initials(c.name))); }}) : h('span', {class:'cini'}, initials(c.name)),
+    h('b', null, c.name), c.role ? h('span', {class:'crole'}, c.role) : null);
+  cast.append(...names.map(n => card({name:n})));
+  castList(meta, type).then(l => { if (l && l.length) cast.replaceChildren(...l.map(card)); });
+  return h('section', {class:'drow ddet'},
+    h('div', {class:'ddl'},
+      h('h3', {class:'ddh'}, 'About'),
+      meta.description ? h('p', {class:'dddesc'}, meta.description) : null,
+      h('dl', {class:'ddfacts'}, facts.map(([k, v]) => [h('dt', null, k), h('dd', null, v)]).flat())),
+    h('div', {class:'ddr'}, h('h3', {class:'ddh'}, 'Cast'), cast));
+}
+const initials = n => String(n || '?').split(/\s+/).map(w => w[0] || '').join('').slice(0, 2).toUpperCase();
 /* TV: the lower half of a show's page as tabs (Episodes / Details / More like this); moving onto a tab shows it */
-function tvTabs(rows, d){
+function tvTabs(rows, d, meta, type, sorted){
   const inn = rows.querySelector('.dp2in'); if (!inn) return;
+  const old = inn.querySelector(':scope > .dpeople'); if (old) old.remove();          // Details replaces the old Cast & crew row
+  inn.querySelector('.dmain').after(tvDetails(meta, type, sorted));
   const det = [...inn.children].filter(x => x.matches('.drow') && !x.matches('.dmain,.dsimr')), sim = inn.querySelector('.dsimr');
   det.forEach(x => x.classList.add('dtdet'));
   const set = k => { d.dataset.tvtab = k; inn.dataset.tab = k; tabs.querySelectorAll('.dtab').forEach(b => b.classList.toggle('on', b.dataset.k === k)); };
@@ -415,7 +455,7 @@ async function openDetail(addon, type, item, opts = {}){
         srow.className = 'scol'; list.className = 'evlist';
         draw();
         const rows = tvRows('Episodes', [h('div', {class:'etv'}, h('div', {class:'scolw'}, srow, hdActs), list)]);
-        tvTabs(rows, d); body.append(rows);
+        tvTabs(rows, d, meta, type, sorted); body.append(rows);
       }
     } else if (withStreams) {                                              // ---- movie / single title: streams right here
       const box = h('div', {class:'dbox'});
