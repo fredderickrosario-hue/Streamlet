@@ -2,8 +2,7 @@
 /* nav: no box on the current tab; the icon fills in and the label turns white */
 .navpill{display:none}
 nav button{color:rgba(255,255,255,.52)}
-nav button.on{color:#fff}
-nav button>svg{transition:fill .2s,stroke .2s}
+
 nav button.on{color:#fff}
 nav button.on>svg{fill:color-mix(in srgb,var(--acc) 50%,transparent);stroke:#fff;stroke-width:1.6;stroke-linejoin:round;transform:none}
 nav button.on>svg .k{fill:none;stroke:#fff;stroke-width:1.8}
@@ -37,7 +36,7 @@ body.tv nav button.on{background:none}
 .spaceBtn{display:inline-flex;align-items:center;gap:6px}
 .pchips .chip{display:inline-flex;align-items:center;gap:6px;padding:6px 14px 6px 8px}
 .avprev{display:flex;justify-content:center;margin:4px 0 6px}
-.avgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(68px,1fr));gap:12px;margin:8px 0}
+
 .avb{border:3px solid transparent;border-radius:50%;padding:2px;background:none;line-height:0}
 .avb .av{width:100% !important;height:auto !important;aspect-ratio:1/1}
 .avb.on{border-color:#fff;box-shadow:0 0 0 4px color-mix(in srgb,var(--acc) 80%,transparent)}

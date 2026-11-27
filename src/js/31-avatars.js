@@ -58,7 +58,6 @@ function avPaint(el, v){
 }
 
 /* the picker: a sheet of rows you scroll sideways (your picture first, emoji last) */
-const PENCIL = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h4L19.5 8.5a2.1 2.1 0 0 0 0-3l-1-1a2.1 2.1 0 0 0-3 0L4 16z" fill="#fff" stroke="#1b1b22" stroke-width="1.6" stroke-linejoin="round"/><path d="M13.5 6.5l4 4" stroke="#1b1b22" stroke-width="1.6"/></svg>';
 const UPLOAD = '<svg viewBox="0 0 48 48" aria-hidden="true"><rect x="8" y="12" width="32" height="26" rx="5" fill="none" stroke="#fff" stroke-width="3"/><circle cx="18" cy="21" r="3.2" fill="#fff"/><path d="M11 35l9-9 6 6 5-5 7 8" fill="none" stroke="#fff" stroke-width="3" stroke-linejoin="round"/></svg>';
 let avPop = null;
 function avPicker(pr, onPick){
@@ -113,18 +112,6 @@ LAYER_CLOSERS.avpop = () => avClose(true);
 
 /* your own picture: a file on a phone or computer; on a TV, a QR code opens avatar.html on your phone, which sends the picture back
    through a short-lived encrypted Firestore document (the same pairings/{id} rules as signing in with your phone) */
-function avShrink(file){
-  return new Promise((res, rej) => {
-    const img = new Image(), u = URL.createObjectURL(file);
-    img.onload = () => {
-      const s = Math.min(img.naturalWidth, img.naturalHeight), c = document.createElement('canvas'); c.width = c.height = 200;
-      c.getContext('2d').drawImage(img, (img.naturalWidth - s) / 2, (img.naturalHeight - s) / 2, s, s, 0, 0, 200, 200);
-      URL.revokeObjectURL(u); res(c.toDataURL('image/jpeg', .85));
-    };
-    img.onerror = () => { URL.revokeObjectURL(u); rej(new Error('not a picture')); };
-    img.src = u;
-  });
-}
 function avOwn(body, pr, pick){
   const tv = document.body.classList.contains('tv');
   const mine = null;

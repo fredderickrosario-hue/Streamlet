@@ -7,7 +7,7 @@ body:not(.tv).pgfix:not(.launch) .pagehead{padding-left:16px;padding-right:16px}
 body:not(.tv) .rgrid{padding-left:16px;padding-right:16px}
 body:not(.tv) .row h2,body:not(.tv) .rhead{margin-left:16px;margin-right:16px}
 body:not(.tv) .strip{padding-left:16px;padding-right:16px;scroll-padding:0 16px}
-body:not(.tv) .gstrip{padding-left:16px;padding-right:16px}
+body:not(.tv) .gstrip{padding-left:16px}
 body:not(.tv).onhome:not(.launch) #tabsBar{padding-left:16px;padding-right:16px}
 body:not(.tv) #launcher{padding-left:16px;padding-right:16px}
 body:not(.tv) .sedwrap,body:not(.tv) .pe{padding-left:16px;padding-right:16px}
@@ -73,7 +73,7 @@ body:not(.tv) .tgl{min-height:56px;box-sizing:border-box}
 
 /* switches: every on/off option looks like the ones in Settings */
 body:not(.tv) :is(.sheet,#profiles) input[type=checkbox]{-webkit-appearance:none;appearance:none;flex:0 0 auto;width:50px;height:30px;margin:0;border-radius:15px;background:rgba(255,255,255,.17);position:relative;transition:background .2s;cursor:pointer}
-body:not(.tv) :is(.sheet,#profiles) input[type=checkbox]::after{content:'';position:absolute;top:3px;left:3px;width:24px;height:24px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.4);transition:transform .2s}
+body:not(.tv) :is(.sheet,#profiles) input[type=checkbox]::after{content:"";position:absolute;top:3px;left:3px;width:24px;height:24px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.4);transition:transform .2s}
 body:not(.tv) :is(.sheet,#profiles) input[type=checkbox]:checked{background:linear-gradient(135deg,var(--acc),var(--acc2))}
 body:not(.tv) :is(.sheet,#profiles) input[type=checkbox]:checked::after{transform:translateX(20px)}
 

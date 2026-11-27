@@ -148,7 +148,6 @@ function openSetCat(c, row){
     if (document.body.classList.contains('tv')) { const f = (row || document.querySelector(`#settings .setcat[data-cat="${show[0]}"]`)).querySelector('button:not([disabled]),input,select,textarea,summary'); if (f) f.focus({preventScroll:!!row}); }
   });
 }
-const setCat = c => openSetCat(c);
 /* leave a section page for the Settings list: the arrow, and Back on TV */
 function closeSetSub(){
   if (layersOpen[layersOpen.length - 1] === 'setsub') { popLayer('setsub'); return; }

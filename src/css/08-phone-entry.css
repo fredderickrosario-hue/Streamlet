@@ -70,8 +70,8 @@ body:not(.tv) :is(#detail,#episode) .dp2 .dsim .card .t{font-size:13px}
 body:not(.tv) :is(#detail,#episode) .dtop>.ibtn ~ .ibtn{display:none}
 
 body:not(.tv) :is(#detail,#episode) .dhint{display:none}
-.ep .eseen{position:absolute;left:8px;top:8px;width:26px;height:26px;display:flex;align-items:center;justify-content:center;border-radius:8px;background:rgba(0,0,0,.65);color:#fff}
-.ep .eseen svg{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+.ep .eseen{position:absolute;left:8px;top:8px;width:26px;height:26px;display:flex;align-items:center;justify-content:center;border-radius:8px;background:rgba(0,0,0,.65)}
+.ep .eseen svg{width:16px;height:16px;stroke:currentColor;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
 .ep.seen .ethumb img{opacity:.55}
 .srow .chip.mark{background:transparent;border:1px dashed rgba(255,255,255,.35)}
 
@@ -95,12 +95,12 @@ body:not(.tv) #detail .dp2 .dpeople{display:none}
 body:not(.tv) #detail .dtabs{display:flex;gap:26px;margin:0 0 16px;border-bottom:1px solid rgba(255,255,255,.12)}
 body:not(.tv) #detail .dtab{position:relative;padding:12px 2px;background:none;border:0;color:#9ea2b3;font:inherit;font-size:16px;font-weight:800;cursor:pointer}
 body:not(.tv) #detail .dtab.on{color:#fff}
-body:not(.tv) #detail .dtab.on::after{content:'';position:absolute;left:0;right:0;bottom:-1px;height:3px;border-radius:3px;background:var(--acc)}
+body:not(.tv) #detail .dtab.on::after{content:"";position:absolute;left:0;right:0;bottom:-1px;height:3px;border-radius:3px;background:var(--acc)}
 body:not(.tv) #detail .dtabbed .drt{display:none}
 body:not(.tv) #detail .dtabbed[data-tab="eps"] > .dsimr, body:not(.tv) #detail .dtabbed[data-tab="sim"] > .drow:not(.dsimr){display:none}
 /* season drop-down and Mark watched on one line */
 body:not(.tv) #detail .sbar{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:0 0 10px}
-body:not(.tv) #detail .sbar .drtacts{display:flex;gap:8px}
+body:not(.tv) #detail .sbar .drtacts{display:flex}
 /* the episode list: picture on the left (length or time left in its corner), number and title on the right */
 .ebadge,.enx{display:none}
 body:not(.tv) :is(#detail,#episode) .dp2 .eplist.eplv{display:flex;flex-direction:column;gap:14px;overflow:visible;padding:4px 16px 8px 0;scroll-snap-type:none}
@@ -110,7 +110,7 @@ body:not(.tv) :is(#detail,#episode) .dp2 .eplv .ep .enum{display:none}
 body:not(.tv) :is(#detail,#episode) .dp2 .eplv .ep .ebadge:not([hidden]){display:block;position:absolute;right:6px;bottom:7px;padding:2px 6px;border-radius:5px;background:rgba(0,0,0,.72);color:#fff;font-size:12px;font-weight:700}
 body:not(.tv) :is(#detail,#episode) .dp2 .eplv .ep .einfo{flex:1;min-width:0;padding:0}
 body:not(.tv) :is(#detail,#episode) .dp2 .eplv .ep .enx{display:inline}
-body:not(.tv) :is(#detail,#episode) .dp2 .eplv .ep .etitle{white-space:normal;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;font-size:15px;line-height:1.35;margin:0 0 4px}
+body:not(.tv) :is(#detail,#episode) .dp2 .eplv .ep .etitle{white-space:normal;display:-webkit-box;-webkit-box-orient:vertical;font-size:15px;line-height:1.35;margin:0 0 4px}
 body:not(.tv) :is(#detail,#episode) .dp2 .eplv .ep .erx{display:none}
 body:not(.tv) :is(#detail,#episode) .dp2 .eplv .ep.seen .etitle{color:#b9bccb}
 /* episode descriptions in the list */

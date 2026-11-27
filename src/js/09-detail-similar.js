@@ -472,8 +472,8 @@ async function openDetail(addon, type, item, opts = {}){
         if (autoPickOn()) { if (!(await autoPlay(type, rv.id, meta.name, episodeBase(addon, type, meta, rv, sorted)))) openEpisode(addon, type, meta, rv, sorted); return; }
         openEpisode(addon, type, meta, rv, sorted);
       }
-      else if (autoPickOn() && !d.querySelector('.dright .resbtn')) { if (!(await autoPlay(type, meta.id, meta.name, base))) { const b = d.querySelector('.manualbtn'); if (b) b.click(); } }
-      else { const rb = d.querySelector('.dright .resbtn'); if (rb) { rb.click(); return; } const t = d.querySelector('.dright .scard:not(.dis), .dp2 .scard:not(.dis)'); if (t) t.focus({preventScroll:true}); else toast('Loading sources…'); }
+      else if (autoPickOn()) { if (!(await autoPlay(type, meta.id, meta.name, base))) { const b = d.querySelector('.manualbtn'); if (b) b.click(); } }
+      else { const t = d.querySelector('.dp2 .scard:not(.dis)'); if (t) t.focus({preventScroll:true}); else toast('Loading sources…'); }
     }}, playLabel());
     playSync = () => { playEl.textContent = playLabel(); };
     const restart = type === 'movie' ? (() => { const b = h('button', {class:'pib', type:'button', 'aria-label':'Start from the beginning', title:'Start from the beginning'}); b.innerHTML = `<svg viewBox="0 0 24 24">${IC.restart}</svg>`; b.onclick = () => { if (soon()) { toast('Not out yet.'); return; } autoPlay(type, meta.id, meta.name, {...base, fresh:true}); }; return b; })() : null;
@@ -548,7 +548,6 @@ function likeScore(p, st){                                              // how c
 }
 const LIKE_MIN = 8;                                                     // close enough to count as "your source"
 const prefRaw = id => { const v = mapGet('streamlet.srcpref')[id]; return !v ? null : typeof v === 'string' ? {sig:v} : v; };
-const prefOf = id => (prefRaw(id) || {}).sig;
 function prefSet(id, st, manual){                                       // you picked it, or it played for a while: next time (and the next episodes) start from the same kind of source
   if (!id || !st) return;
   const m = mapGet('streamlet.srcpref'), old = prefRaw(id), like = srcLike(st);

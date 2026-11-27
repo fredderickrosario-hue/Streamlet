@@ -422,7 +422,7 @@ function revealEl(el, dir, rep, tv, edge){
 function firstFocus(root, list){
   list = list || focusables(root);
   const pick = sel => list.find(el => el.matches(sel));
-  return pick('#pPlay') || pick('.dacts2 .hb.p') || pick('.kkey') || pick('.hero2 .hb.p, .tvhero .hb.p') || pick('.resbtn') || pick('.dsec .chip.on') || pick('.ep, .scard') || pick('.stile:not(.new), .space, .ptile, #exStay, .sec .btn, .stream, .opt, .gbtn') || pick('.card, .cwb') || list[0];
+  return pick('#pPlay') || pick('.dacts2 .hb.p') || pick('.kkey') || pick('.tvhero .hb.p') || pick('.resbtn') || pick('.dsec .chip.on') || pick('.ep, .scard') || pick('.stile:not(.new), .space, .ptile, #exStay, .sec .btn, .stream, .opt, .gbtn') || pick('.card, .cwb') || list[0];
 }
 let autoEl = null;
 function ensureFocus(){
@@ -432,7 +432,7 @@ function ensureFocus(){
   const valid = cur && cur !== document.body && root.contains(cur) && cur.getBoundingClientRect().width > 0 && !cur.closest('.off');
   if (valid) {
     // the first focus we placed automatically may have been a placeholder before the banner / rows loaded: upgrade it once
-    if (cur === autoEl) { const hero = focusables(root).find(el => el.matches('.hero2 .hb.p, .tvhero .hb.p')); if (hero && hero !== cur) { hero.focus({preventScroll:true}); autoEl = hero; } }
+    if (cur === autoEl) { const hero = focusables(root).find(el => el.matches('.tvhero .hb.p')); if (hero && hero !== cur) { hero.focus({preventScroll:true}); autoEl = hero; } }
     return;
   }
   if (typing) return;
