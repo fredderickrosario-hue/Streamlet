@@ -226,3 +226,5 @@ body.tv .poster.wide.art:has(img.wlogo)>img.wlogo{z-index:1}
 body.tv .poster.wide.pend{color:transparent}
 body.tv .poster.wide .wname{position:absolute;left:7%;right:7%;bottom:9%;z-index:1;color:#fff;font-weight:800;font-size:19px;line-height:1.1;letter-spacing:.2px;text-shadow:0 2px 8px rgba(0,0,0,.85);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 body.tv .poster.wide:has(.wname)::after{content:'';position:absolute;inset:0;background:linear-gradient(to top,rgba(0,0,0,.6),transparent 60%);pointer-events:none}
+/* TV landscape cards: the picture carries the title, so no title and year under it (Continue watching keeps its episode and time-left line) */
+body.tv .card:has(> .poster.wide) > .t, body.tv .card:has(> .poster.wide) > .s, body.tv .cwb:has(> .poster.wide) > .t{display:none}
