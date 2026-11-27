@@ -293,3 +293,5 @@ body:not(.tv) #profiles.pwshow .pav{width:72px;height:72px}
 body:not(.tv) #profiles.pwshow .pav .av{width:72px !important;height:72px !important;font-size:38px !important}
 body:not(.tv) #profiles.pwshow .pgrid{gap:14px 12px;flex-wrap:nowrap;justify-content:center}
 body:not(.tv) #profiles.pwshow .ptile{width:78px;font-size:13px}
+#profiles .psin{left:4vw;top:calc(var(--vh,1vh) * 7)}
+body:not(.tv) #profiles.pwshow .psin{left:20px;top:calc(18px + env(safe-area-inset-top))}
