@@ -346,11 +346,12 @@ function nextEpSection(addon, type, meta, v, sorted){
   const nx = sorted[sorted.indexOf(v) + 1];
   const all = h('button', {class:'allep', type:'button', onclick:() => {
     popLayer('episode');
+    if (isTVui()) { setTimeout(() => { const d = $('#detail'), t = d && d.querySelector('.dtab[data-k="eps"]'); if (t && !t.classList.contains('on')) t.click(); }, 120); return; }   // TV: back on the list, where you were
     setTimeout(() => { const d = $('#detail'), t = d && d.querySelector('.dtab[data-k="eps"]'); if (t) t.click(); const tb = d && d.querySelector('.dtabs'); if (tb) d.scrollTo({top:Math.max(0, tb.getBoundingClientRect().top + d.scrollTop - 70), behavior:'smooth'}); }, 120);
   }}, 'All episodes');
   return h('section', {class:'drow dnext'},
     nx ? h('h3', {class:'drt'}, 'Next episode') : null,
-    nx ? h('div', {class:'eplist eplv'}, epCard(addon, type, meta, nx, sorted, nx.released && new Date(nx.released) > new Date(), nx.thumbnail || meta.background, null, true)) : null,
+    nx ? h('div', {class:isTVui() ? 'enext' : 'eplist eplv'}, epCard(addon, type, meta, nx, sorted, nx.released && new Date(nx.released) > new Date(), nx.thumbnail || meta.background, null, true)) : null,
     all);
 }
 /* the page of a single episode: its own backdrop, overview and the streams */
@@ -369,7 +370,6 @@ function openEpisode(addon, type, meta, v, sorted, again){
       if (autoPickOn()) { if (!(await autoPlay(type, v.id, meta.name, base))) { const b = ed.querySelector('.manualbtn'); if (b) b.click(); } return; }
       const t = ed.querySelector('.scard:not(.dis)'); if (t) t.focus(); else { const b = ed.querySelector('.manualbtn'); if (b) b.click(); }
     }}, hist ? '▶  Continue' : '▶  Play');
-    const others = h('div', {class:'eplist'}, ...sorted.filter(x => (x.season ?? 1) === sn).map(x => epCard(addon, type, meta, x, sorted, x.released && new Date(x.released) > new Date(), x.thumbnail || meta.background, null, true)));
     ed.replaceChildren(etop, h('div', {class:'dwrap'}, heroBlock(meta, v.thumbnail || meta.background || meta.poster),
       h('div', {class:'dbody'},
         h('div', {class:'dleft'},
@@ -379,8 +379,7 @@ function openEpisode(addon, type, meta, v, sorted, again){
           (v.overview || v.description) ? h('p', {class:'ddesc'}, v.overview || v.description) : null,
           h('div', {class:'dacts2'}, play, dlEpBtn(addon, type, meta, v, sorted), (() => { const b = h('button', {class:'pib', type:'button', 'aria-label':'Watched'}); b.innerHTML = `<svg viewBox="0 0 24 24">${IC.seen}</svg>`; const paint = () => { const on = epDone(meta.id, sn, v.episode); b.classList.toggle('on', on); b.title = on ? 'Mark episode as unwatched' : 'Mark episode as watched'; }; b.onclick = () => { epMark(meta.id, [v], !epDone(meta.id, sn, v.episode)); paint(); toast(epDone(meta.id, sn, v.episode) ? 'Marked as watched' : 'Marked as unwatched'); }; paint(); return b; })()),
           hintEl()),
-        tvRowsFor(addon, type, meta, 'Sources', [streamsBox], {sim:false, rows:[isTVui() ? h('section', {class:'drow'}, h('h3', {class:'drt'}, 'Season ' + sn), others) : nextEpSection(addon, type, meta, v, sorted)]}))));
-    if (isTVui()) epPref(others, meta.id, v.episode ?? 0);
+        tvRowsFor(addon, type, meta, 'Sources', [streamsBox], {sim:false, rows:[nextEpSection(addon, type, meta, v, sorted)]}))));
     const at = sorted.indexOf(v);
     ed._step = d => { const t = sorted[at + d]; if (t) openEpisode(addon, type, meta, t, sorted, true); };       // Left / Right on the top half
     if (!isTVui()) {                                                       // phone: swipe the top half sideways for the previous / next episode

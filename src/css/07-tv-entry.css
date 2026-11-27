@@ -390,3 +390,17 @@ body.tv #detail .dtabtv .dsimr .dpane{height:calc(var(--vh,1vh) * 88 - 86px);dis
 body.tv #detail .dtabtv .dsim{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:22px 16px;align-content:start;flex:1;min-height:0;overflow-y:auto;overflow-x:hidden;padding:8px 64px 30px 8px;margin:-8px 0 0 -8px;-webkit-mask-image:linear-gradient(to bottom,#000 calc(100% - 40px),transparent);mask-image:linear-gradient(to bottom,#000 calc(100% - 40px),transparent)}
 body.tv #detail .dtabtv .dsim .card{width:auto;flex:none}
 body.tv #detail .dtabtv .dsim .poster.wide{width:100%;height:auto;aspect-ratio:16/9}
+/* TV episode page: Next episode (same look as the show's episode list) and All episodes */
+body.tv #episode .dnext .enext{max-width:980px}
+body.tv #episode .dp2 .enext .ep{flex:none;display:flex;gap:24px;align-items:flex-start;width:100%;padding:10px;margin:0 0 0 -10px;border-radius:14px;background:none}
+body.tv #episode .dp2 .enext .ep .ethumb{width:280px;flex:0 0 280px;border-radius:10px}
+body.tv #episode .dp2 .enext .ep .enum,body.tv #episode .dp2 .enext .ep .erx{display:none}
+body.tv #episode .dp2 .enext .ep .ebadge:not([hidden]){display:block;position:absolute;right:7px;bottom:8px;padding:2px 7px;border-radius:5px;background:rgba(0,0,0,.75);color:#fff;font-size:13px;font-weight:700}
+body.tv #episode .dp2 .enext .ep .einfo{flex:1;min-width:0;padding:4px 0 0}
+body.tv #episode .dp2 .enext .ep .enx{display:inline}
+body.tv #episode .dp2 .enext .ep .etitle{white-space:normal;font-size:19px;line-height:1.3;margin:0 0 4px}
+body.tv #episode .dp2 .enext .ep .edate{font-size:14px}
+body.tv #episode .dp2 .enext .ep .eover{display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;margin:8px 0 0;font-size:15px;line-height:1.45;color:#a9adbd;max-width:620px}
+body.tv #episode .dp2 .enext .ep:focus-visible{outline:3px solid #fff;outline-offset:-3px;background:rgba(255,255,255,.08);transform:none}
+body.tv #episode .dp2 .enext .ep:focus-visible .ethumb::after{opacity:0}
+body.tv #episode .allep{display:inline-block;margin:14px 0 0;padding:11px 26px;border:0;border-radius:999px;background:rgba(255,255,255,.1);color:#fff;font:inherit;font-size:16px;font-weight:800;cursor:pointer}
