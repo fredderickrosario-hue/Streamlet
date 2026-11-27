@@ -241,6 +241,7 @@ function moveFocus(dir, rep){
       if (outer.length) { const best = outer.reduce((b, c) => (dir === 'down' ? c.r.top < b.r.top - 4 : c.r.bottom > b.r.bottom + 4) || (Math.abs(c.r.top - b.r.top) <= 4 && Math.abs(midX(c.r) - midX(cr)) < Math.abs(midX(b.r) - midX(cr))) ? c : b); navGo(best.e, dir, rep, true, null); return; }
     }
   }
+  if (!N && dir === 'up' && tv && document.body.classList.contains('rowsfix')) { tvRows(null); const hb = $('#rows .tvhero .hb.p') || $('#rows .tvhero .hb'); if (hb) navGo(hb, dir, rep, true, null); return; }   // above the first row: back to the big picture
   if (!N) return;                                                          // first / last line: stay put
   const xr = navEl && navEl.isConnected && navEl !== cur && !navEl.closest('#nav') === !inNav ? navEl.getBoundingClientRect() : cr;
   const x = xr.width > 280 ? xr.left + 30 : midX(xr);                      // from a wide field, the line below starts at its left
@@ -308,6 +309,22 @@ function scrollNested(el, edge){
   }
   return false;
 }
+/* TV home, rows in a fixed window: the big picture stays at the top (a bit smaller), the row you are on sits just under it
+   with the top of the next one showing; rows above it fade out. Returns the page scroll that puts the row in its spot. */
+const TV_SLOT = '.row,.gstrip';
+function tvSlot(el){
+  if (!document.body.classList.contains('tv') || ctxRoot() !== document.body || document.body.classList.contains('pgfix') || document.body.classList.contains('srchpg')) return null;
+  const rows = $('#rows'); if (!rows || !rows.contains(el) || !rows.querySelector('.tvhero')) return null;
+  const s = el.closest(TV_SLOT); return s && rows.contains(s) ? s : null;
+}
+function tvRows(slot){
+  const b = document.body, rows = $('#rows');
+  if (!slot) { b.classList.remove('rowsfix'); if (rows) rows.querySelectorAll('.up').forEach(x => x.classList.remove('up')); return 0; }
+  b.classList.add('rowsfix');
+  let before = true; for (const s of rows.querySelectorAll(TV_SLOT)) { if (s === slot) before = false; s.classList.toggle('up', before && !s.hidden); }
+  const k = (b.getBoundingClientRect().height / (b.offsetHeight || 1)) || 1;     // the page may be zoomed to fit the TV
+  return Math.max(0, scrollY + slot.getBoundingClientRect().top - innerHeight * .5 * k);
+}
 function revealEl(el, dir, rep, tv, edge){
   if (document.body.classList.contains('tv') && el.closest('.pecol-r') && scrollNested(el, edge)) return;
   if (document.body.classList.contains('tv') && (document.body.classList.contains('pgfix') || document.body.classList.contains('srchpg')) && !el.closest('#detail,#episode,.sheet') && scrollNested(el, edge)) return;
@@ -358,8 +375,11 @@ function revealEl(el, dir, rep, tv, edge){
     if (over > 1) strip.scrollLeft = x0 + Math.ceil(over / pitch) * pitch / k;
     else if (under > 1) strip.scrollLeft = Math.max(0, x0 - Math.ceil(under / pitch) * pitch / k);
   }
-  if (edge) window.scrollTo(0, edge === 'top' ? 0 : 1e7);                 // last item in that direction: show the whole end of the page
-  else if (el.closest('.tvhero')) window.scrollTo(0, 0);
+  const slot = tvSlot(el);
+  if (el.closest('.tvhero')) { tvRows(null); window.scrollTo(0, 0); }
+  else if (slot && (dir === 'up' || dir === 'down' || !document.body.classList.contains('rowsfix'))) window.scrollTo(0, tvRows(slot));   // TV home: the row you are on always sits in the same spot under the picture
+  else if (slot) {}
+  else if (edge) window.scrollTo(0, edge === 'top' ? 0 : 1e7);                 // last item in that direction: show the whole end of the page
   else if (strip && (dir === 'up' || dir === 'down') && strip.parentElement) strip.parentElement.scrollIntoView({block:'center', inline:'nearest'});   // moving between rows: the row snaps to the middle of the screen
   else if (!strip && (dir === 'up' || dir === 'down')) el.scrollIntoView({block:'center', inline:'nearest'});
   else (strip || el).scrollIntoView({block:'nearest', inline:'nearest'});

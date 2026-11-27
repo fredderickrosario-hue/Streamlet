@@ -142,3 +142,15 @@ body:not(.tv) .tvhero .tbg img,body:not(.tv) .tvhero .tbg img.on{top:var(--ho);h
 body:not(.tv) .tvhero .tbg img.on{animation:centrex 9s ease-out both}
 @keyframes centrex{from{object-position:44% 12%}to{object-position:50% 12%}}
 @media (prefers-reduced-motion:reduce){body:not(.tv) .tvhero .tbg img.on{animation:none;object-position:50% 12%}}
+/* TV home, rows in a fixed window (tvRows in 12-tv-search-remote.js): the picture stays pinned at the top and gets a bit smaller,
+   the row you are on sits at mid-screen, rows above it fade out, and the page has room below so the last row reaches the same spot */
+body.tv #rows > .row, body.tv #rows > #cwBox, body.tv #rows > #pBox, body.tv #rows > .gstrip{position:relative;z-index:1}
+body.tv #rows .row, body.tv #rows .gstrip{transition:opacity .25s ease}
+body.tv.rowsfix #rows > div:has(> .tvhero){position:sticky;top:0;z-index:0}
+body.tv.rowsfix #rows{padding-bottom:calc(var(--vh,1vh) * 55)}
+body.tv.rowsfix #rows .up{opacity:0;pointer-events:none}
+body.tv .tvhero .tin{transition:bottom .3s ease,transform .3s ease;transform-origin:left bottom}
+body.tv.rowsfix .tvhero .tin{bottom:calc(var(--vh,1vh) * 33);transform:scale(.82)}
+body.tv.rowsfix .tvhero .tdesc, body.tv.rowsfix .tvhero .tbtns, body.tv.rowsfix .tvhero .tseg, body.tv.rowsfix .tvhero .tkick, body.tv.rowsfix .tvhero .ttag{display:none}
+body.tv .tvhero .tbg{transition:bottom .3s ease}
+body.tv.rowsfix .tvhero .tbg{bottom:calc(var(--vh,1vh) * 20)}

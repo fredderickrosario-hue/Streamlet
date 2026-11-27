@@ -119,7 +119,7 @@ async function renderResults(query, box, tok){
 }
 async function renderHome(query = $('#q').value.trim(), target){
   const tok = ++homeTok, box = target || $('#rows');
-  box.replaceChildren(); if (!target) renderTabs();
+  box.replaceChildren(); if (!target) { renderTabs(); document.body.classList.remove('rowsfix'); }
   if (!addons.some(a => !isTio(a.url))) {                                   // Torrentio alone (built in) only finds streams: catalogs come from another addon
     box.append(h('div', {class:'empty'},
       h('h2', null, addons.length ? 'Add a catalog addon' : 'No addons installed'),
