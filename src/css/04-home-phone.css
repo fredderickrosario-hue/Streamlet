@@ -130,9 +130,7 @@ body:not(.tv) .tvhero .tdots{justify-content:center}
 .tvhero .tbg img{transition:opacity .9s ease}
 /* slow drift on the hero picture, a little zoomed in */
 .tvhero .tbg{overflow:hidden}
-.tvhero .tbg img.on{animation:kenburns 16s ease-out both;transform-origin:62% 38%}
 @keyframes kenburns{from{transform:scale(1.02) translate(0,0)}to{transform:scale(1.1) translate(-1%,-.6%)}}
-@media (prefers-reduced-motion:reduce){.tvhero .tbg img.on{animation:none;transform:scale(1.05)}}
 .tvhero{touch-action:pan-y}
 /* phone: sharp picture below the bars (a little zoomed, drifting gently to centre); a blurred copy of it fills the gaps above and below so no black shows */
 body:not(.tv) .tvhero .tbg{top:0;overflow:hidden}
@@ -157,9 +155,16 @@ body.tv.rowsfix .tvhero .tbg{bottom:calc(var(--vh,1vh) * 20)}
 /* phone: posters carry the title, so no title and year under cards (Continue watching keeps its episode and time-left line) */
 body:not(.tv) .card > .t, body:not(.tv) .card > .s, body:not(.tv) .cwb > .t{display:none}
 /* rows you've passed vanish at once (no fading ghost over the picture) */
-body.tv.rowsfix #rows :is(.row,.gstrip){transition:opacity .2s ease .22s}   /* a row coming back down shows once it has reached its spot */
+body.tv.rowsfix #rows :is(.row,.gstrip){transition:none}
 body.tv.rowsfix #rows .up{opacity:0;transition:none}                             /* a row you pass is gone at once: no ghost over the picture */
 /* hero picture: a slow, cinematic drift (zoom and pan), back and forth */
 @keyframes heroDrift{0%{transform:scale(1) translate3d(0,0,0)}100%{transform:scale(1.08) translate3d(-2%,-1%,0)}}
 .tvhero .tbg{animation:heroDrift 26s ease-in-out infinite alternate;transform-origin:65% 35%;will-change:transform}   /* the whole picture drifts as one, so a new slide never jumps */
-@media (prefers-reduced-motion:reduce){.tvhero .tbg{animation:none}}
+
+
+/* TV home: switching rows is a quick slide of the rows into place, both ways */
+@keyframes rswD{from{transform:translate3d(0,46px,0);opacity:.35}to{transform:none;opacity:1}}
+@keyframes rswU{from{transform:translate3d(0,-46px,0);opacity:.35}to{transform:none;opacity:1}}
+body.tv.rowsfix #rows.rsw-d > :not(:has(> .tvhero)){animation:rswD .2s cubic-bezier(.2,.7,.2,1)}
+body.tv.rowsfix #rows.rsw-u > :not(:has(> .tvhero)){animation:rswU .2s cubic-bezier(.2,.7,.2,1)}
+body.tv .tvhero .tbg img{transition:opacity .4s ease}

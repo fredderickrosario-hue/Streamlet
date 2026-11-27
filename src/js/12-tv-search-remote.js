@@ -332,6 +332,10 @@ function tvRows(slot){
   const k = (b.getBoundingClientRect().height / (b.offsetHeight || 1)) || 1;     // the page may be zoomed to fit the TV
   return Math.max(0, scrollY + slot.getBoundingClientRect().top - innerHeight * .5 * k);
 }
+function rowSwitch(dir){
+  const r = $('#rows'); if (!r) return;
+  r.classList.remove('rsw-d', 'rsw-u'); void r.offsetWidth; r.classList.add(dir === 'down' ? 'rsw-d' : 'rsw-u');
+}
 function revealEl(el, dir, rep, tv, edge){
   if (document.body.classList.contains('tv') && el.closest('.pecol-r') && scrollNested(el, edge)) return;
   if (document.body.classList.contains('tv') && (document.body.classList.contains('pgfix') || document.body.classList.contains('srchpg')) && !el.closest('#detail,#episode,.sheet') && scrollNested(el, edge)) return;
@@ -391,6 +395,7 @@ function revealEl(el, dir, rep, tv, edge){
   else if (!strip && (dir === 'up' || dir === 'down')) el.scrollIntoView({block:'center', inline:'nearest'});
   else (strip || el).scrollIntoView({block:'nearest', inline:'nearest'});
   const y1 = scrollY, x1 = strip ? strip.scrollLeft : 0;
+  if (slot && (dir === 'up' || dir === 'down') && document.body.classList.contains('rowsfix')) { rowSwitch(dir); return; }   // TV home: rows switch in place (a quick slide), no long scroll
   if (y0 === y1 && x0 === x1) return;
   window.scrollTo(0, y0); if (strip) strip.scrollLeft = x0;
   cancelAnimationFrame(scrollAnim);
