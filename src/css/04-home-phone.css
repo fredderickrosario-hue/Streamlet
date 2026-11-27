@@ -157,9 +157,9 @@ body.tv.rowsfix .tvhero .tbg{bottom:calc(var(--vh,1vh) * 20)}
 /* phone: posters carry the title, so no title and year under cards (Continue watching keeps its episode and time-left line) */
 body:not(.tv) .card > .t, body:not(.tv) .card > .s, body:not(.tv) .cwb > .t{display:none}
 /* rows you've passed vanish at once (no fading ghost over the picture) */
-body.tv.rowsfix #rows .up{opacity:0;visibility:hidden;transition:none}
+body.tv.rowsfix #rows :is(.row,.gstrip){transition:opacity .2s ease .22s}   /* a row coming back down shows once it has reached its spot */
+body.tv.rowsfix #rows .up{opacity:0;transition:none}                             /* a row you pass is gone at once: no ghost over the picture */
 /* hero picture: a slow, cinematic drift (zoom and pan), back and forth */
-@keyframes heroDrift{0%{transform:scale(1.02) translate3d(0,0,0)}100%{transform:scale(1.12) translate3d(-2.5%,-1.5%,0)}}
-.tvhero .tbg img.on{animation:heroDrift 24s ease-in-out infinite alternate;will-change:transform}
-.tvhero .tbg{overflow:hidden}
-@media (prefers-reduced-motion:reduce){.tvhero .tbg img.on{animation:none}}
+@keyframes heroDrift{0%{transform:scale(1) translate3d(0,0,0)}100%{transform:scale(1.08) translate3d(-2%,-1%,0)}}
+.tvhero .tbg{animation:heroDrift 26s ease-in-out infinite alternate;transform-origin:65% 35%;will-change:transform}   /* the whole picture drifts as one, so a new slide never jumps */
+@media (prefers-reduced-motion:reduce){.tvhero .tbg{animation:none}}
