@@ -156,3 +156,10 @@ body.tv .tvhero .tbg{transition:bottom .3s ease}
 body.tv.rowsfix .tvhero .tbg{bottom:calc(var(--vh,1vh) * 20)}
 /* phone: posters carry the title, so no title and year under cards (Continue watching keeps its episode and time-left line) */
 body:not(.tv) .card > .t, body:not(.tv) .card > .s, body:not(.tv) .cwb > .t{display:none}
+/* rows you've passed vanish at once (no fading ghost over the picture) */
+body.tv.rowsfix #rows .up{opacity:0;visibility:hidden;transition:none}
+/* hero picture: a slow, cinematic drift (zoom and pan), back and forth */
+@keyframes heroDrift{0%{transform:scale(1.02) translate3d(0,0,0)}100%{transform:scale(1.12) translate3d(-2.5%,-1.5%,0)}}
+.tvhero .tbg img.on{animation:heroDrift 24s ease-in-out infinite alternate;will-change:transform}
+.tvhero .tbg{overflow:hidden}
+@media (prefers-reduced-motion:reduce){.tvhero .tbg img.on{animation:none}}
