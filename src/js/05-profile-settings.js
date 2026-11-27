@@ -196,15 +196,61 @@ function renderProfiles(){
   const P = $('#profiles'); P.hidden = false;
   const ask = h('input', {type:'checkbox'}); ask.checked = localStorage.getItem('streamlet.profile.ask') !== '0';
   ask.onchange = () => { try { localStorage.setItem('streamlet.profile.ask', ask.checked ? '1' : '0'); } catch {} };
+  const showOn = !manageProfiles && profiles.length > 0;
+  P.classList.toggle('pwshow', showOn);
   P.replaceChildren(
+    showOn ? pshowEl() : null,
     h('h1', null, manageProfiles ? 'Manage profiles' : "Who's watching?"),
     h('div', {class:'pgrid'},
-      ...profiles.map(pr => h('button', {class:'ptile', type:'button', onclick:ev => manageProfiles ? editProfile(pr.id) : pickProfileFx(pr, ev.currentTarget)},
+      ...profiles.map(pr => h('button', {class:'ptile', type:'button', onfocus:() => { if (showOn) pshowFor(pr); }, onmouseenter:() => { if (showOn) pshowFor(pr); }, onclick:ev => manageProfiles ? editProfile(pr.id) : pickProfileFx(pr, ev.currentTarget)},
         h('div', {class:'pav'}, avatarEl(pr, 88), manageProfiles ? h('span', {class:'pbadge', 'aria-hidden':'true'}, PENCIL_SVG()) : null, pr.kids ? h('span', {class:'kidtag'}, 'KIDS') : null), h('div', null, pr.name))),
       manageProfiles && profiles.length < 8 ? h('button', {class:'ptile', type:'button', onclick:() => editProfile(null)}, h('div', {class:'pav add'}, '+'), h('div', null, 'Add profile')) : null),
     h('div', {class:'lnks', style:'justify-content:center;margin-top:22px'},
       h('button', {class:'btn ghost sm', type:'button', onclick:async () => { if (!manageProfiles && !(await kidGate(null))) return; manageProfiles = !manageProfiles; renderProfiles(); }}, manageProfiles ? 'Done' : 'Manage profiles')),
     manageProfiles && profiles.length > 1 ? h('label', {class:'chk', style:'justify-content:center'}, ask, h('span', null, "Ask who's watching when the app opens")) : null);
+  if (showOn) pshowFor(profiles.find(x => x.id === lsGet('streamlet.profile.last', null)) || profiles[0]);
+}
+/* "Who's watching?": a slideshow across the top made from the profile you're on (what it's watching, its list),
+   or what's trending when it has nothing yet. Moving to another profile switches the pictures. */
+let psT = 0, psFor = null, psList = [], psI = 0, psTrend = null;
+function pshowEl(){ return h('div', {class:'pshow', 'aria-hidden':'true'}, h('div', {class:'psbg'}), h('div', {class:'psin'})); }
+function psPics(pr){
+  const out = [], seen = new Set(), add = (e, tag) => { const id = e.itemId || e.id, bg = e.background; if (!bg || !id || seen.has(id)) return; seen.add(id); out.push({name:e.name || '', bg, tag}); };
+  for (const e of (plsGet(pr.id, 'history', []) || []).filter(x => !x.upnext)) add(e, 'Continue watching');
+  for (const e of plsGet(pr.id, 'watchlist', []) || []) add(e, 'On your list');
+  return out.slice(0, 10);
+}
+async function psTrending(){
+  if (psTrend) return psTrend; const key = lsGet('streamlet.tmdb', ''); if (!key) return [];
+  try { const r = await tmdbGet('/trending/all/week', key); psTrend = (r.results || []).filter(x => x.backdrop_path).slice(0, 10).map(x => ({name:x.title || x.name || '', bg:'https://image.tmdb.org/t/p/w1280' + x.backdrop_path, tag:'Trending this week'})); } catch { psTrend = []; }
+  return psTrend;
+}
+function pshowFor(pr){
+  if (!pr || psFor === pr.id) return; psFor = pr.id;
+  clearTimeout(psT);
+  psT = setTimeout(async () => {
+    let list = psPics(pr);
+    if (list.length < 3 && !pr.kids) list = [...list, ...(await psTrending())].slice(0, 10);
+    if (psFor !== pr.id) return;
+    psList = list; psI = 0; psShow();
+  }, 160);
+}
+function psShow(){
+  clearTimeout(psT);
+  const P = $('#profiles'), bg = P && P.querySelector('.psbg'), tin = P && P.querySelector('.psin');
+  if (!bg || P.hidden) return;
+  if (!psList.length) { bg.querySelectorAll('img').forEach(o => o.classList.remove('on')); tin.replaceChildren(); return; }   // nothing for this profile (a kid with no history): just the dark backdrop
+  const it = psList[psI % psList.length];
+  const img = h('img', {alt:''});
+  img.onload = () => {
+    if (bg.lastChild !== img) { img.remove(); return; }
+    requestAnimationFrame(() => { img.classList.add('on'); for (const o of [...bg.children]) if (o !== img) o.classList.remove('on'); });
+    setTimeout(() => { for (const o of [...bg.children]) if (o !== img && !o.classList.contains('on')) o.remove(); }, 1200);
+    tin.replaceChildren(h('div', {class:'pstag'}, it.tag), h('div', {class:'psname'}, it.name));
+  };
+  img.onerror = () => img.remove();
+  img.src = it.bg; bg.append(img);
+  if (psList.length > 1) psT = setTimeout(() => { psI++; psShow(); }, 7000);
 }
 function editProfile(id, openCat){
   const isNew = !id;
