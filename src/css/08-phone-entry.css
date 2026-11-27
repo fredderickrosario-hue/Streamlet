@@ -78,3 +78,50 @@ body:not(.tv) :is(#detail,#episode) .dhint{display:none}
 /* who's watching: focus ring follows the circle */
 .ptile:focus-visible .pav,body.tv .ptile:focus-visible .pav{outline:none !important}
 .ptile:focus-visible .pav .av,.ptile:focus-visible .pav.add{outline:3px solid rgba(255,255,255,.95);outline-offset:5px;border-radius:50% !important}
+/* ---- phone entry page: description cut to 3 lines with More details (full text, genres, cast and crew) ---- */
+.dmorebtn{display:none}
+body:not(.tv) #detail .dmorebtn{display:inline-block;align-self:flex-start;margin:6px 0 2px;padding:4px 0;background:none;border:0;color:var(--acc);font:inherit;font-size:14px;font-weight:750;cursor:pointer}
+body:not(.tv) #detail .ddesc{-webkit-line-clamp:3}
+body:not(.tv) #detail.dmore .ddesc{-webkit-line-clamp:unset;display:block}
+body:not(.tv) #detail.dmore :is(.dgen,.dphone){display:block}
+body:not(.tv) #detail.dmore .dgen{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0 0}
+body:not(.tv) #detail.dmore .dphone{margin:14px 0 0}
+body:not(.tv) #detail.dmore .dacts2{margin-top:18px}
+body:not(.tv) #detail.dmore .dphone .cchips{display:flex;flex-wrap:wrap;gap:8px}
+body:not(.tv) #detail.dmore .dphone h4{margin:0 0 8px;font-size:12px;letter-spacing:.6px;text-transform:uppercase;color:#9ea2b3}
+body:not(.tv) #detail .dp2 .dpeople{display:none}
+/* ---- phone shows: Episodes / More like this tabs ---- */
+.dtabs{display:none}
+body:not(.tv) #detail .dtabs{display:flex;gap:26px;margin:0 0 16px;border-bottom:1px solid rgba(255,255,255,.12)}
+body:not(.tv) #detail .dtab{position:relative;padding:12px 2px;background:none;border:0;color:#9ea2b3;font:inherit;font-size:16px;font-weight:800;cursor:pointer}
+body:not(.tv) #detail .dtab.on{color:#fff}
+body:not(.tv) #detail .dtab.on::after{content:'';position:absolute;left:0;right:0;bottom:-1px;height:3px;border-radius:3px;background:var(--acc)}
+body:not(.tv) #detail .dtabbed .drt{display:none}
+body:not(.tv) #detail .dtabbed[data-tab="eps"] > .dsimr, body:not(.tv) #detail .dtabbed[data-tab="sim"] > .drow:not(.dsimr){display:none}
+/* season drop-down and Mark watched on one line */
+body:not(.tv) #detail .sbar{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:0 0 10px}
+body:not(.tv) #detail .sselw{position:relative;display:inline-flex;align-items:center}
+body:not(.tv) #detail .sselw::after{content:'';position:absolute;right:14px;top:50%;width:8px;height:8px;margin-top:-6px;border:solid #fff;border-width:0 2px 2px 0;transform:rotate(45deg);pointer-events:none}
+body:not(.tv) #detail .ssel{-webkit-appearance:none;appearance:none;background:rgba(255,255,255,.1);color:#fff;border:0;border-radius:999px;padding:9px 38px 9px 16px;font:inherit;font-size:15px;font-weight:800}
+body:not(.tv) #detail .ssel option{background:#16171f;color:#fff}
+body:not(.tv) #detail .sone{font-size:16px;font-weight:800}
+body:not(.tv) #detail .sbar .drtacts{display:flex;gap:8px}
+/* the episode list: picture on the left (length or time left in its corner), number and title on the right */
+.ebadge,.enx{display:none}
+body:not(.tv) #detail .dp2 .eplist.eplv{display:flex;flex-direction:column;gap:14px;overflow:visible;padding:4px 16px 8px 0;scroll-snap-type:none}
+body:not(.tv) #detail .dp2 .eplv .ep{flex:none;display:flex;gap:14px;align-items:flex-start;width:100%}
+body:not(.tv) #detail .dp2 .eplv .ep .ethumb{width:46%;flex:0 0 46%;border-radius:10px}
+body:not(.tv) #detail .dp2 .eplv .ep .enum{display:none}
+body:not(.tv) #detail .dp2 .eplv .ep .ebadge:not([hidden]){display:block;position:absolute;right:6px;bottom:7px;padding:2px 6px;border-radius:5px;background:rgba(0,0,0,.72);color:#fff;font-size:12px;font-weight:700}
+body:not(.tv) #detail .dp2 .eplv .ep .einfo{flex:1;min-width:0;padding:0}
+body:not(.tv) #detail .dp2 .eplv .ep .enx{display:inline}
+body:not(.tv) #detail .dp2 .eplv .ep .etitle{white-space:normal;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;font-size:15px;line-height:1.35;margin:0 0 4px}
+body:not(.tv) #detail .dp2 .eplv .ep .erx{display:none}
+body:not(.tv) #detail .dp2 .eplv .ep.seen .etitle{color:#b9bccb}
+/* episode descriptions in the list */
+body:not(.tv) #detail .dp2 .eplv .ep .eover{display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;margin:6px 0 0;font-size:13px;line-height:1.45;color:#a9adbd}
+body:not(.tv) #detail .dp2 .eplv .ep .etitle{-webkit-line-clamp:2}
+/* Play sits at the bottom of the screen, always in reach */
+body:not(.tv) #detail .dacts2 .hb.p{position:fixed;left:16px;right:16px;bottom:calc(14px + env(safe-area-inset-bottom,0px));z-index:30;width:auto;margin:0;box-shadow:0 8px 30px rgba(0,0,0,.6)}
+body:not(.tv) #detail .dwrap{padding-bottom:96px}
+body:not(.tv) #detail .dacts2 .hb.p, body:not(.tv) #detail .dacts2 .hb.p:focus, body:not(.tv) #detail .dacts2 .hb.p:focus-visible{outline:none !important;border:0 !important}

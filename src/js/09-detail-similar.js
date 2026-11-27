@@ -241,10 +241,11 @@ function epRuns(meta, type, sn){
   return epRunMem.get(ck);
 }
 function epDateEl(meta, type, v, soon){
-  const when = soon ? 'Soon' : (v.released ? fmtDate(v.released) : ''), el = h('span', {class:'edate'}, [when, fmtRun(v.runtime)].filter(Boolean).join(' · '));
-  if (!v.runtime && !soon && type === 'series' && lsGet('streamlet.tmdb', '')) epRuns(meta, type, v.season ?? 1).then(m => {
-    const n = m.get(v.episode); if (!n) return; v.runtime = n + ' min'; el.textContent = [when, fmtRun(v.runtime)].filter(Boolean).join(' · ');
-  });
+  const when = soon ? 'Soon' : (v.released ? fmtDate(v.released) : ''), run = h('span', {class:'erx'}), el = h('span', {class:'edate'}, when, run);
+  const put = () => { const t = fmtRun(v.runtime); run.textContent = t ? (when ? ' · ' : '') + t : '';
+    const b = el.closest('.ep') && el.closest('.ep').querySelector('.ebadge'); if (b && !b._left && t) { b.textContent = t; b.hidden = false; } };
+  put();
+  if (!v.runtime && !soon && type === 'series' && lsGet('streamlet.tmdb', '')) epRuns(meta, type, v.season ?? 1).then(m => { const n = m.get(v.episode); if (n) { v.runtime = n + ' min'; put(); } });
   return el;
 }
 function epCard(addon, type, meta, v, sorted, soon, th, hist, again){
@@ -252,9 +253,10 @@ function epCard(addon, type, meta, v, sorted, soon, th, hist, again){
   return h('button', {class:'ep' + (soon ? ' soon' : '') + (seen ? ' seen' : ''), type:'button', 'data-sid':meta.id, 'data-s':String(v.season ?? 1), 'data-e':String(v.episode ?? 0), onclick:() => openEpisode(addon, type, meta, v, sorted, again)},
     h('div', {class:'ethumb'}, th ? h('img', {src:th, loading:'lazy', alt:'', onerror:e => e.target.remove()}) : null,
       h('span', {class:'enum'}, String(v.episode ?? '')),
+      (() => { const left = pct && rec.dur ? Math.max(1, Math.round((rec.dur - rec.pos) / 60)) + 'm left' : '', b = h('span', {class:'ebadge'}, left || fmtRun(v.runtime)); if (!b.textContent) b.hidden = true; b._left = !!left; return b; })(),
       seen ? (() => { const b = h('span', {class:'eseen', 'aria-label':'Watched'}); b.innerHTML = EYE_SVG; return b; })() : null,
       pct ? h('div', {class:'epg'}, h('i', {style:`width:${pct}%`})) : null),
-    h('div', {class:'einfo'}, h('div', {class:'etop'}, h('b', {class:'etitle'}, v.title || v.name || `Episode ${v.episode ?? ''}`), epDateEl(meta, type, v, soon)),
+    h('div', {class:'einfo'}, h('div', {class:'etop'}, h('b', {class:'etitle'}, h('span', {class:'enx'}, v.episode != null ? v.episode + '. ' : ''), v.title || v.name || `Episode ${v.episode ?? ''}`), epDateEl(meta, type, v, soon)),
       (v.overview || v.description) ? h('p', {class:'eover'}, v.overview || v.description) : null));
 }
 /* TV: the lower half of an entry page: rows of episodes / sources, cast and crew, similar titles */
@@ -330,9 +332,10 @@ async function openDetail(addon, type, item, opts = {}){
       titleBlock(meta), relBadgeEl(meta, type),
       runFill(metaRow([fmtRun(meta.runtime), genres.slice(0, 3).join(', '), meta.year || meta.releaseInfo], meta.imdbRating, [ico.seen]), meta, type),
       meta.description ? h('p', {class:'ddesc'}, meta.description) : null,
-      acts, infoPanel(meta, genres), hintEl(),
-      ph(genres.length ? h('div', {class:'dgen'}, genres.map(g => h('button', {class:'pillx', type:'button', onclick:() => searchFor(g)}, g))) : null),
-      ph(chipsSection('Cast', listOf(meta, 'cast', 'cast'), meta, type)), ph(chipsSection('Director', listOf(meta, 'director', 'director'))), ph(chipsSection('Writer', listOf(meta, 'writer', 'writer')))));
+      h('button', {class:'dmorebtn', type:'button', onclick:e => { const on = d.classList.toggle('dmore'); e.currentTarget.textContent = on ? 'Less details' : 'More details'; }}, d.classList.contains('dmore') ? 'Less details' : 'More details'),
+      ph(genres.length ? h('div', {class:'dgen'}, genres.map(g => h('button', {class:'pillx', type:'button', onclick:() => searchFor(g)}, g))) : null),   // phone: shown by More details, right under the description
+      ph(chipsSection('Cast', listOf(meta, 'cast', 'cast'), meta, type)), ph(chipsSection('Director', listOf(meta, 'director', 'director'))), ph(chipsSection('Writer', listOf(meta, 'writer', 'writer'))),
+      acts, infoPanel(meta, genres), hintEl()));
     const tvRows = (title, els) => tvRowsFor(addon, type, meta, title, els, type === 'series' && withStreams ? {after:[eoSection(meta, reloadMeta)]} : {});
     if (withStreams && sorted.length) {                                    // ---- series: seasons + episodes
       const seasons = [...new Set(sorted.map(v => v.season ?? 1))];
@@ -352,7 +355,19 @@ async function openDetail(addon, type, item, opts = {}){
         }));
         epPref(list, meta.id);
       };
-      draw(); { const rows = tvRows('Episodes', [srow, list]), hd = rows.querySelector('.dmain .drt'); if (hd) { hd.classList.add('drtx'); hd.append(hdActs); } body.append(rows); }
+      const phone = !document.body.classList.contains('tv');
+      if (phone) {                                                        // phone: a list of episodes under Episodes / More like this tabs, seasons in a drop-down
+        list.classList.add('eplv');
+        const sel = h('select', {class:'ssel', 'aria-label':'Season', onchange:e => { curSeason = +e.target.value; draw(); }}, seasons.map(sn => h('option', {value:String(sn)}, sn === 0 ? 'Specials' : 'Season ' + sn)));
+        sel.value = String(curSeason);
+        draw();
+        const rows = tvRows('Episodes', [h('div', {class:'sbar'}, seasons.length > 1 ? h('label', {class:'sselw'}, sel) : h('b', {class:'sone'}, curSeason === 0 ? 'Specials' : 'Season ' + curSeason), hdActs), list]);
+        const inn = rows.querySelector('.dp2in'), tab = d.dataset.tab || 'eps';
+        const tb = (k, t) => h('button', {class:'dtab' + (tab === k ? ' on' : ''), type:'button', 'data-k':k, onclick:() => { d.dataset.tab = k; inn.dataset.tab = k; tabs.querySelectorAll('.dtab').forEach(b => b.classList.toggle('on', b.dataset.k === k)); }}, t);
+        const tabs = h('div', {class:'dtabs'}, tb('eps', 'Episodes'), rows.querySelector('.dsimr') ? tb('sim', 'More like this') : null);
+        inn.dataset.tab = tab; inn.classList.add('dtabbed'); inn.prepend(tabs);
+        body.append(rows);
+      } else { draw(); const rows = tvRows('Episodes', [srow, list]), hd = rows.querySelector('.dmain .drt'); if (hd) { hd.classList.add('drtx'); hd.append(hdActs); } body.append(rows); }
     } else if (withStreams) {                                              // ---- movie / single title: streams right here
       const box = h('div', {class:'dbox'});
       body.append(tvRows('Sources', [box]));
