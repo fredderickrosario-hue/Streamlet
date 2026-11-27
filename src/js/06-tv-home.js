@@ -11,9 +11,13 @@ function setTvHero(ctx, instant){
   if (src && !(tbg.lastChild && tbg.lastChild.dataset.src === src)) {
     tbg.style.setProperty('--bgi', `url("${String(src).replace(/"/g, '%22')}")`);
     const img = h('img', {alt:'', 'data-src':src}); img.onerror = () => img.remove();
-    img.onload = () => { requestAnimationFrame(() => img.classList.add('on')); setTimeout(() => { for (const o of [...tbg.children]) if (o !== img && o !== tbg.lastChild) o.remove(); }, document.body.classList.contains('tv') ? 420 : 800); };
+    img.onload = () => {                                                  // cross-fade: the new picture fades in while the old one fades out, then the old one goes
+      if (tbg.lastChild !== img) { img.remove(); return; }                 // a newer title was picked meanwhile
+      requestAnimationFrame(() => { img.classList.add('on', 'z'); for (const o of [...tbg.children]) if (o !== img) o.classList.remove('on'); });
+      setTimeout(() => { for (const o of [...tbg.children]) if (o !== img && !o.classList.contains('on')) o.remove(); }, 1000);
+    };
     img.src = src; tbg.append(img);
-    if (instant) img.classList.add('on');
+    if (instant) img.classList.add('on', 'z');
   }
   const gen = (Array.isArray(m.genres) ? m.genres : Array.isArray(m.genre) ? m.genre : []).slice(0, 3);
   const bits = [m.releaseInfo || m.year, fmtRun(m.runtime), ...gen].filter(Boolean);

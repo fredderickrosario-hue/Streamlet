@@ -160,4 +160,7 @@ body:not(.tv) .card > .t, body:not(.tv) .card > .s, body:not(.tv) .cwb > .t{disp
 /* hero picture: a slow drift on the phone; none on the TV (too heavy to redraw every frame there) */
 @keyframes heroDrift{0%{transform:scale(1) translate3d(0,0,0)}100%{transform:scale(1.08) translate3d(-2%,-1%,0)}}
 body:not(.tv) .tvhero .tbg{animation:heroDrift 26s ease-in-out infinite alternate;transform-origin:65% 35%;will-change:transform}
-body.tv .tvhero .tbg img{transition:opacity .4s ease}
+body.tv .tvhero .tbg img{transition:opacity .55s ease}
+/* TV: each new picture zooms in very slowly once, then holds (it keeps its zoom while it fades out, so nothing jumps) */
+@keyframes heroZoom{from{transform:scale(1)}to{transform:scale(1.07)}}
+body.tv .tvhero .tbg img.z{animation:heroZoom 22s cubic-bezier(.3,.1,.3,1) forwards;transform-origin:60% 40%}
