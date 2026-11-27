@@ -300,9 +300,5 @@ body:not(.tv) #profiles.pwshow .psbg{height:72%}
 body:not(.tv) #profiles.pwshow .psbg img{object-position:center top;-webkit-mask-image:linear-gradient(to bottom,#000 60%,transparent 100%);mask-image:linear-gradient(to bottom,#000 60%,transparent 100%)}
 body:not(.tv) #profiles.pwshow .pgrid{flex-wrap:wrap;max-width:100%;padding:0 8px}
 body:not(.tv) #profiles.pwshow .pstag{display:inline-block;padding:5px 10px;border-radius:8px;background:rgba(7,7,12,.6)}
-/* phone: the whole poster (title included) sits at the top, a blurred copy of it fills the screen behind */
-body:not(.tv) #profiles.pwshow .pshow::before{content:'';position:absolute;inset:-40px;background:var(--psb,none) center/cover no-repeat;filter:blur(28px) brightness(.45) saturate(1.2);transition:background-image .6s}
-body:not(.tv) #profiles.pwshow .psbg{top:calc(64px + env(safe-area-inset-top));height:calc(var(--vh,1vh) * 43)}
-body:not(.tv) #profiles.pwshow .psbg img{object-fit:contain;object-position:center top;-webkit-mask-image:none;mask-image:none;filter:drop-shadow(0 12px 30px rgba(0,0,0,.6))}
-body:not(.tv) #profiles.pwshow .pshow::after{background:linear-gradient(to bottom,transparent 55%,rgba(7,7,12,.9) 75%)}
-body:not(.tv) #profiles.pwshow .psbg img.on{animation:none}
+/* phone: the poster fills the top of the screen (zoomed in), fading into the page */
+body:not(.tv) #profiles.pwshow .psbg{top:0;height:76%}
