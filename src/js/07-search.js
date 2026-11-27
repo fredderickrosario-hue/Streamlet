@@ -172,7 +172,8 @@ async function renderHome(query = $('#q').value.trim(), target){
     }
     const strip = h('div', {class:'strip'});
     const mixedRow = !(cat.extra || []).length && a.url && a.url.startsWith('tmdb://');                 // TMDB rows with movies and shows together: no type label
-    const sec = h('div', {class:'row'}, h('h2', null, title, ' ', h('small', null, '· ' + [an(a), mixedRow ? '' : TYPE_LABEL[cat.type]].filter(Boolean).join(' · '))), strip);
+    const sub = [a.url && a.url.startsWith('tmdb://') ? '' : an(a), mixedRow ? '' : TYPE_LABEL[cat.type]].filter(Boolean).join(' · ');   // TMDB rows: no addon name
+    const sec = h('div', {class:'row'}, h('h2', null, title, sub ? ' ' : '', sub ? h('small', null, '· ' + sub) : null), strip);
     const loading = h('div', {class:'spin'}, 'Loading…');
     sec.append(loading); if (!hideCats) box.append(sec);
     jobs.push(getJSON(`${a.base}/${path}`).then(r => {

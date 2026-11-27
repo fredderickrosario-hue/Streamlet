@@ -154,3 +154,5 @@ body.tv.rowsfix .tvhero .tin{bottom:calc(var(--vh,1vh) * 33);transform:scale(.82
 body.tv.rowsfix .tvhero .tdesc, body.tv.rowsfix .tvhero .tbtns, body.tv.rowsfix .tvhero .tseg, body.tv.rowsfix .tvhero .tkick, body.tv.rowsfix .tvhero .ttag{display:none}
 body.tv .tvhero .tbg{transition:bottom .3s ease}
 body.tv.rowsfix .tvhero .tbg{bottom:calc(var(--vh,1vh) * 20)}
+/* phone: posters carry the title, so no title and year under cards (Continue watching keeps its episode and time-left line) */
+body:not(.tv) .card > .t, body:not(.tv) .card > .s, body:not(.tv) .cwb > .t{display:none}
