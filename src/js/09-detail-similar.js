@@ -248,6 +248,23 @@ function epDateEl(meta, type, v, soon){
   if (!v.runtime && !soon && type === 'series' && lsGet('streamlet.tmdb', '')) epRuns(meta, type, v.season ?? 1).then(m => { const n = m.get(v.episode); if (n) { v.runtime = n + ' min'; put(); } });
   return el;
 }
+/* phone: the season picker, a sheet from the bottom */
+let ssPop = null;
+function seasonPick(seasons, cur, count, pick){
+  if (ssPop) return;
+  const close = fromBack => { if (!ssPop) return; const W = ssPop; ssPop = null; W.remove(); if (!fromBack && layersOpen[layersOpen.length - 1] === 'sspop') popLayer('sspop'); };
+  const W = h('div', {class:'avpop sspop', role:'dialog', 'aria-modal':'true', 'aria-label':'Seasons', onclick:e => { if (e.target === W) close(); }},
+    h('div', {class:'sscard'}, h('div', {class:'sshandle'}), h('h3', null, 'Seasons'),
+      h('div', {class:'sslist'}, seasons.map(sn => { const n = count(sn), on = sn === cur;
+        const b = h('button', {class:'ssrow' + (on ? ' on' : ''), type:'button', onclick:() => { close(); if (!on) pick(sn); }},
+          h('span', {class:'ssn'}, sn === 0 ? 'Specials' : 'Season ' + sn), h('span', {class:'ssc'}, n + (n === 1 ? ' episode' : ' episodes')));
+        if (on) b.insertAdjacentHTML('beforeend', '<svg class="sschk" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>');
+        return b; }))));
+  document.body.append(W); ssPop = W; LAYER_CLOSERS.sspop = () => close(true);
+  try { pushLayer('sspop'); } catch {}
+  requestAnimationFrame(() => W.classList.add('open'));
+  const f = W.querySelector('.ssrow.on') || W.querySelector('.ssrow'); if (f) f.focus({preventScroll:true});
+}
 function epCard(addon, type, meta, v, sorted, soon, th, hist, again){
   const rec = epGet(meta.id, v.season ?? 1, v.episode), seen = !!(rec && rec.done), pct = rec && !rec.done && rec.dur && rec.pos > 20 ? Math.min(100, Math.round(rec.pos / rec.dur * 100)) : 0;
   return h('button', {class:'ep' + (soon ? ' soon' : '') + (seen ? ' seen' : ''), type:'button', 'data-sid':meta.id, 'data-s':String(v.season ?? 1), 'data-e':String(v.episode ?? 0), onclick:() => openEpisode(addon, type, meta, v, sorted, again)},
@@ -272,6 +289,18 @@ function tvRowsFor(addon, type, meta, title, els, opts = {}){
     simRow));
 }
 
+/* phone, on an episode's page: the next episode, and a way back to the full list */
+function nextEpSection(addon, type, meta, v, sorted){
+  const nx = sorted[sorted.indexOf(v) + 1];
+  const all = h('button', {class:'allep', type:'button', onclick:() => {
+    popLayer('episode');
+    setTimeout(() => { const d = $('#detail'), t = d && d.querySelector('.dtab[data-k="eps"]'); if (t) t.click(); const tb = d && d.querySelector('.dtabs'); if (tb) d.scrollTo({top:Math.max(0, tb.getBoundingClientRect().top + d.scrollTop - 70), behavior:'smooth'}); }, 120);
+  }}, 'All episodes');
+  return h('section', {class:'drow dnext'},
+    nx ? h('h3', {class:'drt'}, 'Next episode') : null,
+    nx ? h('div', {class:'eplist eplv'}, epCard(addon, type, meta, nx, sorted, nx.released && new Date(nx.released) > new Date(), nx.thumbnail || meta.background, null, true)) : null,
+    all);
+}
 /* the page of a single episode: its own backdrop, overview and the streams */
 function openEpisode(addon, type, meta, v, sorted, again){
   if (profile && type === 'series' && (epAll().some(r => r.itemId === meta.id) || Object.keys(pget('epRemoved', {})).some(k => k.startsWith(meta.id + '|')))) showNote(meta.id, meta.name, meta.poster, meta.background, addon.uid);
@@ -298,8 +327,8 @@ function openEpisode(addon, type, meta, v, sorted, again){
           (v.overview || v.description) ? h('p', {class:'ddesc'}, v.overview || v.description) : null,
           h('div', {class:'dacts2'}, play, dlEpBtn(addon, type, meta, v, sorted), (() => { const b = h('button', {class:'pib', type:'button', 'aria-label':'Watched'}); b.innerHTML = `<svg viewBox="0 0 24 24">${IC.seen}</svg>`; const paint = () => { const on = epDone(meta.id, sn, v.episode); b.classList.toggle('on', on); b.title = on ? 'Mark episode as unwatched' : 'Mark episode as watched'; }; b.onclick = () => { epMark(meta.id, [v], !epDone(meta.id, sn, v.episode)); paint(); toast(epDone(meta.id, sn, v.episode) ? 'Marked as watched' : 'Marked as unwatched'); }; paint(); return b; })()),
           hintEl()),
-        tvRowsFor(addon, type, meta, 'Sources', [streamsBox], {sim:false, rows:[h('section', {class:'drow'}, h('h3', {class:'drt'}, 'Season ' + sn), others)]}))));
-    epPref(others, meta.id, v.episode ?? 0);
+        tvRowsFor(addon, type, meta, 'Sources', [streamsBox], {sim:false, rows:[isTVui() ? h('section', {class:'drow'}, h('h3', {class:'drt'}, 'Season ' + sn), others) : nextEpSection(addon, type, meta, v, sorted)]}))));
+    if (isTVui()) epPref(others, meta.id, v.episode ?? 0);
     const at = sorted.indexOf(v);
     ed._step = d => { const t = sorted[at + d]; if (t) openEpisode(addon, type, meta, t, sorted, true); };       // Left / Right on the top half
     if (!isTVui()) {                                                       // phone: swipe the top half sideways for the previous / next episode
@@ -341,13 +370,17 @@ async function openDetail(addon, type, item, opts = {}){
       const seasons = [...new Set(sorted.map(v => v.season ?? 1))];
       if (curSeason === null || !seasons.includes(curSeason)) { const nx = profile ? epNext(meta.id, sorted).v : null; curSeason = nx && seasons.includes(nx.season ?? 1) ? (nx.season ?? 1) : (seasons.find(x => x >= 1) ?? seasons[0]); }
       const srow = h('div', {class:'srow'}), list = h('div', {class:'eplist'}), hdActs = h('span', {class:'drtacts'});   // season actions sit in the Episodes heading
+      let sbtn = null;
       const draw = () => {
         const inSeason = sorted.filter(v => (v.season ?? 1) === curSeason), allSeen = inSeason.length && inSeason.every(v => epDone(meta.id, v.season ?? 1, v.episode));
         srow.replaceChildren(...seasons.map(sn => h('button', {class:'chip' + (sn === curSeason ? ' on' : ''), type:'button', onclick:() => { curSeason = sn; draw(); }}, sn === 0 ? 'Specials' : 'Season ' + sn)),
           );
         const mk = profile ? h('button', {class:'btn ghost sm smark', type:'button', title:allSeen ? 'Mark this season as unwatched' : 'Mark this season as watched', onclick:() => { epMark(meta.id, inSeason, !allSeen); toast(allSeen ? 'Season marked as unwatched' : 'Season marked as watched'); draw(); }}) : null;
-        if (mk) mk.innerHTML = EYE_SVG + `<span>${allSeen ? 'Mark unwatched' : 'Mark watched'}</span>`;
-        hdActs.replaceChildren(...[mk, dlOn() ? h('button', {class:'btn ghost sm smark', type:'button', title:'Download this season', onclick:() => dlSeason(addon, type, meta, inSeason, sorted)}, '⤓ Download') : null].filter(Boolean));
+        if (mk) { mk.innerHTML = EYE_SVG + `<span>${allSeen ? 'Mark unwatched' : 'Mark watched'}</span>`; mk.classList.toggle('on', !!allSeen); mk.setAttribute('aria-label', mk.title); }
+        const dlb = dlOn() ? h('button', {class:'btn ghost sm smark', type:'button', title:'Download this season', 'aria-label':'Download this season', onclick:() => dlSeason(addon, type, meta, inSeason, sorted)}) : null;
+        if (dlb) dlb.innerHTML = `<svg viewBox="0 0 24 24" class="dls">${DL_SVG}</svg><span>Download</span>`;
+        hdActs.replaceChildren(...[mk, dlb].filter(Boolean));
+        if (sbtn) sbtn.replaceChildren(h('span', {class:'sbl'}, curSeason === 0 ? 'Specials' : 'Season ' + curSeason), h('span', {class:'sbn'}, inSeason.length + (inSeason.length === 1 ? ' episode' : ' episodes')), ...(seasons.length > 1 ? [(() => { const c = h('span', {class:'sbc'}); c.innerHTML = '<svg viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>'; return c; })()] : []));
         list.replaceChildren(...sorted.filter(v => (v.season ?? 1) === curSeason).map(v => {
           const hist = null, soon = v.released && new Date(v.released) > new Date();
           const th = v.thumbnail || meta.background;
@@ -358,10 +391,9 @@ async function openDetail(addon, type, item, opts = {}){
       const phone = !document.body.classList.contains('tv');
       if (phone) {                                                        // phone: a list of episodes under Episodes / More like this tabs, seasons in a drop-down
         list.classList.add('eplv');
-        const sel = h('select', {class:'ssel', 'aria-label':'Season', onchange:e => { curSeason = +e.target.value; draw(); }}, seasons.map(sn => h('option', {value:String(sn)}, sn === 0 ? 'Specials' : 'Season ' + sn)));
-        sel.value = String(curSeason);
+        sbtn = h('button', {class:'sbtn', type:'button', 'aria-label':'Choose a season', onclick:() => { if (seasons.length > 1) seasonPick(seasons, curSeason, sn => sorted.filter(v => (v.season ?? 1) === sn).length, sn => { curSeason = sn; draw(); }); }});
         draw();
-        const rows = tvRows('Episodes', [h('div', {class:'sbar'}, seasons.length > 1 ? h('label', {class:'sselw'}, sel) : h('b', {class:'sone'}, curSeason === 0 ? 'Specials' : 'Season ' + curSeason), hdActs), list]);
+        const rows = tvRows('Episodes', [h('div', {class:'sbar'}, sbtn, hdActs), list]);
         const inn = rows.querySelector('.dp2in'), tab = d.dataset.tab || 'eps';
         const tb = (k, t) => h('button', {class:'dtab' + (tab === k ? ' on' : ''), type:'button', 'data-k':k, onclick:() => { d.dataset.tab = k; inn.dataset.tab = k; tabs.querySelectorAll('.dtab').forEach(b => b.classList.toggle('on', b.dataset.k === k)); }}, t);
         const tabs = h('div', {class:'dtabs'}, tb('eps', 'Episodes'), rows.querySelector('.dsimr') ? tb('sim', 'More like this') : null);
