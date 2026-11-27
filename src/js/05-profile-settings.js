@@ -318,6 +318,7 @@ function posterEl(meta){
     const bg = meta.background && meta.background !== meta.poster ? meta.background : null;
     if (bg) p.append(h('img', {src:bg, loading:'lazy', decoding:'async', alt:'', onerror:e => { e.target.remove(); if (meta.poster) { p.classList.add('fit'); p.append(h('img', {class:'wfill', src:meta.poster, alt:''}), h('img', {class:'wfit', src:meta.poster, alt:''})); } }}));
     else { p.classList.add('fit'); p.append(h('img', {class:'wfill', src:meta.poster, loading:'lazy', decoding:'async', alt:''}), h('img', {class:'wfit', src:meta.poster, loading:'lazy', decoding:'async', alt:'', onerror:e => e.target.remove()})); }
+    try { artWatch(p, meta); } catch {}                                // the titled wide picture, once the card is on screen (35-card-art.js)
   } else if (meta.poster) p.append(h('img', {src:meta.poster, loading:'lazy', decoding:'async', alt:'', onerror:e=>e.target.remove()}));
   const iid = meta.itemId || meta.id;
   if (iid) { p.dataset.iid = iid; const rb = ribEl(iid); if (rb) p.append(rb); }

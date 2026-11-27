@@ -220,3 +220,6 @@ body.tv :is(.wgrid,.rgrid,#search .rgrid){grid-template-columns:repeat(auto-fill
 body.tv :is(.wgrid,.rgrid) .poster.wide{width:100%;height:auto;aspect-ratio:16/9}
 body.tv :is(#detail,#episode) .dp2 .dsim .card{flex:0 0 220px}
 body.tv .dsim .poster.wide{width:100%;height:auto;aspect-ratio:16/9}
+body.tv .poster.wide>img.wlogo{object-fit:contain;position:absolute;left:8%;right:auto;top:auto;bottom:10%;width:52%;height:38%;inset:auto auto 10% 8%;filter:drop-shadow(0 2px 6px rgba(0,0,0,.7))}
+body.tv .poster.wide.art:has(img.wlogo)::after{content:'';position:absolute;inset:0;background:linear-gradient(to top,rgba(0,0,0,.55),transparent 55%);pointer-events:none}
+body.tv .poster.wide.art:has(img.wlogo)>img.wlogo{z-index:1}
