@@ -290,6 +290,17 @@ function tvRowsFor(addon, type, meta, title, els, opts = {}){
     simRow));
 }
 
+/* TV: the lower half of a show's page as tabs (Episodes / Details / More like this); moving onto a tab shows it */
+function tvTabs(rows, d){
+  const inn = rows.querySelector('.dp2in'); if (!inn) return;
+  const det = [...inn.children].filter(x => x.matches('.drow') && !x.matches('.dmain,.dsimr')), sim = inn.querySelector('.dsimr');
+  det.forEach(x => x.classList.add('dtdet'));
+  const set = k => { d.dataset.tvtab = k; inn.dataset.tab = k; tabs.querySelectorAll('.dtab').forEach(b => b.classList.toggle('on', b.dataset.k === k)); };
+  const tb = (k, t) => h('button', {class:'dtab', type:'button', 'data-k':k, onfocus:() => set(k), onclick:() => set(k)}, t);
+  const tabs = h('div', {class:'dtabs dptabs'}, tb('eps', 'Episodes'), det.length ? tb('det', 'Details') : null, sim ? tb('sim', 'More like this') : null);
+  inn.classList.add('dtabtv'); inn.prepend(tabs);
+  const k0 = d.dataset.tvtab && tabs.querySelector(`[data-k="${d.dataset.tvtab}"]`) ? d.dataset.tvtab : 'eps'; set(k0);
+}
 /* phone, on an episode's page: the next episode, and a way back to the full list */
 function nextEpSection(addon, type, meta, v, sorted){
   const nx = sorted[sorted.indexOf(v) + 1];
@@ -374,7 +385,7 @@ async function openDetail(addon, type, item, opts = {}){
       let sbtn = null;
       const draw = () => {
         const inSeason = sorted.filter(v => (v.season ?? 1) === curSeason), allSeen = inSeason.length && inSeason.every(v => epDone(meta.id, v.season ?? 1, v.episode));
-        srow.replaceChildren(...seasons.map(sn => h('button', {class:'chip' + (sn === curSeason ? ' on' : ''), type:'button', onclick:() => { curSeason = sn; draw(); }}, sn === 0 ? 'Specials' : 'Season ' + sn)),
+        srow.replaceChildren(...seasons.map(sn => h('button', {class:'chip' + (sn === curSeason ? ' on' : ''), type:'button', onclick:() => { curSeason = sn; draw(); if (srow.className === 'scol') { const f = srow.querySelector('.on'); if (f) f.focus({preventScroll:true}); list.scrollTop = 0; } }}, sn === 0 ? 'Specials' : 'Season ' + sn)),
           );
         const mk = profile ? h('button', {class:'btn ghost sm smark', type:'button', title:allSeen ? 'Mark this season as unwatched' : 'Mark this season as watched', onclick:() => { epMark(meta.id, inSeason, !allSeen); toast(allSeen ? 'Season marked as unwatched' : 'Season marked as watched'); draw(); }}) : null;
         if (mk) { mk.innerHTML = EYE_SVG + `<span>${allSeen ? 'Mark unwatched' : 'Mark watched'}</span>`; mk.classList.toggle('on', !!allSeen); mk.setAttribute('aria-label', mk.title); }
@@ -400,7 +411,12 @@ async function openDetail(addon, type, item, opts = {}){
         const tabs = h('div', {class:'dtabs'}, tb('eps', 'Episodes'), rows.querySelector('.dsimr') ? tb('sim', 'More like this') : null);
         inn.dataset.tab = tab; inn.classList.add('dtabbed'); inn.prepend(tabs);
         body.append(rows);
-      } else { draw(); const rows = tvRows('Episodes', [srow, list]), hd = rows.querySelector('.dmain .drt'); if (hd) { hd.classList.add('drtx'); hd.append(hdActs); } body.append(rows); }
+      } else {                                                            // TV: seasons in a column on the left, the episodes in a list beside them, under Episodes / Details / More like this tabs
+        srow.className = 'scol'; list.className = 'evlist';
+        draw();
+        const rows = tvRows('Episodes', [h('div', {class:'etv'}, h('div', {class:'scolw'}, srow, hdActs), list)]);
+        tvTabs(rows, d); body.append(rows);
+      }
     } else if (withStreams) {                                              // ---- movie / single title: streams right here
       const box = h('div', {class:'dbox'});
       body.append(tvRows('Sources', [box]));

@@ -132,7 +132,7 @@ function focusNav(){
    the card you last had in that row, or the one under where you were. Columns (side menu, search keyboard, search results) keep
    Up / Down to themselves; Left / Right cross between them. */
 const ROW_SEL = '.avstrip,.strip,.dacts2,.srow,.sfilter,.eplist,.slist,.cchips,.dsim,.tbtns,.dptabs,.rrow';
-const ZONE_SEL = '#nav,#search .skb,#search .sres,#profEd .pecol,#profEd .pe2-l,#profEd .pe2-r,#spaceEd .sedcol';
+const ZONE_SEL = '#detail .scol,#detail .evlist,#nav,#search .skb,#search .sres,#profEd .pecol,#profEd .pe2-l,#profEd .pe2-r,#spaceEd .sedcol';
 const zoneMem = new WeakMap();                                            // column -> where you were in it
 const rowMem = new WeakMap();                                             // row -> the card you were on
 let navEl = null, navVert = false;                                         // the card that set the column you are travelling down (kept across short lines)
@@ -238,7 +238,7 @@ function moveFocus(dir, rep){
     if (nearest && (nY == null || (dir === 'down' ? nearest.r.top < nY : nearest.r.bottom > nY))) { const t2 = zoneEnter(nearest.z, list, null, nearest.r.left); if (t2) { navGo(t2, dir, rep, true, null); return; } }
     if (zone && !N) {                                                       // the end of a column: carry on into whatever is above / below it on the page
       const outer = list.filter(e => !e.closest(ZONE_SEL)).map(e => ({e, r:e.getBoundingClientRect()})).filter(({r}) => dir === 'down' ? r.top >= ref.bottom - 4 : r.bottom <= ref.top + 4);
-      if (outer.length) { const best = outer.reduce((b, c) => (dir === 'down' ? c.r.top < b.r.top - 4 : c.r.bottom > b.r.bottom + 4) || (Math.abs(c.r.top - b.r.top) <= 4 && Math.abs(midX(c.r) - midX(cr)) < Math.abs(midX(b.r) - midX(cr))) ? c : b); navGo(best.e, dir, rep, true, null); return; }
+      if (outer.length) { const best = outer.reduce((b, c) => (dir === 'down' ? c.r.top < b.r.top - 4 : c.r.bottom > b.r.bottom + 4) || (Math.abs(c.r.top - b.r.top) <= 4 && Math.abs(midX(c.r) - midX(cr)) < Math.abs(midX(b.r) - midX(cr))) ? c : b); const tabOn = best.e.closest(".dptabs") && best.e.closest(".dptabs").querySelector(".dtab.on"); navGo(tabOn || best.e, dir, rep, true, null); return; }
     }
   }
   if (!N && dir === 'up' && tv && document.body.classList.contains('rowsfix')) { tvRows(null); const hb = $('#rows .tvhero .hb.p') || $('#rows .tvhero .hb'); if (hb) navGo(hb, dir, rep, true, null); return; }   // above the first row: back to the big picture
@@ -260,9 +260,16 @@ function tvEntryReveal(el, lock){
   lock.scrollTop = 0; window.scrollTo(0, 0);
   if (!p2) return;
   const dp = el.closest('.dp2'), row = el.closest('.drow'), dr = dp.getBoundingClientRect(), k = dr.height / (dp.offsetHeight || dr.height) || 1;
-  if (row) {
-    const want = row === dp.querySelector('.drow') ? 0 : dp.scrollTop + (row.getBoundingClientRect().top - dr.top - 74 * k) / k;
+  if (row || el.closest('.dptabs')) {
+    const want = !row || row.closest('.dtabtv') || row === dp.querySelector('.drow') ? 0 : dp.scrollTop + (row.getBoundingClientRect().top - dr.top - 74 * k) / k;   // tabbed: the tab bar stays at the top
     dp.scrollTo({top:Math.max(0, want), behavior:'smooth'});
+  }
+  const vs = el.closest('.evlist,.scol');                                  // tabbed show page: the season column and the episode list scroll up and down
+  if (vs) {
+    const item = el.closest('.evlist > *, .scol > *') || el, sr = vs.getBoundingClientRect(), br = item.getBoundingClientRect(), kk = sr.height / (vs.offsetHeight || sr.height) || 1, m = 40 * kk;
+    if (item === vs.firstElementChild) vs.scrollTo({top:0, behavior:'smooth'});
+    else if (br.bottom > sr.bottom - m) vs.scrollTo({top:vs.scrollTop + (br.bottom - (sr.bottom - m)) / kk, behavior:'smooth'});
+    else if (br.top < sr.top + m) vs.scrollTo({top:vs.scrollTop - (sr.top + m - br.top) / kk, behavior:'smooth'});
   }
   const hs = el.closest('.srow,.sfilter,.eplist,.slist,.dsim,.cchips');
   if (hs) {

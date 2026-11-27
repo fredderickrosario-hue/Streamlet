@@ -333,3 +333,38 @@ body.tv .avstrip{min-height:128px}
 .pillx.pic{display:inline-flex;align-items:center;gap:9px}
 body.tv :is(#detail,#episode) .dp2 .pillx.pic, :is(#detail,#episode) .pillx.pic{padding-left:4px}
 .pillx .cpic{width:30px;height:30px;border-radius:50%;object-fit:cover;object-position:center 20%;flex:0 0 auto}
+/* ---- TV show page, lower half: Episodes / Details / More like this tabs (tvTabs in 09-detail-similar.js) ---- */
+body.tv #detail .dtabs{display:flex;gap:10px;margin:0 0 calc(var(--vh,1vh) * 3);padding:4px}
+body.tv #detail .dtab{position:relative;padding:9px 20px;background:none;border:0;border-radius:999px;color:#9ea2b3;font:inherit;font-size:19px;font-weight:800;cursor:pointer}
+body.tv #detail .dtab.on{color:#fff}
+body.tv #detail .dtab.on::after{content:'';position:absolute;left:20px;right:20px;bottom:1px;height:3px;border-radius:3px;background:var(--acc)}
+body.tv #detail .dtab:focus-visible{outline:3px solid #fff;outline-offset:0;background:rgba(255,255,255,.1)}
+body.tv #detail .dtabtv[data-tab="eps"] > .drow:not(.dmain), body.tv #detail .dtabtv[data-tab="det"] > .drow:not(.dtdet), body.tv #detail .dtabtv[data-tab="sim"] > .drow:not(.dsimr){display:none}
+body.tv #detail .dtabtv > :is(.dmain,.dsimr) > .drt{display:none}
+body.tv #detail .dtabtv > .dmain{margin:0}
+/* seasons on the left, episodes beside them, both scroll on their own */
+body.tv #detail .etv{display:grid;grid-template-columns:230px minmax(0,1fr);gap:34px;height:calc(var(--vh,1vh) * 84 - 86px)}
+body.tv #detail .scolw{display:flex;flex-direction:column;min-height:0;gap:10px}
+body.tv #detail .scol{display:flex;flex-direction:column;gap:6px;min-height:0;overflow-y:auto;scrollbar-width:none;padding:6px;margin:-6px}
+body.tv #detail .scol::-webkit-scrollbar{display:none}
+body.tv #detail .dp2 .scol .chip{flex:0 0 auto;width:100%;text-align:left;padding:12px 20px;font-size:17px;font-weight:750;background:transparent;color:#b9bccb}
+body.tv #detail .dp2 .scol .chip.on{background:rgba(255,255,255,.14);color:#fff}
+body.tv #detail .dp2 .scol .chip:focus-visible{outline:3px solid #fff;outline-offset:-3px;background:#fff;color:#0d0d14}
+body.tv #detail .scolw .drtacts{display:flex;gap:8px;padding:0 6px}
+body.tv #detail .evlist{display:flex;flex-direction:column;gap:6px;min-height:0;overflow-y:auto;scrollbar-width:none;padding:6px 64px 30px 6px;margin:-6px 0 0 -6px}
+body.tv #detail .evlist::-webkit-scrollbar{display:none}
+body.tv #detail .dp2 .evlist .ep{flex:0 0 auto;display:flex;gap:24px;align-items:flex-start;width:100%;padding:10px;border-radius:14px;background:none}
+body.tv #detail .dp2 .evlist .ep .ethumb{width:280px;flex:0 0 280px;border-radius:10px}
+body.tv #detail .dp2 .evlist .ep .enum,body.tv #detail .dp2 .evlist .ep .erx{display:none}
+body.tv #detail .dp2 .evlist .ep .ebadge:not([hidden]){display:block;position:absolute;right:7px;bottom:8px;padding:2px 7px;border-radius:5px;background:rgba(0,0,0,.75);color:#fff;font-size:13px;font-weight:700}
+body.tv #detail .dp2 .evlist .ep .einfo{flex:1;min-width:0;padding:4px 0 0}
+body.tv #detail .dp2 .evlist .ep .enx{display:inline}
+body.tv #detail .dp2 .evlist .ep .etitle{white-space:normal;font-size:19px;line-height:1.3;margin:0 0 4px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+body.tv #detail .dp2 .evlist .ep .edate{font-size:14px}
+body.tv #detail .dp2 .evlist .ep .eover{display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;margin:8px 0 0;font-size:15px;line-height:1.45;color:#a9adbd;max-width:760px}
+body.tv #detail .dp2 .evlist .ep:focus-visible{outline:3px solid #fff;outline-offset:-3px;background:rgba(255,255,255,.08);transform:none}
+body.tv #detail .dp2 .evlist .ep.seen .etitle{color:#b9bccb}
+body.tv #detail .dp2 .evlist .ep:focus-visible .ethumb::after{opacity:0}
+body.tv #detail .dp2 .scol .chip{justify-content:flex-start}
+body.tv #detail .etv{height:calc(var(--vh,1vh) * 88 - 86px)}
+body.tv #detail .evlist{-webkit-mask-image:linear-gradient(to bottom,#000 calc(100% - 40px),transparent);mask-image:linear-gradient(to bottom,#000 calc(100% - 40px),transparent)}
