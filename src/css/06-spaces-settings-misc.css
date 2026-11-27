@@ -170,3 +170,14 @@ body.launch:not(.tv) .lfoot{flex:0 0 auto;padding-top:8px}
 
 .scard.bad .sname::after{content:'  ·  failed earlier';font-size:12px;font-weight:600;color:#ff8f8f}
 .scard.bad{opacity:.7}
+/* category page: title, sort button, one grid */
+.ghead{display:flex;align-items:center;justify-content:space-between;gap:12px;padding-right:16px}
+.ghead h2{margin:0}
+.gsort{display:inline-flex;align-items:center;gap:6px;flex:0 0 auto;padding:8px 12px 8px 16px;border:0;border-radius:999px;background:rgba(255,255,255,.1);color:#fff;font:inherit;font-size:14px;cursor:pointer}
+.gsort .gsl{color:#9ea2b3;font-weight:600}
+.gsort b{font-weight:800}
+.gsort svg{width:18px;height:18px;fill:none;stroke:var(--acc);stroke-width:2.6;stroke-linecap:round;stroke-linejoin:round}
+.gsort:focus-visible{outline:3px solid #fff;outline-offset:2px}
+.ggrid{padding-top:4px}
+.ggrid + .spin{margin:10px auto 30px}
+body.tv .ghead{padding-right:40px}

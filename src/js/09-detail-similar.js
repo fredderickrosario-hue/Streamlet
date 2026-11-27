@@ -248,16 +248,16 @@ function epDateEl(meta, type, v, soon){
   if (!v.runtime && !soon && type === 'series' && lsGet('streamlet.tmdb', '')) epRuns(meta, type, v.season ?? 1).then(m => { const n = m.get(v.episode); if (n) { v.runtime = n + ' min'; put(); } });
   return el;
 }
-/* phone: the season picker, a sheet from the bottom */
+/* a sheet from the bottom with a short list of choices (seasons, sort order) */
 let ssPop = null;
-function seasonPick(seasons, cur, count, pick){
+function pickSheet(title, opts, cur, pick){
   if (ssPop) return;
   const close = fromBack => { if (!ssPop) return; const W = ssPop; ssPop = null; W.remove(); if (!fromBack && layersOpen[layersOpen.length - 1] === 'sspop') popLayer('sspop'); };
-  const W = h('div', {class:'avpop sspop', role:'dialog', 'aria-modal':'true', 'aria-label':'Seasons', onclick:e => { if (e.target === W) close(); }},
-    h('div', {class:'sscard'}, h('div', {class:'sshandle'}), h('h3', null, 'Seasons'),
-      h('div', {class:'sslist'}, seasons.map(sn => { const n = count(sn), on = sn === cur;
-        const b = h('button', {class:'ssrow' + (on ? ' on' : ''), type:'button', onclick:() => { close(); if (!on) pick(sn); }},
-          h('span', {class:'ssn'}, sn === 0 ? 'Specials' : 'Season ' + sn), h('span', {class:'ssc'}, n + (n === 1 ? ' episode' : ' episodes')));
+  const W = h('div', {class:'avpop sspop', role:'dialog', 'aria-modal':'true', 'aria-label':title, onclick:e => { if (e.target === W) close(); }},
+    h('div', {class:'sscard'}, h('div', {class:'sshandle'}), h('h3', null, title),
+      h('div', {class:'sslist'}, opts.map(o => { const on = o.k === cur;
+        const b = h('button', {class:'ssrow' + (on ? ' on' : ''), type:'button', onclick:() => { close(); if (!on) pick(o.k); }},
+          h('span', {class:'ssn'}, o.label), o.sub ? h('span', {class:'ssc'}, o.sub) : h('span', {class:'ssc'}));
         if (on) b.insertAdjacentHTML('beforeend', '<svg class="sschk" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>');
         return b; }))));
   document.body.append(W); ssPop = W; LAYER_CLOSERS.sspop = () => close(true);
@@ -265,6 +265,7 @@ function seasonPick(seasons, cur, count, pick){
   requestAnimationFrame(() => W.classList.add('open'));
   const f = W.querySelector('.ssrow.on') || W.querySelector('.ssrow'); if (f) f.focus({preventScroll:true});
 }
+const seasonPick = (seasons, cur, count, pick) => pickSheet('Seasons', seasons.map(sn => { const n = count(sn); return {k:sn, label:sn === 0 ? 'Specials' : 'Season ' + sn, sub:n + (n === 1 ? ' episode' : ' episodes')}; }), cur, pick);
 function epCard(addon, type, meta, v, sorted, soon, th, hist, again){
   const rec = epGet(meta.id, v.season ?? 1, v.episode), seen = !!(rec && rec.done), pct = rec && !rec.done && rec.dur && rec.pos > 20 ? Math.min(100, Math.round(rec.pos / rec.dur * 100)) : 0;
   return h('button', {class:'ep' + (soon ? ' soon' : '') + (seen ? ' seen' : ''), type:'button', 'data-sid':meta.id, 'data-s':String(v.season ?? 1), 'data-e':String(v.episode ?? 0), onclick:() => openEpisode(addon, type, meta, v, sorted, again)},

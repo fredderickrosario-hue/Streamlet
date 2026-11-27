@@ -138,6 +138,7 @@ async function renderHome(query = $('#q').value.trim(), target){
   if (nhKey) { box.append(h('div', {class:'tspace'})); renderNewHot(box, tok, nhKey).catch(() => {}); return; }
   const heroBox = h('div'); if (!query && !(tabs && view.genre) && rowOn('hero')) box.append(heroBox); else if (!target) box.append(h('div', {class:'tspace'}));
   if (tabs && !target) box.append(genreStrip());
+  if (tabs && !target && view.genre && view.tab !== 'new') { genreGrid(box, tok); return; }   // a category: one grid that fills the page, with a sort button
   if (tabs && !target && view.tab === 'new') box.append(h('div', {class:'empty', style:'padding:6px 16px 0'}, h('p', null, 'Add your TMDB key in Settings to turn this tab into New & Hot: coming soon, trending and top 10.')));
   if (!target && !query) dlOfflineRow(box);                                   // no connection: your downloads first (28-downloads.js)
   if (!target && rowOn('cw')) { box.append(h('div', {id:'cwBox'})); renderCW(); }
@@ -205,6 +206,59 @@ async function renderHome(query = $('#q').value.trim(), target){
     : tabs ? 'No catalogs of this kind in this space.' : 'Your installed addons have no browsable catalogs.';
   if (!jobs.length) { if (!personal) box.append(h('div', {class:'empty'}, none)); }
   else if (!hideCats) Promise.all(jobs).then(() => { if (tok===homeTok && !shown && !box.querySelector('.spin')) box.append(h('div',{class:'empty'}, query ? 'No results.' : none)); });
+}
+
+/* ---------- a category (genre) page: every catalog of the space that offers this genre, merged into one grid.
+   More loads as you scroll. Sort: Popular (the catalogs' own order), Newest, Top rated, A to Z. ---------- */
+const G_SORTS = [{k:'pop', label:'Popular'}, {k:'new', label:'Newest'}, {k:'top', label:'Top rated'}, {k:'az', label:'A to Z'}];
+const gYear = m => { const t = String(m.released || m.releaseInfo || m.year || ''), y = t.match(/\d{4}/); return y ? +y[0] + (m.released ? (Date.parse(m.released) || 0) / 1e13 : 0) : 0; };
+function genreGrid(box, tok){
+  const g = view.genre, srcs = [];
+  for (const a of spaceAddons()) for (const cat of (a.manifest.catalogs || [])) {
+    if (!tabFit(cat, true, view.tab) || !rowCatOK(cat) || !typeOK(view.tab, cat.type)) continue;
+    const info = catInfo(cat), ge = genreExtra(cat);
+    if (!ge || (ge.options.length && !ge.options.includes(g)) || info.req.some(n => n !== 'genre') || NEW_RE.test(cat.id)) continue;
+    const skip = (cat.extra || []).some(e => e && e.name === 'skip') || (cat.extraSupported || []).includes('skip');
+    srcs.push({a, cat, skip, at:0, done:false});
+  }
+  let sort = uiGet().gSort || 'pop';
+  const items = new Map(); let n = 0, busy = false;
+  const grid = h('div', {class:'rgrid ggrid'}), more = h('div', {class:'spin'}, 'Loading…');
+  const sortBtn = h('button', {class:'gsort', type:'button', onclick:() => pickSheet('Sort by', G_SORTS, sort, k => { sort = k; uiSet({gSort:k}); draw(); })});
+  const paintBtn = () => { sortBtn.replaceChildren(h('span', {class:'gsl'}, 'Sort'), h('b', null, G_SORTS.find(x => x.k === sort).label)); sortBtn.insertAdjacentHTML('beforeend', '<svg viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>'); };
+  box.append(h('div', {class:'row ghead'}, h('h2', null, g, ' ', h('small', null, '· ' + (view.tab === 'movie' ? 'Movies' : view.tab === 'series' ? 'Shows' : 'Movies & shows'))), sortBtn), grid, more);
+  if (!srcs.length) { more.remove(); box.append(h('div', {class:'empty'}, 'No catalogs offer this category here.')); return; }
+  const card = it => { const {a, m, type} = it, b = h('button', {class:'card', type:'button', onclick:() => openDetail(a, type, m)}, posterEl(m), h('div', {class:'t'}, m.name), h('div', {class:'s'}, m.releaseInfo || m.year || ''));
+    attachHold(b, {itemId:m.id, type, name:m.name, poster:m.poster, background:m.background, addonId:a.uid, _item:m}); return b; };
+  function draw(){
+    paintBtn();
+    const list = [...items.values()];
+    if (sort === 'new') list.sort((x, y) => gYear(y.m) - gYear(x.m) || x.n - y.n);
+    else if (sort === 'top') list.sort((x, y) => (parseFloat(y.m.imdbRating) || 0) - (parseFloat(x.m.imdbRating) || 0) || x.n - y.n);
+    else if (sort === 'az') list.sort((x, y) => String(x.m.name || '').localeCompare(String(y.m.name || ''), undefined, {sensitivity:'base'}));
+    else list.sort((x, y) => x.n - y.n);
+    const keep = document.activeElement && grid.contains(document.activeElement) ? document.activeElement._key : null;
+    grid.replaceChildren(...list.map(it => { if (!it.el) { it.el = card(it); it.el._key = it.key; } return it.el; }));
+    if (keep) { const k = list.find(it => it.key === keep); if (k) k.el.focus({preventScroll:true}); }
+  }
+  async function load(){
+    if (busy || tok !== homeTok) return; busy = true;
+    const live = srcs.filter(s => !s.done);
+    const pages = await Promise.all(live.map(s => getJSON(`${s.a.base}/catalog/${s.cat.type}/${enc(s.cat.id)}/genre=${enc(g)}${s.at ? '&skip=' + s.at : ''}.json`).then(r => r.metas || []).catch(() => [])));
+    if (tok !== homeTok) return;
+    const len = Math.max(0, ...pages.map(p => p.length));
+    for (let i = 0; i < len; i++) live.forEach((s, j) => {                // one from each catalog in turn: the mixed order stays "popular first"
+      const m = pages[j][i]; if (!m) return; const type = m.type || s.cat.type, key = type + ':' + m.id;
+      if (!items.has(key) && visibleMeta(m, type)) items.set(key, {a:s.a, m, type, key, n:n++});
+    });
+    live.forEach((s, j) => { const c = pages[j].length; s.at += c; if (!c || !s.skip) s.done = true; });
+    busy = false; draw();
+    if (srcs.every(s => s.done)) { more.remove(); if (!items.size) box.append(h('div', {class:'empty'}, 'Nothing in this category yet.')); }
+    else if (more.getBoundingClientRect().top < innerHeight + 600) load();
+  }
+  const io = new IntersectionObserver(es => { if (es.some(e => e.isIntersecting)) load(); }, {rootMargin:'0px 0px 900px 0px'});
+  io.observe(more);
+  load();
 }
 
 let addonsTab = 'installed';
