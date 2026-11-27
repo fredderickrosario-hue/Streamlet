@@ -29,6 +29,21 @@ function artFor(meta){
   })().finally(() => artBusy.delete(id));
   artBusy.set(id, p); return p;
 }
+const artKnown = meta => { const id = String(meta.itemId || meta.id || ''), x = id && artMem()[id]; return x && Date.now() - x.t < 30 * 864e5 ? x : null; };
+/* no titled art: the wide picture (or the poster over a blurred copy) with the title written on it */
+function wideFallback(p, meta){
+  p.classList.remove('pend', 'art'); p.querySelectorAll('img,.wname').forEach(x => x.remove());
+  const bg = meta.background && meta.background !== meta.poster ? meta.background : null;
+  if (bg) p.prepend(h('img', {src:bg, decoding:'async', alt:'', onerror:e => { e.target.remove(); if (meta.poster) { p.classList.add('fit'); p.prepend(h('img', {class:'wfill', src:meta.poster, alt:''}), h('img', {class:'wfit', src:meta.poster, alt:''})); } }}));
+  else if (meta.poster) { p.classList.add('fit'); p.prepend(h('img', {class:'wfill', src:meta.poster, decoding:'async', alt:''}), h('img', {class:'wfit', src:meta.poster, decoding:'async', alt:''})); }
+  if (bg) p.append(h('span', {class:'wname'}, meta.name || ''));
+}
+function artShow(p, a){
+  p.classList.remove('pend', 'fit'); p.querySelectorAll('img,.wname').forEach(x => x.remove());
+  if (a.u) p.prepend(h('img', {src:a.u, decoding:'async', alt:'', onerror:() => wideFallback(p, p._artMeta || {})}));
+  if (a.l) p.append(h('img', {class:'wlogo', src:a.l, alt:'', decoding:'async'}));
+  p.classList.add('art');
+}
 let artIO = null;
 function artWatch(p, meta){
   if (!('IntersectionObserver' in window)) return;
@@ -37,12 +52,13 @@ function artWatch(p, meta){
   artIO.observe(p);
 }
 async function artApply(p){
-  const a = await artFor(p._artMeta).catch(() => null); if (!a || (!a.u && !a.l) || !p.isConnected) return;
-  const img = new Image(); img.decoding = 'async';
-  const show = () => {
-    if (a.u) { p.querySelectorAll('img').forEach(x => x.remove()); p.classList.remove('fit'); p.prepend(img); }
-    if (a.l) p.append(h('img', {class:'wlogo', src:a.l, alt:'', decoding:'async'}));
-    p.classList.add('art');
-  };
-  if (a.u) { img.onload = show; img.src = a.u; } else show();
+  const meta = p._artMeta || {};
+  const slow = setTimeout(() => { if (p.classList.contains('pend')) wideFallback(p, meta); }, 3000);   // TMDB slow: don't leave it empty
+  const a = await artFor(meta).catch(() => null); clearTimeout(slow);
+  if (!p.isConnected) return;
+  if (a && (a.u || a.l)) {                                            // load the picture first, then swap: no half-drawn card
+    if (!a.u) return artShow(p, a);
+    const img = new Image(); img.decoding = 'async';
+    img.onload = () => artShow(p, a); img.onerror = () => wideFallback(p, meta); img.src = a.u;
+  } else if (p.classList.contains('pend') || !p.classList.contains('art')) wideFallback(p, meta);
 }

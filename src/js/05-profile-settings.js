@@ -313,12 +313,12 @@ function ribEl(iid){                                                     // show
 }
 function posterEl(meta){
   const p = h('div', {class:'poster'}, (meta.name||'?').trim().charAt(0).toUpperCase());
-  if (document.body.classList.contains('tv') && (meta.background || meta.poster)) {   // TV: landscape cards. The wide picture when there is one, else the poster over a blurred copy of itself
-    p.classList.add('wide');
-    const bg = meta.background && meta.background !== meta.poster ? meta.background : null;
-    if (bg) p.append(h('img', {src:bg, loading:'lazy', decoding:'async', alt:'', onerror:e => { e.target.remove(); if (meta.poster) { p.classList.add('fit'); p.append(h('img', {class:'wfill', src:meta.poster, alt:''}), h('img', {class:'wfit', src:meta.poster, alt:''})); } }}));
-    else { p.classList.add('fit'); p.append(h('img', {class:'wfill', src:meta.poster, loading:'lazy', decoding:'async', alt:''}), h('img', {class:'wfit', src:meta.poster, loading:'lazy', decoding:'async', alt:'', onerror:e => e.target.remove()})); }
-    try { artWatch(p, meta); } catch {}                                // the titled wide picture, once the card is on screen (35-card-art.js)
+  if (document.body.classList.contains('tv') && (meta.background || meta.poster)) {   // TV: landscape cards (35-card-art.js picks the picture)
+    p.classList.add('wide'); p._artMeta = meta;
+    const known = artKnown(meta);
+    if (known && (known.u || known.l)) artShow(p, known);              // already looked up: the titled art straight away
+    else if (known) wideFallback(p, meta);                             // TMDB has none: the plain picture with the name written on it
+    else { p.classList.add('pend'); artWatch(p, meta); }               // not looked up yet: an empty card until the answer, so no picture swaps in
   } else if (meta.poster) p.append(h('img', {src:meta.poster, loading:'lazy', decoding:'async', alt:'', onerror:e=>e.target.remove()}));
   const iid = meta.itemId || meta.id;
   if (iid) { p.dataset.iid = iid; const rb = ribEl(iid); if (rb) p.append(rb); }
