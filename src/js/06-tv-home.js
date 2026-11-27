@@ -16,7 +16,7 @@ function setTvHero(ctx, instant){
     if (instant) img.classList.add('on');
   }
   const gen = (Array.isArray(m.genres) ? m.genres : Array.isArray(m.genre) ? m.genre : []).slice(0, 3);
-  const bits = [m.releaseInfo || m.year, m.runtime, ...gen].filter(Boolean);
+  const bits = [m.releaseInfo || m.year, fmtRun(m.runtime), ...gen].filter(Boolean);
   const title = h('div', {class:'ttitle'}, m.name);
   const logo = m.logo ? h('img', {class:'tlogo', src:m.logo, alt:m.name, onerror:e => e.target.replaceWith(title)}) : title;
   const fk = tin.contains(document.activeElement) ? document.activeElement.dataset.k : null;   // the button you were on stays focused when the slide changes

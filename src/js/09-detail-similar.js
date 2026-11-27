@@ -214,6 +214,39 @@ function epPref(list, id, from = -Infinity){
   const t = cards.find(c => open(c) && +c.dataset.e >= from) || cards.find(open);
   if (t && t !== cards[0]) t.dataset.pref = '1';
 }
+/* durations: "1h 52m" / "45m"; filled from TMDB when the addon didn't give one (needs the TMDB key) */
+function fmtRun(r){
+  if (!r) return ''; const t = String(r), hh = t.match(/(\d+)\s*h/i), mm = t.match(/(\d+)\s*m/i);
+  const n = hh ? +hh[1] * 60 + (mm ? +mm[1] : 0) : parseInt(t, 10); if (!n) return ''; return n >= 60 ? Math.floor(n / 60) + 'h' + (n % 60 ? ' ' + (n % 60) + 'm' : '') : n + 'm';
+}
+async function tmRef(meta, type){
+  const id = String(meta.id || ''), k = type === 'series' ? 'tv' : 'movie';
+  if (/^tt\d/.test(id)) { const r = await tmIdOf(id.split(':')[0]); return r && r.k === k ? r : r ? {k, id:null} : null; }
+  const m = id.match(/^tmdb:(?:[a-z]+:)?(\d+)/); return m ? {k, id:+m[1]} : null;
+}
+function runFill(row, meta, type){
+  if (meta.runtime || type !== 'movie' || !lsGet('streamlet.tmdb', '')) return row;
+  tmRef(meta, type).then(r => r && r.id ? tmdbGet(`/movie/${r.id}`, lsGet('streamlet.tmdb', '')) : null).then(d => {
+    if (!d || !d.runtime) return; meta.runtime = d.runtime + ' min';
+    row.prepend(h('span', null, fmtRun(meta.runtime)), h('span', {class:'dot'}, '·'));
+  }).catch(() => {});
+  return row;
+}
+const epRunMem = new Map();
+function epRuns(meta, type, sn){
+  const ck = meta.id + '|' + sn;
+  if (!epRunMem.has(ck)) epRunMem.set(ck, tmRef(meta, type).then(r => r && r.id ? tmdbGet(`/tv/${r.id}/season/${sn}`, lsGet('streamlet.tmdb', '')) : null)
+    .then(d => { const m = new Map(); for (const e of (d && d.episodes) || []) if (e.runtime) m.set(e.episode_number, e.runtime); return m; })
+    .catch(() => { epRunMem.delete(ck); return new Map(); }));
+  return epRunMem.get(ck);
+}
+function epDateEl(meta, type, v, soon){
+  const when = soon ? 'Soon' : (v.released ? fmtDate(v.released) : ''), el = h('span', {class:'edate'}, [when, fmtRun(v.runtime)].filter(Boolean).join(' · '));
+  if (!v.runtime && !soon && type === 'series' && lsGet('streamlet.tmdb', '')) epRuns(meta, type, v.season ?? 1).then(m => {
+    const n = m.get(v.episode); if (!n) return; v.runtime = n + ' min'; el.textContent = [when, fmtRun(v.runtime)].filter(Boolean).join(' · ');
+  });
+  return el;
+}
 function epCard(addon, type, meta, v, sorted, soon, th, hist, again){
   const rec = epGet(meta.id, v.season ?? 1, v.episode), seen = !!(rec && rec.done), pct = rec && !rec.done && rec.dur && rec.pos > 20 ? Math.min(100, Math.round(rec.pos / rec.dur * 100)) : 0;
   return h('button', {class:'ep' + (soon ? ' soon' : '') + (seen ? ' seen' : ''), type:'button', 'data-sid':meta.id, 'data-s':String(v.season ?? 1), 'data-e':String(v.episode ?? 0), onclick:() => openEpisode(addon, type, meta, v, sorted, again)},
@@ -221,7 +254,7 @@ function epCard(addon, type, meta, v, sorted, soon, th, hist, again){
       h('span', {class:'enum'}, String(v.episode ?? '')),
       seen ? (() => { const b = h('span', {class:'eseen', 'aria-label':'Watched'}); b.innerHTML = EYE_SVG; return b; })() : null,
       pct ? h('div', {class:'epg'}, h('i', {style:`width:${pct}%`})) : null),
-    h('div', {class:'einfo'}, h('div', {class:'etop'}, h('b', {class:'etitle'}, v.title || v.name || `Episode ${v.episode ?? ''}`), h('span', {class:'edate'}, soon ? 'Soon' : (v.released ? fmtDate(v.released) : ''))),
+    h('div', {class:'einfo'}, h('div', {class:'etop'}, h('b', {class:'etitle'}, v.title || v.name || `Episode ${v.episode ?? ''}`), epDateEl(meta, type, v, soon)),
       (v.overview || v.description) ? h('p', {class:'eover'}, v.overview || v.description) : null));
 }
 /* TV: the lower half of an entry page: rows of episodes / sources, cast and crew, similar titles */
@@ -259,7 +292,7 @@ function openEpisode(addon, type, meta, v, sorted, again){
         h('div', {class:'dleft'},
           h('div', {class:'dep'}, `${meta.name} · Season ${sn}, episode ${v.episode ?? ''}`),
           h('div', {class:'dbt'}, h('h1', {class:'dbt-title'}, title)),
-          metaRow([v.runtime || meta.runtime, when || meta.year || meta.releaseInfo], meta.imdbRating),
+          metaRow([fmtRun(v.runtime || meta.runtime), when || meta.year || meta.releaseInfo], meta.imdbRating),
           (v.overview || v.description) ? h('p', {class:'ddesc'}, v.overview || v.description) : null,
           h('div', {class:'dacts2'}, play, dlEpBtn(addon, type, meta, v, sorted), (() => { const b = h('button', {class:'pib', type:'button', 'aria-label':'Watched'}); b.innerHTML = `<svg viewBox="0 0 24 24">${IC.seen}</svg>`; const paint = () => { const on = epDone(meta.id, sn, v.episode); b.classList.toggle('on', on); b.title = on ? 'Mark episode as unwatched' : 'Mark episode as watched'; }; b.onclick = () => { epMark(meta.id, [v], !epDone(meta.id, sn, v.episode)); paint(); toast(epDone(meta.id, sn, v.episode) ? 'Marked as watched' : 'Marked as unwatched'); }; paint(); return b; })()),
           hintEl()),
@@ -295,7 +328,7 @@ async function openDetail(addon, type, item, opts = {}){
     const acts = h('div', {class:'dacts2'});
     const body = h('div', {class:'dbody'}, h('div', {class:'dleft'},
       titleBlock(meta), relBadgeEl(meta, type),
-      metaRow([meta.runtime, genres.slice(0, 3).join(', '), meta.year || meta.releaseInfo], meta.imdbRating, [ico.seen]),
+      runFill(metaRow([fmtRun(meta.runtime), genres.slice(0, 3).join(', '), meta.year || meta.releaseInfo], meta.imdbRating, [ico.seen]), meta, type),
       meta.description ? h('p', {class:'ddesc'}, meta.description) : null,
       acts, infoPanel(meta, genres), hintEl(),
       ph(genres.length ? h('div', {class:'dgen'}, genres.map(g => h('button', {class:'pillx', type:'button', onclick:() => searchFor(g)}, g))) : null),

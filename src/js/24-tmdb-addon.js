@@ -431,7 +431,7 @@ async function tmMeta(type, id){
       const chunk = nums.slice(i, i + 20), r = await tmdbGet(`/tv/${tid}?append_to_response=${chunk.map(n => 'season/' + n).join(',')}`, tmKey());
       for (const n of chunk) for (const e of ((r['season/' + n] || {}).episodes || []))
         videos.push({id:`${mid}:${n}:${e.episode_number}`, season:n, episode:e.episode_number, title:e.name || `Episode ${e.episode_number}`, name:e.name,
-          released:e.air_date ? e.air_date + 'T05:00:00.000Z' : undefined, thumbnail:e.still_path ? TM_IMG + 'w500' + e.still_path : undefined, overview:e.overview || '', description:e.overview || ''});
+          released:e.air_date ? e.air_date + 'T05:00:00.000Z' : undefined, thumbnail:e.still_path ? TM_IMG + 'w500' + e.still_path : undefined, overview:e.overview || '', description:e.overview || '', runtime:e.runtime ? e.runtime + ' min' : undefined});
     }
     meta.videos = videos;
   }
