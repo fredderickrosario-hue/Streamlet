@@ -72,9 +72,31 @@ const listOf = (meta, key, cat) => {
   if (typeof v === 'string' && v) return v.split(/\s*,\s*/);
   return (meta.links || []).filter(l => (l.category || '').toLowerCase() === cat).map(l => l.name);
 };
-function chipsSection(title, names){
+function chipsSection(title, names, meta, type){
   if (!names.length) return null;
-  return h('div', {class:'dsec'}, h('h4', null, title), h('div', {class:'cchips'}, names.map(n => h('button', {class:'pillx', type:'button', onclick:() => searchFor(n)}, n))));
+  const box = h('div', {class:'cchips'}, names.map(n => h('button', {class:'pillx', type:'button', onclick:() => searchFor(n)}, n)));
+  if (meta) castPics(box, meta, type).catch(() => {});
+  return h('div', {class:'dsec'}, h('h4', null, title), box);
+}
+/* cast: a small photo of each actor from TMDB, matched by name (needs the TMDB key) */
+const castMem = new Map();
+const castKey = n => String(n || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]/g, '');
+async function castPics(box, meta, type){
+  const key = lsGet('streamlet.tmdb', ''), id = String(meta.id || ''); if (!key || !id) return;
+  let ref = null;
+  if (/^tt\d/.test(id)) ref = await tmIdOf(id.split(':')[0]);
+  else { const m = id.match(/^tmdb:(\d+)/); if (m) ref = {k:type === 'series' ? 'tv' : 'movie', id:+m[1]}; }
+  if (!ref) return;
+  const ck = ref.k + ref.id;
+  if (!castMem.has(ck)) castMem.set(ck, tmdbGet(`/${ref.k}/${ref.id}/${ref.k === 'tv' ? 'aggregate_credits' : 'credits'}`, key).then(r => {
+    const map = new Map(); for (const c of r.cast || []) if (c.profile_path && !map.has(castKey(c.name))) map.set(castKey(c.name), 'https://image.tmdb.org/t/p/w92' + c.profile_path);
+    return map;
+  }).catch(() => { castMem.delete(ck); return new Map(); }));
+  const map = await castMem.get(ck);
+  for (const b of box.querySelectorAll('.pillx')) {
+    const u = map.get(castKey(b.textContent)); if (!u || b.querySelector('img')) continue;
+    b.classList.add('pic'); b.prepend(h('img', {class:'cpic', src:u, alt:'', loading:'lazy', decoding:'async', onerror:e => { e.target.remove(); b.classList.remove('pic'); }}));
+  }
 }
 function toggleIcons(addon, type, meta){
   if (!profile) return {wl:null, seen:null, like:null};
@@ -204,7 +226,7 @@ function epCard(addon, type, meta, v, sorted, soon, th, hist, again){
 }
 /* TV: the lower half of an entry page: rows of episodes / sources, cast and crew, similar titles */
 function tvRowsFor(addon, type, meta, title, els, opts = {}){
-  const people = [chipsSection('Cast', listOf(meta, 'cast', 'cast')), chipsSection('Director', listOf(meta, 'director', 'director')), chipsSection('Writer', listOf(meta, 'writer', 'writer'))].filter(Boolean);
+  const people = [chipsSection('Cast', listOf(meta, 'cast', 'cast'), meta, type), chipsSection('Director', listOf(meta, 'director', 'director')), chipsSection('Writer', listOf(meta, 'writer', 'writer'))].filter(Boolean);
   let simRow = null;
   if (opts.sim !== false) { const sim = h('div', {class:'dpane'}); similarPane(sim, addon, type, meta); simRow = h('section', {class:'drow dsimr'}, h('h3', {class:'drt'}, 'More like this'), sim); }
   return h('div', {class:'dp2'}, h('div', {class:'dp2in'},
@@ -277,7 +299,7 @@ async function openDetail(addon, type, item, opts = {}){
       meta.description ? h('p', {class:'ddesc'}, meta.description) : null,
       acts, infoPanel(meta, genres), hintEl(),
       ph(genres.length ? h('div', {class:'dgen'}, genres.map(g => h('button', {class:'pillx', type:'button', onclick:() => searchFor(g)}, g))) : null),
-      ph(chipsSection('Cast', listOf(meta, 'cast', 'cast'))), ph(chipsSection('Director', listOf(meta, 'director', 'director'))), ph(chipsSection('Writer', listOf(meta, 'writer', 'writer')))));
+      ph(chipsSection('Cast', listOf(meta, 'cast', 'cast'), meta, type)), ph(chipsSection('Director', listOf(meta, 'director', 'director'))), ph(chipsSection('Writer', listOf(meta, 'writer', 'writer')))));
     const tvRows = (title, els) => tvRowsFor(addon, type, meta, title, els, type === 'series' && withStreams ? {after:[eoSection(meta, reloadMeta)]} : {});
     if (withStreams && sorted.length) {                                    // ---- series: seasons + episodes
       const seasons = [...new Set(sorted.map(v => v.season ?? 1))];

@@ -329,3 +329,7 @@ body.tv .avstrip{min-height:128px}
 .cropw:active{cursor:grabbing}
 .cropg{position:absolute;left:50%;top:50%;max-width:none;opacity:.5;user-select:none;-webkit-user-drag:none;pointer-events:none}
 .cropw .cropv{position:absolute;left:50%;top:50%;margin:-120px 0 0 -120px;pointer-events:none;cursor:inherit}
+/* cast pills with a small photo of the actor (castPics in 09-detail-similar.js) */
+.pillx.pic{display:inline-flex;align-items:center;gap:9px}
+body.tv :is(#detail,#episode) .dp2 .pillx.pic, :is(#detail,#episode) .pillx.pic{padding-left:4px}
+.pillx .cpic{width:30px;height:30px;border-radius:50%;object-fit:cover;object-position:center 20%;flex:0 0 auto}
